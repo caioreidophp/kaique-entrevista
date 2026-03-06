@@ -24,4 +24,29 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) {
+                        return;
+                    }
+
+                    if (id.includes('/@inertiajs/')) {
+                        return 'inertia';
+                    }
+
+                    if (id.includes('@radix-ui') || id.includes('@headlessui')) {
+                        return 'ui-vendor';
+                    }
+
+                    if (id.includes('lucide-react')) {
+                        return 'icons';
+                    }
+
+                    return 'vendor';
+                },
+            },
+        },
+    },
 });

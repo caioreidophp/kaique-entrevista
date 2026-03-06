@@ -141,3 +141,31 @@
         @apply bg-background text-foreground;
     }
 }
+
+@media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+    }
+
+    .transport-print {
+        font-size: 12px;
+    }
+
+    .transport-print .rounded-xl {
+        border-radius: 8px !important;
+    }
+
+    .transport-print .space-y-6 > * + * {
+        margin-top: 0.75rem !important;
+    }
+
+    .transport-print .space-y-4 > * + * {
+        margin-top: 0.5rem !important;
+    }
+}

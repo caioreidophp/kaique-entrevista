@@ -14,4 +14,116 @@ Route::get('dashboard', function () {
     return Inertia::render('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::prefix('transport')->group(function (): void {
+    Route::get('login', function () {
+        return Inertia::render('transport/login');
+    })->name('transport.login');
+
+    Route::get('home', function () {
+        return Inertia::render('transport/home');
+    })->name('transport.home');
+
+    Route::get('dashboard', function () {
+        return Inertia::render('transport/dashboard');
+    })->name('transport.dashboard');
+
+    Route::prefix('payroll')->group(function (): void {
+        Route::get('/', function () {
+            return Inertia::render('transport/payroll/dashboard');
+        })->name('transport.payroll.index');
+
+        Route::get('dashboard', function () {
+            return Inertia::render('transport/payroll/dashboard');
+        })->name('transport.payroll.dashboard');
+
+        Route::get('launch', function () {
+            return Inertia::render('transport/payroll/launch');
+        })->name('transport.payroll.launch');
+
+        Route::get('list', function () {
+            return Inertia::render('transport/payroll/list');
+        })->name('transport.payroll.list');
+
+        Route::get('reports/unit', function () {
+            return Inertia::render('transport/payroll/report-unit');
+        })->name('transport.payroll.report-unit');
+
+        Route::get('reports/collaborator', function () {
+            return Inertia::render('transport/payroll/report-collaborator');
+        })->name('transport.payroll.report-collaborator');
+    });
+
+    Route::prefix('freight')->group(function (): void {
+        Route::get('/', function () {
+            return Inertia::render('transport/freight/dashboard');
+        })->name('transport.freight.index');
+
+        Route::get('dashboard', function () {
+            return Inertia::render('transport/freight/dashboard');
+        })->name('transport.freight.dashboard');
+
+        Route::get('launch', function () {
+            return Inertia::render('transport/freight/launch');
+        })->name('transport.freight.launch');
+
+        Route::get('monthly', function () {
+            return Inertia::render('transport/freight/monthly');
+        })->name('transport.freight.monthly');
+
+        Route::get('timeline', function () {
+            return Inertia::render('transport/freight/timeline');
+        })->name('transport.freight.timeline');
+    });
+
+    Route::get('interviews', function () {
+        return Inertia::render('transport/interviews/index');
+    })->name('transport.interviews.index');
+
+    Route::get('interviews/create', function () {
+        return Inertia::render('transport/interviews/create');
+    })->name('transport.interviews.create');
+
+    Route::get('next-steps', function () {
+        return Inertia::render('transport/next-steps');
+    })->name('transport.next-steps');
+
+    Route::get('onboarding', function () {
+        return Inertia::render('transport/onboarding/index');
+    })->name('transport.onboarding.index');
+
+    Route::get('interviews/{interviewId}', function (int $interviewId) {
+        return Inertia::render('transport/interviews/show', [
+            'interviewId' => $interviewId,
+        ]);
+    })->name('transport.interviews.show');
+
+    Route::get('interviews/{interviewId}/edit', function (int $interviewId) {
+        return Inertia::render('transport/interviews/edit', [
+            'interviewId' => $interviewId,
+        ]);
+    })->name('transport.interviews.edit');
+
+    Route::get('settings', function () {
+        return Inertia::render('transport/settings');
+    })->name('transport.settings');
+
+    Route::prefix('registry')->group(function (): void {
+        Route::get('collaborators', function () {
+            return Inertia::render('transport/registry/collaborators');
+        })->name('transport.registry.collaborators');
+
+        Route::get('users', function () {
+            return Inertia::render('transport/registry/users');
+        })->name('transport.registry.users');
+
+        Route::get('functions', function () {
+            return Inertia::render('transport/registry/functions');
+        })->name('transport.registry.functions');
+    });
+
+    Route::get('activity-log', function () {
+        return Inertia::render('transport/activity-log');
+    })->name('transport.activity-log');
+});
+
 require __DIR__.'/settings.php';
