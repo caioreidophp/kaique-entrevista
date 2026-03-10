@@ -130,7 +130,10 @@ class Colaborador extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->foto_3x4_path);
+        $path = ltrim($this->foto_3x4_path, '/');
+        $version = $this->updated_at?->timestamp ?? time();
+
+        return '/storage/'.$path.'?v='.$version;
     }
 
     public function getActivitylogOptions(): LogOptions
