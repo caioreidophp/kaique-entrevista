@@ -2182,7 +2182,7 @@ export default function TransportRegistryCollaboratorsPage() {
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-6xl">
+                <DialogContent className="max-h-[92vh] overflow-hidden sm:max-w-6xl">
                     <DialogHeader>
                         <DialogTitle>Perfil do colaborador</DialogTitle>
                         <DialogDescription>
@@ -2193,7 +2193,7 @@ export default function TransportRegistryCollaboratorsPage() {
                     </DialogHeader>
 
                     {detailsItem ? (
-                        <div className="space-y-4">
+                        <div className="max-h-[calc(92vh-9rem)] space-y-4 overflow-y-auto pr-2">
                             <div className="rounded-xl border bg-muted/20 p-4">
                                 <div className="grid gap-4 lg:grid-cols-[120px_1fr]">
                                     <div className="flex justify-center lg:justify-start">
