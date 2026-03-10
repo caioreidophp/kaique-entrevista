@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Colaborador;
 use App\Models\Pagamento;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreBatchPagamentosRequest extends FormRequest
@@ -17,16 +18,30 @@ class StoreBatchPagamentosRequest extends FormRequest
                     return $item;
                 }
 
-                if (array_key_exists('valor', $item)) {
-                    $item['valor'] = str_replace(['.', ','], ['', '.'], (string) $item['valor']);
+                $item['selected'] = filter_var($item['selected'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+                if (isset($item['valores_por_tipo']) && is_array($item['valores_por_tipo'])) {
+                    $item['valores_por_tipo'] = collect($item['valores_por_tipo'])
+                        ->map(function ($value) {
+                            return str_replace(['.', ','], ['', '.'], (string) $value);
+                        })
+                        ->all();
                 }
 
                 return $item;
             })
             ->all();
 
+        $tipoPagamentoIds = collect((array) $this->input('tipo_pagamento_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
         $this->merge([
             'pagamentos' => $pagamentos,
+            'tipo_pagamento_ids' => $tipoPagamentoIds,
         ]);
     }
 
@@ -42,12 +57,17 @@ class StoreBatchPagamentosRequest extends FormRequest
     {
         return [
             'unidade_id' => ['required', 'integer', 'exists:unidades,id'],
-            'competencia_mes' => ['required', 'integer', 'between:1,12'],
-            'competencia_ano' => ['required', 'integer', 'between:2000,2100'],
+            'descricao' => ['nullable', 'string', 'max:255'],
+            'data_pagamento' => ['nullable', 'date'],
+            'competencia_mes' => ['nullable', 'integer', 'between:1,12'],
+            'competencia_ano' => ['nullable', 'integer', 'between:2000,2100'],
+            'tipo_pagamento_ids' => ['nullable', 'array'],
+            'tipo_pagamento_ids.*' => ['nullable', 'integer', Rule::exists('tipos_pagamento', 'id')],
             'pagamentos' => ['required', 'array', 'min:1'],
             'pagamentos.*.colaborador_id' => ['required', 'integer', 'exists:colaboradores,id'],
-            'pagamentos.*.valor' => ['required', 'numeric', 'min:0'],
-            'pagamentos.*.observacao' => ['nullable', 'string'],
+            'pagamentos.*.selected' => ['nullable', 'boolean'],
+            'pagamentos.*.valor' => ['nullable', 'numeric', 'min:0'],
+            'pagamentos.*.valores_por_tipo' => ['nullable', 'array'],
         ];
     }
 
@@ -55,13 +75,37 @@ class StoreBatchPagamentosRequest extends FormRequest
     {
         $validator->after(function (Validator $validator): void {
             $unidadeId = (int) $this->integer('unidade_id');
-            $mes = (int) $this->integer('competencia_mes');
-            $ano = (int) $this->integer('competencia_ano');
+            $dataPagamento = $this->date('data_pagamento')?->toDateString();
+            $competenciaMes = (int) $this->integer('competencia_mes');
+            $competenciaAno = (int) $this->integer('competencia_ano');
+            $tipoPagamentoIds = collect((array) $this->input('tipo_pagamento_ids', []))
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn (int $id) => $id > 0)
+                ->unique();
+            $isNewMode = $tipoPagamentoIds->isNotEmpty() || (bool) $dataPagamento;
+
+            if ($isNewMode) {
+                if (! $dataPagamento) {
+                    $validator->errors()->add('data_pagamento', 'Informe a data de pagamento.');
+                }
+
+                if ($tipoPagamentoIds->isEmpty()) {
+                    $validator->errors()->add('tipo_pagamento_ids', 'Selecione ao menos um tipo de pagamento.');
+                }
+            } else {
+                if ($competenciaMes <= 0 || $competenciaAno <= 0) {
+                    $validator->errors()->add('competencia_mes', 'Informe mês e ano da competência para lançamento legado.');
+                }
+            }
 
             $uniqueInPayload = [];
+            $selectedCount = 0;
 
             foreach ((array) $this->input('pagamentos', []) as $index => $item) {
                 $colaboradorId = (int) ($item['colaborador_id'] ?? 0);
+                $selected = (bool) ($item['selected'] ?? false);
+                $valoresPorTipo = (array) ($item['valores_por_tipo'] ?? []);
+                $valorLegado = (float) ($item['valor'] ?? 0);
 
                 if (! $colaboradorId) {
                     continue;
@@ -92,18 +136,83 @@ class StoreBatchPagamentosRequest extends FormRequest
                     continue;
                 }
 
-                $exists = Pagamento::query()
-                    ->where('colaborador_id', $colaboradorId)
-                    ->where('competencia_mes', $mes)
-                    ->where('competencia_ano', $ano)
-                    ->exists();
+                if ($isNewMode) {
+                    if (! $selected) {
+                        continue;
+                    }
 
-                if ($exists) {
-                    $validator->errors()->add(
-                        "pagamentos.{$index}.colaborador_id",
-                        'Já existe pagamento para este colaborador na competência informada.',
-                    );
+                    $selectedCount++;
+
+                    $hasPositiveValue = false;
+
+                    foreach ($tipoPagamentoIds as $tipoPagamentoId) {
+                        $raw = (string) ($valoresPorTipo[(string) $tipoPagamentoId] ?? '0');
+                        $valor = (float) $raw;
+
+                        if ($valor < 0) {
+                            $validator->errors()->add(
+                                "pagamentos.{$index}.valores_por_tipo.{$tipoPagamentoId}",
+                                'O valor por tipo não pode ser negativo.',
+                            );
+                            continue;
+                        }
+
+                        if ($valor > 0) {
+                            $hasPositiveValue = true;
+                        }
+
+                        if (! $dataPagamento || $valor <= 0) {
+                            continue;
+                        }
+
+                        $exists = Pagamento::query()
+                            ->where('colaborador_id', $colaboradorId)
+                            ->where('tipo_pagamento_id', $tipoPagamentoId)
+                            ->whereDate('data_pagamento', $dataPagamento)
+                            ->exists();
+
+                        if ($exists) {
+                            $validator->errors()->add(
+                                "pagamentos.{$index}.valores_por_tipo.{$tipoPagamentoId}",
+                                'Já existe lançamento deste tipo para o colaborador na data informada.',
+                            );
+                        }
+                    }
+
+                    if (! $hasPositiveValue) {
+                        $validator->errors()->add(
+                            "pagamentos.{$index}.valores_por_tipo",
+                            'Informe ao menos um valor maior que zero para o colaborador selecionado.',
+                        );
+                    }
+
+                    continue;
                 }
+
+                if ($valorLegado <= 0) {
+                    continue;
+                }
+
+                $selectedCount++;
+
+                if ($competenciaMes > 0 && $competenciaAno > 0) {
+                    $exists = Pagamento::query()
+                        ->where('colaborador_id', $colaboradorId)
+                        ->where('competencia_mes', $competenciaMes)
+                        ->where('competencia_ano', $competenciaAno)
+                        ->exists();
+
+                    if ($exists) {
+                        $validator->errors()->add(
+                            "pagamentos.{$index}.colaborador_id",
+                            'Já existe pagamento para este colaborador na competência informada.',
+                        );
+                    }
+                }
+            }
+
+            if ($selectedCount === 0) {
+                $validator->errors()->add('pagamentos', 'Informe ao menos um lançamento com valor maior que zero.');
             }
         });
     }

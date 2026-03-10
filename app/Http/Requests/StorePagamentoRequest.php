@@ -29,9 +29,12 @@ class StorePagamentoRequest extends FormRequest
     {
         return [
             'colaborador_id' => ['required', 'integer', 'exists:colaboradores,id'],
-            'competencia_mes' => ['required', 'integer', 'between:1,12'],
-            'competencia_ano' => ['required', 'integer', 'between:2000,2100'],
+            'tipo_pagamento_id' => ['nullable', 'integer', 'exists:tipos_pagamento,id'],
+            'competencia_mes' => ['nullable', 'integer', 'between:1,12'],
+            'competencia_ano' => ['nullable', 'integer', 'between:2000,2100'],
             'valor' => ['required', 'numeric', 'min:0'],
+            'descricao' => ['nullable', 'string', 'max:255'],
+            'data_pagamento' => ['nullable', 'date'],
             'observacao' => ['nullable', 'string'],
             'lancado_em' => ['nullable', 'date'],
             'autor_id' => ['prohibited'],
@@ -57,13 +60,41 @@ class StorePagamentoRequest extends FormRequest
                 return;
             }
 
-            $alreadyExists = Pagamento::query()
+            $tipoPagamentoId = (int) $this->integer('tipo_pagamento_id');
+            $dataPagamento = $this->date('data_pagamento')?->toDateString();
+
+            if ($tipoPagamentoId > 0 && $dataPagamento) {
+                $alreadyExists = Pagamento::query()
+                    ->where('colaborador_id', (int) $this->integer('colaborador_id'))
+                    ->where('tipo_pagamento_id', $tipoPagamentoId)
+                    ->whereDate('data_pagamento', $dataPagamento)
+                    ->exists();
+
+                if ($alreadyExists) {
+                    $validator->errors()->add(
+                        'tipo_pagamento_id',
+                        'Já existe lançamento deste tipo para o colaborador na data informada.',
+                    );
+                }
+                return;
+            }
+
+            if (! $this->filled('competencia_mes') || ! $this->filled('competencia_ano')) {
+                $validator->errors()->add(
+                    'competencia_mes',
+                    'Informe competência (mês/ano) quando não houver tipo e data de pagamento.',
+                );
+
+                return;
+            }
+
+            $alreadyExistsByCompetencia = Pagamento::query()
                 ->where('colaborador_id', (int) $this->integer('colaborador_id'))
                 ->where('competencia_mes', (int) $this->integer('competencia_mes'))
                 ->where('competencia_ano', (int) $this->integer('competencia_ano'))
                 ->exists();
 
-            if ($alreadyExists) {
+            if ($alreadyExistsByCompetencia) {
                 $validator->errors()->add(
                     'colaborador_id',
                     'Já existe pagamento para este colaborador na competência informada.',

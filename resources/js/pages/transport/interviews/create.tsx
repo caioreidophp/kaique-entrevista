@@ -193,7 +193,14 @@ export default function TransportInterviewsCreatePage() {
                     <Notification message={success} variant="success" />
                 ) : null}
 
-                <Dialog open={resumeDialogOpen}>
+                <Dialog
+                    open={resumeDialogOpen}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            handleDiscardDraft();
+                        }
+                    }}
+                >
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>

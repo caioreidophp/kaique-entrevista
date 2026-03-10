@@ -25,10 +25,13 @@ interface ReportResponse {
         competencia_mes: number;
         competencia_ano: number;
         valor: number;
+        parcela_emprestimo?: number;
+        ganho_total?: number;
         lancado_em: string | null;
         observacao: string | null;
     }>;
     total_acumulado: number;
+    total_acumulado_com_emprestimo?: number;
     media_salarial: number;
     variacao_percentual: Array<{
         competencia_mes: number;
@@ -205,7 +208,7 @@ export default function TransportPayrollReportCollaboratorPage() {
 
     return (
         <AdminLayout
-            title="Salários - Relatório por Colaborador"
+            title="Pagamentos - Relatório por Colaborador"
             active="payroll-report-collaborator"
             module="payroll"
         >
@@ -424,6 +427,21 @@ export default function TransportPayrollReportCollaboratorPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm text-muted-foreground">
+                                        Total com empréstimos
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-2xl font-semibold">
+                                        {formatCurrency(
+                                            report.total_acumulado_com_emprestimo ??
+                                                report.total_acumulado,
+                                        )}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-sm text-muted-foreground">
                                         Média salarial
                                     </CardTitle>
                                 </CardHeader>
@@ -493,9 +511,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                             }
                                                         </span>
                                                         <span className="font-semibold">
-                                                            {formatCurrency(
-                                                                item.valor,
-                                                            )}
+                                                            {formatCurrency(item.ganho_total ?? item.valor)}
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
@@ -514,6 +530,10 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                                 ? '-'
                                                                 : `${variation}%`}
                                                         </span>
+                                                    </div>
+                                                    <div className="mt-1 text-xs text-muted-foreground">
+                                                        Pagamento: {formatCurrency(item.valor)} | Parcela empréstimo:{' '}
+                                                        {formatCurrency(item.parcela_emprestimo ?? 0)}
                                                     </div>
                                                     {item.observacao ? (
                                                         <p className="mt-2 text-xs text-muted-foreground">

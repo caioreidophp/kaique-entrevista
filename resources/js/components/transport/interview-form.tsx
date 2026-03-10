@@ -43,6 +43,14 @@ const CITY_ROW_HEIGHT = 36;
 const CITY_VIEWPORT_HEIGHT = 288;
 const CITY_OVERSCAN = 6;
 
+const maritalStatusOptions = [
+    'Casado(a)',
+    'Solteiro(a)',
+    'Amasiado(a)',
+    'Divorciado(a)',
+    'Viúvo(a)',
+];
+
 function sanitizeCpf(value: string): string {
     return value.replace(/\D/g, '').slice(0, 11);
 }
@@ -79,9 +87,34 @@ function sanitizeRg(value: string): string {
 }
 
 function formatRg(value: string): string {
-    const sanitized = sanitizeRg(value);
+    return sanitizeRg(value);
+}
 
-    return sanitized.replace(/(.{3})(?=.)/g, '$1.');
+function toCurrencyDigits(value: string): string {
+    return value.replace(/\D/g, '');
+}
+
+function formatCurrencyInput(value: string): string {
+    const digits = toCurrencyDigits(value);
+
+    if (!digits) {
+        return '';
+    }
+
+    return (Number(digits) / 100).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    });
+}
+
+function currencyInputToNumber(value: string): number {
+    const digits = toCurrencyDigits(value);
+
+    if (!digits) {
+        return 0;
+    }
+
+    return Number(digits) / 100;
 }
 
 function sanitizeCnhNumber(value: string): string {
@@ -158,6 +191,7 @@ function defaultFormData(
         phone: formatPhone(initialData?.phone ?? ''),
         email: initialData?.email ?? '',
         city: initialData?.city ?? '',
+        cargo_pretendido: initialData?.cargo_pretendido ?? '',
         hiring_unidade_id: initialData?.hiring_unidade_id
             ? String(initialData.hiring_unidade_id)
             : '',
@@ -165,7 +199,7 @@ function defaultFormData(
         has_children: initialData?.has_children ?? false,
         children_situation: initialData?.children_situation ?? '',
         cpf: formatCpf(initialData?.cpf ?? ''),
-        rg: formatRg(initialData?.rg ?? ''),
+        rg: sanitizeRg(initialData?.rg ?? ''),
         cnh_number: sanitizeCnhNumber(initialData?.cnh_number ?? ''),
         cnh_category: sanitizeCnhCategory(initialData?.cnh_category ?? ''),
         cnh_expiration_date: initialData?.cnh_expiration_date ?? '',
@@ -207,8 +241,10 @@ function defaultFormData(
         contact_name: initialData?.contact_name ?? '',
         expectations_about_company:
             initialData?.expectations_about_company ?? '',
-        last_salary: String(initialData?.last_salary ?? ''),
-        salary_expectation: String(initialData?.salary_expectation ?? ''),
+        last_salary: formatCurrencyInput(String(initialData?.last_salary ?? '')),
+        salary_expectation: formatCurrencyInput(
+            String(initialData?.salary_expectation ?? ''),
+        ),
         salary_observation: initialData?.salary_observation ?? '',
         posture_communication: initialData?.posture_communication ?? '',
         perceived_experience: initialData?.perceived_experience ?? '',
@@ -217,6 +253,7 @@ function defaultFormData(
         availability_matches: initialData?.availability_matches ?? true,
         overall_score: String(initialData?.overall_score ?? ''),
         hr_status: initialData?.hr_status ?? 'aguardando_vaga',
+        hr_rejection_reason: initialData?.hr_rejection_reason ?? '',
         guep_status: initialData?.guep_status ?? 'aguardando',
     };
 
@@ -281,6 +318,225 @@ function BooleanSelect({
     );
 }
 
+function CityAutocompleteField({
+    label,
+    error,
+    value,
+    onChange,
+    cityOptions,
+}: {
+    label: string;
+    error?: string;
+    value: string;
+    onChange: (next: string) => void;
+    cityOptions: Array<{ value: string; label: string }>;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [scrollTop, setScrollTop] = useState(0);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const listRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const filteredOptions = useMemo(() => {
+        const term = normalizeSearchText(value);
+
+        if (!term) {
+            return cityOptions;
+        }
+
+        return cityOptions.filter((option) =>
+            normalizeSearchText(option.label).includes(term),
+        );
+    }, [cityOptions, value]);
+
+    const visibleRange = useMemo(() => {
+        const visibleCount = Math.ceil(CITY_VIEWPORT_HEIGHT / CITY_ROW_HEIGHT);
+        const start = Math.max(
+            0,
+            Math.floor(scrollTop / CITY_ROW_HEIGHT) - CITY_OVERSCAN,
+        );
+        const end = Math.min(
+            filteredOptions.length,
+            start + visibleCount + CITY_OVERSCAN * 2,
+        );
+
+        return { start, end };
+    }, [filteredOptions.length, scrollTop]);
+
+    const visibleOptions = useMemo(
+        () => filteredOptions.slice(visibleRange.start, visibleRange.end),
+        [filteredOptions, visibleRange.end, visibleRange.start],
+    );
+    const effectiveHighlightedIndex =
+        filteredOptions.length === 0
+            ? -1
+            : Math.min(
+                  Math.max(highlightedIndex, 0),
+                  filteredOptions.length - 1,
+              );
+
+    function openOptions(): void {
+        setIsOpen(true);
+        setScrollTop(0);
+        setHighlightedIndex(filteredOptions.length > 0 ? 0 : -1);
+
+        if (listRef.current) {
+            listRef.current.scrollTop = 0;
+        }
+    }
+
+    function scrollOptionIntoView(index: number): void {
+        const listElement = listRef.current;
+
+        if (!listElement || index < 0) {
+            return;
+        }
+
+        const optionTop = index * CITY_ROW_HEIGHT;
+        const optionBottom = optionTop + CITY_ROW_HEIGHT;
+        const viewTop = listElement.scrollTop;
+        const viewBottom = viewTop + listElement.clientHeight;
+
+        if (optionTop < viewTop) {
+            listElement.scrollTop = optionTop;
+        } else if (optionBottom > viewBottom) {
+            listElement.scrollTop = optionBottom - listElement.clientHeight;
+        }
+    }
+
+    return (
+        <FormField label={label} error={error}>
+            <div className="relative">
+                <Input
+                    ref={inputRef}
+                    value={value}
+                    onFocus={openOptions}
+                    onBlur={() => {
+                        window.setTimeout(() => {
+                            setIsOpen(false);
+                            setHighlightedIndex(-1);
+                        }, 120);
+                    }}
+                    onChange={(event) => {
+                        onChange(event.target.value);
+                        openOptions();
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                            setIsOpen(false);
+                            setHighlightedIndex(-1);
+                            return;
+                        }
+
+                        if (
+                            event.key !== 'ArrowDown' &&
+                            event.key !== 'ArrowUp' &&
+                            event.key !== 'Enter'
+                        ) {
+                            return;
+                        }
+
+                        if (!isOpen) {
+                            openOptions();
+                        }
+
+                        if (filteredOptions.length === 0) {
+                            return;
+                        }
+
+                        if (event.key === 'ArrowDown') {
+                            event.preventDefault();
+                            const nextIndex = Math.min(
+                                filteredOptions.length - 1,
+                                effectiveHighlightedIndex < 0
+                                    ? 0
+                                    : effectiveHighlightedIndex + 1,
+                            );
+                            setHighlightedIndex(nextIndex);
+                            scrollOptionIntoView(nextIndex);
+                            return;
+                        }
+
+                        if (event.key === 'ArrowUp') {
+                            event.preventDefault();
+                            const previousIndex = Math.max(
+                                0,
+                                effectiveHighlightedIndex < 0
+                                    ? 0
+                                    : effectiveHighlightedIndex - 1,
+                            );
+                            setHighlightedIndex(previousIndex);
+                            scrollOptionIntoView(previousIndex);
+                            return;
+                        }
+
+                        if (
+                            event.key === 'Enter' &&
+                            effectiveHighlightedIndex >= 0
+                        ) {
+                            event.preventDefault();
+                            onChange(
+                                filteredOptions[effectiveHighlightedIndex]
+                                    ?.value ?? value,
+                            );
+                            setIsOpen(false);
+                            setHighlightedIndex(-1);
+                        }
+                    }}
+                    placeholder="Digite para buscar cidade"
+                />
+                {isOpen && filteredOptions.length > 0 ? (
+                    <div
+                        ref={listRef}
+                        className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border shadow-md"
+                        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+                    >
+                        <div
+                            style={{
+                                height: filteredOptions.length * CITY_ROW_HEIGHT,
+                                position: 'relative',
+                            }}
+                        >
+                            {visibleOptions.map((option, index) => {
+                                const absoluteIndex = visibleRange.start + index;
+
+                                return (
+                                    <button
+                                        key={`${label}-${option.value}-${absoluteIndex}`}
+                                        type="button"
+                                        className={`absolute right-0 left-0 px-3 py-2 text-left text-sm ${
+                                            effectiveHighlightedIndex ===
+                                            absoluteIndex
+                                                ? 'bg-muted'
+                                                : 'hover:bg-muted'
+                                        }`}
+                                        style={{
+                                            top: absoluteIndex * CITY_ROW_HEIGHT,
+                                            height: CITY_ROW_HEIGHT,
+                                        }}
+                                        onMouseEnter={() =>
+                                            setHighlightedIndex(absoluteIndex)
+                                        }
+                                        onMouseDown={(event) => {
+                                            event.preventDefault();
+                                            onChange(option.value);
+                                            setIsOpen(false);
+                                            setHighlightedIndex(-1);
+                                            inputRef.current?.focus();
+                                        }}
+                                    >
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : null}
+            </div>
+        </FormField>
+    );
+}
+
 export function InterviewForm({
     mode,
     initialData,
@@ -335,13 +591,6 @@ export function InterviewForm({
             initialFormData.other_exit_reason,
         ),
     );
-    const [cityOptionsOpen, setCityOptionsOpen] = useState(false);
-    const [cityScrollTop, setCityScrollTop] = useState(0);
-    const [highlightedCityIndex, setHighlightedCityIndex] =
-        useState<number>(-1);
-    const cityListRef = useRef<HTMLDivElement | null>(null);
-    const cityInputRef = useRef<HTMLInputElement | null>(null);
-
     const hasExistingInterview = mode === 'edit' && Boolean(initialData?.id);
     const isHrReproved = formData.hr_status === 'reprovado';
     const startAvailabilitySelectValue =
@@ -387,90 +636,6 @@ export function InterviewForm({
             ),
         [],
     );
-
-    const filteredCityOptions = useMemo(() => {
-        const term = normalizeSearchText(formData.city);
-
-        if (!term) {
-            return cityOptions;
-        }
-
-        return cityOptions.filter((option) =>
-            normalizeSearchText(option.label).includes(term),
-        );
-    }, [cityOptions, formData.city]);
-
-    const cityVisibleRange = useMemo(() => {
-        const visibleCount = Math.ceil(CITY_VIEWPORT_HEIGHT / CITY_ROW_HEIGHT);
-        const start = Math.max(
-            0,
-            Math.floor(cityScrollTop / CITY_ROW_HEIGHT) - CITY_OVERSCAN,
-        );
-        const end = Math.min(
-            filteredCityOptions.length,
-            start + visibleCount + CITY_OVERSCAN * 2,
-        );
-
-        return { start, end };
-    }, [cityScrollTop, filteredCityOptions.length]);
-
-    const visibleCityOptions = useMemo(
-        () =>
-            filteredCityOptions.slice(
-                cityVisibleRange.start,
-                cityVisibleRange.end,
-            ),
-        [cityVisibleRange.end, cityVisibleRange.start, filteredCityOptions],
-    );
-
-    function scrollCityOptionIntoView(index: number): void {
-        const listElement = cityListRef.current;
-
-        if (!listElement || index < 0) {
-            return;
-        }
-
-        const optionTop = index * CITY_ROW_HEIGHT;
-        const optionBottom = optionTop + CITY_ROW_HEIGHT;
-        const viewTop = listElement.scrollTop;
-        const viewBottom = viewTop + listElement.clientHeight;
-
-        if (optionTop < viewTop) {
-            listElement.scrollTop = optionTop;
-        } else if (optionBottom > viewBottom) {
-            listElement.scrollTop = optionBottom - listElement.clientHeight;
-        }
-    }
-
-    function openCityOptions(): void {
-        setCityOptionsOpen(true);
-        setCityScrollTop(0);
-        setHighlightedCityIndex(filteredCityOptions.length > 0 ? 0 : -1);
-
-        if (cityListRef.current) {
-            cityListRef.current.scrollTop = 0;
-        }
-    }
-
-    useEffect(() => {
-        if (!cityOptionsOpen) {
-            return;
-        }
-
-        if (filteredCityOptions.length === 0) {
-            if (highlightedCityIndex !== -1) {
-                setHighlightedCityIndex(-1);
-            }
-            return;
-        }
-
-        if (
-            highlightedCityIndex < 0 ||
-            highlightedCityIndex >= filteredCityOptions.length
-        ) {
-            setHighlightedCityIndex(0);
-        }
-    }, [cityOptionsOpen, filteredCityOptions.length, highlightedCityIndex]);
 
     useEffect(() => {
         if (isHrReproved && formData.guep_status !== 'nao_fazer') {
@@ -518,6 +683,7 @@ export function InterviewForm({
 
     const sections = useMemo(() => {
         const baseSteps = [
+            'Qual unidade?',
             'Dados Pessoais',
             'Documentos',
             'Experiência Profissional',
@@ -536,11 +702,14 @@ export function InterviewForm({
 
     const stepRequiredCompletion = useMemo(() => {
         const completion: boolean[] = [
+            hasText(formData.hiring_unidade_id),
+
             hasText(formData.full_name) &&
                 hasText(formData.preferred_name) &&
                 sanitizePhone(formData.phone).length === 11 &&
                 hasText(formData.email) &&
                 hasText(formData.city) &&
+                hasText(formData.cargo_pretendido) &&
                 hasText(formData.marital_status),
 
             sanitizeCpf(formData.cpf).length === 11 &&
@@ -567,13 +736,14 @@ export function InterviewForm({
             hasText(formData.candidate_interest) &&
                 hasText(formData.availability_matches ? '1' : '0') &&
                 hasText(formData.overall_score) &&
+                (!isHrReproved || hasText(formData.hr_rejection_reason)) &&
                 hasText(formData.hr_status),
 
             true,
         ];
 
         return completion;
-    }, [formData]);
+    }, [formData, isHrReproved]);
 
     const stepStates = useMemo(
         () =>
@@ -731,8 +901,8 @@ export function InterviewForm({
                     : null,
             relevant_experience: formData.relevant_experience.trim() || null,
             truck_types_operated: formData.truck_types_operated.trim() || null,
-            last_salary: Number(formData.last_salary),
-            salary_expectation: Number(formData.salary_expectation),
+            last_salary: currencyInputToNumber(formData.last_salary),
+            salary_expectation: currencyInputToNumber(formData.salary_expectation),
             salary_observation: formData.salary_observation.trim() || null,
             overall_score:
                 formData.overall_score === ''
@@ -749,6 +919,11 @@ export function InterviewForm({
             contact_name: formData.knows_company_contact
                 ? formData.contact_name.trim() || null
                 : null,
+            hr_rejection_reason:
+                formData.hr_status === 'reprovado'
+                    ? formData.hr_rejection_reason.trim() || null
+                    : null,
+            cargo_pretendido: formData.cargo_pretendido.trim() || null,
             expectations_about_company:
                 formData.expectations_about_company.trim() || null,
             children_situation: formData.has_children
@@ -819,7 +994,54 @@ export function InterviewForm({
             {step === 0 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>1. Dados Pessoais</CardTitle>
+                        <CardTitle>1. Qual unidade?</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <p className="text-sm text-muted-foreground">
+                            Selecione a unidade responsável pela contratação
+                            antes de preencher os dados da entrevista.
+                        </p>
+                        <FormField
+                            label="Qual unidade?"
+                            error={errors.hiring_unidade_id}
+                        >
+                            <Select
+                                value={formData.hiring_unidade_id || '__none'}
+                                onValueChange={(value) => {
+                                    if (value === '__none') {
+                                        updateField('hiring_unidade_id', '');
+                                        return;
+                                    }
+
+                                    updateField('hiring_unidade_id', value);
+                                }}
+                            >
+                                <SelectTrigger className="h-12 text-base">
+                                    <SelectValue placeholder="Selecione a unidade" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__none">
+                                        Não definido
+                                    </SelectItem>
+                                    {hiringUnitOptions.map((unit) => (
+                                        <SelectItem
+                                            key={unit.id}
+                                            value={String(unit.id)}
+                                        >
+                                            {unit.nome}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </FormField>
+                    </CardContent>
+                </Card>
+            ) : null}
+
+            {step === 1 ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>2. Dados Pessoais</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <FormField
@@ -872,175 +1094,48 @@ export function InterviewForm({
                                 }
                             />
                         </FormField>
-                        <FormField label="Cidade" error={errors.city}>
-                            <div className="relative">
-                                <Input
-                                    ref={cityInputRef}
-                                    value={formData.city}
-                                    onFocus={openCityOptions}
-                                    onBlur={() => {
-                                        window.setTimeout(() => {
-                                            setCityOptionsOpen(false);
-                                            setHighlightedCityIndex(-1);
-                                        }, 120);
-                                    }}
-                                    onChange={(event) => {
-                                        updateField('city', event.target.value);
-                                        openCityOptions();
-                                    }}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Escape') {
-                                            setCityOptionsOpen(false);
-                                            setHighlightedCityIndex(-1);
-                                            return;
-                                        }
-
-                                        if (
-                                            event.key !== 'ArrowDown' &&
-                                            event.key !== 'ArrowUp' &&
-                                            event.key !== 'Enter'
-                                        ) {
-                                            return;
-                                        }
-
-                                        if (!cityOptionsOpen) {
-                                            openCityOptions();
-                                        }
-
-                                        if (filteredCityOptions.length === 0) {
-                                            return;
-                                        }
-
-                                        if (event.key === 'ArrowDown') {
-                                            event.preventDefault();
-                                            const nextIndex = Math.min(
-                                                filteredCityOptions.length - 1,
-                                                highlightedCityIndex < 0
-                                                    ? 0
-                                                    : highlightedCityIndex + 1,
-                                            );
-                                            setHighlightedCityIndex(nextIndex);
-                                            scrollCityOptionIntoView(nextIndex);
-                                            return;
-                                        }
-
-                                        if (event.key === 'ArrowUp') {
-                                            event.preventDefault();
-                                            const previousIndex = Math.max(
-                                                0,
-                                                highlightedCityIndex < 0
-                                                    ? 0
-                                                    : highlightedCityIndex - 1,
-                                            );
-                                            setHighlightedCityIndex(
-                                                previousIndex,
-                                            );
-                                            scrollCityOptionIntoView(
-                                                previousIndex,
-                                            );
-                                            return;
-                                        }
-
-                                        if (
-                                            event.key === 'Enter' &&
-                                            highlightedCityIndex >= 0
-                                        ) {
-                                            event.preventDefault();
-                                            updateField(
-                                                'city',
-                                                filteredCityOptions[
-                                                    highlightedCityIndex
-                                                ]?.value ?? formData.city,
-                                            );
-                                            setCityOptionsOpen(false);
-                                            setHighlightedCityIndex(-1);
-                                        }
-                                    }}
-                                    placeholder="Digite para buscar cidade"
-                                />
-                                {cityOptionsOpen && filteredCityOptions.length > 0 ? (
-                                    <div
-                                        ref={cityListRef}
-                                        className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border shadow-md"
-                                        onScroll={(event) =>
-                                            setCityScrollTop(
-                                                event.currentTarget.scrollTop,
-                                            )
-                                        }
-                                    >
-                                        <div
-                                            style={{
-                                                height:
-                                                    filteredCityOptions.length *
-                                                    CITY_ROW_HEIGHT,
-                                                position: 'relative',
-                                            }}
-                                        >
-                                            {visibleCityOptions.map(
-                                                (option, index) => {
-                                                    const absoluteIndex =
-                                                        cityVisibleRange.start +
-                                                        index;
-
-                                                    return (
-                                                        <button
-                                                            key={option.value}
-                                                            type="button"
-                                                            className={`absolute right-0 left-0 px-3 py-2 text-left text-sm ${
-                                                                highlightedCityIndex ===
-                                                                absoluteIndex
-                                                                    ? 'bg-muted'
-                                                                    : 'hover:bg-muted'
-                                                            }`}
-                                                            style={{
-                                                                top: absoluteIndex * CITY_ROW_HEIGHT,
-                                                                height: CITY_ROW_HEIGHT,
-                                                            }}
-                                                            onMouseEnter={() =>
-                                                                setHighlightedCityIndex(
-                                                                    absoluteIndex,
-                                                                )
-                                                            }
-                                                            onMouseDown={(
-                                                                event,
-                                                            ) => {
-                                                                event.preventDefault();
-                                                                updateField(
-                                                                    'city',
-                                                                    option.value,
-                                                                );
-                                                                setCityOptionsOpen(
-                                                                    false,
-                                                                );
-                                                                setHighlightedCityIndex(
-                                                                    -1,
-                                                                );
-                                                                cityInputRef.current?.focus();
-                                                            }}
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    );
-                                                },
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : null}
-                            </div>
+                        <CityAutocompleteField
+                            label="Cidade"
+                            error={errors.city}
+                            value={formData.city}
+                            onChange={(value) => updateField('city', value)}
+                            cityOptions={cityOptions}
+                        />
+                        <FormField
+                            label="Cargo pretendido"
+                            error={errors.cargo_pretendido}
+                        >
+                            <Input
+                                value={formData.cargo_pretendido}
+                                onChange={(event) =>
+                                    updateField(
+                                        'cargo_pretendido',
+                                        event.target.value,
+                                    )
+                                }
+                            />
                         </FormField>
                         <FormField
                             label="Estado civil"
                             error={errors.marital_status}
                         >
-                            <Input
-                                value={formData.marital_status}
-                                onChange={(event) =>
-                                    updateField(
-                                        'marital_status',
-                                        event.target.value,
-                                    )
+                            <Select
+                                value={formData.marital_status || undefined}
+                                onValueChange={(value) =>
+                                    updateField('marital_status', value)
                                 }
-                            />
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {maritalStatusOptions.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </FormField>
                         <FormField
                             label="Possui filhos?"
@@ -1052,41 +1147,6 @@ export function InterviewForm({
                                     updateField('has_children', value)
                                 }
                             />
-                        </FormField>
-                        <FormField
-                            label="Unidade (contratação)"
-                            error={errors.hiring_unidade_id}
-                        >
-                            <Select
-                                value={
-                                    formData.hiring_unidade_id || '__none'
-                                }
-                                onValueChange={(value) => {
-                                    if (value === '__none') {
-                                        updateField('hiring_unidade_id', '');
-                                        return;
-                                    }
-
-                                    updateField('hiring_unidade_id', value);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="__none">
-                                        Não definido
-                                    </SelectItem>
-                                    {hiringUnitOptions.map((unit) => (
-                                        <SelectItem
-                                            key={unit.id}
-                                            value={String(unit.id)}
-                                        >
-                                            {unit.nome}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </FormField>
                         {formData.has_children ? (
                             <div className="md:col-span-2">
@@ -1112,10 +1172,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 1 ? (
+            {step === 2 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>2. Documentos e Habilitação</CardTitle>
+                        <CardTitle>3. Documentos e Habilitação</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <FormField label="CPF" error={errors.cpf}>
@@ -1195,10 +1255,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 2 ? (
+            {step === 3 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>3. Experiência Profissional</CardTitle>
+                        <CardTitle>4. Experiência Profissional</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <FormField label="Tem experiência profissional?">
@@ -1269,65 +1329,54 @@ export function InterviewForm({
 
                         {hasProfessionalExperience ? (
                             <>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <FormField
-                                        label="Última empresa"
-                                        error={errors.last_company}
-                                    >
-                                        <Input
-                                            value={formData.last_company}
-                                            onChange={(event) =>
-                                                updateField(
-                                                    'last_company',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </FormField>
-                                    <FormField
-                                        label="Função"
-                                        error={errors.last_role}
-                                    >
-                                        <Input
-                                            value={formData.last_role}
-                                            onChange={(event) =>
-                                                updateField(
-                                                    'last_role',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </FormField>
-                                    <FormField
-                                        label="Cidade"
-                                        error={errors.last_city}
-                                    >
-                                        <Input
+                                <div className="grid gap-4 md:grid-cols-10">
+                                    <div className="md:col-span-3">
+                                        <FormField
+                                            label="Última empresa"
+                                            error={errors.last_company}
+                                        >
+                                            <Input
+                                                value={formData.last_company}
+                                                onChange={(event) =>
+                                                    updateField(
+                                                        'last_company',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <CityAutocompleteField
+                                            label="Cidade"
+                                            error={errors.last_city}
                                             value={formData.last_city}
-                                            onChange={(event) =>
-                                                updateField(
-                                                    'last_city',
-                                                    event.target.value,
-                                                )
+                                            onChange={(value) =>
+                                                updateField('last_city', value)
                                             }
+                                            cityOptions={cityOptions}
                                         />
-                                    </FormField>
+                                    </div>
+                                    <div className="md:col-span-4">
+                                        <FormField
+                                            label="Função"
+                                            error={errors.last_role}
+                                        >
+                                            <Input
+                                                value={formData.last_role}
+                                                onChange={(event) =>
+                                                    updateField(
+                                                        'last_role',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-6">
                                     <FormField
-                                        label="Motivo da saída"
-                                        error={errors.last_exit_reason}
-                                    >
-                                        <Input
-                                            value={formData.last_exit_reason}
-                                            onChange={(event) =>
-                                                updateField(
-                                                    'last_exit_reason',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </FormField>
-                                    <FormField
-                                        label="Saída"
+                                        label="Tipo da saída"
                                         error={errors.last_exit_type}
                                     >
                                         <Select
@@ -1355,124 +1404,138 @@ export function InterviewForm({
                                             </SelectContent>
                                         </Select>
                                     </FormField>
+                                    <div className="md:col-span-5">
+                                        <FormField
+                                            label="Motivo da saída"
+                                            error={errors.last_exit_reason}
+                                        >
+                                            <Input
+                                                value={formData.last_exit_reason}
+                                                onChange={(event) =>
+                                                    updateField(
+                                                        'last_exit_reason',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-6">
+                                    <div className="md:col-span-3">
+                                        <FormField
+                                            label="Período início"
+                                            error={errors.last_period_start}
+                                        >
+                                            <Input
+                                                type="date"
+                                                value={formData.last_period_start}
+                                                onChange={(event) =>
+                                                    updateField(
+                                                        'last_period_start',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <FormField
+                                            label="Período fim"
+                                            error={errors.last_period_end}
+                                        >
+                                            <Input
+                                                type="date"
+                                                value={formData.last_period_end}
+                                                onChange={(event) =>
+                                                    updateField(
+                                                        'last_period_end',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                </div>
+                                <div className="md:max-w-2xl">
                                     <FormField
-                                        label="Período início"
-                                        error={errors.last_period_start}
+                                        label="Observação da última empresa (opcional)"
+                                        error={errors.last_company_observation}
                                     >
-                                        <Input
-                                            type="date"
-                                            value={formData.last_period_start}
+                                        <textarea
+                                            className={textAreaClassName}
+                                            value={formData.last_company_observation}
                                             onChange={(event) =>
                                                 updateField(
-                                                    'last_period_start',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </FormField>
-                                    <FormField
-                                        label="Período fim"
-                                        error={errors.last_period_end}
-                                    >
-                                        <Input
-                                            type="date"
-                                            value={formData.last_period_end}
-                                            onChange={(event) =>
-                                                updateField(
-                                                    'last_period_end',
+                                                    'last_company_observation',
                                                     event.target.value,
                                                 )
                                             }
                                         />
                                     </FormField>
                                 </div>
-                                <FormField
-                                    label="Observação da última empresa (opcional)"
-                                    error={errors.last_company_observation}
-                                >
-                                    <textarea
-                                        className={textAreaClassName}
-                                        value={formData.last_company_observation}
-                                        onChange={(event) =>
-                                            updateField(
-                                                'last_company_observation',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </FormField>
 
                                 {showPreviousCompany ? (
                                     <>
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            <FormField
-                                                label="Penúltima empresa"
-                                                error={errors.previous_company}
-                                            >
-                                                <Input
-                                                    value={
-                                                        formData.previous_company
-                                                    }
-                                                    onChange={(event) =>
-                                                        updateField(
-                                                            'previous_company',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </FormField>
-                                            <FormField
-                                                label="Função"
-                                                error={errors.previous_role}
-                                            >
-                                                <Input
-                                                    value={
-                                                        formData.previous_role
-                                                    }
-                                                    onChange={(event) =>
-                                                        updateField(
-                                                            'previous_role',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </FormField>
-                                            <FormField
-                                                label="Cidade"
-                                                error={errors.previous_city}
-                                            >
-                                                <Input
+                                        <div className="grid gap-4 md:grid-cols-10">
+                                            <div className="md:col-span-3">
+                                                <FormField
+                                                    label="Penúltima empresa"
+                                                    error={errors.previous_company}
+                                                >
+                                                    <Input
+                                                        value={
+                                                            formData.previous_company
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateField(
+                                                                'previous_company',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+                                            </div>
+                                            <div className="md:col-span-3">
+                                                <CityAutocompleteField
+                                                    label="Cidade"
+                                                    error={errors.previous_city}
                                                     value={
                                                         formData.previous_city
                                                     }
-                                                    onChange={(event) =>
+                                                    onChange={(value) =>
                                                         updateField(
                                                             'previous_city',
-                                                            event.target.value,
+                                                            value,
                                                         )
                                                     }
+                                                    cityOptions={cityOptions}
                                                 />
-                                            </FormField>
+                                            </div>
+                                            <div className="md:col-span-4">
+                                                <FormField
+                                                    label="Função"
+                                                    error={errors.previous_role}
+                                                >
+                                                    <Input
+                                                        value={
+                                                            formData.previous_role
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateField(
+                                                                'previous_role',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-4 md:grid-cols-6">
                                             <FormField
-                                                label="Motivo da saída"
-                                                error={
-                                                    errors.previous_exit_reason
-                                                }
-                                            >
-                                                <Input
-                                                    value={
-                                                        formData.previous_exit_reason
-                                                    }
-                                                    onChange={(event) =>
-                                                        updateField(
-                                                            'previous_exit_reason',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </FormField>
-                                            <FormField
-                                                label="Saída"
+                                                label="Tipo da saída"
                                                 error={errors.previous_exit_type}
                                             >
                                                 <Select
@@ -1500,171 +1563,20 @@ export function InterviewForm({
                                                     </SelectContent>
                                                 </Select>
                                             </FormField>
-                                            <FormField
-                                                label="Período início"
-                                                error={
-                                                    errors.previous_period_start
-                                                }
-                                            >
-                                                <Input
-                                                    type="date"
-                                                    value={
-                                                        formData.previous_period_start
-                                                    }
-                                                    onChange={(event) =>
-                                                        updateField(
-                                                            'previous_period_start',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </FormField>
-                                            <FormField
-                                                label="Período fim"
-                                                error={
-                                                    errors.previous_period_end
-                                                }
-                                            >
-                                                <Input
-                                                    type="date"
-                                                    value={
-                                                        formData.previous_period_end
-                                                    }
-                                                    onChange={(event) =>
-                                                        updateField(
-                                                            'previous_period_end',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </FormField>
-                                        </div>
-                                        <FormField
-                                            label="Observação da penúltima empresa (opcional)"
-                                            error={
-                                                errors.previous_company_observation
-                                            }
-                                        >
-                                            <textarea
-                                                className={textAreaClassName}
-                                                value={
-                                                    formData.previous_company_observation
-                                                }
-                                                onChange={(event) =>
-                                                    updateField(
-                                                        'previous_company_observation',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </FormField>
-
-                                        {showOtherCompany ? (
-                                            <div className="grid gap-4 md:grid-cols-2">
-                                                <FormField
-                                                    label="Outra empresa"
-                                                    error={errors.other_company}
-                                                >
-                                                    <Input
-                                                        value={
-                                                            formData.other_company
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateField(
-                                                                'other_company',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </FormField>
-                                                <FormField
-                                                    label="Função"
-                                                    error={errors.other_role}
-                                                >
-                                                    <Input
-                                                        value={
-                                                            formData.other_role
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateField(
-                                                                'other_role',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </FormField>
-                                                <FormField
-                                                    label="Cidade"
-                                                    error={errors.other_city}
-                                                >
-                                                    <Input
-                                                        value={
-                                                            formData.other_city
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateField(
-                                                                'other_city',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </FormField>
+                                            <div className="md:col-span-5">
                                                 <FormField
                                                     label="Motivo da saída"
                                                     error={
-                                                        errors.other_exit_reason
+                                                        errors.previous_exit_reason
                                                     }
                                                 >
                                                     <Input
                                                         value={
-                                                            formData.other_exit_reason
+                                                            formData.previous_exit_reason
                                                         }
                                                         onChange={(event) =>
                                                             updateField(
-                                                                'other_exit_reason',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </FormField>
-                                                <FormField
-                                                    label="Período início"
-                                                    error={
-                                                        errors.other_period_start
-                                                    }
-                                                >
-                                                    <Input
-                                                        type="date"
-                                                        value={
-                                                            formData.other_period_start
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateField(
-                                                                'other_period_start',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                    />
-                                                </FormField>
-                                                <FormField
-                                                    label="Período fim"
-                                                    error={
-                                                        errors.other_period_end
-                                                    }
-                                                >
-                                                    <Input
-                                                        type="date"
-                                                        value={
-                                                            formData.other_period_end
-                                                        }
-                                                        onChange={(event) =>
-                                                            updateField(
-                                                                'other_period_end',
+                                                                'previous_exit_reason',
                                                                 event.target
                                                                     .value,
                                                             )
@@ -1672,6 +1584,210 @@ export function InterviewForm({
                                                     />
                                                 </FormField>
                                             </div>
+                                        </div>
+                                        <div className="grid gap-4 md:grid-cols-6">
+                                            <div className="md:col-span-3">
+                                                <FormField
+                                                    label="Período início"
+                                                    error={
+                                                        errors.previous_period_start
+                                                    }
+                                                >
+                                                    <Input
+                                                        type="date"
+                                                        value={
+                                                            formData.previous_period_start
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateField(
+                                                                'previous_period_start',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+                                            </div>
+                                            <div className="md:col-span-3">
+                                                <FormField
+                                                    label="Período fim"
+                                                    error={
+                                                        errors.previous_period_end
+                                                    }
+                                                >
+                                                    <Input
+                                                        type="date"
+                                                        value={
+                                                            formData.previous_period_end
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateField(
+                                                                'previous_period_end',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </FormField>
+                                            </div>
+                                        </div>
+                                        <div className="md:max-w-2xl">
+                                            <FormField
+                                                label="Observação da penúltima empresa (opcional)"
+                                                error={
+                                                    errors.previous_company_observation
+                                                }
+                                            >
+                                                <textarea
+                                                    className={textAreaClassName}
+                                                    value={
+                                                        formData.previous_company_observation
+                                                    }
+                                                    onChange={(event) =>
+                                                        updateField(
+                                                            'previous_company_observation',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </FormField>
+                                        </div>
+
+                                        {showOtherCompany ? (
+                                            <>
+                                                <div className="grid gap-4 md:grid-cols-10">
+                                                    <div className="md:col-span-3">
+                                                        <FormField
+                                                            label="Outra empresa"
+                                                            error={
+                                                                errors.other_company
+                                                            }
+                                                        >
+                                                            <Input
+                                                                value={
+                                                                    formData.other_company
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateField(
+                                                                        'other_company',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormField>
+                                                    </div>
+                                                    <div className="md:col-span-3">
+                                                        <CityAutocompleteField
+                                                            label="Cidade"
+                                                            error={errors.other_city}
+                                                            value={
+                                                                formData.other_city
+                                                            }
+                                                            onChange={(value) =>
+                                                                updateField(
+                                                                    'other_city',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            cityOptions={cityOptions}
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-4">
+                                                        <FormField
+                                                            label="Função"
+                                                            error={errors.other_role}
+                                                        >
+                                                            <Input
+                                                                value={
+                                                                    formData.other_role
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateField(
+                                                                        'other_role',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormField>
+                                                    </div>
+                                                </div>
+                                                <div className="grid gap-4 md:grid-cols-6">
+                                                    <div className="md:col-span-6">
+                                                        <FormField
+                                                            label="Motivo da saída"
+                                                            error={
+                                                                errors.other_exit_reason
+                                                            }
+                                                        >
+                                                            <Input
+                                                                value={
+                                                                    formData.other_exit_reason
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateField(
+                                                                        'other_exit_reason',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormField>
+                                                    </div>
+                                                </div>
+                                                <div className="grid gap-4 md:grid-cols-6">
+                                                    <div className="md:col-span-3">
+                                                        <FormField
+                                                            label="Período início"
+                                                            error={
+                                                                errors.other_period_start
+                                                            }
+                                                        >
+                                                            <Input
+                                                                type="date"
+                                                                value={
+                                                                    formData.other_period_start
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateField(
+                                                                        'other_period_start',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormField>
+                                                    </div>
+                                                    <div className="md:col-span-3">
+                                                        <FormField
+                                                            label="Período fim"
+                                                            error={
+                                                                errors.other_period_end
+                                                            }
+                                                        >
+                                                            <Input
+                                                                type="date"
+                                                                value={
+                                                                    formData.other_period_end
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateField(
+                                                                        'other_period_end',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </FormField>
+                                                    </div>
+                                                </div>
+                                            </>
                                         ) : (
                                             <Button
                                                 type="button"
@@ -1717,10 +1833,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 3 ? (
+            {step === 4 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>4. Vivência na Função</CardTitle>
+                        <CardTitle>5. Vivência na Função</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField
@@ -1801,10 +1917,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 4 ? (
+            {step === 5 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>5. Disponibilidade e Alinhamento</CardTitle>
+                        <CardTitle>6. Disponibilidade e Alinhamento</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
@@ -1914,10 +2030,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 5 ? (
+            {step === 6 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>6. Informações Salariais</CardTitle>
+                        <CardTitle>7. Informações Salariais</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <FormField
@@ -1925,14 +2041,13 @@ export function InterviewForm({
                             error={errors.last_salary}
                         >
                             <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
+                                inputMode="numeric"
+                                placeholder="R$ 0,00"
                                 value={formData.last_salary}
                                 onChange={(event) =>
                                     updateField(
                                         'last_salary',
-                                        event.target.value,
+                                        formatCurrencyInput(event.target.value),
                                     )
                                 }
                             />
@@ -1942,14 +2057,13 @@ export function InterviewForm({
                             error={errors.salary_expectation}
                         >
                             <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
+                                inputMode="numeric"
+                                placeholder="R$ 0,00"
                                 value={formData.salary_expectation}
                                 onChange={(event) =>
                                     updateField(
                                         'salary_expectation',
-                                        event.target.value,
+                                        formatCurrencyInput(event.target.value),
                                     )
                                 }
                             />
@@ -1975,10 +2089,10 @@ export function InterviewForm({
                 </Card>
             ) : null}
 
-            {step === 6 ? (
+            {step === 7 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>7. Avaliação Final</CardTitle>
+                        <CardTitle>8. Avaliação Final</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-2">
@@ -2085,15 +2199,35 @@ export function InterviewForm({
                                     </SelectContent>
                                 </Select>
                             </FormField>
+                            {formData.hr_status === 'reprovado' ? (
+                                <div className="md:col-span-2">
+                                    <FormField
+                                        label="Motivo da reprovação"
+                                        error={errors.hr_rejection_reason}
+                                    >
+                                        <textarea
+                                            className={textAreaClassName}
+                                            value={formData.hr_rejection_reason}
+                                            onChange={(event) =>
+                                                updateField(
+                                                    'hr_rejection_reason',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Descreva o motivo da reprovação"
+                                        />
+                                    </FormField>
+                                </div>
+                            ) : null}
                         </div>
                     </CardContent>
                 </Card>
             ) : null}
 
-            {hasExistingInterview && step === 7 ? (
+            {hasExistingInterview && step === 8 ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>8. GUEP</CardTitle>
+                        <CardTitle>9. GUEP</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField
@@ -2164,7 +2298,7 @@ export function InterviewForm({
                                     Math.min(current + 1, sections.length - 1),
                                 )
                             }
-                            disabled={submitting}
+                            disabled={submitting || !stepRequiredCompletion[step]}
                         >
                             Próxima etapa
                         </Button>

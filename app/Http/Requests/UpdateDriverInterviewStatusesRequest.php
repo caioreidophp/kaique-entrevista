@@ -22,6 +22,7 @@ class UpdateDriverInterviewStatusesRequest extends FormRequest
         return [
             'hr_status' => ['nullable', Rule::in(array_column(HrStatus::cases(), 'value'))],
             'guep_status' => ['nullable', Rule::in(array_column(GuepStatus::cases(), 'value'))],
+            'hr_rejection_reason' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -59,6 +60,7 @@ class UpdateDriverInterviewStatusesRequest extends FormRequest
                     'Quando o status RH é reprovado, o status GUEP deve ser "não fazer".'
                 );
             }
+
         });
     }
 }

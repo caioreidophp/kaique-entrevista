@@ -9,10 +9,13 @@ use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\NextStepController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PayrollController;
+use App\Http\Controllers\Api\PayrollDescontoController;
+use App\Http\Controllers\Api\PayrollEmprestimoController;
 use App\Http\Controllers\Api\ReferenceCityController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
 use App\Http\Controllers\Api\Registry\FuncaoController;
 use App\Http\Controllers\Api\Registry\RegistryUserController;
+use App\Http\Controllers\Api\Registry\TipoPagamentoController;
 use App\Http\Controllers\Api\Registry\UnidadeController;
 use App\Http\Controllers\Api\TransportSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::put('settings/password', [TransportSettingsController::class, 'updatePassword']);
+    Route::get('settings/backup', [TransportSettingsController::class, 'downloadBackup']);
     Route::post('users', [TransportSettingsController::class, 'storeUser']);
 
     Route::get('home', HomeController::class);
@@ -35,6 +39,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('payroll/reports/unidade', [PayrollController::class, 'reportByUnit']);
     Route::get('payroll/reports/colaborador', [PayrollController::class, 'reportByCollaborator']);
     Route::apiResource('payroll/pagamentos', PayrollController::class);
+    Route::apiResource('payroll/descontos', PayrollDescontoController::class)
+        ->parameters(['descontos' => 'desconto'])
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::apiResource('payroll/emprestimos', PayrollEmprestimoController::class)
+        ->parameters(['emprestimos' => 'emprestimo'])
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::get('freight/dashboard', [FreightController::class, 'dashboard']);
     Route::get('freight/monthly-unit-report', [FreightController::class, 'monthlyUnitReport']);
     Route::get('freight/timeline', [FreightController::class, 'timeline']);
@@ -79,6 +89,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::prefix('registry')->group(function (): void {
         Route::get('unidades', [UnidadeController::class, 'index']);
         Route::apiResource('funcoes', FuncaoController::class);
+        Route::apiResource('tipos-pagamento', TipoPagamentoController::class)
+            ->parameters(['tipos-pagamento' => 'tipoPagamento']);
         Route::post('colaboradores/import-spreadsheet', [ColaboradorController::class, 'importSpreadsheet'])
             ->middleware('throttle:transport-import');
         Route::post('colaboradores/{colaborador}/foto-3x4', [ColaboradorController::class, 'uploadPhoto'])

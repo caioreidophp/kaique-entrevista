@@ -47,6 +47,7 @@ interface AdminLayoutProps {
         | 'payroll-dashboard'
         | 'payroll-launch'
         | 'payroll-list'
+        | 'payroll-adjustments'
         | 'payroll-report-unit'
         | 'payroll-report-collaborator'
         | 'freight-dashboard'
@@ -57,6 +58,7 @@ interface AdminLayoutProps {
         | 'registry-collaborators'
         | 'registry-users'
         | 'registry-functions'
+        | 'registry-payment-types'
         | 'activity-log';
     module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight';
     children: React.ReactNode;
@@ -142,6 +144,12 @@ export function AdminLayout({
                             href: '/transport/registry/functions',
                             icon: Briefcase,
                         },
+                        {
+                            key: 'registry-payment-types',
+                            label: 'Tipo de Pagamentos',
+                            href: '/transport/registry/payment-types',
+                            icon: ReceiptText,
+                        },
                     ]
                   : currentModule === 'payroll'
                     ? [
@@ -164,6 +172,12 @@ export function AdminLayout({
                               icon: List,
                           },
                           {
+                              key: 'payroll-adjustments',
+                              label: 'Descontos e Empréstimos',
+                              href: '/transport/payroll/adjustments',
+                              icon: ReceiptText,
+                          },
+                          {
                               key: 'payroll-report-unit',
                               label: 'Relatório por Unidade',
                               href: '/transport/payroll/reports/unit',
@@ -174,6 +188,12 @@ export function AdminLayout({
                               label: 'Relatório por Colaborador',
                               href: '/transport/payroll/reports/collaborator',
                               icon: ChartColumn,
+                          },
+                          {
+                              key: 'registry-payment-types',
+                              label: 'Cadastro de Tipo',
+                              href: '/transport/registry/payment-types',
+                              icon: Cog,
                           },
                       ]
                     : currentModule === 'freight'
@@ -252,7 +272,7 @@ export function AdminLayout({
     const panelTitle = useMemo(() => {
         if (currentModule === 'home') return 'Painel Principal';
         if (currentModule === 'registry') return 'Painel de Cadastro';
-        if (currentModule === 'payroll') return 'Painel de Salários';
+        if (currentModule === 'payroll') return 'Painel de Pagamentos';
         if (currentModule === 'freight') return 'Gestão de Fretes';
         return 'Painel de Entrevistas';
     }, [currentModule]);
@@ -272,7 +292,7 @@ export function AdminLayout({
             <Head title={title} />
 
             <div className="min-h-screen bg-muted/20 print:min-h-0 print:bg-white">
-                <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 gap-4 p-3 sm:p-4 lg:grid-cols-[260px_1fr] lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0">
+                <div className="grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:grid-cols-[260px_1fr] lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0">
                     <div className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm lg:hidden print:hidden">
                         <Button
                             type="button"

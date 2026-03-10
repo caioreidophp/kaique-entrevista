@@ -27,7 +27,7 @@ export function Notification({ message, variant = 'info' }: NotificationProps) {
             className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${variantClasses[variant]}`}
         >
             <Icon className="size-4" />
-            <span>{message}</span>
+            <span className="whitespace-pre-line">{message}</span>
         </div>
     );
 }

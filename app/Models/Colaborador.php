@@ -46,6 +46,12 @@ class Colaborador extends Model
         'numero_agencia',
         'tipo_conta',
         'numero_conta',
+        'tipo_chave_pix',
+        'banco_salario',
+        'numero_agencia_salario',
+        'numero_conta_salario',
+        'conta_pagamento',
+        'cartao_beneficio',
         'foto_3x4_path',
     ];
 
@@ -88,6 +94,16 @@ class Colaborador extends Model
     public function pagamentos(): HasMany
     {
         return $this->hasMany(Pagamento::class);
+    }
+
+    public function descontos(): HasMany
+    {
+        return $this->hasMany(DescontoColaborador::class);
+    }
+
+    public function emprestimos(): HasMany
+    {
+        return $this->hasMany(EmprestimoColaborador::class);
     }
 
     public function entrevistas(): HasMany

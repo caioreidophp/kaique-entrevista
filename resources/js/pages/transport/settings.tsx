@@ -1,4 +1,4 @@
-import { LoaderCircle, Moon, Sun } from 'lucide-react';
+import { Download, LoaderCircle, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -8,13 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ApiError, apiPut } from '@/lib/api-client';
+import { getAuthToken } from '@/lib/transport-auth';
+import { getStoredUser } from '@/lib/transport-session';
 
 export default function TransportSettingsPage() {
     const { resolvedAppearance, updateAppearance } = useAppearance();
+    const currentUser = getStoredUser();
+    const isMasterAdmin = currentUser?.role === 'master_admin';
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [savingPassword, setSavingPassword] = useState(false);
+    const [downloadingBackup, setDownloadingBackup] = useState(false);
     const [message, setMessage] = useState<{
         text: string;
         variant: 'success' | 'error' | 'info';
@@ -62,6 +67,111 @@ export default function TransportSettingsPage() {
             }
         } finally {
             setSavingPassword(false);
+        }
+    }
+
+    async function handleDownloadBackup(): Promise<void> {
+        const token = getAuthToken();
+
+        if (!token) {
+            setMessage({
+                text: 'Sessão expirada. Faça login novamente.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        setDownloadingBackup(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/settings/backup', {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/zip',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                let backendMessage = 'Não foi possível gerar o backup.';
+                let detailLines: string[] = [];
+
+                try {
+                    const payload = (await response.json()) as {
+                        message?: string;
+                        details?: string[];
+                        error_id?: string;
+                        stage?: string;
+                    };
+
+                    if (payload?.message) {
+                        backendMessage = payload.message;
+                    }
+
+                    if (Array.isArray(payload?.details)) {
+                        detailLines = payload.details.filter((item) =>
+                            Boolean(item?.trim()),
+                        );
+                    }
+
+                    if (payload?.error_id) {
+                        detailLines.push(`Error ID: ${payload.error_id}`);
+                    }
+
+                    if (payload?.stage) {
+                        detailLines.push(`Etapa: ${payload.stage}`);
+                    }
+
+                    // Mantem os detalhes completos no console para diagnostico rapido.
+                    console.error('Falha backup payload:', payload);
+                } catch {
+                    const textBody = await response.text().catch(() => '');
+                    if (textBody.trim()) {
+                        detailLines = [
+                            'Resposta não-JSON recebida do servidor.',
+                            textBody.slice(0, 350),
+                        ];
+                    }
+                }
+
+                const fullMessage =
+                    detailLines.length > 0
+                        ? `${backendMessage}\n${detailLines.join('\n')}`
+                        : backendMessage;
+
+                throw new Error(fullMessage);
+            }
+
+            const blob = await response.blob();
+            const contentDisposition =
+                response.headers.get('content-disposition') ?? '';
+            const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+            const fileName = fileNameMatch?.[1] ?? 'backup_kaique.zip';
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+
+            anchor.href = url;
+            anchor.download = fileName;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            window.URL.revokeObjectURL(url);
+
+            setMessage({
+                text: 'Backup gerado e download iniciado.',
+                variant: 'success',
+            });
+        } catch (error) {
+            setMessage({
+                text:
+                    error instanceof Error
+                        ? error.message
+                        : 'Não foi possível gerar o backup.',
+                variant: 'error',
+            });
+        } finally {
+            setDownloadingBackup(false);
         }
     }
 
@@ -183,6 +293,36 @@ export default function TransportSettingsPage() {
                         </form>
                     </CardContent>
                 </Card>
+
+                {isMasterAdmin ? (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Backup do sistema</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                                Gera um arquivo ZIP com banco de dados e arquivos essenciais do sistema.
+                            </p>
+                            <Button
+                                type="button"
+                                onClick={() => void handleDownloadBackup()}
+                                disabled={downloadingBackup}
+                            >
+                                {downloadingBackup ? (
+                                    <>
+                                        <LoaderCircle className="size-4 animate-spin" />
+                                        Gerando backup...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="size-4" />
+                                        Baixar backup
+                                    </>
+                                )}
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : null}
             </div>
         </AdminLayout>
     );

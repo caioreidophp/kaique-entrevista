@@ -38,6 +38,7 @@ class UpdateDriverInterviewRequest extends StoreDriverInterviewRequest
                     'Não é permitido editar GUEP quando o status RH é reprovado.'
                 );
             }
+
         });
     }
 }

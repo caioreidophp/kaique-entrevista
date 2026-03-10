@@ -44,6 +44,10 @@ Route::prefix('transport')->group(function (): void {
             return Inertia::render('transport/payroll/list');
         })->name('transport.payroll.list');
 
+        Route::get('adjustments', function () {
+            return Inertia::render('transport/payroll/adjustments');
+        })->name('transport.payroll.adjustments');
+
         Route::get('reports/unit', function () {
             return Inertia::render('transport/payroll/report-unit');
         })->name('transport.payroll.report-unit');
@@ -119,6 +123,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('functions', function () {
             return Inertia::render('transport/registry/functions');
         })->name('transport.registry.functions');
+
+        Route::get('payment-types', function () {
+            return Inertia::render('transport/registry/payment-types');
+        })->name('transport.registry.payment-types');
     });
 
     Route::get('activity-log', function () {

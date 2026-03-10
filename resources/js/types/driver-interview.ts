@@ -37,6 +37,7 @@ export interface DriverInterview {
     phone: string;
     email: string;
     city: string;
+    cargo_pretendido: string | null;
     hiring_unidade_id: number | null;
     hiring_unidade: InterviewUnit | null;
     marital_status: string;
@@ -92,10 +93,23 @@ export interface DriverInterview {
     availability_matches: boolean;
     overall_score: number;
     hr_status: HrStatus;
+    hr_rejection_reason: string | null;
     guep_status: GuepStatus;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+}
+
+export interface DriverInterviewListItem {
+    id: number;
+    author_id: number | null;
+    full_name: string;
+    author: InterviewAuthor | null;
+    hiring_unidade: InterviewUnit | null;
+    hr_status: HrStatus;
+    hr_rejection_reason: string | null;
+    guep_status: GuepStatus;
+    created_at: string;
 }
 
 export interface NextStepDocumentLinks {
@@ -208,6 +222,7 @@ export interface DriverInterviewFormData {
     phone: string;
     email: string;
     city: string;
+    cargo_pretendido: string;
     hiring_unidade_id: string;
     marital_status: string;
     has_children: boolean;
@@ -262,6 +277,7 @@ export interface DriverInterviewFormData {
     availability_matches: boolean;
     overall_score: string;
     hr_status: HrStatus;
+    hr_rejection_reason: string;
     guep_status: GuepStatus;
 }
 

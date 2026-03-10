@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDriverInterviewRequest;
 use App\Http\Requests\UpdateDriverInterviewRequest;
 use App\Http\Requests\UpdateDriverInterviewStatusesRequest;
+use App\Http\Resources\DriverInterviewListResource;
 use App\Http\Resources\DriverInterviewResource;
 use App\Models\DriverInterview;
 use App\Support\PdfBranding;
@@ -24,6 +25,16 @@ class DriverInterviewController extends Controller
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
 
         $query = DriverInterview::query()
+            ->select([
+                'id',
+                'author_id',
+                'full_name',
+                'hiring_unidade_id',
+                'hr_status',
+                'hr_rejection_reason',
+                'guep_status',
+                'created_at',
+            ])
             ->with(['author:id,name,email', 'hiringUnidade:id,nome,slug'])
             ->latest('id');
 
@@ -48,7 +59,7 @@ class DriverInterviewController extends Controller
             $query->whereDate('created_at', '<=', (string) $request->string('date_to'));
         }
 
-        return DriverInterviewResource::collection(
+        return DriverInterviewListResource::collection(
             $query->paginate($perPage)->withQueryString(),
         );
     }
@@ -62,6 +73,10 @@ class DriverInterviewController extends Controller
         $data['guep_status'] = $data['hr_status'] === HrStatus::Reprovado->value
             ? 'nao_fazer'
             : 'aguardando';
+
+        if ($data['hr_status'] === HrStatus::Reprovado->value && empty($data['hr_rejection_reason'])) {
+            $data['hr_rejection_reason'] = 'Não informado';
+        }
 
         $interview = DriverInterview::query()->create([
             ...$data,
@@ -86,8 +101,17 @@ class DriverInterviewController extends Controller
         $data = $request->validated();
         $nextHrStatus = (string) ($data['hr_status'] ?? $driverInterview->hr_status->value);
 
+        if (array_key_exists('hr_rejection_reason', $data)) {
+            $data['hr_rejection_reason'] = trim((string) $data['hr_rejection_reason']) ?: null;
+        }
+
         if ($nextHrStatus === HrStatus::Reprovado->value) {
             $data['guep_status'] = 'nao_fazer';
+            if (! ($data['hr_rejection_reason'] ?? null)) {
+                $data['hr_rejection_reason'] = $driverInterview->hr_rejection_reason ?: 'Não informado';
+            }
+        } else {
+            $data['hr_rejection_reason'] = null;
         }
 
         $driverInterview->update($data);
@@ -104,8 +128,17 @@ class DriverInterviewController extends Controller
         $data = $request->validated();
         $nextHrStatus = (string) ($data['hr_status'] ?? $driverInterview->hr_status->value);
 
+        if (array_key_exists('hr_rejection_reason', $data)) {
+            $data['hr_rejection_reason'] = trim((string) $data['hr_rejection_reason']) ?: null;
+        }
+
         if ($nextHrStatus === HrStatus::Reprovado->value) {
             $data['guep_status'] = 'nao_fazer';
+            if (! ($data['hr_rejection_reason'] ?? null)) {
+                $data['hr_rejection_reason'] = $driverInterview->hr_rejection_reason ?: 'Não informado';
+            }
+        } else {
+            $data['hr_rejection_reason'] = null;
         }
 
         $driverInterview->update($data);

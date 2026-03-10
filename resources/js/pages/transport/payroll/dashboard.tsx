@@ -47,7 +47,7 @@ export default function TransportPayrollDashboardPage() {
         apiGet<PayrollDashboard>('/payroll/dashboard')
             .then((response) => setData(response))
             .catch(() =>
-                setError('Não foi possível carregar o dashboard de salários.'),
+                setError('Não foi possível carregar o dashboard de pagamentos.'),
             )
             .finally(() => setLoading(false));
     }, []);
@@ -59,14 +59,14 @@ export default function TransportPayrollDashboardPage() {
 
     return (
         <AdminLayout
-            title="Salários - Dashboard"
+            title="Pagamentos - Dashboard"
             active="payroll-dashboard"
             module="payroll"
         >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">
-                        Dashboard Salários
+                        Dashboard Pagamentos
                     </h2>
                     <p className="text-sm text-muted-foreground">
                         Visão geral dos pagamentos da competência atual{' '}

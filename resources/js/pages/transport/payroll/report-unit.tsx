@@ -133,7 +133,7 @@ export default function TransportPayrollReportUnitPage() {
 
     return (
         <AdminLayout
-            title="Salários - Relatório por Unidade"
+            title="Pagamentos - Relatório por Unidade"
             active="payroll-report-unit"
             module="payroll"
         >

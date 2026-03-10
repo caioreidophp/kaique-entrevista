@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->trustProxies(at: '*');
 
+        $appEnv = (string) ($_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? getenv('APP_ENV') ?: '');
+
+        if ($appEnv === 'testing') {
+            $middleware->validateCsrfTokens(except: ['*']);
+        }
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

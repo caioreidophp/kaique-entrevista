@@ -73,10 +73,12 @@ export default function TransportLoginPage() {
         setLoading(true);
         setMessage(null);
 
+        const normalizedEmail = email.trim().toLowerCase();
+
         try {
             const response = await apiPost<LoginResponse>(
                 '/login',
-                { email, password },
+                { email: normalizedEmail, password },
                 false,
             );
 

@@ -1,7 +1,9 @@
 import {
+    CalendarDays,
     Eye,
     LoaderCircle,
     PencilLine,
+    PlusCircle,
     PlusSquare,
     Trash2,
     Upload,
@@ -82,11 +84,17 @@ interface Colaborador {
     dados_bancarios_1: string | null;
     dados_bancarios_2: string | null;
     chave_pix: string | null;
+    tipo_chave_pix: string | null;
     nome_banco: string | null;
     numero_banco: string | null;
     numero_agencia: string | null;
     tipo_conta: string | null;
     numero_conta: string | null;
+    banco_salario: string | null;
+    numero_agencia_salario: string | null;
+    numero_conta_salario: string | null;
+    conta_pagamento: string | null;
+    cartao_beneficio: string | null;
     foto_3x4_path: string | null;
     foto_3x4_url: string | null;
     unidade?: Unidade;
@@ -128,11 +136,17 @@ interface ColaboradorFormData {
     dados_bancarios_1: string;
     dados_bancarios_2: string;
     chave_pix: string;
+    tipo_chave_pix: string;
     nome_banco: string;
     numero_banco: string;
     numero_agencia: string;
     tipo_conta: string;
     numero_conta: string;
+    banco_salario: string;
+    numero_agencia_salario: string;
+    numero_conta_salario: string;
+    conta_pagamento: string;
+    cartao_beneficio: string;
 }
 
 interface SpreadsheetImportError {
@@ -147,6 +161,23 @@ interface SpreadsheetImportResult {
     total_ignorados: number;
     erros: SpreadsheetImportError[];
 }
+
+interface FeriasRegistro {
+    id: number;
+    data_inicio: string;
+    data_termino: string;
+    observacoes: string | null;
+}
+
+interface AfastamentoRegistro {
+    id: number;
+    data_inicio: string;
+    data_termino: string;
+    motivo: string;
+    observacoes: string | null;
+}
+
+type DetailsTab = 'contato' | 'ferias' | 'afastamentos' | 'dados_bancarios';
 
 const maskedInputClassName =
     'border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive';
@@ -171,12 +202,26 @@ const emptyForm: ColaboradorFormData = {
     dados_bancarios_1: '',
     dados_bancarios_2: '',
     chave_pix: '',
+    tipo_chave_pix: '',
     nome_banco: '',
     numero_banco: '',
     numero_agencia: '',
     tipo_conta: '',
     numero_conta: '',
+    banco_salario: '',
+    numero_agencia_salario: '',
+    numero_conta_salario: '',
+    conta_pagamento: '',
+    cartao_beneficio: '',
 };
+
+function enumLabel(
+    value: string | null | undefined,
+    labels: Record<string, string>,
+): string {
+    if (!value) return '-';
+    return labels[value] ?? value;
+}
 
 function normalizeNullable(value: string): string | null {
     const trimmed = value.trim();
@@ -186,6 +231,15 @@ function normalizeNullable(value: string): string | null {
 function dateToInput(value: string | null): string {
     if (!value) return '';
     return value.slice(0, 10);
+}
+
+function dateToView(value: string | null): string {
+    if (!value) return '-';
+
+    const [year, month, day] = value.slice(0, 10).split('-');
+    if (!year || !month || !day) return value;
+
+    return `${day}/${month}/${year}`;
 }
 
 function sanitizeCpf(value: string): string {
@@ -300,6 +354,7 @@ export default function TransportRegistryCollaboratorsPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Colaborador | null>(null);
     const [detailsItem, setDetailsItem] = useState<Colaborador | null>(null);
+    const [detailsTab, setDetailsTab] = useState<DetailsTab>('contato');
     const [deleteCandidate, setDeleteCandidate] = useState<Colaborador | null>(
         null,
     );
@@ -312,6 +367,25 @@ export default function TransportRegistryCollaboratorsPage() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [fotoFile, setFotoFile] = useState<File | null>(null);
     const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | null>(null);
+    const [feriasByColaborador, setFeriasByColaborador] = useState<
+        Record<number, FeriasRegistro[]>
+    >({});
+    const [afastamentosByColaborador, setAfastamentosByColaborador] = useState<
+        Record<number, AfastamentoRegistro[]>
+    >({});
+    const [feriasModalOpen, setFeriasModalOpen] = useState(false);
+    const [afastamentoModalOpen, setAfastamentoModalOpen] = useState(false);
+    const [feriasDraft, setFeriasDraft] = useState({
+        data_inicio: '',
+        data_termino: '',
+        observacoes: '',
+    });
+    const [afastamentoDraft, setAfastamentoDraft] = useState({
+        data_inicio: '',
+        data_termino: '',
+        motivo: '',
+        observacoes: '',
+    });
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
 
     const selectedUnidadeName = useMemo(() => {
@@ -446,11 +520,17 @@ export default function TransportRegistryCollaboratorsPage() {
             dados_bancarios_1: item.dados_bancarios_1 ?? '',
             dados_bancarios_2: item.dados_bancarios_2 ?? '',
             chave_pix: item.chave_pix ?? '',
+            tipo_chave_pix: item.tipo_chave_pix ?? '',
             nome_banco: item.nome_banco ?? '',
             numero_banco: item.numero_banco ?? '',
             numero_agencia: item.numero_agencia ?? '',
             tipo_conta: item.tipo_conta ?? '',
             numero_conta: item.numero_conta ?? '',
+            banco_salario: item.banco_salario ?? '',
+            numero_agencia_salario: item.numero_agencia_salario ?? '',
+            numero_conta_salario: item.numero_conta_salario ?? '',
+            conta_pagamento: item.conta_pagamento ?? '',
+            cartao_beneficio: item.cartao_beneficio ?? '',
         });
         setFormErrors({});
         setFotoFile(null);
@@ -460,7 +540,79 @@ export default function TransportRegistryCollaboratorsPage() {
 
     function openDetailsDialog(item: Colaborador): void {
         setDetailsItem(item);
+        setDetailsTab('contato');
         setDetailsOpen(true);
+    }
+
+    function saveFeriasDraft(): void {
+        if (!detailsItem) return;
+        if (!feriasDraft.data_inicio || !feriasDraft.data_termino) {
+            setNotification({
+                message: 'Informe data início e data término para lançar férias.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        const registro: FeriasRegistro = {
+            id: Date.now(),
+            data_inicio: feriasDraft.data_inicio,
+            data_termino: feriasDraft.data_termino,
+            observacoes: normalizeNullable(feriasDraft.observacoes),
+        };
+
+        setFeriasByColaborador((previous) => ({
+            ...previous,
+            [detailsItem.id]: [...(previous[detailsItem.id] ?? []), registro],
+        }));
+        setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+        setFeriasModalOpen(false);
+        setNotification({
+            message:
+                'Anotação de férias adicionada no perfil. Integração com controle de férias virá na próxima etapa.',
+            variant: 'info',
+        });
+    }
+
+    function saveAfastamentoDraft(): void {
+        if (!detailsItem) return;
+        if (
+            !afastamentoDraft.data_inicio ||
+            !afastamentoDraft.data_termino ||
+            !afastamentoDraft.motivo.trim()
+        ) {
+            setNotification({
+                message:
+                    'Informe data início, data término e motivo para lançar afastamento.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        const registro: AfastamentoRegistro = {
+            id: Date.now(),
+            data_inicio: afastamentoDraft.data_inicio,
+            data_termino: afastamentoDraft.data_termino,
+            motivo: afastamentoDraft.motivo.trim(),
+            observacoes: normalizeNullable(afastamentoDraft.observacoes),
+        };
+
+        setAfastamentosByColaborador((previous) => ({
+            ...previous,
+            [detailsItem.id]: [...(previous[detailsItem.id] ?? []), registro],
+        }));
+        setAfastamentoDraft({
+            data_inicio: '',
+            data_termino: '',
+            motivo: '',
+            observacoes: '',
+        });
+        setAfastamentoModalOpen(false);
+        setNotification({
+            message:
+                'Afastamento adicionado no perfil. Integração completa virá na próxima etapa.',
+            variant: 'info',
+        });
     }
 
     function openDeleteDialog(item: Colaborador): void {
@@ -540,11 +692,19 @@ export default function TransportRegistryCollaboratorsPage() {
             dados_bancarios_1: normalizeNullable(formData.dados_bancarios_1),
             dados_bancarios_2: normalizeNullable(formData.dados_bancarios_2),
             chave_pix: normalizeNullable(formData.chave_pix),
+            tipo_chave_pix: normalizeNullable(formData.tipo_chave_pix),
             nome_banco: normalizeNullable(formData.nome_banco),
             numero_banco: normalizeNullable(formData.numero_banco),
             numero_agencia: normalizeNullable(formData.numero_agencia),
             tipo_conta: normalizeNullable(formData.tipo_conta),
             numero_conta: normalizeNullable(formData.numero_conta),
+            banco_salario: normalizeNullable(formData.banco_salario),
+            numero_agencia_salario: normalizeNullable(
+                formData.numero_agencia_salario,
+            ),
+            numero_conta_salario: normalizeNullable(formData.numero_conta_salario),
+            conta_pagamento: normalizeNullable(formData.conta_pagamento),
+            cartao_beneficio: normalizeNullable(formData.cartao_beneficio),
         };
 
         try {
@@ -1025,7 +1185,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         </Button>
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="destructive"
                                                             size="sm"
                                                             onClick={() =>
                                                                 openDeleteDialog(
@@ -1516,133 +1676,294 @@ export default function TransportRegistryCollaboratorsPage() {
                                 />
                             </div>
 
+                            <div className="rounded-lg border bg-muted/10 p-3">
+                                <p className="mb-3 text-sm font-semibold">
+                                    Dados bancários - Conta particular
+                                </p>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="numero-banco">
+                                            Número do banco
+                                        </Label>
+                                        <Input
+                                            id="numero-banco"
+                                            value={formData.numero_banco}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_banco:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="nome-banco">
+                                            Nome do banco
+                                        </Label>
+                                        <Input
+                                            id="nome-banco"
+                                            value={formData.nome_banco}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    nome_banco:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="agencia">
+                                            Número da agência
+                                        </Label>
+                                        <Input
+                                            id="agencia"
+                                            value={formData.numero_agencia}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_agencia:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                                    <div className="space-y-2">
+                                        <Label>Tipo de conta</Label>
+                                        <Select
+                                            value={formData.tipo_conta}
+                                            onValueChange={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    tipo_conta: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="poupanca">
+                                                    Poupanca
+                                                </SelectItem>
+                                                <SelectItem value="corrente">
+                                                    Corrente
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="conta">
+                                            Número da conta
+                                        </Label>
+                                        <Input
+                                            id="conta"
+                                            value={formData.numero_conta}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_conta:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor="pix">Chave PIX</Label>
+                                        <Input
+                                            id="pix"
+                                            value={formData.chave_pix}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    chave_pix:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                    <div className="space-y-2">
+                                        <Label>Tipo da chave PIX</Label>
+                                        <Select
+                                            value={formData.tipo_chave_pix}
+                                            onValueChange={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    tipo_chave_pix: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="cpf_cnpj">
+                                                    CPF/CNPJ
+                                                </SelectItem>
+                                                <SelectItem value="celular">
+                                                    Celular
+                                                </SelectItem>
+                                                <SelectItem value="email">
+                                                    E-mail
+                                                </SelectItem>
+                                                <SelectItem value="aleatoria">
+                                                    Aleatoria
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="banco-1">
+                                            Dados bancários 1 (opcional)
+                                        </Label>
+                                        <Input
+                                            id="banco-1"
+                                            value={formData.dados_bancarios_1}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    dados_bancarios_1:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="banco-2">
+                                            Dados bancários 2 (opcional)
+                                        </Label>
+                                        <Input
+                                            id="banco-2"
+                                            value={formData.dados_bancarios_2}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    dados_bancarios_2:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border bg-muted/10 p-3">
+                                <p className="mb-3 text-sm font-semibold">
+                                    Dados bancários - Conta salário
+                                </p>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="space-y-2">
+                                        <Label>Banco</Label>
+                                        <Select
+                                            value={formData.banco_salario}
+                                            onValueChange={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    banco_salario: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="brasil">
+                                                    Brasil
+                                                </SelectItem>
+                                                <SelectItem value="bradesco">
+                                                    Bradesco
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="agencia-salario">
+                                            Número da agência
+                                        </Label>
+                                        <Input
+                                            id="agencia-salario"
+                                            value={formData.numero_agencia_salario}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_agencia_salario:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="conta-salario">
+                                            Número da conta
+                                        </Label>
+                                        <Input
+                                            id="conta-salario"
+                                            value={formData.numero_conta_salario}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_conta_salario:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid gap-3 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="banco-1">
-                                        Dados bancários 1
-                                    </Label>
-                                    <Input
-                                        id="banco-1"
-                                        value={formData.dados_bancarios_1}
-                                        onChange={(event) =>
+                                    <Label>Qual conta usar para pagamento</Label>
+                                    <Select
+                                        value={formData.conta_pagamento}
+                                        onValueChange={(value) =>
                                             setFormData((previous) => ({
                                                 ...previous,
-                                                dados_bancarios_1:
-                                                    event.target.value,
+                                                conta_pagamento: value,
                                             }))
                                         }
-                                    />
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="salario">
+                                                Salario
+                                            </SelectItem>
+                                            <SelectItem value="particular">
+                                                Particular
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="banco-2">
-                                        Dados bancários 2
-                                    </Label>
-                                    <Input
-                                        id="banco-2"
-                                        value={formData.dados_bancarios_2}
-                                        onChange={(event) =>
+                                    <Label>Qual cartão benefício</Label>
+                                    <Select
+                                        value={formData.cartao_beneficio}
+                                        onValueChange={(value) =>
                                             setFormData((previous) => ({
                                                 ...previous,
-                                                dados_bancarios_2:
-                                                    event.target.value,
+                                                cartao_beneficio: value,
                                             }))
                                         }
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid gap-3 md:grid-cols-5">
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label htmlFor="pix">Chave PIX</Label>
-                                    <Input
-                                        id="pix"
-                                        value={formData.chave_pix}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                chave_pix: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label htmlFor="nome-banco">
-                                        Nome do banco
-                                    </Label>
-                                    <Input
-                                        id="nome-banco"
-                                        value={formData.nome_banco}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                nome_banco: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="numero-banco">
-                                        Nº banco
-                                    </Label>
-                                    <Input
-                                        id="numero-banco"
-                                        value={formData.numero_banco}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                numero_banco:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid gap-3 md:grid-cols-3">
-                                <div className="space-y-2">
-                                    <Label htmlFor="agencia">Agência</Label>
-                                    <Input
-                                        id="agencia"
-                                        value={formData.numero_agencia}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                numero_agencia:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="tipo-conta">
-                                        Tipo de conta
-                                    </Label>
-                                    <Input
-                                        id="tipo-conta"
-                                        value={formData.tipo_conta}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                tipo_conta: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="conta">
-                                        Número da conta
-                                    </Label>
-                                    <Input
-                                        id="conta"
-                                        value={formData.numero_conta}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                numero_conta:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="alelo">
+                                                Alelo
+                                            </SelectItem>
+                                            <SelectItem value="vr">VR</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                         </div>
@@ -1679,21 +2000,31 @@ export default function TransportRegistryCollaboratorsPage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-                <DialogContent className="sm:max-w-3xl">
+            <Dialog
+                open={detailsOpen}
+                onOpenChange={(open) => {
+                    setDetailsOpen(open);
+                    if (!open) {
+                        setFeriasModalOpen(false);
+                        setAfastamentoModalOpen(false);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-6xl">
                     <DialogHeader>
-                        <DialogTitle>Detalhes do colaborador</DialogTitle>
+                        <DialogTitle>Perfil do colaborador</DialogTitle>
                         <DialogDescription>
-                            Visualização dos dados principais do cadastro com
-                            foco nas informações essenciais.
+                            Visão principal sempre disponível no topo e páginas
+                            internas para contato, férias, afastamentos e dados
+                            bancários.
                         </DialogDescription>
                     </DialogHeader>
 
                     {detailsItem ? (
                         <div className="space-y-4">
                             <div className="rounded-xl border bg-muted/20 p-4">
-                                <div className="grid gap-4 md:grid-cols-[120px_1fr] md:items-center">
-                                    <div className="flex justify-center md:justify-start">
+                                <div className="grid gap-4 lg:grid-cols-[120px_1fr]">
+                                    <div className="flex justify-center lg:justify-start">
                                         <Avatar className="h-28 w-24 rounded-md border">
                                             <AvatarImage
                                                 src={
@@ -1712,57 +2043,86 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </Avatar>
                                     </div>
 
-                                    <div>
-                                        <p className="text-3xl leading-tight font-bold">
-                                            {detailsItem.nome}
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            {detailsItem.apelido
-                                                ? `Apelido: ${detailsItem.apelido}`
-                                                : 'Sem apelido'}
-                                        </p>
+                                    <div className="space-y-3">
+                                        <div className="grid gap-3 md:grid-cols-4">
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Código
+                                                </p>
+                                                <p className="text-base font-semibold">
+                                                    {String(detailsItem.id).padStart(
+                                                        6,
+                                                        '0',
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border bg-background p-3 md:col-span-2">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Nome do colaborador
+                                                </p>
+                                                <p className="text-base font-semibold">
+                                                    {detailsItem.nome}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Cargo
+                                                </p>
+                                                <p className="text-base font-semibold">
+                                                    {selectedFuncaoName}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-3 md:grid-cols-4">
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Ativo
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.ativo
+                                                        ? 'Sim'
+                                                        : 'Não'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Apelido
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.apelido ?? '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Sexo
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.sexo ?? '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border bg-background p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Empresa
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {selectedUnidadeName}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-4">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        Função
-                                    </p>
-                                    <p className="text-base font-semibold">
-                                        {selectedFuncaoName}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        Unidade
-                                    </p>
-                                    <p className="text-base font-semibold">
-                                        {selectedUnidadeName}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        Status
-                                    </p>
-                                    <p className="text-base font-semibold">
-                                        {detailsItem.ativo
-                                            ? 'Ativo'
-                                            : 'Inativo'}
-                                    </p>
-                                </div>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                                 <div className="rounded-lg border p-3">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         CPF
                                     </p>
-                                    <p className="text-base font-semibold">
+                                    <p className="text-sm font-medium">
                                         {detailsItem.cpf}
                                     </p>
                                 </div>
-                            </div>
-
-                            <div className="grid gap-3 text-sm md:grid-cols-2">
                                 <div className="rounded-lg border p-3">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         RG
@@ -1773,7 +2133,31 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        CNH
+                                        Data nascimento
+                                    </p>
+                                    <p className="text-sm font-medium">
+                                        {dateToView(detailsItem.data_nascimento)}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Data admissão
+                                    </p>
+                                    <p className="text-sm font-medium">
+                                        {dateToView(detailsItem.data_admissao)}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Data demissão
+                                    </p>
+                                    <p className="text-sm font-medium">
+                                        {dateToView(detailsItem.data_demissao)}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Nº registro CNH
                                     </p>
                                     <p className="text-sm font-medium">
                                         {detailsItem.cnh ?? '-'}
@@ -1781,23 +2165,599 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        Telefone
+                                        Data validade CNH
                                     </p>
                                     <p className="text-sm font-medium">
-                                        {detailsItem.telefone ?? '-'}
+                                        {dateToView(detailsItem.validade_cnh)}
                                     </p>
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                        E-mail
+                                        Data val. exame tox.
                                     </p>
-                                    <p className="text-sm font-medium break-all">
-                                        {detailsItem.email ?? '-'}
+                                    <p className="text-sm font-medium">-</p>
+                                </div>
+                                <div className="rounded-lg border p-3 lg:col-span-2">
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Salário inicial
                                     </p>
+                                    <p className="text-sm font-medium">R$ 0,00</p>
                                 </div>
                             </div>
+
+                            <div className="flex flex-wrap gap-2 border-b pb-2">
+                                <Button
+                                    type="button"
+                                    variant={
+                                        detailsTab === 'contato'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() => setDetailsTab('contato')}
+                                >
+                                    Contato
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        detailsTab === 'ferias'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() => setDetailsTab('ferias')}
+                                >
+                                    Férias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        detailsTab === 'afastamentos'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() =>
+                                        setDetailsTab('afastamentos')
+                                    }
+                                >
+                                    Afastamentos
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        detailsTab === 'dados_bancarios'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() =>
+                                        setDetailsTab('dados_bancarios')
+                                    }
+                                >
+                                    Dados bancários
+                                </Button>
+                            </div>
+
+                            {detailsTab === 'contato' ? (
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="rounded-lg border p-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Telefone
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.telefone ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            E-mail
+                                        </p>
+                                        <p className="text-sm font-medium break-all">
+                                            {detailsItem.email ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Endereço completo
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.endereco_completo ?? '-'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {detailsTab === 'ferias' ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold">
+                                            Anotações de férias
+                                        </h3>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setFeriasModalOpen(true)
+                                            }
+                                        >
+                                            <PlusCircle className="size-4" />
+                                            Lançar nova...
+                                        </Button>
+                                    </div>
+                                    <div className="overflow-x-auto rounded-lg border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/40 text-left">
+                                                <tr>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Data início
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Data término
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Observações
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(feriasByColaborador[
+                                                    detailsItem.id
+                                                ] ?? []).map((item) => (
+                                                    <tr
+                                                        key={item.id}
+                                                        className="border-t"
+                                                    >
+                                                        <td className="px-3 py-2">
+                                                            {dateToView(
+                                                                item.data_inicio,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {dateToView(
+                                                                item.data_termino,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.observacoes ??
+                                                                '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(feriasByColaborador[
+                                                    detailsItem.id
+                                                ] ?? []).length === 0 ? (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={3}
+                                                            className="px-3 py-6 text-center text-muted-foreground"
+                                                        >
+                                                            Nenhuma anotação de
+                                                            férias lançada.
+                                                        </td>
+                                                    </tr>
+                                                ) : null}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Esta seção já prepara o perfil para o
+                                        novo painel de controle de férias.
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {detailsTab === 'afastamentos' ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold">
+                                            Afastamentos
+                                        </h3>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setAfastamentoModalOpen(true)
+                                            }
+                                        >
+                                            <PlusCircle className="size-4" />
+                                            Lançar novo...
+                                        </Button>
+                                    </div>
+                                    <div className="overflow-x-auto rounded-lg border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/40 text-left">
+                                                <tr>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Data início
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Data término
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Motivo
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium">
+                                                        Observações
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(afastamentosByColaborador[
+                                                    detailsItem.id
+                                                ] ?? []).map((item) => (
+                                                    <tr
+                                                        key={item.id}
+                                                        className="border-t"
+                                                    >
+                                                        <td className="px-3 py-2">
+                                                            {dateToView(
+                                                                item.data_inicio,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {dateToView(
+                                                                item.data_termino,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.motivo}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.observacoes ??
+                                                                '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(afastamentosByColaborador[
+                                                    detailsItem.id
+                                                ] ?? []).length === 0 ? (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={4}
+                                                            className="px-3 py-6 text-center text-muted-foreground"
+                                                        >
+                                                            Nenhum afastamento
+                                                            lançado.
+                                                        </td>
+                                                    </tr>
+                                                ) : null}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {detailsTab === 'dados_bancarios' ? (
+                                <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        <p className="text-sm font-semibold">
+                                            Conta particular
+                                        </p>
+                                        <div className="grid gap-3 md:grid-cols-3">
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Número do banco
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.numero_banco ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Nome do banco
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.nome_banco ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Agência
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.numero_agencia ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Tipo conta
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {enumLabel(
+                                                        detailsItem.tipo_conta,
+                                                        {
+                                                            poupanca:
+                                                                'Poupanca',
+                                                            corrente:
+                                                                'Corrente',
+                                                        },
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Número conta
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.numero_conta ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Chave PIX
+                                                </p>
+                                                <p className="text-sm font-medium break-all">
+                                                    {detailsItem.chave_pix ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-sm font-semibold">
+                                            Conta salário
+                                        </p>
+                                        <div className="grid gap-3 md:grid-cols-3">
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Banco
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {enumLabel(
+                                                        detailsItem.banco_salario,
+                                                        {
+                                                            brasil: 'Brasil',
+                                                            bradesco:
+                                                                'Bradesco',
+                                                        },
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Agência
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.numero_agencia_salario ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Número conta
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.numero_conta_salario ??
+                                                        '-'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                Conta usada para pagamento
+                                            </p>
+                                            <p className="text-sm font-medium">
+                                                {enumLabel(
+                                                    detailsItem.conta_pagamento,
+                                                    {
+                                                        salario: 'Salario',
+                                                        particular:
+                                                            'Particular',
+                                                    },
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                Cartão benefício
+                                            </p>
+                                            <p className="text-sm font-medium">
+                                                {enumLabel(
+                                                    detailsItem.cartao_beneficio,
+                                                    {
+                                                        alelo: 'Alelo',
+                                                        vr: 'VR',
+                                                    },
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setDetailsOpen(false)}
+                                >
+                                    Fechar perfil
+                                </Button>
+                            </DialogFooter>
                         </div>
                     ) : null}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={feriasModalOpen} onOpenChange={setFeriasModalOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
+                            <span className="inline-flex items-center gap-2">
+                                <CalendarDays className="size-4" />
+                                Nova anotação de férias
+                            </span>
+                        </DialogTitle>
+                        <DialogDescription>
+                            Registre período e observações. A integração total
+                            com o painel de férias virá na próxima etapa.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="ferias-inicio">Data início</Label>
+                                <Input
+                                    id="ferias-inicio"
+                                    type="date"
+                                    value={feriasDraft.data_inicio}
+                                    onChange={(event) =>
+                                        setFeriasDraft((previous) => ({
+                                            ...previous,
+                                            data_inicio: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="ferias-fim">Data término</Label>
+                                <Input
+                                    id="ferias-fim"
+                                    type="date"
+                                    value={feriasDraft.data_termino}
+                                    onChange={(event) =>
+                                        setFeriasDraft((previous) => ({
+                                            ...previous,
+                                            data_termino: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ferias-obs">Observações</Label>
+                            <textarea
+                                id="ferias-obs"
+                                className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                value={feriasDraft.observacoes}
+                                onChange={(event) =>
+                                    setFeriasDraft((previous) => ({
+                                        ...previous,
+                                        observacoes: event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setFeriasModalOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button type="button" onClick={saveFeriasDraft}>
+                            Gravar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={afastamentoModalOpen}
+                onOpenChange={setAfastamentoModalOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Novo afastamento</DialogTitle>
+                        <DialogDescription>
+                            Registre período, motivo e observações no perfil do
+                            colaborador.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="afastamento-inicio">
+                                    Data início
+                                </Label>
+                                <Input
+                                    id="afastamento-inicio"
+                                    type="date"
+                                    value={afastamentoDraft.data_inicio}
+                                    onChange={(event) =>
+                                        setAfastamentoDraft((previous) => ({
+                                            ...previous,
+                                            data_inicio: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="afastamento-fim">
+                                    Data término
+                                </Label>
+                                <Input
+                                    id="afastamento-fim"
+                                    type="date"
+                                    value={afastamentoDraft.data_termino}
+                                    onChange={(event) =>
+                                        setAfastamentoDraft((previous) => ({
+                                            ...previous,
+                                            data_termino: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="afastamento-motivo">Motivo</Label>
+                            <Input
+                                id="afastamento-motivo"
+                                value={afastamentoDraft.motivo}
+                                onChange={(event) =>
+                                    setAfastamentoDraft((previous) => ({
+                                        ...previous,
+                                        motivo: event.target.value,
+                                    }))
+                                }
+                                placeholder="Ex.: Licença médica"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="afastamento-obs">Observações</Label>
+                            <textarea
+                                id="afastamento-obs"
+                                className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                value={afastamentoDraft.observacoes}
+                                onChange={(event) =>
+                                    setAfastamentoDraft((previous) => ({
+                                        ...previous,
+                                        observacoes: event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setAfastamentoModalOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button type="button" onClick={saveAfastamentoDraft}>
+                            Gravar
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

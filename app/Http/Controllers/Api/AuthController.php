@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -20,12 +21,22 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = \App\Models\User::query()->where('email', $credentials['email'])->first();
+        $email = mb_strtolower(trim((string) $credentials['email']));
+
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Credenciais inválidas.'],
             ]);
+        }
+
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill([
+                'password' => Hash::make($credentials['password']),
+            ])->save();
         }
 
         $token = $user->createToken('api-token')->plainTextToken;

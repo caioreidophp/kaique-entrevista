@@ -19,9 +19,12 @@ class Pagamento extends Model
         'colaborador_id',
         'unidade_id',
         'autor_id',
+        'tipo_pagamento_id',
         'competencia_mes',
         'competencia_ano',
         'valor',
+        'descricao',
+        'data_pagamento',
         'observacao',
         'lancado_em',
     ];
@@ -35,8 +38,14 @@ class Pagamento extends Model
             'competencia_mes' => 'integer',
             'competencia_ano' => 'integer',
             'valor' => 'decimal:2',
+            'data_pagamento' => 'date',
             'lancado_em' => 'datetime',
         ];
+    }
+
+    public function tipoPagamento(): BelongsTo
+    {
+        return $this->belongsTo(TipoPagamento::class);
     }
 
     public function colaborador(): BelongsTo

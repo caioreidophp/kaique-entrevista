@@ -90,7 +90,7 @@ class HomeController extends Controller
         if (! $isUsuario) {
             $modules[] = [
                 'key' => 'payroll',
-                'title' => 'Salários',
+                'title' => 'Pagamentos',
                 'description' => 'Lançamentos de pagamentos e relatórios por unidade e colaborador.',
                 'href' => '/transport/payroll',
                 'icon' => 'wallet',

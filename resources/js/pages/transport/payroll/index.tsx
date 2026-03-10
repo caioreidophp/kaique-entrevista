@@ -236,7 +236,7 @@ export default function TransportPayrollPage() {
             setSummary(response);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar o resumo de salários.',
+                message: 'Não foi possível carregar o resumo de pagamentos.',
                 variant: 'error',
             });
         } finally {
@@ -400,7 +400,7 @@ export default function TransportPayrollPage() {
 
     return (
         <AdminLayout
-            title="Salários"
+            title="Pagamentos"
             active="payroll-dashboard"
             module="payroll"
         >
@@ -408,7 +408,7 @@ export default function TransportPayrollPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="text-2xl font-semibold">
-                            Módulo Salários
+                            Módulo Pagamentos
                         </h2>
                         <p className="text-sm text-muted-foreground">
                             Controle de lançamentos salariais por competência.

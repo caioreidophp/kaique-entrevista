@@ -27,6 +27,9 @@ class StoreDriverInterviewRequest extends FormRequest
             'rg' => $rgSanitized,
             'cnh_number' => $cnhNumber,
             'cnh_category' => $cnhCategory,
+            'cargo_pretendido' => $this->filled('cargo_pretendido')
+                ? trim((string) $this->input('cargo_pretendido'))
+                : null,
             'children_situation' => $this->filled('children_situation')
                 ? trim((string) $this->input('children_situation'))
                 : null,
@@ -50,6 +53,9 @@ class StoreDriverInterviewRequest extends FormRequest
                 : null,
             'salary_observation' => $this->filled('salary_observation')
                 ? trim((string) $this->input('salary_observation'))
+                : null,
+            'hr_rejection_reason' => $this->filled('hr_rejection_reason')
+                ? trim((string) $this->input('hr_rejection_reason'))
                 : null,
             'start_availability_note' => $this->filled('start_availability_note')
                 ? trim((string) $this->input('start_availability_note'))
@@ -96,6 +102,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'phone' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'email' => ['required', 'email', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
+            'cargo_pretendido' => ['nullable', 'string', 'max:255'],
             'hiring_unidade_id' => ['nullable', 'integer', 'exists:unidades,id'],
             'marital_status' => ['required', 'string', 'max:100'],
             'has_children' => ['required', 'boolean'],
@@ -157,6 +164,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'availability_matches' => ['required', 'boolean'],
             'overall_score' => ['required', 'numeric', 'between:0,10', 'multiple_of:0.5'],
             'hr_status' => ['required', Rule::in(array_column(HrStatus::cases(), 'value'))],
+            'hr_rejection_reason' => ['nullable', 'string', 'max:2000'],
             'guep_status' => ['prohibited'],
         ];
     }
@@ -203,6 +211,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'phone' => 'telefone',
             'email' => 'e-mail',
             'city' => 'cidade',
+            'cargo_pretendido' => 'cargo pretendido',
             'marital_status' => 'estado civil',
             'has_children' => 'possui filhos',
             'children_situation' => 'situação dos filhos',
@@ -228,6 +237,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'availability_matches' => 'disponibilidade compatível',
             'overall_score' => 'nota geral',
             'hr_status' => 'status RH',
+            'hr_rejection_reason' => 'motivo da reprovação',
             'hiring_unidade_id' => 'unidade de contratação',
         ];
     }

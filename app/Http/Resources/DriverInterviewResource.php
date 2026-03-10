@@ -35,6 +35,7 @@ class DriverInterviewResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'city' => $this->city,
+            'cargo_pretendido' => $this->cargo_pretendido,
             'hiring_unidade_id' => $this->hiring_unidade_id,
             'hiring_unidade' => $this->whenLoaded('hiringUnidade', function (): ?array {
                 if (! $this->hiringUnidade) {
@@ -107,6 +108,7 @@ class DriverInterviewResource extends JsonResource
             'availability_matches' => $this->availability_matches,
             'overall_score' => $this->overall_score,
             'hr_status' => $this->hr_status?->value,
+            'hr_rejection_reason' => $this->hr_rejection_reason,
             'guep_status' => $this->guep_status?->value,
 
             'created_at' => $this->created_at?->toISOString(),

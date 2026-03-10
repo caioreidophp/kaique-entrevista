@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreColaboradorRequest extends FormRequest
 {
@@ -55,8 +56,14 @@ class StoreColaboradorRequest extends FormRequest
             'nome_banco' => ['nullable', 'string', 'max:255'],
             'numero_banco' => ['nullable', 'string', 'max:20'],
             'numero_agencia' => ['nullable', 'string', 'max:20'],
-            'tipo_conta' => ['nullable', 'string', 'max:50'],
+            'tipo_conta' => ['nullable', Rule::in(['poupanca', 'corrente'])],
             'numero_conta' => ['nullable', 'string', 'max:30'],
+            'tipo_chave_pix' => ['nullable', Rule::in(['cpf_cnpj', 'celular', 'email', 'aleatoria'])],
+            'banco_salario' => ['nullable', Rule::in(['brasil', 'bradesco'])],
+            'numero_agencia_salario' => ['nullable', 'string', 'max:20'],
+            'numero_conta_salario' => ['nullable', 'string', 'max:30'],
+            'conta_pagamento' => ['nullable', Rule::in(['salario', 'particular'])],
+            'cartao_beneficio' => ['nullable', Rule::in(['alelo', 'vr'])],
         ];
     }
 

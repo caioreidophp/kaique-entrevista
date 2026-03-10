@@ -21,12 +21,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { usePersistedState } from '@/hooks/use-persisted-state';
 import { ApiError, apiDelete, apiGet, apiPatch } from '@/lib/api-client';
 import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
 import type {
     ApiPaginatedResponse,
-    DriverInterview,
+    DriverInterviewListItem,
     GuepStatus,
     HrStatus,
 } from '@/types/driver-interview';
@@ -66,7 +71,7 @@ const guepStatusOptions: { value: GuepStatus; label: string }[] = [
 ];
 
 export default function TransportInterviewsListPage() {
-    const [items, setItems] = useState<DriverInterview[]>([]);
+    const [items, setItems] = useState<DriverInterviewListItem[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -88,12 +93,16 @@ export default function TransportInterviewsListPage() {
     const [dateToFilter, setDateToFilter, resetDateToFilter] =
         usePersistedState('transport:interviews:dateToFilter', '');
     const [deleteCandidate, setDeleteCandidate] =
-        useState<DriverInterview | null>(null);
+        useState<DriverInterviewListItem | null>(null);
     const [viewerRole, setViewerRole] = useState<
         'master_admin' | 'admin' | 'usuario'
     >('admin');
     const [viewerId, setViewerId] = useState<number | null>(null);
     const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+    const [rejectionDialog, setRejectionDialog] = useState<{
+        item: DriverInterviewListItem;
+        reason: string;
+    } | null>(null);
 
     const isMasterAdmin = viewerRole === 'master_admin';
 
@@ -119,7 +128,7 @@ export default function TransportInterviewsListPage() {
 
         try {
             const response = await apiGet<
-                ApiPaginatedResponse<DriverInterview>
+                ApiPaginatedResponse<DriverInterviewListItem>
             >(`/driver-interviews?${buildQuery(page)}`);
             setItems(response.data);
             setCurrentPage(response.meta.current_page);
@@ -173,15 +182,20 @@ export default function TransportInterviewsListPage() {
     }
 
     async function handleInlineStatusUpdate(
-        item: DriverInterview,
-        patch: Partial<Pick<DriverInterview, 'hr_status' | 'guep_status'>>,
+        item: DriverInterviewListItem,
+        patch: Partial<
+            Pick<
+                DriverInterviewListItem,
+                'hr_status' | 'guep_status' | 'hr_rejection_reason'
+            >
+        >,
         field: 'hr_status' | 'guep_status',
     ): Promise<void> {
         const key = `${item.id}:${field}`;
         setUpdatingKey(key);
 
         try {
-            const response = await apiPatch<{ data: DriverInterview }>(
+            const response = await apiPatch<{ data: DriverInterviewListItem }>(
                 `/driver-interviews/${item.id}/statuses`,
                 patch,
             );
@@ -210,6 +224,33 @@ export default function TransportInterviewsListPage() {
         } finally {
             setUpdatingKey(null);
         }
+    }
+
+    async function handleConfirmRejectionReason(): Promise<void> {
+        if (!rejectionDialog) {
+            return;
+        }
+
+        const reason = rejectionDialog.reason.trim();
+
+        if (!reason) {
+            setNotification({
+                message: 'Informe o motivo da reprovação antes de salvar.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        await handleInlineStatusUpdate(
+            rejectionDialog.item,
+            {
+                hr_status: 'reprovado',
+                hr_rejection_reason: reason,
+            },
+            'hr_status',
+        );
+
+        setRejectionDialog(null);
     }
 
     function clearFilters(): void {
@@ -310,28 +351,28 @@ export default function TransportInterviewsListPage() {
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[1120px] table-fixed text-sm">
+                    <table className="w-full min-w-[980px] table-fixed text-sm">
                         <thead className="bg-muted/40">
                             <tr>
-                                <th className="w-[260px] px-4 py-3 text-left font-medium">
+                                <th className="w-[220px] px-4 py-3 text-left font-medium">
                                     Nome
                                 </th>
-                                <th className="w-[110px] px-4 py-3 text-left font-medium">
+                                <th className="w-[100px] px-4 py-3 text-left font-medium">
                                     Entrevistador
                                 </th>
-                                <th className="w-[170px] px-4 py-3 text-left font-medium">
+                                <th className="w-[160px] px-4 py-3 text-left font-medium">
                                     Unidade
                                 </th>
-                                <th className="w-[148px] px-2 py-3 text-left font-medium">
+                                <th className="w-[132px] px-2 py-3 text-left font-medium">
                                     Status GUEP
                                 </th>
-                                <th className="w-[148px] px-2 py-3 text-left font-medium">
+                                <th className="w-[132px] px-2 py-3 text-left font-medium">
                                     Status RH
                                 </th>
-                                <th className="w-[95px] px-4 py-3 text-left font-medium">
+                                <th className="w-[90px] px-4 py-3 text-left font-medium">
                                     Data
                                 </th>
-                                <th className="w-[231px] px-4 py-3 text-right font-medium">
+                                <th className="w-[210px] px-4 py-3 text-right font-medium">
                                     Ações
                                 </th>
                             </tr>
@@ -456,28 +497,85 @@ export default function TransportInterviewsListPage() {
                                                                 }
                                                                 onValueChange={(
                                                                     value,
-                                                                ) =>
-                                                                    handleInlineStatusUpdate(
+                                                                ) => {
+                                                                    if (
+                                                                        value ===
+                                                                        item.hr_status
+                                                                    ) {
+                                                                        return;
+                                                                    }
+
+                                                                    if (
+                                                                        value ===
+                                                                        'reprovado'
+                                                                    ) {
+                                                                        setRejectionDialog(
+                                                                            {
+                                                                                item,
+                                                                                reason:
+                                                                                    item.hr_rejection_reason ??
+                                                                                    '',
+                                                                            },
+                                                                        );
+                                                                        return;
+                                                                    }
+
+                                                                    void handleInlineStatusUpdate(
                                                                         item,
                                                                         {
                                                                             hr_status:
                                                                                 value as HrStatus,
+                                                                            hr_rejection_reason:
+                                                                                null,
                                                                         },
                                                                         'hr_status',
-                                                                    )
+                                                                    );
+                                                                }
                                                                 }
                                                             >
-                                                                <SelectTrigger className="h-8 w-full rounded-full px-2.5">
-                                                                    {updatingKey ===
-                                                                    `${item.id}:hr_status` ? (
-                                                                        <span className="inline-flex items-center gap-2 text-xs">
-                                                                            <LoaderCircle className="size-3 animate-spin" />
-                                                                            Salvando...
-                                                                        </span>
-                                                                    ) : (
-                                                                        <SelectValue />
-                                                                    )}
-                                                                </SelectTrigger>
+                                                                {item.hr_status ===
+                                                                    'reprovado' &&
+                                                                item.hr_rejection_reason ? (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger
+                                                                            asChild
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                className="h-8 w-full rounded-full px-2.5"
+                                                                                title={
+                                                                                    item.hr_rejection_reason
+                                                                                }
+                                                                            >
+                                                                                {updatingKey ===
+                                                                                `${item.id}:hr_status` ? (
+                                                                                    <span className="inline-flex items-center gap-2 text-xs">
+                                                                                        <LoaderCircle className="size-3 animate-spin" />
+                                                                                        Salvando...
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <SelectValue />
+                                                                                )}
+                                                                            </SelectTrigger>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            {
+                                                                                item.hr_rejection_reason
+                                                                            }
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                ) : (
+                                                                    <SelectTrigger className="h-8 w-full rounded-full px-2.5">
+                                                                        {updatingKey ===
+                                                                        `${item.id}:hr_status` ? (
+                                                                            <span className="inline-flex items-center gap-2 text-xs">
+                                                                                <LoaderCircle className="size-3 animate-spin" />
+                                                                                Salvando...
+                                                                            </span>
+                                                                        ) : (
+                                                                            <SelectValue />
+                                                                        )}
+                                                                    </SelectTrigger>
+                                                                )}
                                                                 <SelectContent>
                                                                     {hrStatusOptions.map(
                                                                         (
@@ -500,11 +598,37 @@ export default function TransportInterviewsListPage() {
                                                                 </SelectContent>
                                                             </Select>
                                                         ) : (
-                                                            <Badge variant="secondary">
-                                                                {hrStatusLabel(
-                                                                    item.hr_status,
-                                                                )}
-                                                            </Badge>
+                                                            item.hr_status ===
+                                                                'reprovado' &&
+                                                            item.hr_rejection_reason ? (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            title={
+                                                                                item.hr_rejection_reason
+                                                                            }
+                                                                        >
+                                                                            {hrStatusLabel(
+                                                                                item.hr_status,
+                                                                            )}
+                                                                        </Badge>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        {
+                                                                            item.hr_rejection_reason
+                                                                        }
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <Badge variant="secondary">
+                                                                    {hrStatusLabel(
+                                                                        item.hr_status,
+                                                                    )}
+                                                                </Badge>
+                                                            )
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -643,6 +767,57 @@ export default function TransportInterviewsListPage() {
                             onClick={handleDelete}
                         >
                             Excluir
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(rejectionDialog)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRejectionDialog(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Motivo da reprovação</DialogTitle>
+                        <DialogDescription>
+                            Ao marcar como reprovado, informe o motivo para
+                            consulta posterior.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <Input
+                            value={rejectionDialog?.reason ?? ''}
+                            onChange={(event) =>
+                                setRejectionDialog((previous) =>
+                                    previous
+                                        ? {
+                                              ...previous,
+                                              reason: event.target.value,
+                                          }
+                                        : previous,
+                                )
+                            }
+                            placeholder="Descreva o motivo da reprovação"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setRejectionDialog(null)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => void handleConfirmRejectionReason()}
+                            disabled={updatingKey !== null}
+                        >
+                            Salvar motivo
                         </Button>
                     </DialogFooter>
                 </DialogContent>
