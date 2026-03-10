@@ -75,11 +75,18 @@ interface Colaborador {
     rg: string | null;
     cnh: string | null;
     validade_cnh: string | null;
+    validade_exame_toxicologico: string | null;
     data_nascimento: string | null;
     data_admissao: string | null;
     data_demissao: string | null;
     telefone: string | null;
     email: string | null;
+    cep: string | null;
+    logradouro: string | null;
+    numero_endereco: string | null;
+    complemento: string | null;
+    bairro: string | null;
+    cidade_uf: string | null;
     endereco_completo: string | null;
     dados_bancarios_1: string | null;
     dados_bancarios_2: string | null;
@@ -127,11 +134,18 @@ interface ColaboradorFormData {
     rg: string;
     cnh: string;
     validade_cnh: string;
+    validade_exame_toxicologico: string;
     data_nascimento: string;
     data_admissao: string;
     data_demissao: string;
     telefone: string;
     email: string;
+    cep: string;
+    logradouro: string;
+    numero_endereco: string;
+    complemento: string;
+    bairro: string;
+    cidade_uf: string;
     endereco_completo: string;
     dados_bancarios_1: string;
     dados_bancarios_2: string;
@@ -193,11 +207,18 @@ const emptyForm: ColaboradorFormData = {
     rg: '',
     cnh: '',
     validade_cnh: '',
+    validade_exame_toxicologico: '',
     data_nascimento: '',
     data_admissao: '',
     data_demissao: '',
     telefone: '',
     email: '',
+    cep: '',
+    logradouro: '',
+    numero_endereco: '',
+    complemento: '',
+    bairro: '',
+    cidade_uf: '',
     endereco_completo: '',
     dados_bancarios_1: '',
     dados_bancarios_2: '',
@@ -300,7 +321,7 @@ function formatRg(value: string): string {
 }
 
 function sanitizeCnh(value: string): string {
-    return value.replace(/\D/g, '').slice(0, 9);
+    return value.replace(/\D/g, '').slice(0, 11);
 }
 
 function importErrorTypeLabel(value: string | number | undefined): string {
@@ -508,14 +529,23 @@ export default function TransportRegistryCollaboratorsPage() {
             sexo: item.sexo ?? '',
             ativo: item.ativo,
             cpf: formatCpf(item.cpf),
-            rg: formatRg(item.rg ?? ''),
+            rg: sanitizeRg(item.rg ?? ''),
             cnh: sanitizeCnh(item.cnh ?? ''),
             validade_cnh: dateToInput(item.validade_cnh),
+            validade_exame_toxicologico: dateToInput(
+                item.validade_exame_toxicologico,
+            ),
             data_nascimento: dateToInput(item.data_nascimento),
             data_admissao: dateToInput(item.data_admissao),
             data_demissao: dateToInput(item.data_demissao),
             telefone: formatPhone(item.telefone ?? ''),
             email: item.email ?? '',
+            cep: item.cep ?? '',
+            logradouro: item.logradouro ?? '',
+            numero_endereco: item.numero_endereco ?? '',
+            complemento: item.complemento ?? '',
+            bairro: item.bairro ?? '',
+            cidade_uf: item.cidade_uf ?? '',
             endereco_completo: item.endereco_completo ?? '',
             dados_bancarios_1: item.dados_bancarios_1 ?? '',
             dados_bancarios_2: item.dados_bancarios_2 ?? '',
@@ -648,8 +678,8 @@ export default function TransportRegistryCollaboratorsPage() {
                 'RG deve ter 9 números e 1 número ou letra no final.';
         }
 
-        if (sanitizedCnh !== '' && !/^\d{9}$/.test(sanitizedCnh)) {
-            clientErrors.cnh = 'CNH deve conter exatamente 9 números.';
+        if (sanitizedCnh !== '' && !/^\d{11}$/.test(sanitizedCnh)) {
+            clientErrors.cnh = 'CNH deve conter exatamente 11 números.';
         }
 
         if (
@@ -683,11 +713,20 @@ export default function TransportRegistryCollaboratorsPage() {
             rg: sanitizedRg !== '' ? sanitizedRg : null,
             cnh: sanitizedCnh !== '' ? sanitizedCnh : null,
             validade_cnh: normalizeNullable(formData.validade_cnh),
+            validade_exame_toxicologico: normalizeNullable(
+                formData.validade_exame_toxicologico,
+            ),
             data_nascimento: normalizeNullable(formData.data_nascimento),
             data_admissao: normalizeNullable(formData.data_admissao),
             data_demissao: normalizeNullable(formData.data_demissao),
             telefone: sanitizedPhone !== '' ? sanitizedPhone : null,
             email: normalizedEmail !== '' ? normalizedEmail : null,
+            cep: normalizeNullable(formData.cep),
+            logradouro: normalizeNullable(formData.logradouro),
+            numero_endereco: normalizeNullable(formData.numero_endereco),
+            complemento: normalizeNullable(formData.complemento),
+            bairro: normalizeNullable(formData.bairro),
+            cidade_uf: normalizeNullable(formData.cidade_uf),
             endereco_completo: normalizeNullable(formData.endereco_completo),
             dados_bancarios_1: normalizeNullable(formData.dados_bancarios_1),
             dados_bancarios_2: normalizeNullable(formData.dados_bancarios_2),
@@ -1470,20 +1509,15 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="rg">RG</Label>
-                                    <IMaskInput
+                                    <Input
                                         id="rg"
-                                        mask="000.000.000-a"
-                                        definitions={{
-                                            a: /[0-9A-Za-z]/,
-                                        }}
                                         value={formData.rg}
-                                        className={maskedInputClassName}
-                                        overwrite
-                                        unmask={false}
-                                        onAccept={(value) => {
+                                        onChange={(event) => {
                                             setFormData((previous) => ({
                                                 ...previous,
-                                                rg: String(value).toUpperCase(),
+                                                rg: sanitizeRg(
+                                                    event.target.value,
+                                                ),
                                             }));
                                             setFormErrors((previous) => ({
                                                 ...previous,
@@ -1501,7 +1535,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <Label htmlFor="cnh">CNH</Label>
                                     <IMaskInput
                                         id="cnh"
-                                        mask="000000000"
+                                        mask="00000000000"
                                         value={formData.cnh}
                                         className={maskedInputClassName}
                                         inputMode="numeric"
@@ -1543,19 +1577,39 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-3">
+                            <div className="grid gap-3 md:grid-cols-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="sexo">Sexo</Label>
-                                    <Input
-                                        id="sexo"
-                                        value={formData.sexo}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                sexo: event.target.value,
-                                            }))
-                                        }
-                                    />
+                                    <Label>Sexo</Label>
+                                    <div className="flex h-9 items-center gap-4 rounded-md border px-3">
+                                        <label className="inline-flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                name="sexo"
+                                                checked={formData.sexo === 'M'}
+                                                onChange={() =>
+                                                    setFormData((previous) => ({
+                                                        ...previous,
+                                                        sexo: 'M',
+                                                    }))
+                                                }
+                                            />
+                                            M
+                                        </label>
+                                        <label className="inline-flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                name="sexo"
+                                                checked={formData.sexo === 'F'}
+                                                onChange={() =>
+                                                    setFormData((previous) => ({
+                                                        ...previous,
+                                                        sexo: 'F',
+                                                    }))
+                                                }
+                                            />
+                                            F
+                                        </label>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="nascimento">
@@ -1600,6 +1654,25 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {formErrors.telefone}
                                         </p>
                                     ) : null}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="validade-exame-toxico">
+                                        Data val. exame tox.
+                                    </Label>
+                                    <Input
+                                        id="validade-exame-toxico"
+                                        type="date"
+                                        value={
+                                            formData.validade_exame_toxicologico
+                                        }
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                validade_exame_toxicologico:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                    />
                                 </div>
                             </div>
 
@@ -1659,21 +1732,120 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="endereco">
-                                    Endereço completo
-                                </Label>
-                                <Input
-                                    id="endereco"
-                                    value={formData.endereco_completo}
-                                    onChange={(event) =>
-                                        setFormData((previous) => ({
-                                            ...previous,
-                                            endereco_completo:
-                                                event.target.value,
-                                        }))
-                                    }
-                                />
+                            <div className="rounded-lg border bg-muted/10 p-3">
+                                <p className="mb-3 text-sm font-semibold">
+                                    Endereço
+                                </p>
+                                <div className="grid gap-3 md:grid-cols-6">
+                                    <div className="space-y-2 md:col-span-1">
+                                        <Label htmlFor="cep">CEP</Label>
+                                        <IMaskInput
+                                            id="cep"
+                                            mask="00000-000"
+                                            value={formData.cep}
+                                            className={maskedInputClassName}
+                                            onAccept={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    cep: String(value),
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-3">
+                                        <Label htmlFor="logradouro">
+                                            Rua / Logradouro
+                                        </Label>
+                                        <Input
+                                            id="logradouro"
+                                            value={formData.logradouro}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    logradouro:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-1">
+                                        <Label htmlFor="numero-endereco">
+                                            Nº
+                                        </Label>
+                                        <Input
+                                            id="numero-endereco"
+                                            value={formData.numero_endereco}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    numero_endereco:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-1">
+                                        <Label htmlFor="complemento">
+                                            Complemento
+                                        </Label>
+                                        <Input
+                                            id="complemento"
+                                            value={formData.complemento}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    complemento:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor="bairro">Bairro</Label>
+                                        <Input
+                                            id="bairro"
+                                            value={formData.bairro}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    bairro: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor="cidade-uf">
+                                            Cidade/UF
+                                        </Label>
+                                        <Input
+                                            id="cidade-uf"
+                                            value={formData.cidade_uf}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    cidade_uf:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor="endereco">
+                                            Endereço completo
+                                        </Label>
+                                        <Input
+                                            id="endereco"
+                                            value={formData.endereco_completo}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    endereco_completo:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="rounded-lg border bg-muted/10 p-3">
@@ -2175,7 +2347,11 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data val. exame tox.
                                     </p>
-                                    <p className="text-sm font-medium">-</p>
+                                    <p className="text-sm font-medium">
+                                        {dateToView(
+                                            detailsItem.validade_exame_toxicologico,
+                                        )}
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border p-3 lg:col-span-2">
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
@@ -2241,7 +2417,7 @@ export default function TransportRegistryCollaboratorsPage() {
                             </div>
 
                             {detailsTab === 'contato' ? (
-                                <div className="grid gap-3 md:grid-cols-2">
+                                <div className="grid gap-3 md:grid-cols-6">
                                     <div className="rounded-lg border p-3">
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Telefone
@@ -2259,6 +2435,54 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </p>
                                     </div>
                                     <div className="rounded-lg border p-3 md:col-span-2">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            CEP
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.cep ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-4">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Rua / Logradouro
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.logradouro ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-1">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Nº
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.numero_endereco ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Complemento
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.complemento ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-1">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Bairro
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.bairro ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                            Cidade/UF
+                                        </p>
+                                        <p className="text-sm font-medium">
+                                            {detailsItem.cidade_uf ?? '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border p-3 md:col-span-6">
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Endereço completo
                                         </p>
