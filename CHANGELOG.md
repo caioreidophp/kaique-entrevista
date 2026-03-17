@@ -14,6 +14,8 @@
 - Documentado runbook operacional completo em `documentos/deploy-vps.md` (DNS, provisionamento, Nginx, SSL, Supervisor, cron e checklist de validação).
 - Criado MVP do app mobile de motoristas em `mobile/driver-app` com login por token Sanctum (`/api/login`), sessão persistida no aparelho e consulta de perfil autenticado (`/api/me`).
 - Incluído guia para leigos de execução no celular em `mobile/driver-app/README.md` com fluxo completo via Expo Go.
+- Adicionado `mobile/driver-app/eas.json` para build de APK em nuvem (Expo EAS) com perfil `preview` de distribuição interna.
+- Reforçado passo a passo simplificado no guia mobile para dois cenários: teste imediato por QR (Expo Go) e distribuição em massa por APK.
 
 ## [2026-03-16] - Fechamento de pendências (navegação, permissões, smoke e testes críticos)
 

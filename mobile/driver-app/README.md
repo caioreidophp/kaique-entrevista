@@ -1,54 +1,83 @@
 # Kaique Motorista (MVP)
 
-App mobile MVP para motoristas, integrado ao backend Laravel já existente.
+Objetivo deste app: abrir no celular, usar login que já existe no sistema web e entrar.
 
-## O que já funciona
+## O que já está funcionando
 
-- Login com `POST /api/login`
-- Sessão com token Sanctum salvo no aparelho
-- Leitura de perfil com `GET /api/me`
-- Logout local
+- Login com usuário/senha do sistema atual (`/api/login`)
+- Sessão salva no celular (não precisa logar toda hora)
+- Consulta do usuário logado (`/api/me`)
 
-## Pré-requisitos
+---
 
-- Node 20+
-- Android com app **Expo Go** instalado
-- API acessível por URL pública (ex.: cloudflared ou VPS)
+## JEITO MAIS FÁCIL (funciona hoje): Expo Go
 
-## Como rodar no celular (passo a passo)
+### Passo 1 - No celular do motorista
 
-1. Abra terminal na pasta do app:
-   ```bash
-   cd mobile/driver-app
-   ```
-2. Instale dependências:
-   ```bash
-   npm install
-   ```
-3. Crie o arquivo de ambiente:
-   ```bash
-   cp .env.example .env
-   ```
-4. Edite `.env` e ajuste a URL da API:
-   ```env
-   EXPO_PUBLIC_API_BASE_URL=https://SEU-DOMINIO-OU-TUNNEL/api
-   ```
-5. Suba o app Expo:
-   ```bash
-   npx expo start
-   ```
-6. No celular, abra **Expo Go** e escaneie o QR Code.
-7. Faça login com um usuário existente no sistema web.
+1. Abrir Play Store.
+2. Instalar **Expo Go**.
 
-## Observações importantes
+### Passo 2 - No notebook/PC com este projeto
 
-- Se usar `http://127.0.0.1` no celular, não funciona (127.0.0.1 no celular é o próprio celular).
-- Para testar agora sem VPS, pode usar sua URL pública do cloudflared.
-- Em produção, troque para `https://app.kaiquetransportes.com.br/api`.
+Na raiz do projeto (`C:\xampp\htdocs\kaique-entrevista`), rode:
 
-## Próximos passos sugeridos
+```powershell
+cd scripts
+.\start-public-hosting.ps1 -NoBuild
+```
 
-- Cadastro de viagens do motorista (`iniciar/finalizar`)
-- Checklist com upload de foto
-- Ocorrências com prioridade
-- Tela de histórico do dia
+Copie a URL `https://...trycloudflare.com` que aparecer.
+
+Agora rode:
+
+```powershell
+cd ..\mobile\driver-app
+Copy-Item .env.example .env
+```
+
+Edite o `.env` e deixe assim:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://SUA-URL-TRYCLOUDFLARE/api
+```
+
+Depois rode:
+
+```powershell
+npm install
+npx expo start --lan --port 8082
+```
+
+### Passo 3 - Abrir app no celular
+
+1. Com celular e PC no mesmo Wi-Fi, abra o **Expo Go**.
+2. Escaneie o QR Code que apareceu no terminal.
+3. Faça login com uma conta já cadastrada no site.
+
+Se entrou, missão cumprida ✅
+
+---
+
+## Para instalar em TODOS os motoristas (APK)
+
+Você pode gerar APK em nuvem com Expo EAS (sem configurar Android Studio local).
+
+No terminal, dentro de `mobile/driver-app`:
+
+```powershell
+npm install
+npx eas login
+npx eas build -p android --profile preview
+```
+
+Quando terminar, a Expo te dá um link para baixar o APK e instalar nos celulares.
+
+Arquivo de configuração já pronto: `eas.json`.
+
+---
+
+## Importante
+
+- `127.0.0.1` não funciona no celular para API do PC.
+- Sem VPS, o notebook precisa ficar ligado quando usar cloudflared.
+- Com VPS depois, troque para `https://app.kaiquetransportes.com.br/api` no `.env` do app.
