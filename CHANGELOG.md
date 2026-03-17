@@ -12,6 +12,8 @@
   - `scripts/deploy/supervisor-laravel-worker.conf.template`
 - Adicionado workflow opcional de deploy contínuo por SSH em `.github/workflows/deploy-production.yml` para executar publicação no servidor ao enviar mudanças para `main`.
 - Documentado runbook operacional completo em `documentos/deploy-vps.md` (DNS, provisionamento, Nginx, SSL, Supervisor, cron e checklist de validação).
+- Criado MVP do app mobile de motoristas em `mobile/driver-app` com login por token Sanctum (`/api/login`), sessão persistida no aparelho e consulta de perfil autenticado (`/api/me`).
+- Incluído guia para leigos de execução no celular em `mobile/driver-app/README.md` com fluxo completo via Expo Go.
 
 ## [2026-03-16] - Fechamento de pendências (navegação, permissões, smoke e testes críticos)
 

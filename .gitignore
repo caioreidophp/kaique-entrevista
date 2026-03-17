@@ -26,3 +26,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/mobile/driver-app/node_modules
+/mobile/driver-app/.expo
+/mobile/driver-app/.env
