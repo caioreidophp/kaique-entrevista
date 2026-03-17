@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiGet, apiPatch, apiPost } from '@/lib/api-client';
 import type {
     ApiPaginatedResponse,
@@ -164,6 +165,7 @@ function onboardingDisplayName(item: OnboardingRecord): string {
 
 export default function TransportOnboardingPage() {
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebouncedValue(search, 300);
     const [pendingItems, setPendingItems] = useState<OnboardingRecord[]>([]);
     const [historyItems, setHistoryItems] = useState<OnboardingRecord[]>([]);
     const [showHistory, setShowHistory] = useState(false);
@@ -215,8 +217,8 @@ export default function TransportOnboardingPage() {
             per_page: '100',
         });
 
-        if (search.trim()) {
-            params.set('search', search.trim());
+        if (debouncedSearch.trim()) {
+            params.set('search', debouncedSearch.trim());
         }
 
         try {
@@ -402,7 +404,7 @@ export default function TransportOnboardingPage() {
     useEffect(() => {
         void loadLists();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [debouncedSearch]);
 
     const selectedName = selected ? onboardingDisplayName(selected) : '-';
 

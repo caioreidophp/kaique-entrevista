@@ -323,7 +323,9 @@ export default function TransportRegistryUsersPage() {
                                                         <Button
                                                             type="button"
                                                             size="sm"
-                                                            variant="outline"
+                                                            variant="ghost"
+                                                            title="Editar"
+                                                            aria-label="Editar"
                                                             onClick={() =>
                                                                 openEditDialog(
                                                                     item,
@@ -331,12 +333,14 @@ export default function TransportRegistryUsersPage() {
                                                             }
                                                         >
                                                             <Pencil className="size-4" />
-                                                            Editar
                                                         </Button>
                                                         <Button
                                                             type="button"
                                                             size="sm"
-                                                            variant="destructive"
+                                                            variant="ghost"
+                                                            className="text-destructive hover:text-destructive"
+                                                            title="Excluir"
+                                                            aria-label="Excluir"
                                                             onClick={() =>
                                                                 setDeleteCandidate(
                                                                     item,
@@ -344,7 +348,6 @@ export default function TransportRegistryUsersPage() {
                                                             }
                                                         >
                                                             <Trash2 className="size-4" />
-                                                            Excluir
                                                         </Button>
                                                     </div>
                                                 </td>

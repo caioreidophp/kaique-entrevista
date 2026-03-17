@@ -142,6 +142,16 @@
     }
 }
 
+@layer components {
+    .transport-page table tbody tr {
+        @apply transition-colors;
+    }
+
+    .transport-page table tbody tr:hover {
+        @apply bg-muted/35;
+    }
+}
+
 @media print {
     @page {
         size: A4;

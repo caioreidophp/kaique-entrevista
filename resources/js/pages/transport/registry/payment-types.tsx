@@ -272,21 +272,24 @@ export default function TransportRegistryPaymentTypesPage() {
                                                     <div className="flex justify-end gap-2">
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            title="Editar"
+                                                            aria-label="Editar"
                                                             onClick={() => openEditDialog(item)}
                                                         >
                                                             <PencilLine className="size-4" />
-                                                            Editar
                                                         </Button>
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            className="text-destructive hover:text-destructive"
+                                                            title="Excluir"
+                                                            aria-label="Excluir"
                                                             onClick={() => setDeleteCandidate(item)}
                                                         >
                                                             <Trash2 className="size-4" />
-                                                            Excluir
                                                         </Button>
                                                     </div>
                                                 </td>

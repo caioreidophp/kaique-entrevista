@@ -11,7 +11,12 @@ class UnidadeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        $user = $request->user();
+
+        abort_unless(
+            $user?->isAdmin() || $user?->isMasterAdmin() || $user?->isUsuario(),
+            403,
+        );
 
         return response()->json([
             'data' => Unidade::query()->orderBy('nome')->get(),

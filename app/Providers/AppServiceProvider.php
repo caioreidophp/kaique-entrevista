@@ -7,6 +7,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -27,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        if ((bool) env('APP_FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
     }
 
     /**
@@ -71,5 +76,14 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('transport-import', fn (Request $request): Limit => Limit::perMinute(6)
             ->by((string) ($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('transport-heavy', fn (Request $request): Limit => Limit::perMinute(45)
+            ->by((string) ($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('transport-backup', fn (Request $request): Limit => Limit::perHour(2)
+            ->by((string) ($request->user()?->id ?? $request->ip()))
+            ->response(fn () => response()->json([
+                'message' => 'Muitas solicitações de backup. Aguarde e tente novamente.',
+            ], 429)));
     }
 }

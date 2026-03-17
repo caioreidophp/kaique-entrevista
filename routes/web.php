@@ -27,6 +27,16 @@ Route::prefix('transport')->group(function (): void {
         return Inertia::render('transport/dashboard');
     })->name('transport.dashboard');
 
+    if ((bool) config('transport_features.operations_hub', true)) {
+        Route::get('pendencias', function () {
+            return Inertia::render('transport/operations-hub');
+        })->name('transport.pendencias');
+
+        Route::get('operations-hub', function () {
+            return redirect()->route('transport.pendencias');
+        })->name('transport.operations-hub');
+    }
+
     Route::prefix('payroll')->group(function (): void {
         Route::get('/', function () {
             return Inertia::render('transport/payroll/dashboard');
@@ -47,6 +57,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('adjustments', function () {
             return Inertia::render('transport/payroll/adjustments');
         })->name('transport.payroll.adjustments');
+
+        Route::get('vacations', function () {
+            return redirect()->route('transport.vacations.dashboard');
+        })->name('transport.payroll.vacations');
 
         Route::get('reports/unit', function () {
             return Inertia::render('transport/payroll/report-unit');
@@ -70,6 +84,18 @@ Route::prefix('transport')->group(function (): void {
             return Inertia::render('transport/freight/launch');
         })->name('transport.freight.launch');
 
+        Route::get('list', function () {
+            return Inertia::render('transport/freight/list');
+        })->name('transport.freight.list');
+
+        Route::get('spot', function () {
+            return Inertia::render('transport/freight/spot');
+        })->name('transport.freight.spot');
+
+        Route::get('operational-report', function () {
+            return Inertia::render('transport/freight/operational-report');
+        })->name('transport.freight.operational-report');
+
         Route::get('monthly', function () {
             return Inertia::render('transport/freight/monthly');
         })->name('transport.freight.monthly');
@@ -77,6 +103,24 @@ Route::prefix('transport')->group(function (): void {
         Route::get('timeline', function () {
             return Inertia::render('transport/freight/timeline');
         })->name('transport.freight.timeline');
+
+        Route::get('canceled-loads', function () {
+            return Inertia::render('transport/freight/canceled-loads');
+        })->name('transport.freight.canceled-loads');
+    });
+
+    Route::prefix('vacations')->group(function (): void {
+        Route::get('dashboard', function () {
+            return Inertia::render('transport/vacations/dashboard');
+        })->name('transport.vacations.dashboard');
+
+        Route::get('list', function () {
+            return Inertia::render('transport/vacations/list');
+        })->name('transport.vacations.list');
+
+        Route::get('launch', function () {
+            return Inertia::render('transport/vacations/launch');
+        })->name('transport.vacations.launch');
     });
 
     Route::get('interviews', function () {
@@ -127,6 +171,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('payment-types', function () {
             return Inertia::render('transport/registry/payment-types');
         })->name('transport.registry.payment-types');
+
+        Route::get('plates-aviaries', function () {
+            return Inertia::render('transport/registry/plates-aviaries');
+        })->name('transport.registry.plates-aviaries');
     });
 
     Route::get('activity-log', function () {

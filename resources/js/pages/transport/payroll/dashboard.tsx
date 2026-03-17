@@ -1,9 +1,10 @@
-import { LoaderCircle, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, LoaderCircle, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
+import { formatCurrencyBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
 
 interface DashboardPagamento {
     id: number;
@@ -30,14 +31,6 @@ interface PayrollDashboard {
     pagamentos_recentes: DashboardPagamento[];
 }
 
-function formatCurrency(value: number | string): string {
-    const numeric = typeof value === 'string' ? Number(value) : value;
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(Number.isFinite(numeric) ? numeric : 0);
-}
-
 export default function TransportPayrollDashboardPage() {
     const [data, setData] = useState<PayrollDashboard | null>(null);
     const [loading, setLoading] = useState(true);
@@ -56,6 +49,27 @@ export default function TransportPayrollDashboardPage() {
         if (!data) return '';
         return `${String(data.competencia_mes).padStart(2, '0')}/${data.competencia_ano}`;
     }, [data]);
+
+    const completionRate = useMemo(() => {
+        if (!data || data.colaboradores_ativos === 0) return 0;
+        return Math.round((data.total_pagamentos_lancados / data.colaboradores_ativos) * 100);
+    }, [data]);
+
+    const averageByLaunch = useMemo(() => {
+        if (!data || data.total_pagamentos_lancados === 0) return 0;
+        return data.total_a_pagar_mes_atual / data.total_pagamentos_lancados;
+    }, [data]);
+
+    const topUnit = useMemo(() => {
+        if (!data || data.totais_por_unidade.length === 0) return null;
+
+        return [...data.totais_por_unidade].sort((a, b) => b.total_valor - a.total_valor)[0] ?? null;
+    }, [data]);
+
+    const concentrationTopUnit = useMemo(() => {
+        if (!data || !topUnit || data.total_a_pagar_mes_atual <= 0) return 0;
+        return (topUnit.total_valor / data.total_a_pagar_mes_atual) * 100;
+    }, [data, topUnit]);
 
     return (
         <AdminLayout
@@ -102,26 +116,26 @@ export default function TransportPayrollDashboardPage() {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Pagamentos lançados
+                                        Cobertura da folha
                                     </CardTitle>
                                     <Wallet className="size-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {data.total_pagamentos_lancados}
+                                        {formatPercentBR(completionRate, 0)}
                                     </p>
                                 </CardContent>
                             </Card>
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Colaboradores ativos
+                                        Pendências da competência
                                     </CardTitle>
                                     <Wallet className="size-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {data.colaboradores_ativos}
+                                        {formatIntegerBR(data.total_pagamentos_a_fazer)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -134,9 +148,53 @@ export default function TransportPayrollDashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(
+                                        {formatCurrencyBR(
                                             data.total_a_pagar_mes_atual,
                                         )}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Ticket médio por lançamento
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-2xl font-semibold">{formatCurrencyBR(averageByLaunch)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Valor médio por lançamento registrado na competência.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Colaboradores ativos
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-2xl font-semibold">{formatIntegerBR(data.colaboradores_ativos)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Base ativa usada para cálculo de cobertura e pendências.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Unidade com maior volume
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-lg font-semibold">{topUnit?.unidade_nome ?? '-'}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {topUnit
+                                            ? `${formatCurrencyBR(topUnit.total_valor)} • ${formatPercentBR(concentrationTopUnit)} do total do mês`
+                                            : 'Sem dados no período.'}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -169,7 +227,7 @@ export default function TransportPayrollDashboardPage() {
                                                     </p>
                                                 </div>
                                                 <p className="font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.total_valor,
                                                     )}
                                                 </p>
@@ -210,11 +268,40 @@ export default function TransportPayrollDashboardPage() {
                                                     </p>
                                                 </div>
                                                 <p className="font-semibold">
-                                                    {formatCurrency(item.valor)}
+                                                    {formatCurrencyBR(item.valor)}
                                                 </p>
                                             </div>
                                         ))
                                     )}
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Prioridades do mês</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <div className="flex items-start gap-2 rounded-md border p-3">
+                                        {data.total_pagamentos_a_fazer > 0 ? (
+                                            <AlertTriangle className="mt-0.5 size-4 text-amber-600" />
+                                        ) : (
+                                            <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
+                                        )}
+                                        <div>
+                                            <p className="font-medium">Pagamentos pendentes</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {data.total_pagamentos_a_fazer > 0
+                                                    ? `${data.total_pagamentos_a_fazer} colaborador(es) ainda sem lançamento nesta competência.`
+                                                    : 'Todos os colaboradores ativos possuem lançamento nesta competência.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-md border p-3">
+                                        <p className="font-medium">Monitoramento de fechamento</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Use a lista agrupada para imprimir por lançamento e validar o valor líquido antes do pagamento.
+                                        </p>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>

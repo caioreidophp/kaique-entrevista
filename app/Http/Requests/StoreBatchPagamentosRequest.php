@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Colaborador;
 use App\Models\Pagamento;
+use App\Models\PensaoColaborador;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -23,7 +24,29 @@ class StoreBatchPagamentosRequest extends FormRequest
                 if (isset($item['valores_por_tipo']) && is_array($item['valores_por_tipo'])) {
                     $item['valores_por_tipo'] = collect($item['valores_por_tipo'])
                         ->map(function ($value) {
-                            return str_replace(['.', ','], ['', '.'], (string) $value);
+                            return $this->normalizeDecimalInput($value);
+                        })
+                        ->all();
+                }
+
+                if (isset($item['valores_pensao']) && is_array($item['valores_pensao'])) {
+                    $item['valores_pensao'] = collect($item['valores_pensao'])
+                        ->map(function ($value) {
+                            return $this->normalizeDecimalInput($value);
+                        })
+                        ->all();
+                }
+
+                if (isset($item['pagamentos_existentes_por_tipo']) && is_array($item['pagamentos_existentes_por_tipo'])) {
+                    $item['pagamentos_existentes_por_tipo'] = collect($item['pagamentos_existentes_por_tipo'])
+                        ->map(function ($entry) {
+                            if (! is_array($entry)) {
+                                return ['id' => 0];
+                            }
+
+                            return [
+                                'id' => (int) ($entry['id'] ?? 0),
+                            ];
                         })
                         ->all();
                 }
@@ -43,6 +66,27 @@ class StoreBatchPagamentosRequest extends FormRequest
             'pagamentos' => $pagamentos,
             'tipo_pagamento_ids' => $tipoPagamentoIds,
         ]);
+    }
+
+    private function normalizeDecimalInput(mixed $value): string
+    {
+        $raw = trim((string) $value);
+        $clean = preg_replace('/[^0-9,.-]/', '', $raw) ?? '';
+
+        if (str_contains($clean, ',')) {
+            $clean = str_replace('.', '', $clean);
+            $clean = str_replace(',', '.', $clean);
+        } elseif (substr_count($clean, '.') > 1) {
+            $lastDot = strrpos($clean, '.');
+
+            if ($lastDot !== false) {
+                $intPart = str_replace('.', '', substr($clean, 0, $lastDot));
+                $decimalPart = substr($clean, $lastDot + 1);
+                $clean = $intPart.'.'.$decimalPart;
+            }
+        }
+
+        return $clean;
     }
 
     public function authorize(): bool
@@ -68,6 +112,8 @@ class StoreBatchPagamentosRequest extends FormRequest
             'pagamentos.*.selected' => ['nullable', 'boolean'],
             'pagamentos.*.valor' => ['nullable', 'numeric', 'min:0'],
             'pagamentos.*.valores_por_tipo' => ['nullable', 'array'],
+            'pagamentos.*.valores_pensao' => ['nullable', 'array'],
+            'pagamentos.*.pagamentos_existentes_por_tipo' => ['nullable', 'array'],
         ];
     }
 
@@ -105,6 +151,14 @@ class StoreBatchPagamentosRequest extends FormRequest
                 $colaboradorId = (int) ($item['colaborador_id'] ?? 0);
                 $selected = (bool) ($item['selected'] ?? false);
                 $valoresPorTipo = (array) ($item['valores_por_tipo'] ?? []);
+                $valoresPensao = (array) ($item['valores_pensao'] ?? []);
+                $pagamentosExistentesPorTipo = collect((array) ($item['pagamentos_existentes_por_tipo'] ?? []))
+                    ->mapWithKeys(function ($entry, $tipoId): array {
+                        $typedEntry = is_array($entry) ? $entry : [];
+
+                        return [(int) $tipoId => (int) ($typedEntry['id'] ?? 0)];
+                    })
+                    ->all();
                 $valorLegado = (float) ($item['valor'] ?? 0);
 
                 if (! $colaboradorId) {
@@ -165,16 +219,52 @@ class StoreBatchPagamentosRequest extends FormRequest
                             continue;
                         }
 
-                        $exists = Pagamento::query()
+                        $existingPaymentId = Pagamento::query()
                             ->where('colaborador_id', $colaboradorId)
                             ->where('tipo_pagamento_id', $tipoPagamentoId)
                             ->whereDate('data_pagamento', $dataPagamento)
-                            ->exists();
+                            ->value('id');
 
-                        if ($exists) {
+                        $existingPayloadId = (int) ($pagamentosExistentesPorTipo[$tipoPagamentoId] ?? 0);
+
+                        if ($existingPaymentId && $existingPaymentId !== $existingPayloadId) {
                             $validator->errors()->add(
                                 "pagamentos.{$index}.valores_por_tipo.{$tipoPagamentoId}",
                                 'Já existe lançamento deste tipo para o colaborador na data informada.',
+                            );
+                        }
+                    }
+
+                    foreach ($valoresPensao as $pensaoIdRaw => $valorPensaoRaw) {
+                        $pensaoId = (int) $pensaoIdRaw;
+                        $valorPensao = (float) $valorPensaoRaw;
+
+                        if ($pensaoId <= 0) {
+                            $validator->errors()->add(
+                                "pagamentos.{$index}.valores_pensao",
+                                'A pensão informada é inválida.',
+                            );
+                            continue;
+                        }
+
+                        if ($valorPensao < 0) {
+                            $validator->errors()->add(
+                                "pagamentos.{$index}.valores_pensao.{$pensaoId}",
+                                'O valor de pensão não pode ser negativo.',
+                            );
+                            continue;
+                        }
+
+                        $pensaoExists = PensaoColaborador::query()
+                            ->whereKey($pensaoId)
+                            ->where('colaborador_id', $colaboradorId)
+                            ->where('ativo', true)
+                            ->exists();
+
+                        if (! $pensaoExists) {
+                            $validator->errors()->add(
+                                "pagamentos.{$index}.valores_pensao.{$pensaoId}",
+                                'A pensão informada não pertence ao colaborador selecionado.',
                             );
                         }
                     }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\BinaryFileResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 use ZipArchive;
 
@@ -120,12 +120,12 @@ class TransportSettingsController extends Controller
             );
             $this->addDirectoryToZip(
                 zip: $zip,
-                sourcePath: resources_path(),
+                sourcePath: base_path('resources'),
                 zipBasePath: 'backup/resources',
             );
             $this->addDirectoryToZip(
                 zip: $zip,
-                sourcePath: routes_path(),
+                sourcePath: base_path('routes'),
                 zipBasePath: 'backup/routes',
             );
             $this->addDirectoryToZip(

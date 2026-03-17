@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Colaborador;
 use App\Models\DriverInterview;
+use App\Models\FeriasLancamento;
 use App\Models\FreightEntry;
 use App\Models\Pagamento;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -15,13 +17,14 @@ class HomeController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $isMaster = $request->user()->isMasterAdmin();
-        $isUsuario = $request->user()->isUsuario();
+        $user = $request->user();
+        $isMaster = $user->isMasterAdmin();
+        $isUsuario = $user->isUsuario();
 
         $interviewsQuery = DriverInterview::query();
 
         if (! $isMaster) {
-            $interviewsQuery->where('author_id', $request->user()->id);
+            $interviewsQuery->where('author_id', $user->id);
         }
 
         $interviewsTotal = (clone $interviewsQuery)->count();
@@ -29,12 +32,15 @@ class HomeController extends Controller
         $hasColaboradores = Schema::hasTable('colaboradores');
         $hasPagamentos = Schema::hasTable('pagamentos');
         $hasFreightEntries = Schema::hasTable('freight_entries');
+        $hasFeriasLancamentos = Schema::hasTable('ferias_lancamentos');
 
         $colaboradoresAtivos = 0;
         $totalPagamentosMes = 0.0;
         $pagamentosLancadosMes = 0;
         $freightEntriesMes = 0;
         $freightTotalMes = 0.0;
+        $feriasVencidas = 0;
+        $feriasProximos2Meses = 0;
 
         if ($hasColaboradores) {
             $colaboradoresAtivos = Colaborador::query()
@@ -51,7 +57,7 @@ class HomeController extends Controller
                 ->where('competencia_ano', $anoAtual);
 
             if (! $isMaster) {
-                $pagamentosQuery->where('autor_id', $request->user()->id);
+                $pagamentosQuery->where('autor_id', $user->id);
             }
 
             $pagamentosLancadosMes = (clone $pagamentosQuery)->count();
@@ -67,11 +73,51 @@ class HomeController extends Controller
                 ->whereMonth('data', $mesAtual);
 
             if (! $isMaster) {
-                $freightQuery->where('autor_id', $request->user()->id);
+                $freightQuery->where('autor_id', $user->id);
             }
 
             $freightEntriesMes = (clone $freightQuery)->count();
             $freightTotalMes = (float) ((clone $freightQuery)->sum('frete_total'));
+        }
+
+        if ($hasColaboradores && $hasFeriasLancamentos) {
+            $activeCollaborators = Colaborador::query()
+                ->where('ativo', true)
+                ->whereNotNull('data_admissao')
+                ->select(['id', 'data_admissao'])
+                ->get();
+
+            if ($activeCollaborators->isNotEmpty()) {
+                $latestPeriodEndByCollaborator = FeriasLancamento::query()
+                    ->whereIn('colaborador_id', $activeCollaborators->pluck('id')->all())
+                    ->selectRaw('colaborador_id, MAX(periodo_aquisitivo_fim) as base_fim')
+                    ->groupBy('colaborador_id')
+                    ->pluck('base_fim', 'colaborador_id');
+
+                $today = CarbonImmutable::today();
+                $plus2Months = $today->addMonths(2);
+
+                foreach ($activeCollaborators as $colaborador) {
+                    $admissao = $colaborador->data_admissao?->toDateString();
+
+                    if (! $admissao) {
+                        continue;
+                    }
+
+                    $baseDate = (string) ($latestPeriodEndByCollaborator->get($colaborador->id) ?? $admissao);
+                    $base = CarbonImmutable::parse($baseDate);
+                    $direito = $base->addYear();
+                    $limite = $direito->addMonths(11);
+
+                    if ($limite->lt($today)) {
+                        $feriasVencidas++;
+                    }
+
+                    if ($limite->betweenIncluded($today, $plus2Months)) {
+                        $feriasProximos2Meses++;
+                    }
+                }
+            }
         }
 
         $modules = [
@@ -101,6 +147,18 @@ class HomeController extends Controller
             ];
 
             $modules[] = [
+                'key' => 'vacations',
+                'title' => 'Férias',
+                'description' => 'Dashboard, lista e lançamento de férias por período aquisitivo.',
+                'href' => '/transport/vacations/dashboard',
+                'icon' => 'clipboard-check',
+                'metrics' => [
+                    'vacations_expired' => $feriasVencidas,
+                    'vacations_due_2_months' => $feriasProximos2Meses,
+                ],
+            ];
+
+            $modules[] = [
                 'key' => 'registry',
                 'title' => 'Cadastro',
                 'description' => 'Cadastro de colaboradores, usuários e funções.',
@@ -122,6 +180,19 @@ class HomeController extends Controller
                     'freight_total_current_month' => $freightTotalMes,
                 ],
             ];
+
+            if ((bool) config('transport_features.operations_hub', true)) {
+                $modules[] = [
+                    'key' => 'operations',
+                    'title' => 'Pendências',
+                    'description' => 'Central de pendências críticas para priorização diária.',
+                    'href' => '/transport/pendencias',
+                    'icon' => 'clipboard-check',
+                    'metrics' => [
+                        'operations_pending_total' => $feriasVencidas + $feriasProximos2Meses,
+                    ],
+                ];
+            }
         }
 
         return response()->json([

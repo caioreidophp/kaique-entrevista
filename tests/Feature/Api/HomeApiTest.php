@@ -47,6 +47,7 @@ class HomeApiTest extends TestCase
             ->assertJsonPath('modules.0.key', 'interviews')
             ->assertJsonPath('modules.0.metrics.total_interviews', 1)
             ->assertJsonPath('modules.1.key', 'payroll')
-            ->assertJsonPath('modules.2.key', 'registry');
+            ->assertJsonPath('modules.2.key', 'vacations')
+            ->assertJsonFragment(['key' => 'registry']);
     }
 }

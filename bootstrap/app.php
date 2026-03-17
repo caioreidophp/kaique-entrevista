@@ -2,7 +2,10 @@
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LogSensitiveApiActions;
+use App\Http\Middleware\RequireCriticalActionConfirmation;
 use App\Http\Middleware\SetRequestContext;
+use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +20,20 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);
+
+        $middleware->api(append: [
+            RequireCriticalActionConfirmation::class,
+        ]);
+
+        if ((bool) env('TRANSPORT_FEATURE_SECURITY_HEADERS', true)) {
+            $middleware->append(SetSecurityHeaders::class);
+        }
+
+        if ((bool) env('TRANSPORT_FEATURE_SENSITIVE_AUDIT', true)) {
+            $middleware->api(append: [
+                LogSensitiveApiActions::class,
+            ]);
+        }
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         $middleware->trustProxies(at: '*');

@@ -1,4 +1,4 @@
-import { CalendarDays, LoaderCircle, Table2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, LoaderCircle, Table2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -11,21 +11,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
+import { formatCurrencyBR, formatDateBR, formatDecimalBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
 import type { FreightDashboardResponse, FreightEntry } from '@/types/freight';
 
 interface FreightEntryPaginatedResponse {
     data: FreightEntry[];
-}
-
-function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(value);
-}
-
-function formatNumber(value: number): string {
-    return new Intl.NumberFormat('pt-BR').format(value);
 }
 
 function monthRange(
@@ -47,15 +37,6 @@ function monthRange(
         startDate: `${safeYear}-${monthLabel}-01`,
         endDate: `${safeYear}-${monthLabel}-${String(lastDay).padStart(2, '0')}`,
     };
-}
-
-function formatDate(value: string | null | undefined): string {
-    if (!value) return '-';
-    const onlyDate = /^\d{4}-\d{2}-\d{2}/.exec(value)?.[0];
-    if (onlyDate) return onlyDate;
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return value;
-    return d.toISOString().slice(0, 10);
 }
 
 export default function TransportFreightDashboardPage() {
@@ -132,40 +113,54 @@ export default function TransportFreightDashboardPage() {
     const kpis = data?.kpis;
 
     const kpiMain = [
-        { title: 'Total frete', value: formatCurrency(kpis?.total_frete ?? 0) },
+        { title: 'Total frete', value: formatCurrencyBR(kpis?.total_frete ?? 0) },
         {
             title: 'Frete líquido',
-            value: formatCurrency(kpis?.total_frete_liquido ?? 0),
+            value: formatCurrencyBR(kpis?.total_frete_liquido ?? 0),
         },
-        { title: 'KM rodado', value: formatNumber(kpis?.total_km ?? 0) },
+        { title: 'KM rodado', value: formatIntegerBR(kpis?.total_km ?? 0) },
         {
             title: 'Aves transportadas',
-            value: formatNumber(kpis?.total_aves ?? 0),
+            value: formatIntegerBR(kpis?.total_aves ?? 0),
         },
         {
             title: 'Dias trabalhados',
-            value: formatNumber(kpis?.dias_trabalhados ?? 0),
+            value: formatIntegerBR(kpis?.dias_trabalhados ?? 0),
         },
     ];
 
     const kpiDerived = [
         {
-            title: 'Frete por caminhão',
-            value: formatCurrency(kpis?.frete_por_caminhao ?? 0),
+            title: 'Frete/KM',
+            value: formatCurrencyBR(kpis?.frete_por_km ?? 0),
         },
         {
-            title: 'Frete por dia trabalhado',
-            value: formatCurrency(kpis?.frete_por_dia_trabalhado ?? 0),
+            title: 'Aves por carga',
+            value: formatDecimalBR(kpis?.aves_por_carga ?? 0, 2),
         },
         {
-            title: 'Média R$/KM',
-            value: formatCurrency(kpis?.media_reais_por_km ?? 0),
+            title: 'Frete médio',
+            value: formatCurrencyBR(kpis?.frete_medio ?? 0),
         },
         {
-            title: 'Média Frete Líq/KM',
-            value: formatCurrency(kpis?.media_frete_por_km ?? 0),
+            title: 'Participação de terceiros',
+            value: formatPercentBR(kpis?.participacao_terceiros ?? 0),
+        },
+        {
+            title: 'Frete terceiros',
+            value: formatCurrencyBR(kpis?.total_frete_terceiros ?? 0),
+        },
+        {
+            title: 'Viagens terceiros',
+            value: formatIntegerBR(kpis?.total_viagens_terceiros ?? 0),
         },
     ];
+
+    const topUnit = useMemo(() => {
+        if (!data || data.por_unidade.length === 0) return null;
+
+        return [...data.por_unidade].sort((a, b) => b.total_frete_liquido - a.total_frete_liquido)[0] ?? null;
+    }, [data]);
 
     return (
         <AdminLayout
@@ -276,6 +271,51 @@ export default function TransportFreightDashboardPage() {
 
                         <Card>
                             <CardHeader>
+                                <CardTitle>Destaques rápidos</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 md:grid-cols-3">
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Unidade líder (frete líquido)</p>
+                                    <p className="mt-1 text-base font-semibold">{topUnit?.unidade_nome ?? '-'}</p>
+                                </div>
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Dias trabalhados no período</p>
+                                    <p className="mt-1 text-base font-semibold">{formatIntegerBR(kpis?.dias_trabalhados ?? 0)}</p>
+                                </div>
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Média diária de frete líquido</p>
+                                    <p className="mt-1 text-base font-semibold">
+                                        {formatCurrencyBR(
+                                            (kpis?.dias_trabalhados ?? 0) > 0
+                                                ? (kpis?.total_frete_liquido ?? 0) / (kpis?.dias_trabalhados ?? 1)
+                                                : 0,
+                                        )}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {data.alerts && data.alerts.length > 0 ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Alertas automáticos</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {data.alerts.map((alert) => (
+                                        <div key={alert.key} className="rounded-md border p-3">
+                                            <p className="inline-flex items-center gap-2 text-sm font-medium">
+                                                <AlertTriangle className="size-4 text-amber-600" />
+                                                {alert.level === 'warning' ? 'Atenção' : 'Informação'}
+                                            </p>
+                                            <p className="mt-1 text-sm text-muted-foreground">{alert.message}</p>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        ) : null}
+
+                        <Card>
+                            <CardHeader>
                                 <CardTitle className="inline-flex items-center gap-2">
                                     <CalendarDays className="size-4" />
                                     Resumo mensal por unidade
@@ -306,49 +346,49 @@ export default function TransportFreightDashboardPage() {
                                                 {[
                                                     {
                                                         label: 'Dias trabalhados',
-                                                        value: formatNumber(
+                                                        value: formatIntegerBR(
                                                             item.dias_trabalhados,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Frete total',
-                                                        value: formatCurrency(
+                                                        value: formatCurrencyBR(
                                                             item.total_frete,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Frete p/ caminhão',
-                                                        value: formatCurrency(
+                                                        value: formatCurrencyBR(
                                                             item.frete_por_caminhao,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Frete p/ dia',
-                                                        value: formatCurrency(
+                                                        value: formatCurrencyBR(
                                                             item.frete_por_dia_trabalhado,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Total KM',
-                                                        value: formatNumber(
+                                                        value: formatIntegerBR(
                                                             item.total_km,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Aves transp.',
-                                                        value: formatNumber(
+                                                        value: formatIntegerBR(
                                                             item.total_aves,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Média R$/KM',
-                                                        value: formatCurrency(
+                                                        value: formatCurrencyBR(
                                                             item.frete_por_km,
                                                         ),
                                                     },
                                                     {
                                                         label: 'Frete líquido',
-                                                        value: formatCurrency(
+                                                        value: formatCurrencyBR(
                                                             item.total_frete_liquido,
                                                         ),
                                                     },
@@ -439,7 +479,7 @@ export default function TransportFreightDashboardPage() {
                                                             className="border-t transition-colors hover:bg-muted/20"
                                                         >
                                                             <td className="px-2.5 py-1.5">
-                                                                {formatDate(
+                                                                {formatDateBR(
                                                                     entry.data,
                                                                 )}
                                                             </td>
@@ -449,65 +489,49 @@ export default function TransportFreightDashboardPage() {
                                                                     '-'}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrency(
-                                                                    Number(
-                                                                        entry.frete_total,
-                                                                    ),
-                                                                )}
+                                                                {formatCurrencyBR(entry.frete_total)}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.cargas,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.aves,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.veiculos,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
-                                                                    Number(
-                                                                        entry.km_rodado,
-                                                                    ),
-                                                                )}
+                                                                {formatIntegerBR(entry.km_rodado)}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrency(
-                                                                    Number(
-                                                                        entry.frete_terceiros,
-                                                                    ),
-                                                                )}
+                                                                {formatCurrencyBR(entry.frete_terceiros)}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.viagens_terceiros,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.aves_terceiros,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrency(
-                                                                    Number(
-                                                                        entry.frete_liquido,
-                                                                    ),
-                                                                )}
+                                                                {formatCurrencyBR(entry.frete_liquido)}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.cargas_liq,
                                                                 )}
                                                             </td>
                                                             <td className="px-2.5 py-1.5 text-right">
-                                                                {formatNumber(
+                                                                {formatIntegerBR(
                                                                     entry.aves_liq,
                                                                 )}
                                                             </td>

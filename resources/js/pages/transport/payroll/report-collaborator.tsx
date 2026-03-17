@@ -1,5 +1,5 @@
 import { AlertCircle, LoaderCircle } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiGet } from '@/lib/api-client';
+import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
 
 interface Colaborador {
     id: number;
@@ -30,6 +31,13 @@ interface ReportResponse {
         lancado_em: string | null;
         observacao: string | null;
     }>;
+    resumo_mensal?: Array<{
+        competencia_mes: number;
+        competencia_ano: number;
+        competencia_label: string;
+        total_valor: number;
+        total_lancamentos: number;
+    }>;
     total_acumulado: number;
     total_acumulado_com_emprestimo?: number;
     media_salarial: number;
@@ -49,18 +57,6 @@ interface PaginatedResponse<T> {
     data: T[];
 }
 
-function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(value);
-}
-
-function formatDate(value: string | null): string {
-    if (!value) return '-';
-    return new Date(value).toLocaleDateString('pt-BR');
-}
-
 function normalizeSearchText(value: string): string {
     return value
         .normalize('NFD')
@@ -77,6 +73,9 @@ export default function TransportPayrollReportCollaboratorPage() {
     const [highlightedCollaboratorIndex, setHighlightedCollaboratorIndex] =
         useState<number>(-1);
     const [report, setReport] = useState<ReportResponse | null>(null);
+    const currentYear = new Date().getFullYear();
+    const [competenciaInicial, setCompetenciaInicial] = useState(`${currentYear}-01`);
+    const [competenciaFinal, setCompetenciaFinal] = useState(`${currentYear}-12`);
     const [loadingCollaborators, setLoadingCollaborators] = useState(true);
     const [loadingReport, setLoadingReport] = useState(false);
     const [notification, setNotification] = useState<{
@@ -155,7 +154,43 @@ export default function TransportPayrollReportCollaboratorPage() {
         return map;
     }, [report]);
 
-    async function loadCollaborators(): Promise<void> {
+    const monthlySeries = useMemo(
+        () => report?.resumo_mensal ?? [],
+        [report?.resumo_mensal],
+    );
+
+    const monthlyChart = useMemo(() => {
+        if (monthlySeries.length === 0) return null;
+
+        const width = Math.max(560, monthlySeries.length * 56);
+        const height = 190;
+        const paddingX = 28;
+        const paddingY = 20;
+        const maxValue = Math.max(...monthlySeries.map((item) => item.total_valor), 1);
+        const minValue = 0;
+        const safeRange = Math.max(maxValue - minValue, 1);
+
+        const points = monthlySeries.map((item, index) => {
+            const x =
+                monthlySeries.length === 1
+                    ? width / 2
+                    : paddingX + (index * (width - paddingX * 2)) / (monthlySeries.length - 1);
+            const y =
+                paddingY +
+                (1 - (item.total_valor - minValue) / safeRange) *
+                    (height - paddingY * 2);
+
+            return { ...item, x, y };
+        });
+
+        const path = points
+            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+            .join(' ');
+
+        return { width, height, points, path };
+    }, [monthlySeries]);
+
+    const loadCollaborators = useCallback(async (): Promise<void> => {
         setLoadingCollaborators(true);
         try {
             const response = await apiGet<PaginatedResponse<Colaborador>>(
@@ -170,16 +205,21 @@ export default function TransportPayrollReportCollaboratorPage() {
         } finally {
             setLoadingCollaborators(false);
         }
-    }
+    }, []);
 
-    async function loadReport(id: string): Promise<void> {
+    const loadReport = useCallback(async (id: string): Promise<void> => {
         if (!id) return;
         setLoadingReport(true);
         setNotification(null);
 
         try {
+            const params = new URLSearchParams();
+            params.set('colaborador_id', id);
+            params.set('competencia_inicial', competenciaInicial);
+            params.set('competencia_final', competenciaFinal);
+
             const response = await apiGet<ReportResponse>(
-                `/payroll/reports/colaborador?colaborador_id=${id}`,
+                `/payroll/reports/colaborador?${params.toString()}`,
             );
             setReport(response);
         } catch {
@@ -191,20 +231,20 @@ export default function TransportPayrollReportCollaboratorPage() {
         } finally {
             setLoadingReport(false);
         }
-    }
+    }, [competenciaFinal, competenciaInicial]);
 
     useEffect(() => {
         setSelectedId('');
         setCollaboratorQuery('');
         setReport(null);
-        loadCollaborators();
-    }, []);
+        void loadCollaborators();
+    }, [loadCollaborators]);
 
     useEffect(() => {
         if (selectedId) {
             void loadReport(selectedId);
         }
-    }, [selectedId]);
+    }, [loadReport, selectedId]);
 
     return (
         <AdminLayout
@@ -218,8 +258,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                         Relatório por Colaborador
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Histórico de pagamentos, evolução, médias e datas
-                        importantes.
+                    Histórico de pagamentos, evolução e média salarial por mês.
                     </p>
                 </div>
 
@@ -386,13 +425,53 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </p>
                             </div>
                             <div className="flex items-end">
-                                <Button
-                                    variant="outline"
-                                    disabled={!selectedId}
-                                    onClick={() => void loadReport(selectedId)}
-                                >
-                                    Atualizar
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        disabled={!selectedId}
+                                        onClick={() => void loadReport(selectedId)}
+                                    >
+                                        Atualizar
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setCompetenciaInicial(`${currentYear}-01`);
+                                            setCompetenciaFinal(`${currentYear}-12`);
+                                            if (selectedId) {
+                                                void loadReport(selectedId);
+                                            }
+                                        }}
+                                    >
+                                        Limpar filtros
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="competencia-inicial">Mês inicial</Label>
+                                <Input
+                                    id="competencia-inicial"
+                                    type="month"
+                                    value={competenciaInicial}
+                                    onChange={(event) => setCompetenciaInicial(event.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="competencia-final">Mês final</Label>
+                                <Input
+                                    id="competencia-final"
+                                    type="month"
+                                    value={competenciaFinal}
+                                    onChange={(event) => setCompetenciaFinal(event.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Período</Label>
+                                <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                                    {competenciaInicial} até {competenciaFinal}
+                                </p>
                             </div>
                         </div>
                     </CardContent>
@@ -420,7 +499,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(report.total_acumulado)}
+                                        {formatCurrencyBR(report.total_acumulado)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -432,7 +511,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(
+                                        {formatCurrencyBR(
                                             report.total_acumulado_com_emprestimo ??
                                                 report.total_acumulado,
                                         )}
@@ -442,12 +521,12 @@ export default function TransportPayrollReportCollaboratorPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Média salarial
+                                        Média salarial por mês
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(report.media_salarial)}
+                                        {formatCurrencyBR(report.media_salarial)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -477,6 +556,59 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardContent>
                             </Card>
                         </div>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Variação mensal</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {!monthlyChart ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Sem dados mensais no período selecionado.
+                                    </p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <svg
+                                            width={monthlyChart.width}
+                                            height={monthlyChart.height}
+                                            viewBox={`0 0 ${monthlyChart.width} ${monthlyChart.height}`}
+                                            className="min-w-full"
+                                        >
+                                            <path
+                                                d={monthlyChart.path}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                className="text-primary"
+                                            />
+                                            {monthlyChart.points.map((point) => (
+                                                <g key={`${point.competencia_ano}-${point.competencia_mes}`}>
+                                                    <circle
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        r="4"
+                                                        className="fill-primary"
+                                                    >
+                                                        <title>
+                                                            {point.competencia_label}: {formatCurrencyBR(point.total_valor)}
+                                                        </title>
+                                                    </circle>
+                                                    <text
+                                                        x={point.x}
+                                                        y={monthlyChart.height - 4}
+                                                        textAnchor="middle"
+                                                        fontSize="10"
+                                                        className="fill-muted-foreground"
+                                                    >
+                                                        {point.competencia_label}
+                                                    </text>
+                                                </g>
+                                            ))}
+                                        </svg>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
                         <div className="grid gap-4 xl:grid-cols-2">
                             <Card>
@@ -511,13 +643,13 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                             }
                                                         </span>
                                                         <span className="font-semibold">
-                                                            {formatCurrency(item.ganho_total ?? item.valor)}
+                                                            {formatCurrencyBR(item.ganho_total ?? item.valor)}
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                                                         <span>
                                                             Lançado em:{' '}
-                                                            {formatDate(
+                                                            {formatDateBR(
                                                                 item.lancado_em,
                                                             )}
                                                         </span>
@@ -532,8 +664,8 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
-                                                        Pagamento: {formatCurrency(item.valor)} | Parcela empréstimo:{' '}
-                                                        {formatCurrency(item.parcela_emprestimo ?? 0)}
+                                                        Pagamento: {formatCurrencyBR(item.valor)} | Parcela empréstimo:{' '}
+                                                        {formatCurrencyBR(item.parcela_emprestimo ?? 0)}
                                                     </div>
                                                     {item.observacao ? (
                                                         <p className="mt-2 text-xs text-muted-foreground">
@@ -557,7 +689,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                             Data de admissão
                                         </p>
                                         <p className="font-medium">
-                                            {formatDate(
+                                            {formatDateBR(
                                                 report.datas_importantes
                                                     .data_admissao,
                                             )}
@@ -568,7 +700,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                             Data de demissão
                                         </p>
                                         <p className="font-medium">
-                                            {formatDate(
+                                            {formatDateBR(
                                                 report.datas_importantes
                                                     .data_demissao,
                                             )}
@@ -579,7 +711,7 @@ export default function TransportPayrollReportCollaboratorPage() {
                                             Data de nascimento
                                         </p>
                                         <p className="font-medium">
-                                            {formatDate(
+                                            {formatDateBR(
                                                 report.datas_importantes
                                                     .data_nascimento,
                                             )}

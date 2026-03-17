@@ -28,6 +28,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
+import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
 import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
 
 interface Unidade {
@@ -109,20 +110,6 @@ const emptyForm: PagamentoFormData = {
     observacao: '',
     lancado_em: new Date().toISOString().slice(0, 10),
 };
-
-function formatCurrency(value: number | string): string {
-    const numeric = typeof value === 'string' ? Number(value) : value;
-
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(Number.isFinite(numeric) ? numeric : 0);
-}
-
-function formatDate(value: string | null): string {
-    if (!value) return '-';
-    return new Date(value).toLocaleDateString('pt-BR');
-}
 
 function normalizeOptional(value: string): string | null {
     const trimmed = value.trim();
@@ -591,7 +578,7 @@ export default function TransportPayrollPage() {
                                 <LoaderCircle className="size-4 animate-spin" />
                             ) : (
                                 <p className="text-2xl font-semibold">
-                                    {formatCurrency(summary?.total_valor ?? 0)}
+                                    {formatCurrencyBR(summary?.total_valor ?? 0)}
                                 </p>
                             )}
                         </CardContent>
@@ -660,13 +647,13 @@ export default function TransportPayrollPage() {
                                                     /{item.competencia_ano}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {formatCurrency(item.valor)}
+                                                    {formatCurrencyBR(item.valor)}
                                                 </td>
                                                 <td className="py-2 pr-3">
                                                     {item.autor?.name ?? '-'}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {formatDate(
+                                                    {formatDateBR(
                                                         item.lancado_em,
                                                     )}
                                                 </td>
@@ -771,7 +758,7 @@ export default function TransportPayrollPage() {
                                             </p>
                                         </div>
                                         <p className="font-semibold">
-                                            {formatCurrency(item.total_valor)}
+                                            {formatCurrencyBR(item.total_valor)}
                                         </p>
                                     </div>
                                 ))}

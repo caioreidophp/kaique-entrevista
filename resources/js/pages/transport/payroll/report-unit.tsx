@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
+import { formatCurrencyBR } from '@/lib/transport-format';
 
 interface Unidade {
     id: number;
@@ -20,9 +21,11 @@ interface Unidade {
 }
 
 interface UnitReport {
-    total_pago_mes: number;
+    total_pago_periodo: number;
     colaboradores_pagos: number;
-    media_salarial: number;
+    media_salarial_mes: number;
+    competencia_inicial: string;
+    competencia_final: string;
     distribuicao: Array<{ faixa: string; quantidade: number }>;
     evolucao_mensal: Array<{
         competencia_ano: number;
@@ -36,20 +39,12 @@ interface WrappedResponse<T> {
     data: T;
 }
 
-function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(value);
-}
-
 export default function TransportPayrollReportUnitPage() {
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
     const [unidades, setUnidades] = useState<Unidade[]>([]);
     const [unidadeId, setUnidadeId] = useState('');
-    const [month, setMonth] = useState(String(currentMonth));
-    const [year, setYear] = useState(String(currentYear));
+    const [competenciaInicial, setCompetenciaInicial] = useState(`${currentYear}-01`);
+    const [competenciaFinal, setCompetenciaFinal] = useState(`${currentYear}-12`);
     const [report, setReport] = useState<UnitReport | null>(null);
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState<{
@@ -57,32 +52,37 @@ export default function TransportPayrollReportUnitPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
 
-    const monthOptions = useMemo(
-        () => [
-            { value: '1', label: 'Janeiro' },
-            { value: '2', label: 'Fevereiro' },
-            { value: '3', label: 'Março' },
-            { value: '4', label: 'Abril' },
-            { value: '5', label: 'Maio' },
-            { value: '6', label: 'Junho' },
-            { value: '7', label: 'Julho' },
-            { value: '8', label: 'Agosto' },
-            { value: '9', label: 'Setembro' },
-            { value: '10', label: 'Outubro' },
-            { value: '11', label: 'Novembro' },
-            { value: '12', label: 'Dezembro' },
-        ],
-        [],
-    );
+    const chartData = useMemo(() => {
+        if (!report || report.evolucao_mensal.length === 0) return null;
 
-    const yearOptions = useMemo(
-        () => [
-            String(currentYear - 1),
-            String(currentYear),
-            String(currentYear + 1),
-        ],
-        [currentYear],
-    );
+        const width = Math.max(560, report.evolucao_mensal.length * 56);
+        const height = 190;
+        const paddingX = 28;
+        const paddingY = 20;
+        const maxValue = Math.max(...report.evolucao_mensal.map((item) => item.total_valor), 1);
+        const safeRange = Math.max(maxValue, 1);
+
+        const points = report.evolucao_mensal.map((item, index) => {
+            const x =
+                report.evolucao_mensal.length === 1
+                    ? width / 2
+                    : paddingX + (index * (width - paddingX * 2)) / (report.evolucao_mensal.length - 1);
+            const y = paddingY + (1 - item.total_valor / safeRange) * (height - paddingY * 2);
+
+            return {
+                ...item,
+                x,
+                y,
+                label: `${String(item.competencia_mes).padStart(2, '0')}/${String(item.competencia_ano).slice(-2)}`,
+            };
+        });
+
+        const path = points
+            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+            .join(' ');
+
+        return { width, height, points, path };
+    }, [report]);
 
     async function loadUnits(): Promise<void> {
         try {
@@ -108,7 +108,7 @@ export default function TransportPayrollReportUnitPage() {
 
         try {
             const response = await apiGet<UnitReport>(
-                `/payroll/reports/unidade?unidade_id=${unidadeId}&competencia_mes=${month}&competencia_ano=${year}`,
+                `/payroll/reports/unidade?unidade_id=${unidadeId}&competencia_inicial=${competenciaInicial}&competencia_final=${competenciaFinal}`,
             );
             setReport(response);
         } catch {
@@ -129,7 +129,7 @@ export default function TransportPayrollReportUnitPage() {
     useEffect(() => {
         if (unidadeId) void loadReport();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [unidadeId, month, year]);
+    }, [unidadeId, competenciaInicial, competenciaFinal]);
 
     return (
         <AdminLayout
@@ -183,37 +183,24 @@ export default function TransportPayrollReportUnitPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label>Mês</Label>
-                                <Select value={month} onValueChange={setMonth}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {monthOptions.map((m) => (
-                                            <SelectItem
-                                                key={m.value}
-                                                value={m.value}
-                                            >
-                                                {m.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="competencia-inicial">Mês inicial</Label>
+                                <input
+                                    id="competencia-inicial"
+                                    type="month"
+                                    value={competenciaInicial}
+                                    onChange={(event) => setCompetenciaInicial(event.target.value)}
+                                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+                                />
                             </div>
                             <div className="space-y-2">
-                                <Label>Ano</Label>
-                                <Select value={year} onValueChange={setYear}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {yearOptions.map((y) => (
-                                            <SelectItem key={y} value={y}>
-                                                {y}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="competencia-final">Mês final</Label>
+                                <input
+                                    id="competencia-final"
+                                    type="month"
+                                    value={competenciaFinal}
+                                    onChange={(event) => setCompetenciaFinal(event.target.value)}
+                                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+                                />
                             </div>
                         </div>
                         <div className="mt-4 flex justify-end">
@@ -238,12 +225,12 @@ export default function TransportPayrollReportUnitPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Total pago no mês
+                                        Total pago no período
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(report.total_pago_mes)}
+                                        {formatCurrencyBR(report.total_pago_periodo)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -262,12 +249,12 @@ export default function TransportPayrollReportUnitPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Média salarial
+                                        Média salarial por mês
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrency(report.media_salarial)}
+                                        {formatCurrencyBR(report.media_salarial_mes)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -297,38 +284,53 @@ export default function TransportPayrollReportUnitPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Evolução mensal</CardTitle>
+                                    <CardTitle>Variação mensal</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    {report.evolucao_mensal.length === 0 ? (
+                                    {!chartData ? (
                                         <p className="text-sm text-muted-foreground">
                                             Sem histórico para exibir.
                                         </p>
                                     ) : (
-                                        report.evolucao_mensal.map((item) => (
-                                            <div
-                                                key={`${item.competencia_ano}-${item.competencia_mes}`}
-                                                className="rounded-md border p-3 text-sm"
+                                        <div className="overflow-x-auto">
+                                            <svg
+                                                width={chartData.width}
+                                                height={chartData.height}
+                                                viewBox={`0 0 ${chartData.width} ${chartData.height}`}
+                                                className="min-w-full"
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <span>
-                                                        {String(
-                                                            item.competencia_mes,
-                                                        ).padStart(2, '0')}
-                                                        /{item.competencia_ano}
-                                                    </span>
-                                                    <span className="font-semibold">
-                                                        {formatCurrency(
-                                                            item.total_valor,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {item.total_lancamentos}{' '}
-                                                    lançamento(s)
-                                                </p>
-                                            </div>
-                                        ))
+                                                <path
+                                                    d={chartData.path}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    className="text-primary"
+                                                />
+                                                {chartData.points.map((point) => (
+                                                    <g key={`${point.competencia_ano}-${point.competencia_mes}`}>
+                                                        <circle
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r="4"
+                                                            className="fill-primary"
+                                                        >
+                                                            <title>
+                                                                {point.label}: {formatCurrencyBR(point.total_valor)}
+                                                            </title>
+                                                        </circle>
+                                                        <text
+                                                            x={point.x}
+                                                            y={chartData.height - 4}
+                                                            textAnchor="middle"
+                                                            fontSize="10"
+                                                            className="fill-muted-foreground"
+                                                        >
+                                                            {point.label}
+                                                        </text>
+                                                    </g>
+                                                ))}
+                                            </svg>
+                                        </div>
                                     )}
                                 </CardContent>
                             </Card>

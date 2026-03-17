@@ -12,8 +12,25 @@ import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { apiGet, ApiError, apiPatch } from '@/lib/api-client';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { apiGet, ApiError, apiPatch, apiPost } from '@/lib/api-client';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { getAuthToken } from '@/lib/transport-auth';
 import type {
     ApiPaginatedResponse,
@@ -24,6 +41,38 @@ interface ColaboradorLookupResponse {
     data: Array<{ id: number }>;
 }
 
+interface Unidade {
+    id: number;
+    nome: string;
+}
+
+interface Funcao {
+    id: number;
+    nome: string;
+}
+
+interface WrappedResponse<T> {
+    data: T;
+}
+
+interface ColaboradorCreateResponse {
+    id: number;
+}
+
+interface CreateColaboradorForm {
+    nome: string;
+    apelido: string;
+    cpf: string;
+    rg: string;
+    cnh: string;
+    validade_cnh: string;
+    telefone: string;
+    email: string;
+    unidade_id: string;
+    funcao_id: string;
+    data_admissao: string;
+}
+
 interface HiringStatusResponse {
     data: {
         foi_contratado: boolean;
@@ -31,6 +80,37 @@ interface HiringStatusResponse {
         onboarding_id: number | null;
         onboarding_status: 'em_andamento' | 'bloqueado' | 'concluido' | null;
     };
+}
+
+const emptyColaboradorForm: CreateColaboradorForm = {
+    nome: '',
+    apelido: '',
+    cpf: '',
+    rg: '',
+    cnh: '',
+    validade_cnh: '',
+    telefone: '',
+    email: '',
+    unidade_id: '',
+    funcao_id: '',
+    data_admissao: '',
+};
+
+function normalizeNullable(value: string): string | null {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+}
+
+function sanitizeDigits(value: string): string {
+    return value.replace(/\D/g, '');
+}
+
+function normalizeText(value: string): string {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
 }
 
 function extractFileNameFromDisposition(
@@ -217,8 +297,209 @@ export default function TransportNextStepsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebouncedValue(search, 300);
     const [error, setError] = useState<string | null>(null);
     const [hiringItemId, setHiringItemId] = useState<number | null>(null);
+    const [unidades, setUnidades] = useState<Unidade[]>([]);
+    const [funcoes, setFuncoes] = useState<Funcao[]>([]);
+    const [formOpen, setFormOpen] = useState(false);
+    const [formData, setFormData] =
+        useState<CreateColaboradorForm>(emptyColaboradorForm);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [formSubmitting, setFormSubmitting] = useState(false);
+    const [candidateToCreate, setCandidateToCreate] =
+        useState<NextStepCandidate | null>(null);
+
+    function applyHiringResult(
+        candidateId: number,
+        data: HiringStatusResponse['data'],
+    ): void {
+        setItems((previous) =>
+            previous.map((item) =>
+                item.id === candidateId
+                    ? {
+                          ...item,
+                          foi_contratado: data.foi_contratado,
+                          colaborador_id: data.colaborador_id,
+                          onboarding_id: data.onboarding_id,
+                          onboarding_status: data.onboarding_status,
+                      }
+                    : item,
+            ),
+        );
+    }
+
+    async function loadFormOptions(): Promise<{
+        unidades: Unidade[];
+        funcoes: Funcao[];
+    }> {
+        if (unidades.length > 0 && funcoes.length > 0) {
+            return {
+                unidades,
+                funcoes,
+            };
+        }
+
+        const [unidadesResponse, funcoesResponse] = await Promise.all([
+            apiGet<WrappedResponse<Unidade[]>>('/registry/unidades'),
+            apiGet<WrappedResponse<Funcao[]>>('/registry/funcoes?active=1'),
+        ]);
+
+        setUnidades(unidadesResponse.data);
+        setFuncoes(funcoesResponse.data);
+
+        return {
+            unidades: unidadesResponse.data,
+            funcoes: funcoesResponse.data,
+        };
+    }
+
+    function prefillForm(
+        candidate: NextStepCandidate,
+        unidadesList: Unidade[],
+        funcoesList: Funcao[],
+    ): CreateColaboradorForm {
+        const normalizedCargo = normalizeText(candidate.cargo_pretendido ?? '');
+        const matchingFuncao =
+            normalizedCargo.length > 0
+                ? funcoesList.find(
+                      (funcao) => normalizeText(funcao.nome) === normalizedCargo,
+                  )
+                : undefined;
+
+        const preferredUnidade =
+            candidate.hiring_unidade_id &&
+            unidadesList.some((unidade) => unidade.id === candidate.hiring_unidade_id)
+                ? String(candidate.hiring_unidade_id)
+                : '';
+
+        return {
+            nome: candidate.full_name,
+            apelido: candidate.preferred_name ?? '',
+            cpf: candidate.cpf,
+            rg: candidate.rg ?? '',
+            cnh: candidate.cnh_number ?? '',
+            validade_cnh: (candidate.cnh_expiration_date ?? '').slice(0, 10),
+            telefone: candidate.phone,
+            email: candidate.email,
+            unidade_id: preferredUnidade,
+            funcao_id: matchingFuncao ? String(matchingFuncao.id) : '',
+            data_admissao: (candidate.start_availability_date ?? '').slice(0, 10),
+        };
+    }
+
+    async function openCreateCollaboratorModal(
+        candidate: NextStepCandidate,
+    ): Promise<void> {
+        try {
+            const { unidades: unidadesList, funcoes: funcoesList } =
+                await loadFormOptions();
+
+            setCandidateToCreate(candidate);
+            setFormErrors({});
+            setFormData(prefillForm(candidate, unidadesList, funcoesList));
+            setFormOpen(true);
+        } catch (optionsError) {
+            if (optionsError instanceof ApiError) {
+                setError(optionsError.message);
+            } else {
+                setError('Não foi possível carregar unidades e funções.');
+            }
+        }
+    }
+
+    async function submitCollaboratorFromInterview(): Promise<void> {
+        if (!candidateToCreate) return;
+
+        const clientErrors: Record<string, string> = {};
+        const nome = formData.nome.trim();
+        const cpf = sanitizeDigits(formData.cpf);
+        const rg = formData.rg.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
+        const cnh = sanitizeDigits(formData.cnh);
+        const telefone = sanitizeDigits(formData.telefone);
+        const email = formData.email.trim();
+
+        if (!nome) clientErrors.nome = 'Informe o nome.';
+        if (!/^\d{11}$/.test(cpf)) {
+            clientErrors.cpf = 'CPF deve conter 11 números.';
+        }
+        if (!formData.unidade_id) {
+            clientErrors.unidade_id = 'Selecione a unidade.';
+        }
+        if (!formData.funcao_id) {
+            clientErrors.funcao_id = 'Selecione a função.';
+        }
+        if (rg && !/^\d{9}[\dA-Z]$/.test(rg)) {
+            clientErrors.rg = 'RG deve ter 9 números + 1 caractere final.';
+        }
+        if (cnh && !/^\d{11}$/.test(cnh)) {
+            clientErrors.cnh = 'CNH deve conter 11 números.';
+        }
+        if (telefone && !/^\d{11}$/.test(telefone)) {
+            clientErrors.telefone = 'Telefone deve conter 11 números.';
+        }
+
+        if (Object.keys(clientErrors).length > 0) {
+            setFormErrors(clientErrors);
+            return;
+        }
+
+        setFormSubmitting(true);
+        setError(null);
+        setFormErrors({});
+
+        try {
+            const created = await apiPost<WrappedResponse<ColaboradorCreateResponse>>(
+                '/registry/colaboradores',
+                {
+                    unidade_id: Number(formData.unidade_id),
+                    funcao_id: Number(formData.funcao_id),
+                    nome,
+                    apelido: normalizeNullable(formData.apelido),
+                    ativo: true,
+                    cpf,
+                    rg: rg || null,
+                    cnh: cnh || null,
+                    validade_cnh: normalizeNullable(formData.validade_cnh),
+                    data_admissao: normalizeNullable(formData.data_admissao),
+                    telefone: telefone || null,
+                    email: email || null,
+                },
+            );
+
+            const hiringResponse = await apiPatch<HiringStatusResponse>(
+                `/next-steps/${candidateToCreate.id}/hiring-status`,
+                {
+                    foi_contratado: true,
+                    colaborador_id: created.data.id,
+                },
+            );
+
+            applyHiringResult(candidateToCreate.id, hiringResponse.data);
+            setFormOpen(false);
+            setCandidateToCreate(null);
+            setFormData(emptyColaboradorForm);
+        } catch (submitError) {
+            if (submitError instanceof ApiError) {
+                if (submitError.errors) {
+                    const flattenedErrors: Record<string, string> = {};
+                    Object.entries(submitError.errors).forEach(([field, list]) => {
+                        flattenedErrors[field] = list[0] ?? 'Campo inválido.';
+                    });
+                    setFormErrors((previous) => ({
+                        ...previous,
+                        ...flattenedErrors,
+                    }));
+                }
+                setError(submitError.message);
+            } else {
+                setError('Não foi possível cadastrar o colaborador.');
+            }
+        } finally {
+            setFormSubmitting(false);
+            setHiringItemId(null);
+        }
+    }
 
     async function load(page = 1): Promise<void> {
         setLoading(true);
@@ -247,7 +528,7 @@ export default function TransportNextStepsPage() {
     }, []);
 
     const filteredItems = useMemo(() => {
-        const term = search.trim().toLowerCase();
+        const term = debouncedSearch.trim().toLowerCase();
 
         if (!term) return items;
 
@@ -257,7 +538,7 @@ export default function TransportNextStepsPage() {
                 .toLowerCase()
                 .includes(term),
         );
-    }, [items, search]);
+    }, [items, debouncedSearch]);
 
     async function handleHiringAction(
         candidate: NextStepCandidate,
@@ -275,20 +556,7 @@ export default function TransportNextStepsPage() {
                     },
                 );
 
-                setItems((previous) =>
-                    previous.map((item) =>
-                        item.id === candidate.id
-                            ? {
-                                  ...item,
-                                  foi_contratado: response.data.foi_contratado,
-                                  colaborador_id: response.data.colaborador_id,
-                                  onboarding_id: response.data.onboarding_id,
-                                  onboarding_status:
-                                      response.data.onboarding_status,
-                              }
-                            : item,
-                    ),
-                );
+                applyHiringResult(candidate.id, response.data);
 
                 return;
             }
@@ -302,20 +570,7 @@ export default function TransportNextStepsPage() {
                     },
                 );
 
-                setItems((previous) =>
-                    previous.map((item) =>
-                        item.id === candidate.id
-                            ? {
-                                  ...item,
-                                  foi_contratado: response.data.foi_contratado,
-                                  colaborador_id: response.data.colaborador_id,
-                                  onboarding_id: response.data.onboarding_id,
-                                  onboarding_status:
-                                      response.data.onboarding_status,
-                              }
-                            : item,
-                    ),
-                );
+                applyHiringResult(candidate.id, response.data);
 
                 return;
             }
@@ -335,55 +590,12 @@ export default function TransportNextStepsPage() {
                     },
                 );
 
-                setItems((previous) =>
-                    previous.map((item) =>
-                        item.id === candidate.id
-                            ? {
-                                  ...item,
-                                  foi_contratado: response.data.foi_contratado,
-                                  colaborador_id: response.data.colaborador_id,
-                                  onboarding_id: response.data.onboarding_id,
-                                  onboarding_status:
-                                      response.data.onboarding_status,
-                              }
-                            : item,
-                    ),
-                );
+                applyHiringResult(candidate.id, response.data);
 
                 return;
             }
 
-            const params = new URLSearchParams({
-                foi_contratado: '1',
-            });
-
-            const response = await apiPatch<HiringStatusResponse>(
-                `/next-steps/${candidate.id}/hiring-status`,
-                {
-                    foi_contratado: true,
-                },
-            );
-
-            setItems((previous) =>
-                previous.map((item) =>
-                    item.id === candidate.id
-                        ? {
-                              ...item,
-                              foi_contratado: response.data.foi_contratado,
-                              colaborador_id: response.data.colaborador_id,
-                              onboarding_id: response.data.onboarding_id,
-                              onboarding_status:
-                                  response.data.onboarding_status,
-                          }
-                        : item,
-                ),
-            );
-
-            if (response.data.onboarding_id) {
-                window.location.assign(
-                    `/transport/onboarding?onboarding=${response.data.onboarding_id}&${params.toString()}`,
-                );
-            }
+            await openCreateCollaboratorModal(candidate);
         } catch (actionError) {
             if (actionError instanceof ApiError) {
                 setError(actionError.message);
@@ -400,6 +612,280 @@ export default function TransportNextStepsPage() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
+
+                    <Dialog
+                        open={formOpen}
+                        onOpenChange={(open) => {
+                            if (formSubmitting) return;
+                            setFormOpen(open);
+                            if (!open) {
+                                setCandidateToCreate(null);
+                                setFormData(emptyColaboradorForm);
+                                setFormErrors({});
+                                setHiringItemId(null);
+                            }
+                        }}
+                    >
+                        <DialogContent className="sm:max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>Cadastrar colaborador contratado</DialogTitle>
+                                <DialogDescription>
+                                    Dados da entrevista já foram pré-preenchidos. Complete
+                                    apenas o necessário para finalizar o cadastro.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="modal-nome">Nome</Label>
+                                    <Input
+                                        id="modal-nome"
+                                        value={formData.nome}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                nome: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    {formErrors.nome ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.nome}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-apelido">Apelido</Label>
+                                    <Input
+                                        id="modal-apelido"
+                                        value={formData.apelido}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                apelido: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-cpf">CPF</Label>
+                                    <Input
+                                        id="modal-cpf"
+                                        value={formData.cpf}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                cpf: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    {formErrors.cpf ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.cpf}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-rg">RG</Label>
+                                    <Input
+                                        id="modal-rg"
+                                        value={formData.rg}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                rg: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    {formErrors.rg ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.rg}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-cnh">CNH</Label>
+                                    <Input
+                                        id="modal-cnh"
+                                        value={formData.cnh}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                cnh: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    {formErrors.cnh ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.cnh}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-validade-cnh">Validade CNH</Label>
+                                    <Input
+                                        id="modal-validade-cnh"
+                                        type="date"
+                                        value={formData.validade_cnh}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                validade_cnh: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-telefone">Telefone</Label>
+                                    <Input
+                                        id="modal-telefone"
+                                        value={formData.telefone}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                telefone: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                    {formErrors.telefone ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.telefone}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-email">E-mail</Label>
+                                    <Input
+                                        id="modal-email"
+                                        value={formData.email}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                email: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Unidade</Label>
+                                    <Select
+                                        value={formData.unidade_id}
+                                        onValueChange={(value) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                unidade_id: value,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {unidades.map((unidade) => (
+                                                <SelectItem
+                                                    key={unidade.id}
+                                                    value={String(unidade.id)}
+                                                >
+                                                    {unidade.nome}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {formErrors.unidade_id ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.unidade_id}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Função</Label>
+                                    <Select
+                                        value={formData.funcao_id}
+                                        onValueChange={(value) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                funcao_id: value,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {funcoes.map((funcao) => (
+                                                <SelectItem
+                                                    key={funcao.id}
+                                                    value={String(funcao.id)}
+                                                >
+                                                    {funcao.nome}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {formErrors.funcao_id ? (
+                                        <p className="text-xs text-destructive">
+                                            {formErrors.funcao_id}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="modal-admissao">Data de admissão</Label>
+                                    <Input
+                                        id="modal-admissao"
+                                        type="date"
+                                        value={formData.data_admissao}
+                                        onChange={(event) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                data_admissao: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setFormOpen(false);
+                                        setCandidateToCreate(null);
+                                        setFormData(emptyColaboradorForm);
+                                        setFormErrors({});
+                                        setHiringItemId(null);
+                                    }}
+                                    disabled={formSubmitting}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={() => void submitCollaboratorFromInterview()}
+                                    disabled={formSubmitting}
+                                >
+                                    {formSubmitting ? (
+                                        <>
+                                            <LoaderCircle className="size-4 animate-spin" />
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        'Salvar colaborador'
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                         <h2 className="text-2xl font-semibold">
                             Próximos Passos
                         </h2>

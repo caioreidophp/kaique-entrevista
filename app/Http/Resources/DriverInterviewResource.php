@@ -32,6 +32,7 @@ class DriverInterviewResource extends JsonResource
 
             'full_name' => $this->full_name,
             'preferred_name' => $this->preferred_name,
+            'birth_date' => $this->birth_date?->format('Y-m-d'),
             'phone' => $this->phone,
             'email' => $this->email,
             'city' => $this->city,

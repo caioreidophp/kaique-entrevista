@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LoaderCircle, Trash2 } from 'lucide-react';
+import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/tooltip';
 import { usePersistedState } from '@/hooks/use-persisted-state';
 import { ApiError, apiDelete, apiGet, apiPatch } from '@/lib/api-client';
+import { formatDateBR } from '@/lib/transport-format';
 import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
 import type {
     ApiPaginatedResponse,
@@ -632,18 +633,16 @@ export default function TransportInterviewsListPage() {
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3 whitespace-nowrap">
-                                                        {new Date(
-                                                            item.created_at,
-                                                        ).toLocaleDateString(
-                                                            'pt-BR',
-                                                        )}
+                                                        {formatDateBR(item.created_at)}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             <Button
                                                                 size="sm"
-                                                                variant="outline"
-                                                                className="px-3"
+                                                                variant="ghost"
+                                                                className="px-2"
+                                                                title="Ver"
+                                                                aria-label="Ver"
                                                                 disabled={
                                                                     !canManage
                                                                 }
@@ -655,18 +654,20 @@ export default function TransportInterviewsListPage() {
                                                                     <Link
                                                                         href={`/transport/interviews/${item.id}`}
                                                                     >
-                                                                        Ver
+                                                                        <Eye className="size-4" />
                                                                     </Link>
                                                                 ) : (
                                                                     <span>
-                                                                        Ver
+                                                                        <Eye className="size-4" />
                                                                     </span>
                                                                 )}
                                                             </Button>
                                                             <Button
                                                                 size="sm"
-                                                                variant="outline"
-                                                                className="px-3"
+                                                                variant="ghost"
+                                                                className="px-2"
+                                                                title="Editar"
+                                                                aria-label="Editar"
                                                                 disabled={
                                                                     !canManage
                                                                 }
@@ -678,18 +679,20 @@ export default function TransportInterviewsListPage() {
                                                                     <Link
                                                                         href={`/transport/interviews/${item.id}/edit`}
                                                                     >
-                                                                        Editar
+                                                                        <Pencil className="size-4" />
                                                                     </Link>
                                                                 ) : (
                                                                     <span>
-                                                                        Editar
+                                                                        <Pencil className="size-4" />
                                                                     </span>
                                                                 )}
                                                             </Button>
                                                             <Button
                                                                 size="sm"
-                                                                variant="destructive"
-                                                                className="px-3"
+                                                                variant="ghost"
+                                                                className="px-2 text-destructive hover:text-destructive"
+                                                                title="Excluir"
+                                                                aria-label="Excluir"
                                                                 disabled={
                                                                     !canManage
                                                                 }
@@ -700,7 +703,6 @@ export default function TransportInterviewsListPage() {
                                                                 }
                                                             >
                                                                 <Trash2 className="size-4" />
-                                                                Excluir
                                                             </Button>
                                                         </div>
                                                     </td>

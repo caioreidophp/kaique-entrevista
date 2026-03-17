@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Colaborador;
 use App\Models\Funcao;
 use App\Models\Pagamento;
+use App\Models\TipoPagamento;
 use App\Models\Unidade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +20,23 @@ class PayrollApiTest extends TestCase
     {
         $this->getJson('/api/payroll/summary')->assertUnauthorized();
         $this->getJson('/api/payroll/pagamentos')->assertUnauthorized();
+    }
+
+    public function test_usuario_role_is_forbidden_on_payroll_management_endpoints(): void
+    {
+        $usuario = User::factory()->create(['role' => 'usuario']);
+        $colaborador = $this->createColaborador(cpf: '90909090909');
+        Sanctum::actingAs($usuario);
+
+        $this->getJson('/api/payroll/summary')->assertForbidden();
+        $this->getJson('/api/payroll/dashboard')->assertForbidden();
+        $this->getJson('/api/payroll/pagamentos')->assertForbidden();
+        $this->postJson('/api/payroll/pagamentos', [
+            'colaborador_id' => $colaborador->id,
+            'competencia_mes' => 2,
+            'competencia_ano' => 2026,
+            'valor' => 1000,
+        ])->assertForbidden();
     }
 
     public function test_admin_can_create_pagamento_and_unidade_is_derived_from_colaborador(): void
@@ -236,6 +254,72 @@ class PayrollApiTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonPath('created_count', 1);
+    }
+
+    public function test_launch_batch_can_update_existing_payment_when_editing_grouped_launch(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $colaborador = $this->createColaborador(cpf: '78787878787');
+
+        $tipo = TipoPagamento::query()->create([
+            'nome' => 'Vale Transporte',
+            'gera_encargos' => false,
+            'categoria' => 'beneficios',
+            'forma_pagamento' => 'dinheiro',
+        ]);
+
+        $existing = Pagamento::query()->create([
+            'colaborador_id' => $colaborador->id,
+            'unidade_id' => $colaborador->unidade_id,
+            'autor_id' => $admin->id,
+            'tipo_pagamento_id' => $tipo->id,
+            'competencia_mes' => 3,
+            'competencia_ano' => 2026,
+            'valor' => 250,
+            'descricao' => 'Intermediário',
+            'data_pagamento' => '2026-03-10',
+            'lancado_em' => now(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/payroll/launch-batch', [
+            'unidade_id' => $colaborador->unidade_id,
+            'descricao' => 'Intermediário',
+            'data_pagamento' => '2026-03-10',
+            'tipo_pagamento_ids' => [$tipo->id],
+            'pagamentos' => [
+                [
+                    'colaborador_id' => $colaborador->id,
+                    'selected' => true,
+                    'valores_por_tipo' => [
+                        (string) $tipo->id => '440.00',
+                    ],
+                    'pagamentos_existentes_por_tipo' => [
+                        (string) $tipo->id => [
+                            'id' => $existing->id,
+                        ],
+                    ],
+                ],
+            ],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('created_count', 1);
+
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $existing->id,
+            'valor' => 440,
+            'descricao' => 'Intermediário',
+        ]);
+
+        $this->assertSame(
+            1,
+            Pagamento::query()
+                ->where('colaborador_id', $colaborador->id)
+                ->where('tipo_pagamento_id', $tipo->id)
+                ->whereDate('data_pagamento', '2026-03-10')
+                ->count(),
+        );
     }
 
     public function test_report_endpoints_return_payload(): void

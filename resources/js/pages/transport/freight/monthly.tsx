@@ -11,21 +11,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
+import { formatCurrencyBR, formatIntegerBR } from '@/lib/transport-format';
 import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;
-}
-
-function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-    }).format(value);
-}
-
-function formatNumber(value: number): string {
-    return new Intl.NumberFormat('pt-BR').format(value);
 }
 
 export default function TransportFreightMonthlyPage() {
@@ -214,7 +204,7 @@ export default function TransportFreightMonthlyPage() {
                                                     'Sem unidade'}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {formatNumber(
+                                                {formatIntegerBR(
                                                     item.dias_trabalhados,
                                                 )}{' '}
                                                 dia(s)
@@ -226,7 +216,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Frete total
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.total_frete,
                                                     )}
                                                 </p>
@@ -236,7 +226,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Frete líquido
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.total_frete_liquido,
                                                     )}
                                                 </p>
@@ -246,7 +236,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Total KM
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatNumber(
+                                                    {formatIntegerBR(
                                                         item.total_km_rodado,
                                                     )}
                                                 </p>
@@ -256,7 +246,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Aves transportadas
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatNumber(
+                                                    {formatIntegerBR(
                                                         item.total_aves_transportadas,
                                                     )}
                                                 </p>
@@ -266,7 +256,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Frete por caminhão
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.frete_por_caminhao,
                                                     )}
                                                 </p>
@@ -276,7 +266,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Frete por dia trabalhado
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.frete_por_dia_trabalhado,
                                                     )}
                                                 </p>
@@ -286,7 +276,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Média R$/KM
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.media_reais_por_km,
                                                     )}
                                                 </p>
@@ -296,7 +286,7 @@ export default function TransportFreightMonthlyPage() {
                                                     Média frete/KM
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrency(
+                                                    {formatCurrencyBR(
                                                         item.media_frete_por_km,
                                                     )}
                                                 </p>

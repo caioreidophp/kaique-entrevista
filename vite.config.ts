@@ -40,6 +40,10 @@ export default defineConfig({
                         return 'ui-vendor';
                     }
 
+                    if (id.includes('react-imask') || id.includes('input-otp')) {
+                        return 'forms-vendor';
+                    }
+
                     if (id.includes('lucide-react')) {
                         return 'icons';
                     }

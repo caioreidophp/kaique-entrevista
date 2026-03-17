@@ -99,6 +99,7 @@ class StoreDriverInterviewRequest extends FormRequest
         return [
             'full_name' => ['required', 'string', 'max:255'],
             'preferred_name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date'],
             'phone' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'email' => ['required', 'email', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
@@ -208,6 +209,7 @@ class StoreDriverInterviewRequest extends FormRequest
         return [
             'full_name' => 'nome completo',
             'preferred_name' => 'como prefere ser chamado',
+            'birth_date' => 'data de nascimento',
             'phone' => 'telefone',
             'email' => 'e-mail',
             'city' => 'cidade',

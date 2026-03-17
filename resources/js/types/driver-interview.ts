@@ -34,6 +34,7 @@ export interface DriverInterview {
     author: InterviewAuthor | null;
     full_name: string;
     preferred_name: string;
+    birth_date: string | null;
     phone: string;
     email: string;
     city: string;
@@ -121,9 +122,16 @@ export interface NextStepDocumentLinks {
 export interface NextStepCandidate {
     id: number;
     full_name: string;
+    preferred_name: string;
     cpf: string;
+    rg: string;
+    cnh_number: string;
+    cnh_expiration_date: string;
     email: string;
     phone: string;
+    cargo_pretendido: string | null;
+    hiring_unidade_id: number | null;
+    start_availability_date: string;
     marital_status: string;
     hr_status: HrStatus;
     foi_contratado: boolean;
@@ -219,6 +227,7 @@ export interface OnboardingSummary {
 export interface DriverInterviewFormData {
     full_name: string;
     preferred_name: string;
+    birth_date: string;
     phone: string;
     email: string;
     city: string;

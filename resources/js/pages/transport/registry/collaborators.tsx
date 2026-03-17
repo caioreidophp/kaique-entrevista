@@ -1,5 +1,6 @@
 import {
     CalendarDays,
+    Download,
     Eye,
     LoaderCircle,
     PencilLine,
@@ -36,12 +37,14 @@ import { usePersistedState } from '@/hooks/use-persisted-state';
 import {
     ApiError,
     apiDelete,
+    apiDownload,
     apiGet,
     apiPatch,
     apiPost,
     apiPut,
 } from '@/lib/api-client';
 import { getAuthToken } from '@/lib/transport-auth';
+import { transportFeatures } from '@/lib/transport-features';
 
 interface Unidade {
     id: number;
@@ -180,8 +183,23 @@ interface FeriasRegistro {
     id: number;
     data_inicio: string;
     data_termino: string;
+    periodo_aquisitivo_inicio?: string | null;
+    periodo_aquisitivo_fim?: string | null;
+    com_abono?: boolean;
+    dias_ferias?: number;
     observacoes: string | null;
 }
+
+interface VacationCandidateRow {
+    colaborador_id: number;
+    periodo_aquisitivo_inicio?: string;
+    periodo_aquisitivo_fim?: string;
+    direito: string;
+    limite: string;
+}
+
+type ColaboradorSortBy = 'nome' | 'funcao' | 'unidade' | 'cpf' | 'ativo';
+type SortDirection = 'asc' | 'desc';
 
 interface AfastamentoRegistro {
     id: number;
@@ -190,6 +208,8 @@ interface AfastamentoRegistro {
     motivo: string;
     observacoes: string | null;
 }
+
+type QuickEditInputType = 'text' | 'date' | 'select';
 
 type DetailsTab = 'contato' | 'ferias' | 'afastamentos' | 'dados_bancarios';
 
@@ -235,6 +255,50 @@ const emptyForm: ColaboradorFormData = {
     conta_pagamento: '',
     cartao_beneficio: '',
 };
+
+function collaboratorToFormData(item: Colaborador): ColaboradorFormData {
+    return {
+        unidade_id: String(item.unidade_id),
+        funcao_id: String(item.funcao_id),
+        nome: item.nome,
+        apelido: item.apelido ?? '',
+        sexo: item.sexo ?? '',
+        ativo: item.ativo,
+        cpf: formatCpf(item.cpf),
+        rg: sanitizeRg(item.rg ?? ''),
+        cnh: sanitizeCnh(item.cnh ?? ''),
+        validade_cnh: dateToInput(item.validade_cnh),
+        validade_exame_toxicologico: dateToInput(
+            item.validade_exame_toxicologico,
+        ),
+        data_nascimento: dateToInput(item.data_nascimento),
+        data_admissao: dateToInput(item.data_admissao),
+        data_demissao: dateToInput(item.data_demissao),
+        telefone: formatPhone(item.telefone ?? ''),
+        email: item.email ?? '',
+        cep: item.cep ?? '',
+        logradouro: item.logradouro ?? '',
+        numero_endereco: item.numero_endereco ?? '',
+        complemento: item.complemento ?? '',
+        bairro: item.bairro ?? '',
+        cidade_uf: item.cidade_uf ?? '',
+        endereco_completo: item.endereco_completo ?? '',
+        dados_bancarios_1: item.dados_bancarios_1 ?? '',
+        dados_bancarios_2: item.dados_bancarios_2 ?? '',
+        chave_pix: item.chave_pix ?? '',
+        tipo_chave_pix: item.tipo_chave_pix ?? '',
+        nome_banco: item.nome_banco ?? '',
+        numero_banco: item.numero_banco ?? '',
+        numero_agencia: item.numero_agencia ?? '',
+        tipo_conta: item.tipo_conta ?? '',
+        numero_conta: item.numero_conta ?? '',
+        banco_salario: item.banco_salario ?? '',
+        numero_agencia_salario: item.numero_agencia_salario ?? '',
+        numero_conta_salario: item.numero_conta_salario ?? '',
+        conta_pagamento: item.conta_pagamento ?? '',
+        cartao_beneficio: item.cartao_beneficio ?? '',
+    };
+}
 
 function enumLabel(
     value: string | null | undefined,
@@ -285,10 +349,23 @@ function sanitizePhone(value: string): string {
 function formatPhone(value: string): string {
     const digits = sanitizePhone(value);
 
+    if (digits.length === 0) return '';
     if (digits.length <= 2) return `(${digits}`;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
 
-    return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function formatCep(value: string | null): string {
+    if (!value) return '-';
+
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+
+    if (digits.length <= 5) {
+        return digits;
+    }
+
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
 function sanitizeRg(value: string): string {
@@ -364,6 +441,8 @@ export default function TransportRegistryCollaboratorsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [total, setTotal] = useState(0);
+    const [sortBy, setSortBy] = useState<ColaboradorSortBy>('nome');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
     const [notification, setNotification] = useState<{
         message: string;
@@ -382,6 +461,7 @@ export default function TransportRegistryCollaboratorsPage() {
     const [formData, setFormData] = useState<ColaboradorFormData>(emptyForm);
     const [prefillHandled, setPrefillHandled] = useState(false);
     const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
+    const [exportingCsv, setExportingCsv] = useState(false);
     const [importResult, setImportResult] =
         useState<SpreadsheetImportResult | null>(null);
     const [importResultOpen, setImportResultOpen] = useState(false);
@@ -395,7 +475,10 @@ export default function TransportRegistryCollaboratorsPage() {
         Record<number, AfastamentoRegistro[]>
     >({});
     const [feriasModalOpen, setFeriasModalOpen] = useState(false);
+    const [feriasSaving, setFeriasSaving] = useState(false);
+    const [editingFeriasId, setEditingFeriasId] = useState<number | null>(null);
     const [afastamentoModalOpen, setAfastamentoModalOpen] = useState(false);
+    const [editingAfastamentoId, setEditingAfastamentoId] = useState<number | null>(null);
     const [feriasDraft, setFeriasDraft] = useState({
         data_inicio: '',
         data_termino: '',
@@ -407,6 +490,13 @@ export default function TransportRegistryCollaboratorsPage() {
         motivo: '',
         observacoes: '',
     });
+    const [quickEditOpen, setQuickEditOpen] = useState(false);
+    const [quickEditSaving, setQuickEditSaving] = useState(false);
+    const [quickEditLabel, setQuickEditLabel] = useState('');
+    const [quickEditField, setQuickEditField] = useState<keyof ColaboradorFormData | null>(null);
+    const [quickEditType, setQuickEditType] = useState<QuickEditInputType>('text');
+    const [quickEditValue, setQuickEditValue] = useState('');
+    const [quickEditOptions, setQuickEditOptions] = useState<Array<{ value: string; label: string }>>([]);
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
 
     const selectedUnidadeName = useMemo(() => {
@@ -447,6 +537,8 @@ export default function TransportRegistryCollaboratorsPage() {
         const params = new URLSearchParams();
         params.set('page', String(page));
         params.set('per_page', '10');
+        params.set('sort_by', sortBy);
+        params.set('sort_direction', sortDirection);
 
         if (nameFilter.trim()) params.set('name', nameFilter.trim());
         if (unidadeFilter !== 'all') params.set('unidade_id', unidadeFilter);
@@ -521,47 +613,7 @@ export default function TransportRegistryCollaboratorsPage() {
 
     function openEditDialog(item: Colaborador): void {
         setEditingItem(item);
-        setFormData({
-            unidade_id: String(item.unidade_id),
-            funcao_id: String(item.funcao_id),
-            nome: item.nome,
-            apelido: item.apelido ?? '',
-            sexo: item.sexo ?? '',
-            ativo: item.ativo,
-            cpf: formatCpf(item.cpf),
-            rg: sanitizeRg(item.rg ?? ''),
-            cnh: sanitizeCnh(item.cnh ?? ''),
-            validade_cnh: dateToInput(item.validade_cnh),
-            validade_exame_toxicologico: dateToInput(
-                item.validade_exame_toxicologico,
-            ),
-            data_nascimento: dateToInput(item.data_nascimento),
-            data_admissao: dateToInput(item.data_admissao),
-            data_demissao: dateToInput(item.data_demissao),
-            telefone: formatPhone(item.telefone ?? ''),
-            email: item.email ?? '',
-            cep: item.cep ?? '',
-            logradouro: item.logradouro ?? '',
-            numero_endereco: item.numero_endereco ?? '',
-            complemento: item.complemento ?? '',
-            bairro: item.bairro ?? '',
-            cidade_uf: item.cidade_uf ?? '',
-            endereco_completo: item.endereco_completo ?? '',
-            dados_bancarios_1: item.dados_bancarios_1 ?? '',
-            dados_bancarios_2: item.dados_bancarios_2 ?? '',
-            chave_pix: item.chave_pix ?? '',
-            tipo_chave_pix: item.tipo_chave_pix ?? '',
-            nome_banco: item.nome_banco ?? '',
-            numero_banco: item.numero_banco ?? '',
-            numero_agencia: item.numero_agencia ?? '',
-            tipo_conta: item.tipo_conta ?? '',
-            numero_conta: item.numero_conta ?? '',
-            banco_salario: item.banco_salario ?? '',
-            numero_agencia_salario: item.numero_agencia_salario ?? '',
-            numero_conta_salario: item.numero_conta_salario ?? '',
-            conta_pagamento: item.conta_pagamento ?? '',
-            cartao_beneficio: item.cartao_beneficio ?? '',
-        });
+        setFormData(collaboratorToFormData(item));
         setFormErrors({});
         setFotoFile(null);
         setFotoPreviewUrl(item.foto_3x4_url ?? null);
@@ -570,11 +622,47 @@ export default function TransportRegistryCollaboratorsPage() {
 
     function openDetailsDialog(item: Colaborador): void {
         setDetailsItem(item);
+        setFormData(collaboratorToFormData(item));
         setDetailsTab('contato');
         setDetailsOpen(true);
+        void loadFeriasForCollaborator(item.id);
     }
 
-    function saveFeriasDraft(): void {
+    async function loadFeriasForCollaborator(colaboradorId: number): Promise<void> {
+        try {
+            const response = await apiGet<WrappedResponse<FeriasRegistro[]>>(
+                `/payroll/vacations/collaborators/${colaboradorId}`,
+            );
+
+            setFeriasByColaborador((previous) => ({
+                ...previous,
+                [colaboradorId]: response.data,
+            }));
+        } catch {
+            setNotification({
+                message: 'Não foi possível carregar férias do colaborador.',
+                variant: 'error',
+            });
+        }
+    }
+
+    function openFeriasCreateModal(): void {
+        setEditingFeriasId(null);
+        setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+        setFeriasModalOpen(true);
+    }
+
+    function openFeriasEditModal(item: FeriasRegistro): void {
+        setEditingFeriasId(item.id);
+        setFeriasDraft({
+            data_inicio: item.data_inicio,
+            data_termino: item.data_termino,
+            observacoes: item.observacoes ?? '',
+        });
+        setFeriasModalOpen(true);
+    }
+
+    async function saveFeriasDraft(): Promise<void> {
         if (!detailsItem) return;
         if (!feriasDraft.data_inicio || !feriasDraft.data_termino) {
             setNotification({
@@ -584,24 +672,100 @@ export default function TransportRegistryCollaboratorsPage() {
             return;
         }
 
-        const registro: FeriasRegistro = {
-            id: Date.now(),
-            data_inicio: feriasDraft.data_inicio,
-            data_termino: feriasDraft.data_termino,
-            observacoes: normalizeNullable(feriasDraft.observacoes),
-        };
+        setFeriasSaving(true);
 
-        setFeriasByColaborador((previous) => ({
-            ...previous,
-            [detailsItem.id]: [...(previous[detailsItem.id] ?? []), registro],
-        }));
-        setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
-        setFeriasModalOpen(false);
-        setNotification({
-            message:
-                'Anotação de férias adicionada no perfil. Integração com controle de férias virá na próxima etapa.',
-            variant: 'info',
+        try {
+            const candidates = await apiGet<WrappedResponse<VacationCandidateRow[]>>(
+                '/payroll/vacations/candidates',
+            );
+
+            const candidate = candidates.data.find(
+                (item) => item.colaborador_id === detailsItem.id,
+            );
+
+            if (!candidate) {
+                setNotification({
+                    message:
+                        'Não foi possível calcular período aquisitivo deste colaborador para lançar férias.',
+                    variant: 'error',
+                });
+                return;
+            }
+
+            if (editingFeriasId) {
+                await apiPut(`/payroll/vacations/${editingFeriasId}`, {
+                    colaborador_id: detailsItem.id,
+                    com_abono: false,
+                    data_inicio: feriasDraft.data_inicio,
+                    data_fim: feriasDraft.data_termino,
+                    periodo_aquisitivo_inicio: candidate.periodo_aquisitivo_inicio ?? candidate.direito,
+                    periodo_aquisitivo_fim: candidate.periodo_aquisitivo_fim ?? candidate.limite,
+                    observacoes: feriasDraft.observacoes,
+                });
+            } else {
+                await apiPost('/payroll/vacations', {
+                    colaborador_id: detailsItem.id,
+                    com_abono: false,
+                    data_inicio: feriasDraft.data_inicio,
+                    data_fim: feriasDraft.data_termino,
+                    periodo_aquisitivo_inicio: candidate.periodo_aquisitivo_inicio ?? candidate.direito,
+                    periodo_aquisitivo_fim: candidate.periodo_aquisitivo_fim ?? candidate.limite,
+                    observacoes: feriasDraft.observacoes,
+                });
+            }
+
+            await loadFeriasForCollaborator(detailsItem.id);
+
+            setEditingFeriasId(null);
+            setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+            setFeriasModalOpen(false);
+            setNotification({
+                message: editingFeriasId
+                    ? 'Férias atualizadas com sucesso.'
+                    : 'Férias lançadas com sucesso e sincronizadas com o Controle de Férias.',
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível lançar férias.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setFeriasSaving(false);
+        }
+    }
+
+    function openAfastamentoCreateModal(): void {
+        setEditingAfastamentoId(null);
+        setAfastamentoDraft({
+            data_inicio: '',
+            data_termino: '',
+            motivo: '',
+            observacoes: '',
         });
+        setAfastamentoModalOpen(true);
+    }
+
+    function openAfastamentoEditModal(item: AfastamentoRegistro): void {
+        setEditingAfastamentoId(item.id);
+        setAfastamentoDraft({
+            data_inicio: item.data_inicio,
+            data_termino: item.data_termino,
+            motivo: item.motivo,
+            observacoes: item.observacoes ?? '',
+        });
+        setAfastamentoModalOpen(true);
     }
 
     function saveAfastamentoDraft(): void {
@@ -627,27 +791,170 @@ export default function TransportRegistryCollaboratorsPage() {
             observacoes: normalizeNullable(afastamentoDraft.observacoes),
         };
 
-        setAfastamentosByColaborador((previous) => ({
-            ...previous,
-            [detailsItem.id]: [...(previous[detailsItem.id] ?? []), registro],
-        }));
+        setAfastamentosByColaborador((previous) => {
+            const current = [...(previous[detailsItem.id] ?? [])];
+
+            if (editingAfastamentoId) {
+                const next = current.map((item) =>
+                    item.id === editingAfastamentoId ? registro : item,
+                );
+
+                return {
+                    ...previous,
+                    [detailsItem.id]: next,
+                };
+            }
+
+            return {
+                ...previous,
+                [detailsItem.id]: [...current, registro],
+            };
+        });
         setAfastamentoDraft({
             data_inicio: '',
             data_termino: '',
             motivo: '',
             observacoes: '',
         });
+        setEditingAfastamentoId(null);
         setAfastamentoModalOpen(false);
         setNotification({
-            message:
-                'Afastamento adicionado no perfil. Integração completa virá na próxima etapa.',
-            variant: 'info',
+            message: editingAfastamentoId
+                ? 'Afastamento atualizado no perfil.'
+                : 'Afastamento adicionado no perfil. Integração completa virá na próxima etapa.',
+            variant: editingAfastamentoId ? 'success' : 'info',
         });
     }
 
     function openDeleteDialog(item: Colaborador): void {
         setDeleteCandidate(item);
         setDeleteDialogOpen(true);
+    }
+
+    function buildColaboradorPayload(source: ColaboradorFormData) {
+        const sanitizedCpf = sanitizeCpf(source.cpf);
+        const sanitizedRg = sanitizeRg(source.rg);
+        const sanitizedPhone = sanitizePhone(source.telefone);
+        const sanitizedCnh = sanitizeCnh(source.cnh);
+        const normalizedEmail = source.email.trim();
+
+        return {
+            unidade_id: Number(source.unidade_id),
+            funcao_id: Number(source.funcao_id),
+            nome: source.nome.trim(),
+            apelido: normalizeNullable(source.apelido),
+            sexo: normalizeNullable(source.sexo),
+            ativo: source.ativo,
+            cpf: sanitizedCpf,
+            rg: sanitizedRg !== '' ? sanitizedRg : null,
+            cnh: sanitizedCnh !== '' ? sanitizedCnh : null,
+            validade_cnh: normalizeNullable(source.validade_cnh),
+            validade_exame_toxicologico: normalizeNullable(
+                source.validade_exame_toxicologico,
+            ),
+            data_nascimento: normalizeNullable(source.data_nascimento),
+            data_admissao: normalizeNullable(source.data_admissao),
+            data_demissao: normalizeNullable(source.data_demissao),
+            telefone: sanitizedPhone !== '' ? sanitizedPhone : null,
+            email: normalizedEmail !== '' ? normalizedEmail : null,
+            cep: normalizeNullable(source.cep),
+            logradouro: normalizeNullable(source.logradouro),
+            numero_endereco: normalizeNullable(source.numero_endereco),
+            complemento: normalizeNullable(source.complemento),
+            bairro: normalizeNullable(source.bairro),
+            cidade_uf: normalizeNullable(source.cidade_uf),
+            endereco_completo: normalizeNullable(source.endereco_completo),
+            dados_bancarios_1: normalizeNullable(source.dados_bancarios_1),
+            dados_bancarios_2: normalizeNullable(source.dados_bancarios_2),
+            chave_pix: normalizeNullable(source.chave_pix),
+            tipo_chave_pix: normalizeNullable(source.tipo_chave_pix),
+            nome_banco: normalizeNullable(source.nome_banco),
+            numero_banco: normalizeNullable(source.numero_banco),
+            numero_agencia: normalizeNullable(source.numero_agencia),
+            tipo_conta: normalizeNullable(source.tipo_conta),
+            numero_conta: normalizeNullable(source.numero_conta),
+            banco_salario: normalizeNullable(source.banco_salario),
+            numero_agencia_salario: normalizeNullable(
+                source.numero_agencia_salario,
+            ),
+            numero_conta_salario: normalizeNullable(source.numero_conta_salario),
+            conta_pagamento: normalizeNullable(source.conta_pagamento),
+            cartao_beneficio: normalizeNullable(source.cartao_beneficio),
+        };
+    }
+
+    function openQuickEdit(
+        field: keyof ColaboradorFormData,
+        label: string,
+        type: QuickEditInputType = 'text',
+        options: Array<{ value: string; label: string }> = [],
+    ): void {
+        if (!detailsItem) return;
+
+        const rawValue = formData[field];
+        const value = typeof rawValue === 'boolean' ? (rawValue ? '1' : '0') : String(rawValue ?? '');
+
+        setQuickEditField(field);
+        setQuickEditLabel(label);
+        setQuickEditType(type);
+        setQuickEditOptions(options);
+        setQuickEditValue(value);
+        setQuickEditOpen(true);
+    }
+
+    async function saveQuickEdit(): Promise<void> {
+        if (!detailsItem || !quickEditField) return;
+
+        setQuickEditSaving(true);
+
+        const nextFormData: ColaboradorFormData = {
+            ...formData,
+            [quickEditField]:
+                quickEditField === 'ativo'
+                    ? quickEditValue === '1'
+                    : quickEditValue,
+        } as ColaboradorFormData;
+
+        try {
+            const response = await apiPut<WrappedResponse<Colaborador>>(
+                `/registry/colaboradores/${detailsItem.id}`,
+                buildColaboradorPayload(nextFormData),
+            );
+
+            const refreshed = response.data;
+
+            setDetailsItem(refreshed);
+            setFormData(collaboratorToFormData(refreshed));
+            setItems((previous) =>
+                previous.map((item) =>
+                    item.id === refreshed.id ? refreshed : item,
+                ),
+            );
+
+            setQuickEditOpen(false);
+            setNotification({
+                message: `${quickEditLabel} atualizado com sucesso.`,
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível atualizar o campo selecionado.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setQuickEditSaving(false);
+        }
     }
 
     async function handleSubmit(
@@ -702,49 +1009,7 @@ export default function TransportRegistryCollaboratorsPage() {
 
         setFormErrors({});
 
-        const payload = {
-            unidade_id: Number(formData.unidade_id),
-            funcao_id: Number(formData.funcao_id),
-            nome: formData.nome.trim(),
-            apelido: normalizeNullable(formData.apelido),
-            sexo: normalizeNullable(formData.sexo),
-            ativo: formData.ativo,
-            cpf: sanitizedCpf,
-            rg: sanitizedRg !== '' ? sanitizedRg : null,
-            cnh: sanitizedCnh !== '' ? sanitizedCnh : null,
-            validade_cnh: normalizeNullable(formData.validade_cnh),
-            validade_exame_toxicologico: normalizeNullable(
-                formData.validade_exame_toxicologico,
-            ),
-            data_nascimento: normalizeNullable(formData.data_nascimento),
-            data_admissao: normalizeNullable(formData.data_admissao),
-            data_demissao: normalizeNullable(formData.data_demissao),
-            telefone: sanitizedPhone !== '' ? sanitizedPhone : null,
-            email: normalizedEmail !== '' ? normalizedEmail : null,
-            cep: normalizeNullable(formData.cep),
-            logradouro: normalizeNullable(formData.logradouro),
-            numero_endereco: normalizeNullable(formData.numero_endereco),
-            complemento: normalizeNullable(formData.complemento),
-            bairro: normalizeNullable(formData.bairro),
-            cidade_uf: normalizeNullable(formData.cidade_uf),
-            endereco_completo: normalizeNullable(formData.endereco_completo),
-            dados_bancarios_1: normalizeNullable(formData.dados_bancarios_1),
-            dados_bancarios_2: normalizeNullable(formData.dados_bancarios_2),
-            chave_pix: normalizeNullable(formData.chave_pix),
-            tipo_chave_pix: normalizeNullable(formData.tipo_chave_pix),
-            nome_banco: normalizeNullable(formData.nome_banco),
-            numero_banco: normalizeNullable(formData.numero_banco),
-            numero_agencia: normalizeNullable(formData.numero_agencia),
-            tipo_conta: normalizeNullable(formData.tipo_conta),
-            numero_conta: normalizeNullable(formData.numero_conta),
-            banco_salario: normalizeNullable(formData.banco_salario),
-            numero_agencia_salario: normalizeNullable(
-                formData.numero_agencia_salario,
-            ),
-            numero_conta_salario: normalizeNullable(formData.numero_conta_salario),
-            conta_pagamento: normalizeNullable(formData.conta_pagamento),
-            cartao_beneficio: normalizeNullable(formData.cartao_beneficio),
-        };
+        const payload = buildColaboradorPayload(formData);
 
         try {
             let savedColaborador: Colaborador | null = null;
@@ -843,6 +1108,30 @@ export default function TransportRegistryCollaboratorsPage() {
         resetUnidadeFilter();
         resetActiveFilter();
         void loadColaboradores(1);
+    }
+
+    function sortIndicator(column: ColaboradorSortBy): string {
+        if (sortBy !== column) return '↕';
+        return sortDirection === 'asc' ? '↑' : '↓';
+    }
+
+    function toggleSort(column: ColaboradorSortBy): void {
+        if (sortBy === column) {
+            setSortDirection((previous) => {
+                const next = previous === 'asc' ? 'desc' : 'asc';
+                window.setTimeout(() => {
+                    void loadColaboradores(1);
+                }, 0);
+                return next;
+            });
+            return;
+        }
+
+        setSortBy(column);
+        setSortDirection('asc');
+        window.setTimeout(() => {
+            void loadColaboradores(1);
+        }, 0);
     }
 
     async function handleDeleteCollaborator(): Promise<void> {
@@ -987,6 +1276,30 @@ export default function TransportRegistryCollaboratorsPage() {
         }
     }
 
+    async function handleExportCsv(): Promise<void> {
+        setExportingCsv(true);
+
+        try {
+            const fileName = `colaboradores-${new Date().toISOString().slice(0, 10)}.csv`;
+            await apiDownload('/registry/colaboradores/export-csv', fileName);
+
+            setNotification({
+                message: 'Exportação CSV iniciada com sucesso.',
+                variant: 'success',
+            });
+        } catch (error) {
+            setNotification({
+                message:
+                    error instanceof ApiError
+                        ? error.message
+                        : 'Não foi possível exportar o CSV de colaboradores.',
+                variant: 'error',
+            });
+        } finally {
+            setExportingCsv(false);
+        }
+    }
+
     return (
         <AdminLayout
             title="Cadastro - Colaboradores"
@@ -1014,6 +1327,28 @@ export default function TransportRegistryCollaboratorsPage() {
                                 void handleSpreadsheetSelected(event);
                             }}
                         />
+                        {transportFeatures.csvExports ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    void handleExportCsv();
+                                }}
+                                disabled={exportingCsv}
+                            >
+                                {exportingCsv ? (
+                                    <>
+                                        <LoaderCircle className="size-4 animate-spin" />
+                                        Exportando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="size-4" />
+                                        Exportar CSV
+                                    </>
+                                )}
+                            </Button>
+                        ) : null}
                         <Button
                             type="button"
                             variant="outline"
@@ -1152,19 +1487,49 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
                                             <th className="py-2 pr-3 font-medium">
-                                                Nome
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 hover:text-foreground"
+                                                    onClick={() => toggleSort('nome')}
+                                                >
+                                                    Nome <span>{sortIndicator('nome')}</span>
+                                                </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
-                                                Função
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 hover:text-foreground"
+                                                    onClick={() => toggleSort('funcao')}
+                                                >
+                                                    Função <span>{sortIndicator('funcao')}</span>
+                                                </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
-                                                Unidade
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 hover:text-foreground"
+                                                    onClick={() => toggleSort('unidade')}
+                                                >
+                                                    Unidade <span>{sortIndicator('unidade')}</span>
+                                                </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
-                                                CPF
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 hover:text-foreground"
+                                                    onClick={() => toggleSort('cpf')}
+                                                >
+                                                    CPF <span>{sortIndicator('cpf')}</span>
+                                                </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
-                                                Status
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 hover:text-foreground"
+                                                    onClick={() => toggleSort('ativo')}
+                                                >
+                                                    Status <span>{sortIndicator('ativo')}</span>
+                                                </button>
                                             </th>
                                             <th className="py-2 text-right font-medium">
                                                 Ações
@@ -1198,8 +1563,10 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     <div className="flex justify-end gap-2">
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            className="cursor-pointer"
+                                                            aria-label="Ver"
                                                             onClick={() =>
                                                                 openDetailsDialog(
                                                                     item,
@@ -1207,12 +1574,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             }
                                                         >
                                                             <Eye className="size-4" />
-                                                            Ver
                                                         </Button>
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            className="cursor-pointer"
+                                                            aria-label="Editar"
                                                             onClick={() =>
                                                                 openEditDialog(
                                                                     item,
@@ -1220,12 +1588,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             }
                                                         >
                                                             <PencilLine className="size-4" />
-                                                            Editar
                                                         </Button>
                                                         <Button
                                                             type="button"
-                                                            variant="destructive"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            className="cursor-pointer text-destructive hover:text-destructive"
+                                                            aria-label="Excluir"
                                                             onClick={() =>
                                                                 openDeleteDialog(
                                                                     item,
@@ -1233,7 +1602,6 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             }
                                                         >
                                                             <Trash2 className="size-4" />
-                                                            Excluir
                                                         </Button>
                                                     </div>
                                                 </td>
@@ -1632,7 +2000,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <Label htmlFor="telefone">Telefone</Label>
                                     <IMaskInput
                                         id="telefone"
-                                        mask="(00)00000-0000"
+                                        mask="(00) 00000-0000"
                                         value={formData.telefone}
                                         className={maskedInputClassName}
                                         inputMode="numeric"
@@ -2150,6 +2518,7 @@ export default function TransportRegistryCollaboratorsPage() {
                             </Button>
                             <Button
                                 type="submit"
+                                data-save-action="true"
                                 disabled={
                                     saving ||
                                     !formData.unidade_id ||
@@ -2177,8 +2546,10 @@ export default function TransportRegistryCollaboratorsPage() {
                 onOpenChange={(open) => {
                     setDetailsOpen(open);
                     if (!open) {
+                        setQuickEditOpen(false);
                         setFeriasModalOpen(false);
                         setAfastamentoModalOpen(false);
+                        setEditingAfastamentoId(null);
                     }
                 }}
             >
@@ -2188,7 +2559,7 @@ export default function TransportRegistryCollaboratorsPage() {
                         <DialogDescription>
                             Visão principal sempre disponível no topo e páginas
                             internas para contato, férias, afastamentos e dados
-                            bancários.
+                            bancários. Dê dois cliques em um campo para editar.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -2228,7 +2599,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     )}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border bg-background p-3 md:col-span-2">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40 md:col-span-2"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'nome',
+                                                        'Nome do colaborador',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Nome do colaborador
                                                 </p>
@@ -2236,7 +2616,23 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     {detailsItem.nome}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border bg-background p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'funcao_id',
+                                                        'Cargo',
+                                                        'select',
+                                                        funcoes.map((funcao) => ({
+                                                            value: String(
+                                                                funcao.id,
+                                                            ),
+                                                            label: funcao.nome,
+                                                        })),
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Cargo
                                                 </p>
@@ -2247,7 +2643,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </div>
 
                                         <div className="grid gap-3 md:grid-cols-4">
-                                            <div className="rounded-lg border bg-background p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'ativo',
+                                                        'Status ativo',
+                                                        'select',
+                                                        [
+                                                            {
+                                                                value: '1',
+                                                                label: 'Sim',
+                                                            },
+                                                            {
+                                                                value: '0',
+                                                                label: 'Não',
+                                                            },
+                                                        ],
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Ativo
                                                 </p>
@@ -2257,7 +2673,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         : 'Não'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border bg-background p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'apelido',
+                                                        'Apelido',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Apelido
                                                 </p>
@@ -2265,7 +2690,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     {detailsItem.apelido ?? '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border bg-background p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'sexo',
+                                                        'Sexo',
+                                                        'select',
+                                                        [
+                                                            {
+                                                                value: 'M',
+                                                                label: 'M',
+                                                            },
+                                                            {
+                                                                value: 'F',
+                                                                label: 'F',
+                                                            },
+                                                        ],
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Sexo
                                                 </p>
@@ -2273,7 +2718,25 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     {detailsItem.sexo ?? '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border bg-background p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'unidade_id',
+                                                        'Empresa',
+                                                        'select',
+                                                        unidades.map(
+                                                            (unidade) => ({
+                                                                value: String(
+                                                                    unidade.id,
+                                                                ),
+                                                                label: unidade.nome,
+                                                            }),
+                                                        ),
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Empresa
                                                 </p>
@@ -2287,7 +2750,13 @@ export default function TransportRegistryCollaboratorsPage() {
                             </div>
 
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit('cpf', 'CPF')
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         CPF
                                     </p>
@@ -2295,15 +2764,33 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {detailsItem.cpf}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit('rg', 'RG')
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         RG
                                     </p>
                                     <p className="text-sm font-medium">
-                                        {detailsItem.rg ?? '-'}
+                                        {detailsItem.rg
+                                            ? formatRg(detailsItem.rg)
+                                            : '-'}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit(
+                                            'data_nascimento',
+                                            'Data nascimento',
+                                            'date',
+                                        )
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data nascimento
                                     </p>
@@ -2311,7 +2798,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {dateToView(detailsItem.data_nascimento)}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit(
+                                            'data_admissao',
+                                            'Data admissão',
+                                            'date',
+                                        )
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data admissão
                                     </p>
@@ -2319,7 +2816,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {dateToView(detailsItem.data_admissao)}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit(
+                                            'data_demissao',
+                                            'Data demissão',
+                                            'date',
+                                        )
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data demissão
                                     </p>
@@ -2327,7 +2834,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {dateToView(detailsItem.data_demissao)}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit('cnh', 'Nº registro CNH')
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Nº registro CNH
                                     </p>
@@ -2335,7 +2848,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {detailsItem.cnh ?? '-'}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit(
+                                            'validade_cnh',
+                                            'Data validade CNH',
+                                            'date',
+                                        )
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data validade CNH
                                     </p>
@@ -2343,7 +2866,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                         {dateToView(detailsItem.validade_cnh)}
                                     </p>
                                 </div>
-                                <div className="rounded-lg border p-3">
+                                <div
+                                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                    onDoubleClick={() =>
+                                        openQuickEdit(
+                                            'validade_exame_toxicologico',
+                                            'Data val. exame tox.',
+                                            'date',
+                                        )
+                                    }
+                                    title="Dê dois cliques para editar"
+                                >
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Data val. exame tox.
                                     </p>
@@ -2418,15 +2951,30 @@ export default function TransportRegistryCollaboratorsPage() {
 
                             {detailsTab === 'contato' ? (
                                 <div className="grid gap-3 md:grid-cols-6">
-                                    <div className="rounded-lg border p-3">
+                                    <div className="md:col-span-6 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                        Dica: nesta seção, clique duas vezes em qualquer campo para editar sem sair do perfil.
+                                    </div>
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-1"
+                                        onDoubleClick={() =>
+                                            openQuickEdit('telefone', 'Telefone')
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Telefone
                                         </p>
                                         <p className="text-sm font-medium">
-                                            {detailsItem.telefone ?? '-'}
+                                            {formatPhone(detailsItem.telefone ?? '') || '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-3"
+                                        onDoubleClick={() =>
+                                            openQuickEdit('email', 'E-mail')
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             E-mail
                                         </p>
@@ -2434,15 +2982,30 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.email ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-2 lg:col-span-1"
+                                        onDoubleClick={() =>
+                                            openQuickEdit('cep', 'CEP')
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             CEP
                                         </p>
                                         <p className="text-sm font-medium">
-                                            {detailsItem.cep ?? '-'}
+                                            {formatCep(detailsItem.cep)}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-4">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-4"
+                                        onDoubleClick={() =>
+                                            openQuickEdit(
+                                                'logradouro',
+                                                'Rua / Logradouro',
+                                            )
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Rua / Logradouro
                                         </p>
@@ -2450,7 +3013,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.logradouro ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-1">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-1"
+                                        onDoubleClick={() =>
+                                            openQuickEdit(
+                                                'numero_endereco',
+                                                'Número',
+                                            )
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Nº
                                         </p>
@@ -2458,7 +3030,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.numero_endereco ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-2"
+                                        onDoubleClick={() =>
+                                            openQuickEdit(
+                                                'complemento',
+                                                'Complemento',
+                                            )
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Complemento
                                         </p>
@@ -2466,7 +3047,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.complemento ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-1">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-1"
+                                        onDoubleClick={() =>
+                                            openQuickEdit('bairro', 'Bairro')
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Bairro
                                         </p>
@@ -2474,7 +3061,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.bairro ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-2">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-2"
+                                        onDoubleClick={() =>
+                                            openQuickEdit(
+                                                'cidade_uf',
+                                                'Cidade/UF',
+                                            )
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Cidade/UF
                                         </p>
@@ -2482,7 +3078,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                             {detailsItem.cidade_uf ?? '-'}
                                         </p>
                                     </div>
-                                    <div className="rounded-lg border p-3 md:col-span-6">
+                                    <div
+                                        className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-6"
+                                        onDoubleClick={() =>
+                                            openQuickEdit(
+                                                'endereco_completo',
+                                                'Endereço completo',
+                                            )
+                                        }
+                                        title="Dê dois cliques para editar"
+                                    >
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                             Endereço completo
                                         </p>
@@ -2497,15 +3102,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-semibold">
-                                            Anotações de férias
+                                            Férias lançadas
                                         </h3>
                                         <Button
                                             type="button"
                                             size="sm"
                                             variant="outline"
-                                            onClick={() =>
-                                                setFeriasModalOpen(true)
-                                            }
+                                            onClick={openFeriasCreateModal}
                                         >
                                             <PlusCircle className="size-4" />
                                             Lançar nova...
@@ -2523,6 +3126,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     </th>
                                                     <th className="px-3 py-2 font-medium">
                                                         Observações
+                                                    </th>
+                                                    <th className="px-3 py-2 font-medium text-right">
+                                                        Ações
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -2548,6 +3154,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             {item.observacoes ??
                                                                 '-'}
                                                         </td>
+                                                        <td className="px-3 py-2 text-right">
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => openFeriasEditModal(item)}
+                                                            >
+                                                                Editar
+                                                            </Button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                                 {(feriasByColaborador[
@@ -2555,11 +3171,10 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 ] ?? []).length === 0 ? (
                                                     <tr>
                                                         <td
-                                                            colSpan={3}
+                                                            colSpan={4}
                                                             className="px-3 py-6 text-center text-muted-foreground"
                                                         >
-                                                            Nenhuma anotação de
-                                                            férias lançada.
+                                                            Nenhum lançamento de férias encontrado.
                                                         </td>
                                                     </tr>
                                                 ) : null}
@@ -2567,8 +3182,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </table>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Esta seção já prepara o perfil para o
-                                        novo painel de controle de férias.
+                                        Esta seção é sincronizada com o painel Controle de Férias.
                                     </p>
                                 </div>
                             ) : null}
@@ -2583,9 +3197,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                             type="button"
                                             size="sm"
                                             variant="outline"
-                                            onClick={() =>
-                                                setAfastamentoModalOpen(true)
-                                            }
+                                            onClick={openAfastamentoCreateModal}
                                         >
                                             <PlusCircle className="size-4" />
                                             Lançar novo...
@@ -2607,6 +3219,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     <th className="px-3 py-2 font-medium">
                                                         Observações
                                                     </th>
+                                                    <th className="px-3 py-2 font-medium text-right">
+                                                        Ações
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2615,7 +3230,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 ] ?? []).map((item) => (
                                                     <tr
                                                         key={item.id}
-                                                        className="border-t"
+                                                        className="cursor-pointer border-t hover:bg-muted/40"
+                                                        onDoubleClick={() =>
+                                                            openAfastamentoEditModal(
+                                                                item,
+                                                            )
+                                                        }
+                                                        title="Dê dois cliques para editar"
                                                     >
                                                         <td className="px-3 py-2">
                                                             {dateToView(
@@ -2634,6 +3255,20 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             {item.observacoes ??
                                                                 '-'}
                                                         </td>
+                                                        <td className="px-3 py-2 text-right">
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    openAfastamentoEditModal(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Editar
+                                                            </Button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                                 {(afastamentosByColaborador[
@@ -2641,7 +3276,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 ] ?? []).length === 0 ? (
                                                     <tr>
                                                         <td
-                                                            colSpan={4}
+                                                            colSpan={5}
                                                             className="px-3 py-6 text-center text-muted-foreground"
                                                         >
                                                             Nenhum afastamento
@@ -2657,12 +3292,24 @@ export default function TransportRegistryCollaboratorsPage() {
 
                             {detailsTab === 'dados_bancarios' ? (
                                 <div className="space-y-4">
+                                    <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                        Dica: nos dados bancários, clique duas vezes no campo para editar.
+                                    </div>
                                     <div className="space-y-3">
                                         <p className="text-sm font-semibold">
                                             Conta particular
                                         </p>
                                         <div className="grid gap-3 md:grid-cols-3">
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'numero_banco',
+                                                        'Número do banco',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Número do banco
                                                 </p>
@@ -2671,7 +3318,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'nome_banco',
+                                                        'Nome do banco',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Nome do banco
                                                 </p>
@@ -2680,7 +3336,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'numero_agencia',
+                                                        'Agência',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Agência
                                                 </p>
@@ -2689,7 +3354,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'tipo_conta',
+                                                        'Tipo conta',
+                                                        'select',
+                                                        [
+                                                            {
+                                                                value: 'poupanca',
+                                                                label: 'Poupança',
+                                                            },
+                                                            {
+                                                                value: 'corrente',
+                                                                label: 'Corrente',
+                                                            },
+                                                        ],
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Tipo conta
                                                 </p>
@@ -2705,7 +3390,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     )}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'numero_conta',
+                                                        'Número conta',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Número conta
                                                 </p>
@@ -2714,7 +3408,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'chave_pix',
+                                                        'Chave PIX',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Chave PIX
                                                 </p>
@@ -2731,7 +3434,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                             Conta salário
                                         </p>
                                         <div className="grid gap-3 md:grid-cols-3">
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'banco_salario',
+                                                        'Banco salário',
+                                                        'select',
+                                                        [
+                                                            {
+                                                                value: 'brasil',
+                                                                label: 'Brasil',
+                                                            },
+                                                            {
+                                                                value: 'bradesco',
+                                                                label: 'Bradesco',
+                                                            },
+                                                        ],
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Banco
                                                 </p>
@@ -2746,7 +3469,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     )}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'numero_agencia_salario',
+                                                        'Agência salário',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Agência
                                                 </p>
@@ -2755,7 +3487,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         '-'}
                                                 </p>
                                             </div>
-                                            <div className="rounded-lg border p-3">
+                                            <div
+                                                className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'numero_conta_salario',
+                                                        'Número conta salário',
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
                                                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                     Número conta
                                                 </p>
@@ -2768,7 +3509,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                     </div>
 
                                     <div className="grid gap-3 md:grid-cols-2">
-                                        <div className="rounded-lg border p-3">
+                                        <div
+                                            className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                            onDoubleClick={() =>
+                                                openQuickEdit(
+                                                    'conta_pagamento',
+                                                    'Conta usada para pagamento',
+                                                    'select',
+                                                    [
+                                                        {
+                                                            value: 'salario',
+                                                            label: 'Salário',
+                                                        },
+                                                        {
+                                                            value: 'particular',
+                                                            label: 'Particular',
+                                                        },
+                                                    ],
+                                                )
+                                            }
+                                            title="Dê dois cliques para editar"
+                                        >
                                             <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                 Conta usada para pagamento
                                             </p>
@@ -2783,7 +3544,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 )}
                                             </p>
                                         </div>
-                                        <div className="rounded-lg border p-3">
+                                        <div
+                                            className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40"
+                                            onDoubleClick={() =>
+                                                openQuickEdit(
+                                                    'cartao_beneficio',
+                                                    'Cartão benefício',
+                                                    'select',
+                                                    [
+                                                        {
+                                                            value: 'alelo',
+                                                            label: 'Alelo',
+                                                        },
+                                                        {
+                                                            value: 'vr',
+                                                            label: 'VR',
+                                                        },
+                                                    ],
+                                                )
+                                            }
+                                            title="Dê dois cliques para editar"
+                                        >
                                             <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                                 Cartão benefício
                                             </p>
@@ -2815,18 +3596,99 @@ export default function TransportRegistryCollaboratorsPage() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={feriasModalOpen} onOpenChange={setFeriasModalOpen}>
+            <Dialog
+                open={quickEditOpen}
+                onOpenChange={(open) => {
+                    setQuickEditOpen(open);
+                    if (!open) {
+                        setQuickEditField(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Editar campo</DialogTitle>
+                        <DialogDescription>
+                            Atualize <strong>{quickEditLabel}</strong> e grave sem sair do perfil.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                        <Label>{quickEditLabel}</Label>
+                        {quickEditType === 'select' ? (
+                            <Select
+                                value={quickEditValue}
+                                onValueChange={setQuickEditValue}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {quickEditOptions.map((option) => (
+                                        <SelectItem
+                                            key={`${option.value}-${option.label}`}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input
+                                type={quickEditType === 'date' ? 'date' : 'text'}
+                                value={quickEditValue}
+                                onChange={(event) =>
+                                    setQuickEditValue(event.target.value)
+                                }
+                            />
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setQuickEditOpen(false)}
+                            disabled={quickEditSaving}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            data-save-action="true"
+                            onClick={() => void saveQuickEdit()}
+                            disabled={quickEditSaving || !quickEditField}
+                        >
+                            {quickEditSaving ? 'Gravando...' : 'Gravar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={feriasModalOpen}
+                onOpenChange={(open) => {
+                    setFeriasModalOpen(open);
+                    if (!open) {
+                        setEditingFeriasId(null);
+                    }
+                }}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>
                             <span className="inline-flex items-center gap-2">
                                 <CalendarDays className="size-4" />
-                                Nova anotação de férias
+                                {editingFeriasId
+                                    ? 'Editar lançamento de férias'
+                                    : 'Novo lançamento de férias'}
                             </span>
                         </DialogTitle>
                         <DialogDescription>
-                            Registre período e observações. A integração total
-                            com o painel de férias virá na próxima etapa.
+                            {editingFeriasId
+                                ? 'Ajuste o lançamento de férias selecionado.'
+                                : 'Registre o período de férias para salvar diretamente no Controle de Férias.'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -2885,8 +3747,17 @@ export default function TransportRegistryCollaboratorsPage() {
                         >
                             Cancelar
                         </Button>
-                        <Button type="button" onClick={saveFeriasDraft}>
-                            Gravar
+                        <Button
+                            type="button"
+                            data-save-action="true"
+                            onClick={() => void saveFeriasDraft()}
+                            disabled={feriasSaving}
+                        >
+                            {feriasSaving
+                                ? 'Gravando...'
+                                : editingFeriasId
+                                  ? 'Salvar alterações'
+                                  : 'Gravar'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2894,11 +3765,20 @@ export default function TransportRegistryCollaboratorsPage() {
 
             <Dialog
                 open={afastamentoModalOpen}
-                onOpenChange={setAfastamentoModalOpen}
+                onOpenChange={(open) => {
+                    setAfastamentoModalOpen(open);
+                    if (!open) {
+                        setEditingAfastamentoId(null);
+                    }
+                }}
             >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Novo afastamento</DialogTitle>
+                        <DialogTitle>
+                            {editingAfastamentoId
+                                ? 'Editar afastamento'
+                                : 'Novo afastamento'}
+                        </DialogTitle>
                         <DialogDescription>
                             Registre período, motivo e observações no perfil do
                             colaborador.
@@ -2974,12 +3854,19 @@ export default function TransportRegistryCollaboratorsPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => setAfastamentoModalOpen(false)}
+                            onClick={() => {
+                                setAfastamentoModalOpen(false);
+                                setEditingAfastamentoId(null);
+                            }}
                         >
                             Cancelar
                         </Button>
-                        <Button type="button" onClick={saveAfastamentoDraft}>
-                            Gravar
+                        <Button
+                            type="button"
+                            data-save-action="true"
+                            onClick={saveAfastamentoDraft}
+                        >
+                            {editingAfastamentoId ? 'Salvar' : 'Gravar'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -3144,9 +4031,29 @@ export default function TransportRegistryCollaboratorsPage() {
                                                             className="border-t"
                                                         >
                                                             <td className="px-3 py-2">
-                                                                {
-                                                                    errorItem.linha
-                                                                }
+                                                                <button
+                                                                    type="button"
+                                                                    className="rounded border px-2 py-1 text-xs hover:bg-muted"
+                                                                    title="Copiar número da linha para correção na planilha"
+                                                                    onClick={() => {
+                                                                        void navigator.clipboard
+                                                                            .writeText(String(errorItem.linha))
+                                                                            .then(() => {
+                                                                                setNotification({
+                                                                                    message: `Linha ${errorItem.linha} copiada.`,
+                                                                                    variant: 'info',
+                                                                                });
+                                                                            })
+                                                                            .catch(() => {
+                                                                                setNotification({
+                                                                                    message: 'Não foi possível copiar a linha.',
+                                                                                    variant: 'error',
+                                                                                });
+                                                                            });
+                                                                    }}
+                                                                >
+                                                                    {errorItem.linha}
+                                                                </button>
                                                             </td>
                                                             <td className="px-3 py-2">
                                                                 <span className="rounded-full border px-2 py-0.5 text-xs">

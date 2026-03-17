@@ -186,6 +186,10 @@ export default function TransportInterviewsShowPage({
                                     value={item.preferred_name}
                                 />
                                 <Item
+                                    label="Data de nascimento"
+                                    value={item.birth_date}
+                                />
+                                <Item
                                     label="Entrevistador"
                                     value={item.author?.name ?? '-'}
                                 />
@@ -258,7 +262,11 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Saída última empresa"
-                                    value={item.last_exit_type}
+                                    value={
+                                        item.last_exit_type === 'despensa'
+                                            ? 'Dispensa'
+                                            : item.last_exit_type
+                                    }
                                 />
                                 <Item
                                     label="Observação última empresa"
@@ -286,7 +294,11 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Saída penúltima empresa"
-                                    value={item.previous_exit_type}
+                                    value={
+                                        item.previous_exit_type === 'despensa'
+                                            ? 'Dispensa'
+                                            : item.previous_exit_type
+                                    }
                                 />
                                 <Item
                                     label="Observação penúltima empresa"

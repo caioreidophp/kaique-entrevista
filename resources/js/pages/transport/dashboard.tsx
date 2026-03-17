@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
+import { formatDateTimeBR, formatPercentBR } from '@/lib/transport-format';
 import type { DashboardSummary } from '@/types/driver-interview';
 
 function SummaryCard({
@@ -71,6 +72,11 @@ export default function TransportDashboardPage() {
             .finally(() => setLoading(false));
     }, []);
 
+    const approvalRate =
+        summary && summary.total_interviews > 0
+            ? (summary.total_approved / summary.total_interviews) * 100
+            : 0;
+
     return (
         <AdminLayout title="Dashboard" active="dashboard">
             <div className="space-y-6">
@@ -92,7 +98,7 @@ export default function TransportDashboardPage() {
                     </div>
                 ) : summary ? (
                     <div className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                             <SummaryCard
                                 title="Total de entrevistas"
                                 value={summary.total_interviews}
@@ -128,7 +134,34 @@ export default function TransportDashboardPage() {
                                     <TestTube2 className="size-4 text-muted-foreground" />
                                 }
                             />
+                            <SummaryCard
+                                title="GUEP pendente"
+                                value={summary.pending_actions.guep_to_do}
+                                icon={
+                                    <Clock3 className="size-4 text-muted-foreground" />
+                                }
+                            />
                         </div>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Eficiência do funil</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 md:grid-cols-3">
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Taxa de aprovação</p>
+                                    <p className="mt-1 text-xl font-semibold">{formatPercentBR(approvalRate)}</p>
+                                </div>
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Pendências totais</p>
+                                    <p className="mt-1 text-xl font-semibold">{summary.pending_actions.total}</p>
+                                </div>
+                                <div className="rounded-md border p-3">
+                                    <p className="text-xs text-muted-foreground">Aguardando vaga</p>
+                                    <p className="mt-1 text-xl font-semibold">{summary.pending_actions.waiting_vacancy}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
                             <Card>
@@ -201,6 +234,26 @@ export default function TransportDashboardPage() {
                             </Card>
 
                             <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Atalhos operacionais</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2 text-sm">
+                                        <Button variant="outline" className="w-full justify-start" asChild>
+                                            <Link href="/transport/payroll/launch">Lançar pagamentos</Link>
+                                        </Button>
+                                        <Button variant="outline" className="w-full justify-start" asChild>
+                                            <Link href="/transport/payroll/list">Lista de pagamentos</Link>
+                                        </Button>
+                                        <Button variant="outline" className="w-full justify-start" asChild>
+                                            <Link href="/transport/freight/dashboard">Dashboard de fretes</Link>
+                                        </Button>
+                                        <Button variant="outline" className="w-full justify-start" asChild>
+                                            <Link href="/transport/activity-log">Atividade do sistema</Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Ações pendentes</CardTitle>
@@ -276,11 +329,7 @@ export default function TransportDashboardPage() {
                                                             <p className="text-xs text-muted-foreground">
                                                                 {activity.event}{' '}
                                                                 •{' '}
-                                                                {new Date(
-                                                                    activity.at,
-                                                                ).toLocaleString(
-                                                                    'pt-BR',
-                                                                )}
+                                                                {formatDateTimeBR(activity.at)}
                                                             </p>
                                                         </div>
                                                     ),

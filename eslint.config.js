@@ -65,6 +65,12 @@ export default [
         },
     },
     {
+        files: ['resources/js/actions/**/*.ts', 'resources/js/routes/**/*.ts'],
+        rules: {
+            'import/order': 'off',
+        },
+    },
+    {
         ignores: ['vendor', 'node_modules', 'public', 'bootstrap/ssr', 'tailwind.config.js', 'vite.config.ts'],
     },
     prettier, // Turn off all rules that might conflict with Prettier

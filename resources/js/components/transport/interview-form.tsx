@@ -188,6 +188,7 @@ function defaultFormData(
     const base: DriverInterviewFormData = {
         full_name: initialData?.full_name ?? '',
         preferred_name: initialData?.preferred_name ?? '',
+        birth_date: initialData?.birth_date ?? '',
         phone: formatPhone(initialData?.phone ?? ''),
         email: initialData?.email ?? '',
         city: initialData?.city ?? '',
@@ -815,6 +816,7 @@ export function InterviewForm({
             rg: sanitizedRg,
             cnh_number: sanitizedCnhNumber,
             cnh_category: sanitizedCnhCategory,
+            birth_date: formData.birth_date || null,
             hiring_unidade_id:
                 formData.hiring_unidade_id === ''
                     ? null
@@ -1066,6 +1068,18 @@ export function InterviewForm({
                                         'preferred_name',
                                         event.target.value,
                                     )
+                                }
+                            />
+                        </FormField>
+                        <FormField
+                            label="Data de nascimento"
+                            error={errors.birth_date}
+                        >
+                            <Input
+                                type="date"
+                                value={formData.birth_date}
+                                onChange={(event) =>
+                                    updateField('birth_date', event.target.value)
                                 }
                             />
                         </FormField>
@@ -1399,7 +1413,7 @@ export function InterviewForm({
                                                     Pedido
                                                 </SelectItem>
                                                 <SelectItem value="despensa">
-                                                    Despensa
+                                                    Dispensa
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -1558,7 +1572,7 @@ export function InterviewForm({
                                                             Pedido
                                                         </SelectItem>
                                                         <SelectItem value="despensa">
-                                                            Despensa
+                                                            Dispensa
                                                         </SelectItem>
                                                     </SelectContent>
                                                 </Select>

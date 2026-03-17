@@ -13,24 +13,30 @@ use App\Models\Unidade;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
 
 class ColaboradorController extends Controller
 {
+    private const INDEX_CACHE_KEY = 'transport:registry:colaboradores:index:default';
+
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        $user = $request->user();
+
+        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
 
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
 
         $query = Colaborador::query()
-            ->with(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email'])
-            ->latest('id');
+            ->select('colaboradores.*')
+            ->with(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']);
 
         if ($request->filled('name')) {
             $query->where('nome', 'like', '%'.(string) $request->string('name').'%');
@@ -49,7 +55,48 @@ class ColaboradorController extends Controller
             $query->where('ativo', $request->boolean('active'));
         }
 
-        return response()->json($query->paginate($perPage)->withQueryString());
+        $sortBy = (string) $request->string('sort_by', 'id');
+        $sortDirection = (string) $request->string('sort_direction', 'desc');
+        $sortDirection = $sortDirection === 'asc' ? 'asc' : 'desc';
+
+        if ($sortBy === 'funcao') {
+            $query
+                ->leftJoin('funcoes', 'funcoes.id', '=', 'colaboradores.funcao_id')
+                ->orderBy('funcoes.nome', $sortDirection)
+                ->orderBy('colaboradores.id', 'desc');
+        } elseif ($sortBy === 'unidade') {
+            $query
+                ->leftJoin('unidades', 'unidades.id', '=', 'colaboradores.unidade_id')
+                ->orderBy('unidades.nome', $sortDirection)
+                ->orderBy('colaboradores.id', 'desc');
+        } elseif (in_array($sortBy, ['nome', 'cpf', 'ativo', 'id'], true)) {
+            $column = $sortBy === 'id' ? 'colaboradores.id' : "colaboradores.{$sortBy}";
+            $query->orderBy($column, $sortDirection);
+
+            if ($sortBy !== 'id') {
+                $query->orderBy('colaboradores.id', 'desc');
+            }
+        }
+
+        $canUseCache = (bool) config('transport_features.collaborator_index_cache', true)
+            && ! $request->filled('name')
+            && ! $request->filled('cpf')
+            && ! $request->filled('unidade_id')
+            && ! $request->filled('active')
+            && $sortBy === 'id'
+            && $sortDirection === 'desc'
+            && $perPage === 15
+            && (int) $request->integer('page', 1) === 1;
+
+        if (! $canUseCache) {
+            return response()->json($query->paginate($perPage)->withQueryString());
+        }
+
+        $payload = Cache::remember(self::INDEX_CACHE_KEY, now()->addSeconds(45), fn () =>
+            $query->paginate($perPage)->withQueryString()
+        );
+
+        return response()->json($payload);
     }
 
     public function store(StoreColaboradorRequest $request): JsonResponse
@@ -57,6 +104,8 @@ class ColaboradorController extends Controller
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
         $colaborador = Colaborador::query()->create($request->validated());
+
+        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([
             'data' => $colaborador->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -78,6 +127,8 @@ class ColaboradorController extends Controller
 
         $colaborador->update($request->validated());
 
+        Cache::forget(self::INDEX_CACHE_KEY);
+
         return response()->json([
             'data' => $colaborador->refresh()->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
         ]);
@@ -92,6 +143,8 @@ class ColaboradorController extends Controller
         }
 
         $colaborador->delete();
+
+        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([], 204);
     }
@@ -115,6 +168,8 @@ class ColaboradorController extends Controller
         $colaborador->update([
             'foto_3x4_path' => $path,
         ]);
+
+        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([
             'data' => $colaborador->refresh()->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -373,12 +428,70 @@ class ColaboradorController extends Controller
             }
         });
 
+        Cache::forget(self::INDEX_CACHE_KEY);
+
         return response()->json([
             'message' => 'Importação finalizada.',
             'total_lidos' => $totalRead,
             'total_importados' => $imported,
             'total_ignorados' => $skipped,
             'erros' => $errors,
+        ]);
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless((bool) config('transport_features.csv_exports', true), 404);
+
+        $name = trim((string) $request->string('name', ''));
+        $unidadeId = (int) $request->integer('unidade_id', 0);
+        $activeRaw = (string) $request->string('active', '');
+
+        $query = Colaborador::query()
+            ->with(['unidade:id,nome', 'funcao:id,nome'])
+            ->orderBy('nome');
+
+        if ($name !== '') {
+            $query->where('nome', 'like', '%'.$name.'%');
+        }
+
+        if ($unidadeId > 0) {
+            $query->where('unidade_id', $unidadeId);
+        }
+
+        if ($activeRaw !== '' && in_array($activeRaw, ['0', '1'], true)) {
+            $query->where('ativo', $activeRaw === '1');
+        }
+
+        $fileName = 'colaboradores-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($query): void {
+            $handle = fopen('php://output', 'w');
+
+            if (! $handle) {
+                return;
+            }
+
+            fprintf($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['id', 'nome', 'cpf', 'funcao', 'unidade', 'status'], ';');
+
+            $query->chunk(300, function ($rows) use ($handle): void {
+                foreach ($rows as $row) {
+                    fputcsv($handle, [
+                        $row->id,
+                        $row->nome,
+                        $row->cpf,
+                        $row->funcao?->nome ?? '',
+                        $row->unidade?->nome ?? '',
+                        $row->ativo ? 'Ativo' : 'Inativo',
+                    ], ';');
+                }
+            });
+
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 

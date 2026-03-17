@@ -16,6 +16,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { apiGet, apiPost } from '@/lib/api-client';
+import { formatDateTimeBR } from '@/lib/transport-format';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
 import type { DriverInterviewFormData } from '@/types/driver-interview';
 
@@ -59,17 +60,7 @@ function isInterviewDraftSnapshot(
 }
 
 function formatDraftDate(value: string): string {
-    const date = new Date(value);
-
-    if (isNaN(date.getTime())) return value;
-
-    return date.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatDateTimeBR(value, value);
 }
 
 export default function TransportInterviewsCreatePage() {

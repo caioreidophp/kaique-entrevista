@@ -114,6 +114,16 @@ class Colaborador extends Model
         return $this->hasMany(EmprestimoColaborador::class);
     }
 
+    public function pensoes(): HasMany
+    {
+        return $this->hasMany(PensaoColaborador::class);
+    }
+
+    public function feriasLancamentos(): HasMany
+    {
+        return $this->hasMany(FeriasLancamento::class, 'colaborador_id');
+    }
+
     public function entrevistas(): HasMany
     {
         return $this->hasMany(DriverInterview::class);

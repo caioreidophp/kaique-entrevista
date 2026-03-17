@@ -1,0 +1,12 @@
+[program:kaique-entrevista-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=/usr/bin/php /var/www/kaique-entrevista/artisan queue:work --sleep=1 --tries=3 --timeout=120
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=2
+redirect_stderr=true
+stdout_logfile=/var/www/kaique-entrevista/storage/logs/worker.log
+stopwaitsecs=3600
+user=www-data

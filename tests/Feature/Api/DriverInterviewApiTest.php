@@ -12,6 +12,24 @@ class DriverInterviewApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_usuario_can_create_and_view_own_interview(): void
+    {
+        $usuario = User::factory()->create(['role' => 'usuario']);
+        Sanctum::actingAs($usuario);
+
+        $createResponse = $this->postJson('/api/driver-interviews', $this->validPayload());
+
+        $createResponse
+            ->assertCreated()
+            ->assertJsonPath('data.author_id', $usuario->id);
+
+        $id = (int) $createResponse->json('data.id');
+
+        $this->getJson('/api/driver-interviews/'.$id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $id);
+    }
+
     public function test_authenticated_user_can_create_interview(): void
     {
         Sanctum::actingAs(User::factory()->create());
