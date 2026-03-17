@@ -10,7 +10,7 @@ Objetivo deste app: abrir no celular, usar login que já existe no sistema web e
 
 ---
 
-## JEITO MAIS FÁCIL (funciona hoje): Expo Go
+## JEITO MAIS FÁCIL (funciona hoje): Expo Go (SDK 54)
 
 ### Passo 1 - No celular do motorista
 
@@ -23,10 +23,8 @@ Na raiz do projeto (`C:\xampp\htdocs\kaique-entrevista`), rode:
 
 ```powershell
 cd scripts
-.\start-public-hosting.ps1 -NoBuild
+.\start-fixed-domain-hosting.ps1
 ```
-
-Copie a URL `https://...trycloudflare.com` que aparecer.
 
 Agora rode:
 
@@ -38,21 +36,22 @@ Copy-Item .env.example .env
 Edite o `.env` e deixe assim:
 
 ```env
-EXPO_PUBLIC_API_BASE_URL=https://SUA-URL-TRYCLOUDFLARE/api
+EXPO_PUBLIC_API_BASE_URL=https://app.kaiquetransportes.com.br/api
 ```
 
 Depois rode:
 
 ```powershell
 npm install
-npx expo start --lan --port 8082
+npx expo start --lan --port 8092
 ```
 
 ### Passo 3 - Abrir app no celular
 
 1. Com celular e PC no mesmo Wi-Fi, abra o **Expo Go**.
 2. Escaneie o QR Code que apareceu no terminal.
-3. Faça login com uma conta já cadastrada no site.
+3. Se o QR falhar, use entrada manual no Expo Go com: `exp://SEU-IP-LOCAL:8092`
+4. Faça login com uma conta já cadastrada no site.
 
 Se entrou, missão cumprida ✅
 
@@ -72,6 +71,12 @@ npx eas build -p android --profile preview
 
 Quando terminar, a Expo te dá um link para baixar o APK e instalar nos celulares.
 
+### Importante sobre APK x Expo Go
+
+- APK **não abre dentro do Expo Go**.
+- APK é instalado direto no Android (arquivo `.apk`).
+- Expo Go é só para teste de desenvolvimento.
+
 Arquivo de configuração já pronto: `eas.json`.
 
 ---
@@ -79,5 +84,5 @@ Arquivo de configuração já pronto: `eas.json`.
 ## Importante
 
 - `127.0.0.1` não funciona no celular para API do PC.
-- Sem VPS, o notebook precisa ficar ligado quando usar cloudflared.
-- Com VPS depois, troque para `https://app.kaiquetransportes.com.br/api` no `.env` do app.
+- Sem VPS, o notebook precisa ficar ligado para manter o backend no ar.
+- Domínio fixo deste projeto: `https://app.kaiquetransportes.com.br`.
