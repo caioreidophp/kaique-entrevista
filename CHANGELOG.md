@@ -21,6 +21,7 @@
 - Removida a confirmação de "ação crítica" no lançamento em lote de pagamentos (`/payroll/launch-batch`), eliminando o bloqueio indevido durante operação normal.
 - Fluxo de lançamento de pagamentos ajustado para tratar colaboradores selecionados com valor zerado como ignorados (sem erro crítico), mantendo foco/alerta informativo quando todos os selecionados estão sem valor.
 - Cadastro/Edição de colaboradores simplificado: retirada da validação rígida de RG (9 dígitos + 1 caractere) e remoção dos campos redundantes `Endereço completo`, `Dados bancários 1` e `Dados bancários 2` do formulário.
+- Correção transversal da ação crítica: operações `DELETE` comuns (ex.: exclusões de rotina em pagamentos/listas) deixaram de disparar confirmação crítica automática; a confirmação agora ocorre apenas em rotas explicitamente sensíveis.
 
 ## [2026-03-16] - Fechamento de pendências (navegação, permissões, smoke e testes críticos)
 

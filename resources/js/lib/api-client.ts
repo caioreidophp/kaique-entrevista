@@ -88,8 +88,6 @@ function invalidateGetCache(): void {
 function isCriticalAction(method: RequestConfig['method'], path: string): boolean {
     if (!method || method === 'GET') return false;
 
-    if (method === 'DELETE') return true;
-
     return criticalActionFragments.some((fragment) => path.includes(fragment));
 }
 

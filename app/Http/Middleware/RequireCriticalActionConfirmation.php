@@ -36,10 +36,6 @@ class RequireCriticalActionConfirmation
 
         $path = '/'.$request->path();
 
-        if ($request->method() === 'DELETE') {
-            return true;
-        }
-
         $criticalFragments = [
             '/import',
             '/bulk',
