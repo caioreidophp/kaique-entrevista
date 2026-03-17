@@ -44,7 +44,6 @@ const cacheableGetPaths = [
 const criticalActionFragments = [
     '/import',
     '/bulk',
-    '/launch-batch',
     '/bill',
     '/unbill',
     '/backup',

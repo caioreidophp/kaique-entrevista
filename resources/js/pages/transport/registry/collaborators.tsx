@@ -369,32 +369,11 @@ function formatCep(value: string | null): string {
 }
 
 function sanitizeRg(value: string): string {
-    const normalized = value.toUpperCase().replace(/[^0-9A-Z]/g, '');
-
-    if (!normalized) return '';
-
-    const max = normalized.slice(0, 10);
-    const prefix = max.slice(0, 9).replace(/[^0-9]/g, '');
-    const last = max.length >= 10 ? max[9] : '';
-
-    if (!last) {
-        return prefix;
-    }
-
-    return `${prefix}${last}`.slice(0, 10);
+    return value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 30);
 }
 
 function formatRg(value: string): string {
-    const sanitized = sanitizeRg(value);
-
-    if (sanitized.length <= 3) return sanitized;
-    if (sanitized.length <= 6)
-        return `${sanitized.slice(0, 3)}.${sanitized.slice(3)}`;
-    if (sanitized.length <= 9) {
-        return `${sanitized.slice(0, 3)}.${sanitized.slice(3, 6)}.${sanitized.slice(6)}`;
-    }
-
-    return `${sanitized.slice(0, 3)}.${sanitized.slice(3, 6)}.${sanitized.slice(6, 9)}-${sanitized.slice(9)}`;
+    return sanitizeRg(value);
 }
 
 function sanitizeCnh(value: string): string {
@@ -980,11 +959,6 @@ export default function TransportRegistryCollaboratorsPage() {
                 'Telefone deve conter exatamente 11 números.';
         }
 
-        if (sanitizedRg !== '' && !/^\d{9}[\dA-Z]$/.test(sanitizedRg)) {
-            clientErrors.rg =
-                'RG deve ter 9 números e 1 número ou letra no final.';
-        }
-
         if (sanitizedCnh !== '' && !/^\d{11}$/.test(sanitizedCnh)) {
             clientErrors.cnh = 'CNH deve conter exatamente 11 números.';
         }
@@ -999,7 +973,7 @@ export default function TransportRegistryCollaboratorsPage() {
         if (Object.keys(clientErrors).length > 0) {
             setFormErrors(clientErrors);
             setNotification({
-                message: 'Revise os campos de CPF, RG, CNH, telefone e e-mail.',
+                message: 'Revise os campos de CPF, CNH, telefone e e-mail.',
                 variant: 'error',
             });
             setSaving(false);
@@ -2197,22 +2171,6 @@ export default function TransportRegistryCollaboratorsPage() {
                                             }
                                         />
                                     </div>
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label htmlFor="endereco">
-                                            Endereço completo
-                                        </Label>
-                                        <Input
-                                            id="endereco"
-                                            value={formData.endereco_completo}
-                                            onChange={(event) =>
-                                                setFormData((previous) => ({
-                                                    ...previous,
-                                                    endereco_completo:
-                                                        event.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </div>
                                 </div>
                             </div>
 
@@ -2358,38 +2316,6 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="banco-1">
-                                            Dados bancários 1 (opcional)
-                                        </Label>
-                                        <Input
-                                            id="banco-1"
-                                            value={formData.dados_bancarios_1}
-                                            onChange={(event) =>
-                                                setFormData((previous) => ({
-                                                    ...previous,
-                                                    dados_bancarios_1:
-                                                        event.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="banco-2">
-                                            Dados bancários 2 (opcional)
-                                        </Label>
-                                        <Input
-                                            id="banco-2"
-                                            value={formData.dados_bancarios_2}
-                                            onChange={(event) =>
-                                                setFormData((previous) => ({
-                                                    ...previous,
-                                                    dados_bancarios_2:
-                                                        event.target.value,
-                                                }))
-                                            }
-                                        />
                                     </div>
                                 </div>
                             </div>

@@ -782,9 +782,40 @@ export default function TransportPayrollLaunchPage() {
             return hasTipoValue || hasPensionValue;
         });
 
+        const selectedWithoutPositive = pagamentos.filter((item) => {
+            if (!item.selected) return false;
+
+            const hasTipoValue = Object.values(item.valores_por_tipo).some(
+                (value) => parseMoneyInput(value) > 0,
+            );
+            const hasPensionValue = Object.values(item.valores_pensao).some(
+                (value) => parseMoneyInput(value) > 0,
+            );
+
+            return !hasTipoValue && !hasPensionValue;
+        });
+
         if (selectedWithPositive.length === 0) {
+            const firstSelectedId = selectedWithoutPositive[0]?.colaborador_id;
+
+            if (firstSelectedId) {
+                const firstTipoId = selectedTipoIds[0];
+                const firstInputKey = firstTipoId
+                    ? valueKey(firstSelectedId, firstTipoId)
+                    : null;
+
+                if (firstInputKey) {
+                    const target = valueInputRefs.current[firstInputKey];
+                    if (target && !target.disabled) {
+                        target.focus();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+
             setNotification({
-                message: 'Selecione colaboradores e informe ao menos um valor por tipo ou pensão.',
+                message:
+                    'Os colaboradores selecionados estão com valor zerado. Informe ao menos um valor maior que zero para lançar pagamento.',
                 variant: 'info',
             });
             return;

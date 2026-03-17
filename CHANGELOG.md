@@ -18,6 +18,9 @@
 - Reforçado passo a passo simplificado no guia mobile para dois cenários: teste imediato por QR (Expo Go) e distribuição em massa por APK.
 - Atualizado app mobile para Expo SDK 54 (React 19.1 / React Native 0.81.5) com dependências alinhadas e validação `expo-doctor` sem pendências.
 - Ajustado guia mobile para uso exclusivo do domínio fixo `https://app.kaiquetransportes.com.br` e esclarecimento de instalação APK fora do Expo Go.
+- Removida a confirmação de "ação crítica" no lançamento em lote de pagamentos (`/payroll/launch-batch`), eliminando o bloqueio indevido durante operação normal.
+- Fluxo de lançamento de pagamentos ajustado para tratar colaboradores selecionados com valor zerado como ignorados (sem erro crítico), mantendo foco/alerta informativo quando todos os selecionados estão sem valor.
+- Cadastro/Edição de colaboradores simplificado: retirada da validação rígida de RG (9 dígitos + 1 caractere) e remoção dos campos redundantes `Endereço completo`, `Dados bancários 1` e `Dados bancários 2` do formulário.
 
 ## [2026-03-16] - Fechamento de pendências (navegação, permissões, smoke e testes críticos)
 

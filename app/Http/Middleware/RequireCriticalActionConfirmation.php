@@ -43,7 +43,6 @@ class RequireCriticalActionConfirmation
         $criticalFragments = [
             '/import',
             '/bulk',
-            '/launch-batch',
             '/bill',
             '/unbill',
             '/backup',

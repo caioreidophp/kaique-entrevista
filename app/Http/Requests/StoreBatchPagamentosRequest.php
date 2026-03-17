@@ -195,8 +195,6 @@ class StoreBatchPagamentosRequest extends FormRequest
                         continue;
                     }
 
-                    $selectedCount++;
-
                     $hasPositiveValue = false;
 
                     foreach ($tipoPagamentoIds as $tipoPagamentoId) {
@@ -255,6 +253,10 @@ class StoreBatchPagamentosRequest extends FormRequest
                             continue;
                         }
 
+                        if ($valorPensao > 0) {
+                            $hasPositiveValue = true;
+                        }
+
                         $pensaoExists = PensaoColaborador::query()
                             ->whereKey($pensaoId)
                             ->where('colaborador_id', $colaboradorId)
@@ -269,11 +271,8 @@ class StoreBatchPagamentosRequest extends FormRequest
                         }
                     }
 
-                    if (! $hasPositiveValue) {
-                        $validator->errors()->add(
-                            "pagamentos.{$index}.valores_por_tipo",
-                            'Informe ao menos um valor maior que zero para o colaborador selecionado.',
-                        );
+                    if ($hasPositiveValue) {
+                        $selectedCount++;
                     }
 
                     continue;
