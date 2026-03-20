@@ -1,5 +1,18 @@
 # Changelog
 
+## [2026-03-20] - Correção de log diário e desconto parcelado da folha
+
+### Plataforma
+
+- Corrigido o agrupamento do Update Log interno de produto para evitar classificação indevida de todas as entregas em `Painel de Cadastro`.
+- Entrada do log diário ajustada para a data correta (`Sexta-Feira, 20/03/2026`) com separação por contexto operacional: Cadastro, Plataforma, Gestão de Fretes e Painel de Folha.
+
+### Painel de Folha
+
+- Corrigida a prévia de descontos no fechamento: descontos parcelados agora respeitam competência mensal e aplicam somente a parcela do mês (ex.: `R$ 250,00` em `5x` aplica `R$ 50,00` por mês).
+- O saldo restante de desconto passou a refletir corretamente o total ainda pendente após as parcelas vencidas/aplicadas, sem consumo integral em um único fechamento.
+- Adicionado teste de regressão em `PayrollApiTest` cobrindo o cenário de desconto parcelado para evitar recidiva.
+
 ## [2026-03-17] - Kit de deploy persistente em VPS + automação inicial
 
 ### Gestão de Fretes

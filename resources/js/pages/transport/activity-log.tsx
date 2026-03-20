@@ -84,7 +84,7 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
-        dateLabel: 'Terça-Feira, 17/03/2026',
+        dateLabel: 'Sexta-Feira, 20/03/2026',
         sections: [
             {
                 panel: 'Painel de Cadastro',
@@ -101,6 +101,11 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Documento operacional de referência foi atualizado em `documentos/transport-permissions-matrix.md` para marcação manual por perfil antes da implementação do gerenciador de permissões na interface.',
                         ],
                     },
+                ],
+            },
+            {
+                panel: 'Plataforma',
+                items: [
                     {
                         title: 'Rollback total de Ação Crítica para restaurar fluxo operacional',
                         details: [
@@ -110,6 +115,11 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Modal de Permissões por função recebeu correção de rolagem vertical completa para exibir todos os painéis/grupos/checklists até o final sem conteúdo cortado.',
                         ],
                     },
+                ],
+            },
+            {
+                panel: 'Gestão de Fretes',
+                items: [
                     {
                         title: 'Permissões por função integradas à Home + correção de inteiro no Lançar Fretes',
                         details: [
@@ -117,6 +127,19 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Tela de Permissões por função recebeu botão direto "Ver painéis na Home" para validar visualmente a configuração após salvar.',
                             'No Lançar Fretes, campos de aves/viagens/veículos passaram a ser normalizados para inteiro no envio, evitando erro de validação `integer` em entradas com separador de milhar no padrão brasileiro.',
                             'Cálculo de métricas da Home foi otimizado para rodar apenas para módulos permitidos ao perfil, reduzindo consultas desnecessárias.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Painel de Folha',
+                items: [
+                    {
+                        title: 'Desconto parcelado da folha corrigido para aplicar por mês',
+                        details: [
+                            'Na prévia de descontos do fechamento da folha, descontos parcelados agora respeitam competência mensal e aplicam somente a parcela do mês (ex.: 250 em 5x aplica 50 por mês).',
+                            'Saldo restante exibido no detalhe passa a refletir o total pendente real do desconto após as parcelas já vencidas/aplicadas, sem consumir tudo em um único fechamento.',
+                            'Incluído teste de regressão na API da folha cobrindo cenário parcelado para evitar retorno desse comportamento em versões futuras.',
                         ],
                     },
                 ],

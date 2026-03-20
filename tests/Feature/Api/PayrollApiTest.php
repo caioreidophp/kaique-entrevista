@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Colaborador;
+use App\Models\DescontoColaborador;
 use App\Models\Funcao;
 use App\Models\Pagamento;
 use App\Models\TipoPagamento;
@@ -347,6 +348,69 @@ class PayrollApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('colaborador.id', $colaborador->id)
             ->assertJsonPath('total_acumulado', 1900);
+    }
+
+    public function test_launch_discount_preview_applies_only_monthly_installment_for_parcelado_desconto(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $colaborador = $this->createColaborador(cpf: '91919191919');
+
+        $tipoSalario = TipoPagamento::query()->create([
+            'nome' => 'Salário Base',
+            'gera_encargos' => true,
+            'categoria' => 'salario',
+            'forma_pagamento' => 'deposito',
+        ]);
+
+        Pagamento::query()->create([
+            'colaborador_id' => $colaborador->id,
+            'unidade_id' => $colaborador->unidade_id,
+            'autor_id' => $admin->id,
+            'tipo_pagamento_id' => $tipoSalario->id,
+            'competencia_mes' => 3,
+            'competencia_ano' => 2026,
+            'valor' => 1000,
+            'data_pagamento' => '2026-03-25',
+            'lancado_em' => now(),
+        ]);
+
+        DescontoColaborador::query()->create([
+            'colaborador_id' => $colaborador->id,
+            'unidade_id' => $colaborador->unidade_id,
+            'autor_id' => $admin->id,
+            'descricao' => 'Desconto parcelado 250/5',
+            'tipo_saida' => 'salario',
+            'forma_pagamento' => 'desconto_folha',
+            'valor' => 250,
+            'parcelado' => true,
+            'total_parcelas' => 5,
+            'parcela_atual' => 1,
+            'data_referencia' => '2026-03-01',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson('/api/payroll/launch-discount-preview', [
+            'competencia_mes' => 4,
+            'competencia_ano' => 2026,
+            'rows' => [
+                [
+                    'colaborador_id' => $colaborador->id,
+                    'categoria_totais' => [
+                        'salario' => 1000,
+                        'beneficios' => 0,
+                        'extras' => 0,
+                    ],
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.0.total_descontado', 50)
+            ->assertJsonPath('data.0.total_liquido', 950)
+            ->assertJsonPath('data.0.descontos.0.aplicado_no_mes', 50)
+            ->assertJsonPath('data.0.descontos.0.saldo_restante', 150);
     }
 
     private function createColaborador(string $cpf = '12345678901'): Colaborador

@@ -764,64 +764,138 @@ class PayrollController extends Controller
         $processed = [];
 
         foreach ($discounts as $discount) {
-            $remaining = (float) $discount->valor;
+            $discountTotal = (float) $discount->valor;
             $appliedNow = 0.0;
             $categories = $this->resolveDiscountCategories((string) $discount->tipo_saida);
             $startKey = $discount->data_referencia
                 ? (((int) $discount->data_referencia->year * 100) + (int) $discount->data_referencia->month)
                 : 0;
+            $historyMonthKeys = array_keys($availableByMonth);
+            $effectiveStartKey = $startKey > 0
+                ? $startKey
+                : (count($historyMonthKeys) > 0 ? min($historyMonthKeys) : $currentKey);
+            $dueByMonth = $this->buildDiscountDueScheduleUpToCurrent($discount, $discountTotal, $effectiveStartKey, $currentKey);
 
-            foreach ($availableByMonth as $monthKey => $pool) {
-                if ($monthKey < $startKey || $remaining <= 0) {
+            $openBalance = 0.0;
+            $appliedUpToCurrent = 0.0;
+            $iterKey = $effectiveStartKey;
+
+            while ($iterKey <= $currentKey) {
+                $openBalance += (float) ($dueByMonth[$iterKey] ?? 0);
+
+                if ($openBalance <= 0) {
+                    $iterKey = $this->addMonthsToCompetenciaKey($iterKey, 1);
                     continue;
                 }
 
+                $isCurrentMonth = $iterKey === $currentKey;
+
+                if (! $isCurrentMonth && ! isset($availableByMonth[$iterKey])) {
+                    $availableByMonth[$iterKey] = [
+                        'salario' => 0.0,
+                        'beneficios' => 0.0,
+                        'extras' => 0.0,
+                    ];
+                }
+
                 foreach ($categories as $category) {
-                    if ($remaining <= 0) {
+                    if ($openBalance <= 0) {
                         break;
                     }
 
-                    $available = (float) ($availableByMonth[$monthKey][$category] ?? 0);
+                    $available = $isCurrentMonth
+                        ? (float) ($currentAvailable[$category] ?? 0)
+                        : (float) ($availableByMonth[$iterKey][$category] ?? 0);
 
                     if ($available <= 0) {
                         continue;
                     }
 
-                    $consume = min($remaining, $available);
-                    $availableByMonth[$monthKey][$category] = max($available - $consume, 0);
-                    $remaining -= $consume;
-                }
-            }
+                    $consume = min($openBalance, $available);
 
-            if ($currentKey >= $startKey && $remaining > 0) {
-                foreach ($categories as $category) {
-                    if ($remaining <= 0) {
-                        break;
+                    if ($isCurrentMonth) {
+                        $currentAvailable[$category] = max($available - $consume, 0);
+                        $appliedNow += $consume;
+                    } else {
+                        $availableByMonth[$iterKey][$category] = max($available - $consume, 0);
                     }
 
-                    $available = (float) ($currentAvailable[$category] ?? 0);
-
-                    if ($available <= 0) {
-                        continue;
-                    }
-
-                    $consume = min($remaining, $available);
-                    $currentAvailable[$category] = max($available - $consume, 0);
-                    $remaining -= $consume;
-                    $appliedNow += $consume;
+                    $openBalance -= $consume;
+                    $appliedUpToCurrent += $consume;
                 }
+
+                $iterKey = $this->addMonthsToCompetenciaKey($iterKey, 1);
             }
+
+            $overallRemaining = max($discountTotal - $appliedUpToCurrent, 0);
 
             $processed[] = [
                 'id' => (int) $discount->id,
                 'descricao' => (string) $discount->descricao,
                 'tipo_saida' => (string) $discount->tipo_saida,
                 'aplicado_no_mes' => round($appliedNow, 2),
-                'saldo_restante' => round(max($remaining, 0), 2),
+                'saldo_restante' => round($overallRemaining, 2),
             ];
         }
 
         return $processed;
+    }
+
+    private function buildDiscountDueScheduleUpToCurrent($discount, float $discountTotal, int $startKey, int $currentKey): array
+    {
+        if ($currentKey < $startKey) {
+            return [];
+        }
+
+        $isInstallment = (bool) $discount->parcelado && (int) ($discount->total_parcelas ?? 0) > 1;
+
+        if (! $isInstallment) {
+            return [
+                $startKey => $discountTotal,
+            ];
+        }
+
+        $totalInstallments = max(1, (int) ($discount->total_parcelas ?? 1));
+        $plan = $this->buildInstallmentPlan($discountTotal, $totalInstallments);
+        $schedule = [];
+
+        foreach ($plan as $index => $amount) {
+            $monthKey = $this->addMonthsToCompetenciaKey($startKey, $index);
+
+            if ($monthKey > $currentKey) {
+                break;
+            }
+
+            $schedule[$monthKey] = (float) $amount;
+        }
+
+        return $schedule;
+    }
+
+    private function buildInstallmentPlan(float $total, int $installments): array
+    {
+        $safeInstallments = max(1, $installments);
+        $base = round($total / $safeInstallments, 2);
+        $plan = array_fill(0, $safeInstallments, $base);
+        $difference = round($total - array_sum($plan), 2);
+
+        if ($safeInstallments > 0) {
+            $plan[$safeInstallments - 1] = round($plan[$safeInstallments - 1] + $difference, 2);
+        }
+
+        return $plan;
+    }
+
+    private function addMonthsToCompetenciaKey(int $key, int $monthsToAdd): int
+    {
+        $year = intdiv($key, 100);
+        $month = $key % 100;
+        $zeroBased = ($year * 12) + max($month - 1, 0) + $monthsToAdd;
+
+        $targetYear = intdiv($zeroBased, 12);
+        $targetMonth = ($zeroBased % 12) + 1;
+
+        return ($targetYear * 100) + $targetMonth;
     }
 
     private function resolveDiscountCategories(string $tipoSaida): array
