@@ -108,17 +108,21 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-import');
     Route::post('freight/entries/import-spreadsheet', [FreightController::class, 'importSpreadsheet'])
         ->middleware('throttle:transport-import');
-    Route::get('driver-interviews/{driverInterview}/pdf', [DriverInterviewController::class, 'pdf']);
-    Route::patch('driver-interviews/{driverInterview}/statuses', [DriverInterviewController::class, 'updateStatuses']);
+    Route::get('driver-interviews/{driverInterview}/pdf', [DriverInterviewController::class, 'pdf'])
+        ->middleware('throttle:transport-heavy');
+    Route::patch('driver-interviews/{driverInterview}/statuses', [DriverInterviewController::class, 'updateStatuses'])
+        ->middleware('throttle:transport-heavy');
     Route::get('next-steps/candidates', [NextStepController::class, 'index'])
         ->name('api.next-steps.index');
     Route::patch('next-steps/{driverInterview}/hiring-status', [NextStepController::class, 'markHired'])
+        ->middleware('throttle:transport-heavy')
         ->name('api.next-steps.hiring-status');
     Route::get('next-steps/{driverInterview}/documents/{document}/preview', [NextStepController::class, 'preview'])
         ->whereIn('document', ['checklist', 'raca-etnia'])
         ->name('api.next-steps.documents.preview');
     Route::get('next-steps/{driverInterview}/documents/{document}/pdf', [NextStepController::class, 'pdf'])
         ->whereIn('document', ['checklist', 'raca-etnia'])
+        ->middleware('throttle:transport-heavy')
         ->name('api.next-steps.documents.pdf');
 
     Route::get('onboardings', [OnboardingController::class, 'index'])
@@ -128,10 +132,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('onboardings/{onboarding}', [OnboardingController::class, 'show'])
         ->name('api.onboarding.show');
     Route::patch('onboardings/{onboarding}/assign', [OnboardingController::class, 'assign'])
+        ->middleware('throttle:transport-heavy')
         ->name('api.onboarding.assign');
     Route::post('onboardings/{onboarding}/complete', [OnboardingController::class, 'complete'])
+        ->middleware('throttle:transport-heavy')
         ->name('api.onboarding.complete');
     Route::patch('onboarding-items/{onboardingItem}', [OnboardingController::class, 'updateItem'])
+        ->middleware('throttle:transport-heavy')
         ->name('api.onboarding.items.update');
     Route::post('onboarding-items/{onboardingItem}/attachments', [OnboardingController::class, 'uploadAttachment'])
         ->middleware('throttle:transport-uploads')

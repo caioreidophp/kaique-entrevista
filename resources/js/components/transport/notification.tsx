@@ -61,7 +61,7 @@ export function Notification({
                 <span className="whitespace-pre-line">{message}</span>
                 <button
                     type="button"
-                    className="ml-2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                    className="ml-2 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     onClick={() => {
                         setDismissedKey(notificationKey);
                         onClose?.();

@@ -167,18 +167,32 @@ export function AdminLayout({
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        let timeoutId: number | null = null;
+        function onApiError(event: Event): void {
+            const customEvent = event as CustomEvent<{
+                message?: string;
+                status?: number;
+            }>;
+            const message = customEvent.detail?.message?.trim();
 
-        if (globalNotice) {
-            timeoutId = window.setTimeout(() => setGlobalNotice(null), 2600);
+            if (!message) {
+                return;
+            }
+
+            setGlobalNotice({
+                message,
+                variant:
+                    (customEvent.detail?.status ?? 500) >= 500
+                        ? 'error'
+                        : 'info',
+            });
         }
 
+        window.addEventListener('transport:api-error', onApiError as EventListener);
+
         return () => {
-            if (timeoutId !== null) {
-                window.clearTimeout(timeoutId);
-            }
+            window.removeEventListener('transport:api-error', onApiError as EventListener);
         };
-    }, [globalNotice]);
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1027,6 +1041,7 @@ export function AdminLayout({
                     <Notification
                         message={globalNotice.message}
                         variant={globalNotice.variant}
+                        onClose={() => setGlobalNotice(null)}
                     />
                 ) : null}
                 <div

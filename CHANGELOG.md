@@ -17,6 +17,11 @@
 - Atualização de permissões por função agora incrementa versão global de cache para refletir rapidamente mudanças de acesso na Home sem depender de expiração longa.
 - Toast compartilhado (`Notification`) passou a auto-fechar por padrão em 5s e ganhou ação de fechar manualmente, corrigindo casos de mensagem fixa na tela após operações concluídas.
 - Limpeza de dados de simulação executada no banco: unidade/cadastro temporários removidos e descontos órfãos relacionados excluídos para manter base operacional consistente.
+- Hardening adicional aplicado nas rotas de Entrevistas, Próximos Passos e Onboarding com `throttle:transport-heavy` em ações sensíveis (status, contratação, conclusão e geração de documentos).
+- `api-client` recebeu timeout padrão, deduplicação de requisições GET em voo e emissão de evento global de erro (`transport:api-error`) para reforçar observabilidade e UX em falhas.
+- Layout administrativo passou a ouvir eventos globais de erro da API e exibir feedback padronizado em toast sem depender de implementação manual em cada tela.
+- Criado comando operacional `php artisan transport:cleanup-simulation` (com `--dry-run`) para limpeza repetível de dados de simulação e órfãos em ambiente operacional.
+- Componente de notificação recebeu melhoria de acessibilidade no botão de fechar com destaque de foco via teclado (`focus-visible`).
 
 ### Painel de Folha
 

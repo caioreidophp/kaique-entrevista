@@ -164,6 +164,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Cálculo de métricas da Home foi otimizado para rodar apenas para módulos permitidos ao perfil, reduzindo consultas desnecessárias.',
                         ],
                     },
+                    {
+                        title: 'Pacote transversal final: segurança de rotas, observabilidade global e limpeza automatizada',
+                        details: [
+                            'Rotas sensíveis de Entrevistas, Próximos Passos e Onboarding receberam throttle explícito para padronizar proteção contra rajadas e abuso em endpoints de alteração/geração de documentos.',
+                            'Cliente de API passou a ter timeout padronizado, deduplicação de GET em voo e eventos globais de erro (`transport:api-error`), permitindo feedback consistente sem tratamento manual em cada página.',
+                            'Layout administrativo foi conectado ao evento global de erro da API para exibir aviso unificado em toast, reduzindo lacunas de feedback em fluxos com falha de rede/servidor.',
+                            'Foi criado comando operacional `php artisan transport:cleanup-simulation` com `--dry-run` para limpeza repetível e segura de unidades/colaboradores de simulação e registros órfãos.',
+                            'Componente de notificação recebeu refinamento de acessibilidade no botão de fechar com foco visível via teclado, mantendo padrão UX sem regressão visual.',
+                        ],
+                    },
                 ],
             },
             {

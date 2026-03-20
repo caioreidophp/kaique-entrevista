@@ -30,8 +30,17 @@ interface CachedGetEntry {
     value: unknown;
 }
 
+interface ApiClientErrorEventDetail {
+    path: string;
+    method: RequestConfig['method'];
+    status: number;
+    message: string;
+}
+
 const getCache = new Map<string, CachedGetEntry>();
+const inFlightGetRequests = new Map<string, Promise<unknown>>();
 const GET_CACHE_TTL_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 const cacheableGetPaths = [
     '/reference/cities',
@@ -73,6 +82,18 @@ function setCachedGet(path: string, value: unknown): void {
 
 function invalidateGetCache(): void {
     getCache.clear();
+}
+
+function dispatchApiClientError(detail: ApiClientErrorEventDetail): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.dispatchEvent(
+        new CustomEvent<ApiClientErrorEventDetail>('transport:api-error', {
+            detail,
+        }),
+    );
 }
 
 function normalizeApiErrorMessage(message?: string): string {
@@ -143,72 +164,152 @@ async function request<T>(
         }
     }
 
-    const hasFormDataBody = isFormDataBody(body);
+    if (method === 'GET') {
+        const pending = inFlightGetRequests.get(path);
 
-    const headers: HeadersInit = {
-        Accept: 'application/json',
-    };
-
-    if (body !== undefined && !hasFormDataBody) {
-        headers['Content-Type'] = 'application/json';
+        if (pending) {
+            return pending as Promise<T>;
+        }
     }
 
-    if (auth) {
-        const token = getAuthToken();
+    const operation = (async (): Promise<T> => {
+        const hasFormDataBody = isFormDataBody(body);
 
-        if (!token) {
-            clearStoredUser();
-            redirectToLogin();
-            throw new ApiError(401, 'Sessão expirada. Faça login novamente.');
+        const headers: HeadersInit = {
+            Accept: 'application/json',
+        };
+
+        if (body !== undefined && !hasFormDataBody) {
+            headers['Content-Type'] = 'application/json';
         }
 
-        headers.Authorization = `Bearer ${token}`;
-    }
+        if (auth) {
+            const token = getAuthToken();
 
-    const response = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers,
-        body:
-            body === undefined
-                ? undefined
-                : hasFormDataBody
-                  ? body
-                  : JSON.stringify(body),
-    });
+            if (!token) {
+                clearStoredUser();
+                redirectToLogin();
+                throw new ApiError(401, 'Sessão expirada. Faça login novamente.');
+            }
 
-    if (response.status === 401) {
-        clearAuthToken();
-        clearStoredUser();
-        redirectToLogin();
-        throw new ApiError(401, 'Não autorizado. Faça login novamente.');
-    }
+            headers.Authorization = `Bearer ${token}`;
+        }
 
-    if (response.status === 204) {
-        return undefined as T;
-    }
-
-    const json = (await response.json()) as {
-        message?: string;
-        errors?: ApiValidationErrors;
-    } & T;
-
-    if (!response.ok) {
-        const normalizedMessage = normalizeApiErrorMessage(json.message);
-
-        throw new ApiError(
-            response.status,
-            contextualizeErrorMessage(path, method, normalizedMessage),
-            json.errors,
+        const abortController = new AbortController();
+        const timeoutId = window.setTimeout(
+            () => abortController.abort(),
+            REQUEST_TIMEOUT_MS,
         );
+
+        let response: Response;
+
+        try {
+            response = await fetch(`${API_BASE}${path}`, {
+                method,
+                headers,
+                signal: abortController.signal,
+                body:
+                    body === undefined
+                        ? undefined
+                        : hasFormDataBody
+                          ? body
+                          : JSON.stringify(body),
+            });
+        } catch (error) {
+            let fallback = new ApiError(
+                500,
+                'Falha inesperada na comunicação com o servidor.',
+            );
+
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                fallback = new ApiError(
+                    408,
+                    'A requisição demorou mais do que o esperado. Tente novamente.',
+                );
+            } else if (error instanceof TypeError) {
+                fallback = new ApiError(
+                    0,
+                    'Falha de conexão. Verifique sua internet e tente novamente.',
+                );
+            }
+
+            dispatchApiClientError({
+                path,
+                method,
+                status: fallback.status,
+                message: fallback.message,
+            });
+
+            throw fallback;
+        } finally {
+            window.clearTimeout(timeoutId);
+        }
+
+        if (response.status === 401) {
+            clearAuthToken();
+            clearStoredUser();
+            redirectToLogin();
+            throw new ApiError(401, 'Não autorizado. Faça login novamente.');
+        }
+
+        if (response.status === 204) {
+            return undefined as T;
+        }
+
+        let json: ({
+            message?: string;
+            errors?: ApiValidationErrors;
+        } & T) | null = null;
+
+        try {
+            json = (await response.json()) as {
+                message?: string;
+                errors?: ApiValidationErrors;
+            } & T;
+        } catch {
+            json = null;
+        }
+
+        if (!response.ok) {
+            const normalizedMessage = normalizeApiErrorMessage(json?.message);
+            const apiError = new ApiError(
+                response.status,
+                contextualizeErrorMessage(path, method, normalizedMessage),
+                json?.errors,
+            );
+
+            dispatchApiClientError({
+                path,
+                method,
+                status: apiError.status,
+                message: apiError.message,
+            });
+
+            throw apiError;
+        }
+
+        const payload = (json ?? ({} as T)) as T;
+
+        if (method !== 'GET') {
+            invalidateGetCache();
+        } else if (shouldCacheGet(path)) {
+            setCachedGet(path, payload);
+        }
+
+        return payload;
+    })();
+
+    if (method === 'GET') {
+        inFlightGetRequests.set(path, operation as Promise<unknown>);
+
+        try {
+            return await operation;
+        } finally {
+            inFlightGetRequests.delete(path);
+        }
     }
 
-    if (method !== 'GET') {
-        invalidateGetCache();
-    } else if (shouldCacheGet(path)) {
-        setCachedGet(path, json);
-    }
-
-    return json as T;
+    return operation;
 }
 
 export function apiGet<T>(path: string, auth = true): Promise<T> {
