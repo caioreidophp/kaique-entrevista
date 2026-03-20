@@ -31,6 +31,9 @@
 - Modo foco recebeu sidebar inteligente por hover no desktop: ao encostar o mouse na borda esquerda o menu lateral abre, e recolhe ao sair da área.
 - No modo foco, quando a sidebar por hover é exibida, o conteúdo principal também desloca para a direita e retorna ao retrair, evitando sobreposição de conteúdo.
 - Grid de cards do Pendências foi memoizada para reduzir recomposição desnecessária da tela durante re-render.
+- Varredura completa em todas as telas do módulo de transporte aplicada com padronização visual de títulos/espaçamentos (Fretes Lista, Fretes Dashboard e Log) para manter consistência global de UX.
+- Overlays de Fretes (dropdown custom e tooltip da Central Analítica) tiveram `z-index` elevado para reduzir risco de conflito de camadas com componentes flutuantes.
+- App mobile (`mobile/driver-app`) recebeu scripts de qualidade `lint` e `typecheck`, entrando na rotina de varredura automática junto com web/backend.
 
 ### Painel de Folha
 

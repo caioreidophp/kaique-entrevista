@@ -163,7 +163,7 @@ export default function FreightList() {
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold">Lista de Fretes</h1>
+                    <h2 className="text-2xl font-semibold">Lista de Fretes</h2>
                     <p className="mt-2 text-muted-foreground">
                         Visualize e edite os lançamentos de fretes
                     </p>

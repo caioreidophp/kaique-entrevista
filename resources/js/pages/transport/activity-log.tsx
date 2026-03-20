@@ -194,6 +194,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Tela de Pendências também recebeu pequeno refino de renderização com composição memoizada dos cards, diminuindo trabalho repetido de montagem da grade.',
                         ],
                     },
+                    {
+                        title: 'Varredura ampla em todas as telas: padronização visual e cobertura total web/mobile',
+                        details: [
+                            'Foi executada varredura técnica completa em todo o workspace (frontend web, backend Laravel e app mobile), incluindo lint, types, build, testes e checks operacionais.',
+                            'No módulo de Fretes, a tela Lista foi alinhada ao padrão global de tipografia de título (hierarquia consistente com as demais páginas administrativas).',
+                            'Dashboard de Fretes e Log tiveram ajuste de espaçamento vertical e escala de título para manter o mesmo padrão visual adotado no Admin Layout.',
+                            'Overlays customizados de Fretes (autocomplete/tooltip) tiveram z-index elevado para evitar conflitos de sobreposição em cenários de componentes flutuantes.',
+                            'App mobile de motoristas passou a ter scripts de qualidade (`lint` e `typecheck`) no package para permitir varredura automática contínua dentro da rotina de validação.',
+                        ],
+                    },
                 ],
             },
             {
@@ -970,9 +980,9 @@ export default function ActivityLogPage() {
                 />
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <div>
-                    <h2 className="text-xl font-semibold">Log</h2>
+                    <h2 className="text-2xl font-semibold">Log</h2>
                     <p className="text-sm text-muted-foreground">
                         {mode === 'actions'
                             ? 'Histórico completo de ações realizadas no sistema.'

@@ -611,7 +611,7 @@ export default function TransportFreightTimelinePage() {
                                             <div className="relative h-full min-w-[980px]">
                                                 {hoveredPoint ? (
                                                     <div
-                                                        className="bg-popover text-popover-foreground pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
+                                                        className="bg-popover text-popover-foreground pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
                                                         style={{
                                                             left: `${hoveredPoint.xPercent}%`,
                                                             top: `${hoveredPoint.yPercent}%`,

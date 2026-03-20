@@ -168,9 +168,9 @@ export default function TransportFreightDashboardPage() {
             active="freight-dashboard"
             module="freight"
         >
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <div>
-                    <h2 className="text-xl font-semibold">
+                    <h2 className="text-2xl font-semibold">
                         Dashboard de Fretes
                     </h2>
                     <p className="text-xs text-muted-foreground">

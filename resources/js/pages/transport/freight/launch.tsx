@@ -360,7 +360,7 @@ function StartsWithAutocompleteInput({
             />
 
             {open && filtered.length > 0 ? (
-                <div className="bg-popover text-popover-foreground absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-md border shadow-md">
+                <div className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-md border shadow-md">
                     {filtered.map((option) => (
                         <button
                             key={option}
