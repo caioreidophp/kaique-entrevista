@@ -52,6 +52,10 @@
 - A impressão dos tipos salariais da coluna 1 (`Salário Mensal`, `Adiantamento`, `Décimo Terceiro`) foi preservada sem alterações de layout/regra.
 - `Dias úteis` passou a ser persistido no lançamento em lote de pagamentos (payload + backend), armazenado em `observacao` e reaplicado ao abrir edição de lançamento completo.
 - Com a persistência, o campo `DIAS ÚTEIS` agora aparece na impressão de benefícios/extras para lançamentos salvos com essa informação.
+- Exportação XLSX da Lista de Pagamentos foi convertida para resumo mensal por colaborador com base apenas em `competência mês/ano` dos filtros.
+- Nova planilha de exportação contém colunas `Nome`, `VR` e `VA`, somando todos os lançamentos do mês por pessoa.
+- Regra de cálculo aplicada na planilha: `VR` = apenas Vale Refeição; `VA` = `Prêmio Média + Cesta Básica`.
+- A planilha inclui título superior da competência no formato `Mês/AA` (ex.: `Março/26`) e linha final com total geral de `VR` e `VA`.
 
 ### Painel de Folha
 

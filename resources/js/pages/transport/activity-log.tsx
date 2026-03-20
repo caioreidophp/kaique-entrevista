@@ -233,6 +233,15 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Com isso, o campo `DIAS ÚTEIS` passa a aparecer na impressão quando o lançamento foi salvo com essa informação, sem depender de recalcular VR/VT depois.',
                         ],
                     },
+                    {
+                        title: 'Exportação Excel de Pagamentos convertida para resumo mensal de VR/VA por colaborador',
+                        details: [
+                            'O botão de Excel nos filtros da Lista de Pagamentos agora usa apenas `mês` e `ano` selecionados para montar a planilha mensal consolidada.',
+                            'A planilha passou a ter três colunas fixas (`Nome`, `VR`, `VA`), somando todos os lançamentos do mês por colaborador.',
+                            'No cálculo: `VR` considera somente tipos de Vale Refeição e `VA` considera `Prêmio Média + Cesta Básica` (CB).',
+                            'No rodapé da planilha são exibidos os totais gerais de VR e VA e, no topo, título de competência no formato `Mês/AA` (ex.: `Março/26`).',
+                        ],
+                    },
                 ],
             },
             {

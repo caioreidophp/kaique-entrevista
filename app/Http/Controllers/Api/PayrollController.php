@@ -1036,107 +1036,92 @@ class PayrollController extends Controller
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
+        $mes = (int) $request->integer('competencia_mes', (int) now()->month);
+        $ano = (int) $request->integer('competencia_ano', (int) now()->year);
+
         $query = $this->basePaymentsQueryForUser($request)
             ->with([
-                'colaborador:id,nome,cpf,unidade_id',
-                'unidade:id,nome,slug',
-                'autor:id,name,email',
-                'tipoPagamento:id,nome,categoria,forma_pagamento',
+                'colaborador:id,nome',
+                'tipoPagamento:id,nome',
             ])
+            ->where('competencia_mes', $mes)
+            ->where('competencia_ano', $ano)
             ->latest('lancado_em')
             ->latest('id');
 
-        if ($request->filled('competencia_mes')) {
-            $query->where('competencia_mes', (int) $request->integer('competencia_mes'));
-        }
-
-        if ($request->filled('competencia_ano')) {
-            $query->where('competencia_ano', (int) $request->integer('competencia_ano'));
-        }
-
-        if ($request->filled('unidade_id')) {
-            $query->where('unidade_id', (int) $request->integer('unidade_id'));
-        }
-
-        if ($request->filled('colaborador_id')) {
-            $query->where('colaborador_id', (int) $request->integer('colaborador_id'));
-        }
-
-        if ($request->filled('descricao')) {
-            $query->where('descricao', 'like', '%'.(string) $request->string('descricao').'%');
-        }
-
-        if ($request->filled('data_pagamento')) {
-            $query->whereDate('data_pagamento', (string) $request->string('data_pagamento'));
-        }
-
-        if ($request->filled('tipo_pagamento_id')) {
-            $query->where('tipo_pagamento_id', (int) $request->integer('tipo_pagamento_id'));
-        }
-
-        if ($request->filled('name')) {
-            $name = (string) $request->string('name');
-            $query->whereHas('colaborador', function (Builder $builder) use ($name): void {
-                $builder->where('nome', 'like', "%{$name}%");
-            });
-        }
-
-        if ($request->filled('autor_id') && $request->user()?->isMasterAdmin()) {
-            $query->where('autor_id', (int) $request->integer('autor_id'));
-        }
-
         $rows = $query->get();
 
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $colaboradorId = (int) ($row->colaborador_id ?? 0);
+            $name = trim((string) ($row->colaborador?->nome ?? 'Sem nome'));
+            $key = $colaboradorId > 0 ? (string) $colaboradorId : $name;
+
+            if (! isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'nome' => $name,
+                    'vr' => 0.0,
+                    'va' => 0.0,
+                ];
+            }
+
+            $normalizedType = $this->normalizePaymentName((string) ($row->tipoPagamento?->nome ?? ''));
+            $value = (float) $row->valor;
+
+            if ($this->containsAny($normalizedType, ['vale refeicao'])) {
+                $grouped[$key]['vr'] += $value;
+
+                continue;
+            }
+
+            if ($this->containsAny($normalizedType, ['premio media', 'cesta basica'])) {
+                $grouped[$key]['va'] += $value;
+            }
+        }
+
+        $summaryRows = collect(array_values($grouped))
+            ->sortBy('nome', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $totalVr = (float) $summaryRows->sum('vr');
+        $totalVa = (float) $summaryRows->sum('va');
+        $periodLabel = $this->formatMonthYearLabel($mes, $ano);
+
         $fileName = sprintf(
-            'pagamentos_%s.xlsx',
-            now()->format('Ymd_His'),
+            'resumo_vr_va_%04d_%02d.xlsx',
+            $ano,
+            $mes,
         );
 
-        return response()->streamDownload(function () use ($rows): void {
+        return response()->streamDownload(function () use ($summaryRows, $totalVr, $totalVa, $periodLabel): void {
             $spreadsheet = new Spreadsheet;
             $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Pagamentos');
+            $sheet->setTitle('Resumo VR VA');
 
-            $sheet->fromArray([
-                'ID',
-                'Colaborador',
-                'CPF',
-                'Unidade',
-                'Tipo de Pagamento',
-                'Categoria',
-                'Descrição',
-                'Valor',
-                'Data Pagamento',
-                'Competência Mês',
-                'Competência Ano',
-                'Autor',
-                'Lançado em',
-            ], null, 'A1');
+            $sheet->setCellValue('A1', 'Resumo VR/VA - '.$periodLabel);
+            $sheet->mergeCells('A1:C1');
 
-            $line = 2;
-            foreach ($rows as $row) {
+            $sheet->fromArray(['Nome', 'VR', 'VA'], null, 'A3');
+
+            $line = 4;
+            foreach ($summaryRows as $row) {
                 $sheet->fromArray([
-                    $row->id,
-                    $row->colaborador?->nome,
-                    $row->colaborador?->cpf,
-                    $row->unidade?->nome,
-                    $row->tipoPagamento?->nome,
-                    $row->tipoPagamento?->categoria,
-                    $row->descricao,
-                    (float) $row->valor,
-                    $row->data_pagamento?->format('Y-m-d'),
-                    $row->competencia_mes,
-                    $row->competencia_ano,
-                    $row->autor?->name,
-                    $row->lancado_em?->format('Y-m-d H:i:s'),
+                    $row['nome'],
+                    (float) $row['vr'],
+                    (float) $row['va'],
                 ], null, 'A'.$line);
 
                 $line++;
             }
 
-            $sheet->getStyle('H2:H'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->fromArray(['TOTAL', $totalVr, $totalVa], null, 'A'.$line);
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+            $sheet->getStyle('A3:C3')->getFont()->setBold(true);
+            $sheet->getStyle('A'.$line.':C'.$line)->getFont()->setBold(true);
+            $sheet->getStyle('B4:C'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
 
-            foreach (range('A', 'M') as $column) {
+            foreach (range('A', 'C') as $column) {
                 $sheet->getColumnDimension($column)->setAutoSize(true);
             }
 
@@ -1266,5 +1251,47 @@ class PayrollController extends Controller
         }
 
         return $query;
+    }
+
+    private function normalizePaymentName(string $value): string
+    {
+        $lower = mb_strtolower($value, 'UTF-8');
+        $converted = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $lower);
+
+        return $converted !== false ? $converted : $lower;
+    }
+
+    /**
+     * @param  array<int, string>  $terms
+     */
+    private function containsAny(string $subject, array $terms): bool
+    {
+        foreach ($terms as $term) {
+            if (str_contains($subject, $term)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function formatMonthYearLabel(int $month, int $year): string
+    {
+        $months = [
+            1 => 'Janeiro',
+            2 => 'Fevereiro',
+            3 => 'Março',
+            4 => 'Abril',
+            5 => 'Maio',
+            6 => 'Junho',
+            7 => 'Julho',
+            8 => 'Agosto',
+            9 => 'Setembro',
+            10 => 'Outubro',
+            11 => 'Novembro',
+            12 => 'Dezembro',
+        ];
+
+        return sprintf('%s/%02d', $months[$month] ?? (string) $month, $year % 100);
     }
 }

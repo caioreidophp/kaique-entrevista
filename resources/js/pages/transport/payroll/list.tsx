@@ -517,14 +517,10 @@ export default function TransportPayrollListPage() {
         params.set('competencia_mes', monthFilter);
         params.set('competencia_ano', yearFilter);
 
-        if (unidadeFilter !== 'all') {
-            params.set('unidade_id', unidadeFilter);
-        }
-
         try {
             await apiDownload(
                 `/payroll/pagamentos/export-xlsx?${params.toString()}`,
-                `pagamentos_${yearFilter}_${monthFilter}.xlsx`,
+                `resumo_vr_va_${yearFilter}_${monthFilter}.xlsx`,
             );
         } catch (error) {
             if (error instanceof ApiError) {
