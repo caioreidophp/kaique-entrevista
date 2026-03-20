@@ -1280,7 +1280,7 @@ export default function TransportPayrollListPage() {
                                                                     }}
                                                                     title={isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
                                                                 >
-                                                                    <Eye className="size-4 text-green-600" />
+                                                                    <Eye className="size-4 text-foreground" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -1291,7 +1291,7 @@ export default function TransportPayrollListPage() {
                                                                     }}
                                                                     title="Editar completo"
                                                                 >
-                                                                    <PencilLine className="size-4 text-green-600" />
+                                                                    <PencilLine className="size-4 text-foreground" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -1386,7 +1386,7 @@ export default function TransportPayrollListPage() {
                                                                                                     onClick={() => openEditDialog(item)}
                                                                                                     title="Editar"
                                                                                                 >
-                                                                                                    <PencilLine className="size-4 text-green-600" />
+                                                                                                    <PencilLine className="size-4 text-foreground" />
                                                                                                 </Button>
                                                                                                 <Button
                                                                                                     size="sm"

@@ -21,6 +21,7 @@ class DescontoColaborador extends Model
         'autor_id',
         'descricao',
         'tipo_saida',
+        'tipo_saida_prioridades',
         'forma_pagamento',
         'valor',
         'parcelado',
@@ -37,6 +38,7 @@ class DescontoColaborador extends Model
         return [
             'valor' => 'decimal:2',
             'parcelado' => 'boolean',
+            'tipo_saida_prioridades' => 'array',
             'data_referencia' => 'date',
         ];
     }

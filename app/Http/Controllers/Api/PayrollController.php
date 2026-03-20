@@ -771,7 +771,10 @@ class PayrollController extends Controller
         foreach ($discounts as $discount) {
             $discountTotal = (float) $discount->valor;
             $appliedNow = 0.0;
-            $categories = $this->resolveDiscountCategories((string) $discount->tipo_saida);
+            $categories = $this->resolveDiscountCategories(
+                (string) $discount->tipo_saida,
+                $discount->tipo_saida_prioridades,
+            );
             $startKey = $discount->data_referencia
                 ? (((int) $discount->data_referencia->year * 100) + (int) $discount->data_referencia->month)
                 : 0;
@@ -839,6 +842,7 @@ class PayrollController extends Controller
                 'id' => (int) $discount->id,
                 'descricao' => (string) $discount->descricao,
                 'tipo_saida' => (string) $discount->tipo_saida,
+                'tipo_saida_prioridades' => $categories,
                 'aplicado_no_mes' => round($appliedNow, 2),
                 'saldo_restante' => round($overallRemaining, 2),
             ];
@@ -904,8 +908,19 @@ class PayrollController extends Controller
         return ($targetYear * 100) + $targetMonth;
     }
 
-    private function resolveDiscountCategories(string $tipoSaida): array
+    private function resolveDiscountCategories(string $tipoSaida, mixed $prioritiesRaw = null): array
     {
+        $priorities = collect(is_array($prioritiesRaw) ? $prioritiesRaw : [])
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => in_array($item, ['salario', 'beneficios', 'extras'], true))
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($priorities) > 0) {
+            return $priorities;
+        }
+
         if ($tipoSaida === 'direto') {
             return ['salario', 'beneficios', 'extras'];
         }

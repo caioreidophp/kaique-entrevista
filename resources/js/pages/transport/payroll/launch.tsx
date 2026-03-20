@@ -90,6 +90,7 @@ interface LaunchDraftSnapshot {
         defaultWorkDays?: string;
         defaultVrDaily?: string;
         defaultVtDaily?: string;
+        defaultCestaBasica?: string;
         workDaysByCollaborator?: Record<number, string>;
     };
 }
@@ -167,6 +168,7 @@ export default function TransportPayrollLaunchPage() {
     const [defaultWorkDays, setDefaultWorkDays] = useState('0');
     const [defaultVrDaily, setDefaultVrDaily] = useState('0');
     const [defaultVtDaily, setDefaultVtDaily] = useState('0');
+    const [defaultCestaBasica, setDefaultCestaBasica] = useState('0');
     const [workDaysByCollaborator, setWorkDaysByCollaborator] = useState<Record<number, string>>({});
     const [nameSortDirection, setNameSortDirection] = useState<'asc' | 'desc'>('asc');
     const [benefitAutoFillTouched, setBenefitAutoFillTouched] = useState(false);
@@ -222,9 +224,47 @@ export default function TransportPayrollLaunchPage() {
         [selectedTipos],
     );
 
+    const selectedCestaBasicaTypeIds = useMemo(
+        () =>
+            selectedTipos
+                .filter((tipo) => normalizePaymentName(tipo.nome).includes('cesta basica'))
+                .map((tipo) => tipo.id),
+        [selectedTipos],
+    );
+
+    const salaryLikeTypeIds = useMemo(
+        () =>
+            tiposPagamento
+                .filter((tipo) => {
+                    const normalizedName = normalizePaymentName(tipo.nome);
+
+                    return normalizedName.includes('adiantamento')
+                        || normalizedName.includes('decimo terceiro')
+                        || normalizedName.includes('salario mensal');
+                })
+                .map((tipo) => tipo.id),
+        [tiposPagamento],
+    );
+
+    const salaryLikeTypeSet = useMemo(
+        () => new Set(salaryLikeTypeIds),
+        [salaryLikeTypeIds],
+    );
+
+    const hasSalaryLikeTypeSelected = useMemo(
+        () => selectedTipoIds.some((id) => salaryLikeTypeSet.has(id)),
+        [salaryLikeTypeSet, selectedTipoIds],
+    );
+
+    const hasOtherTypeSelected = useMemo(
+        () => selectedTipoIds.some((id) => !salaryLikeTypeSet.has(id)),
+        [salaryLikeTypeSet, selectedTipoIds],
+    );
+
     const hasValeRefeicaoSelected = selectedValeRefeicaoTypeIds.length > 0;
     const hasValeTransporteSelected = selectedValeTransporteTypeIds.length > 0;
     const hasBenefitDailyAutoFill = hasValeRefeicaoSelected || hasValeTransporteSelected;
+    const hasCestaBasicaAutoFill = selectedCestaBasicaTypeIds.length > 0;
 
     const allChecked =
         candidates.length > 0 &&
@@ -408,6 +448,7 @@ export default function TransportPayrollLaunchPage() {
                 defaultWorkDays,
                 defaultVrDaily,
                 defaultVtDaily,
+                defaultCestaBasica,
                 workDaysByCollaborator,
             },
         };
@@ -423,6 +464,7 @@ export default function TransportPayrollLaunchPage() {
         draftResolved,
         defaultVrDaily,
         defaultVtDaily,
+        defaultCestaBasica,
         defaultWorkDays,
         selectedCollaborators,
         selectedTipoIds,
@@ -451,6 +493,7 @@ export default function TransportPayrollLaunchPage() {
         setDefaultWorkDays('0');
         setDefaultVrDaily('0');
         setDefaultVtDaily('0');
+        setDefaultCestaBasica(draftSnapshot.data.defaultCestaBasica ?? '0');
         setEditablePaymentIds(
             draftSnapshot.data.candidates.flatMap((candidate) =>
                 Object.values(candidate.pagamentos_existentes_por_tipo ?? {})
@@ -479,7 +522,29 @@ export default function TransportPayrollLaunchPage() {
         setResumeDialogOpen(false);
     }
 
+    function isTipoBlocked(tipoId: number): boolean {
+        if (selectedTipoIds.includes(tipoId)) {
+            return false;
+        }
+
+        const isSalaryLikeType = salaryLikeTypeSet.has(tipoId);
+
+        if (hasSalaryLikeTypeSelected && !isSalaryLikeType) {
+            return true;
+        }
+
+        if (hasOtherTypeSelected && isSalaryLikeType) {
+            return true;
+        }
+
+        return false;
+    }
+
     function toggleTipo(tipoId: number, checked: boolean): void {
+        if (checked && isTipoBlocked(tipoId)) {
+            return;
+        }
+
         setSelectedTipoIds((previous) => {
             if (checked) {
                 if (previous.includes(tipoId)) return previous;
@@ -767,6 +832,49 @@ export default function TransportPayrollLaunchPage() {
     ]);
 
     useEffect(() => {
+        if (
+            !benefitAutoFillTouched
+            || !hasCestaBasicaAutoFill
+            || selectedTipoIds.length === 0
+            || candidates.length === 0
+        ) {
+            return;
+        }
+
+        const cestaValue = parseMoneyInput(defaultCestaBasica).toFixed(2);
+
+        setValues((previous) => {
+            const next = { ...previous };
+            let changed = false;
+
+            candidates.forEach((candidate) => {
+                if (!selectedCollaborators[candidate.id]) {
+                    return;
+                }
+
+                selectedCestaBasicaTypeIds.forEach((tipoId) => {
+                    const key = valueKey(candidate.id, tipoId);
+
+                    if (next[key] !== cestaValue) {
+                        next[key] = cestaValue;
+                        changed = true;
+                    }
+                });
+            });
+
+            return changed ? next : previous;
+        });
+    }, [
+        benefitAutoFillTouched,
+        candidates,
+        defaultCestaBasica,
+        hasCestaBasicaAutoFill,
+        selectedCollaborators,
+        selectedCestaBasicaTypeIds,
+        selectedTipoIds.length,
+    ]);
+
+    useEffect(() => {
         const wasSelected = previousSalaryAdvanceTypeSelectedRef.current;
 
         if (hasSalaryAdvanceTypeSelected && !wasSelected && candidates.length > 0) {
@@ -1040,13 +1148,18 @@ export default function TransportPayrollLaunchPage() {
                                 {tiposPagamento.map((tipo) => (
                                     <label
                                         key={tipo.id}
-                                        className="flex items-center gap-2 rounded-md border px-3 py-2"
+                                        className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
+                                            isTipoBlocked(tipo.id)
+                                                ? 'cursor-not-allowed bg-muted/60 opacity-60'
+                                                : ''
+                                        }`}
                                     >
                                         <Checkbox
                                             checked={selectedTipoIds.includes(tipo.id)}
                                             onCheckedChange={(checked) =>
                                                 toggleTipo(tipo.id, Boolean(checked))
                                             }
+                                            disabled={isTipoBlocked(tipo.id)}
                                         />
                                         <span className="text-sm">{tipo.nome}</span>
                                     </label>
@@ -1118,6 +1231,7 @@ export default function TransportPayrollLaunchPage() {
                                                         const normalizedTipoName = normalizePaymentName(tipo.nome);
                                                         const isVr = normalizedTipoName.includes('vale refeicao');
                                                         const isVt = normalizedTipoName.includes('vale transporte');
+                                                        const isCestaBasica = normalizedTipoName.includes('cesta basica');
 
                                                         return (
                                                             <th key={`global-field-${tipo.id}`} className="px-2 py-2 text-left">
@@ -1143,6 +1257,19 @@ export default function TransportPayrollLaunchPage() {
                                                                         value={defaultVtDaily}
                                                                         onChange={(event) => {
                                                                             setDefaultVtDaily(event.target.value);
+                                                                            setBenefitAutoFillTouched(true);
+                                                                        }}
+                                                                    />
+                                                                ) : null}
+                                                                {isCestaBasica ? (
+                                                                    <Input
+                                                                        type="text"
+                                                                        inputMode="decimal"
+                                                                        className="font-normal"
+                                                                        title="Valor fixo de Cesta Básica para todos os colaboradores marcados."
+                                                                        value={defaultCestaBasica}
+                                                                        onChange={(event) => {
+                                                                            setDefaultCestaBasica(event.target.value);
                                                                             setBenefitAutoFillTouched(true);
                                                                         }}
                                                                     />

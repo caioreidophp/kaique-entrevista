@@ -34,6 +34,7 @@ interface Desconto {
     colaborador_id: number;
     descricao: string;
     tipo_saida: 'extras' | 'salario' | 'beneficios' | 'direto';
+    tipo_saida_prioridades?: Array<'extras' | 'salario' | 'beneficios'>;
     valor: string;
     parcelado: boolean;
     total_parcelas: number | null;
@@ -83,7 +84,9 @@ interface PaginatedResponse<T> {
 interface DescontoForm {
     colaborador_id: string;
     descricao: string;
-    tipo_saida: 'extras' | 'salario' | 'beneficios' | 'direto';
+    prioridade_1: 'extras' | 'salario' | 'beneficios';
+    prioridade_2: 'none' | 'extras' | 'salario' | 'beneficios';
+    prioridade_3: 'none' | 'extras' | 'salario' | 'beneficios';
     valor: string;
     parcelado: boolean;
     total_parcelas: string;
@@ -120,7 +123,9 @@ interface PensaoForm {
 const emptyDesconto: DescontoForm = {
     colaborador_id: '',
     descricao: '',
-    tipo_saida: 'extras' as const,
+    prioridade_1: 'extras' as const,
+    prioridade_2: 'none',
+    prioridade_3: 'none',
     valor: '',
     parcelado: false,
     total_parcelas: '2',
@@ -236,11 +241,23 @@ export default function TransportPayrollAdjustmentsPage() {
     }
 
     function openEditDesconto(item: Desconto): void {
+        const fallbackPriorities = item.tipo_saida === 'direto'
+            ? ['salario', 'beneficios', 'extras'] as const
+            : [item.tipo_saida].filter((value): value is 'extras' | 'salario' | 'beneficios' =>
+                value === 'extras' || value === 'salario' || value === 'beneficios',
+            );
+
+        const priorities = (item.tipo_saida_prioridades && item.tipo_saida_prioridades.length > 0
+            ? item.tipo_saida_prioridades
+            : fallbackPriorities) as Array<'extras' | 'salario' | 'beneficios'>;
+
         setEditingDesconto(item);
         setDescontoForm({
             colaborador_id: String(item.colaborador_id),
             descricao: item.descricao,
-            tipo_saida: item.tipo_saida,
+            prioridade_1: priorities[0] ?? 'extras',
+            prioridade_2: priorities[1] ?? 'none',
+            prioridade_3: priorities[2] ?? 'none',
             valor: String(item.valor),
             parcelado: item.parcelado,
             total_parcelas: String(item.total_parcelas ?? 2),
@@ -303,10 +320,19 @@ export default function TransportPayrollAdjustmentsPage() {
         setSaving(true);
         setNotification(null);
 
+        const priorities = [
+            descontoForm.prioridade_1,
+            descontoForm.prioridade_2,
+            descontoForm.prioridade_3,
+        ].filter((value): value is 'extras' | 'salario' | 'beneficios' => value !== 'none');
+
+        const uniquePriorities = Array.from(new Set(priorities));
+
         const payload = {
             colaborador_id: Number(descontoForm.colaborador_id),
             descricao: descontoForm.descricao.trim(),
-            tipo_saida: descontoForm.tipo_saida,
+            tipo_saida: uniquePriorities[0],
+            tipo_saida_prioridades: uniquePriorities,
             forma_pagamento: 'desconto_folha',
             valor: descontoForm.valor,
             parcelado: descontoForm.parcelado,
@@ -511,7 +537,9 @@ export default function TransportPayrollAdjustmentsPage() {
                                                         {item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '-'}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.tipo_saida} | {formatCurrencyBR(item.valor)}
+                                                        {(item.tipo_saida_prioridades && item.tipo_saida_prioridades.length > 0
+                                                            ? item.tipo_saida_prioridades.join(' → ')
+                                                            : item.tipo_saida)} | {formatCurrencyBR(item.valor)}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -672,11 +700,11 @@ export default function TransportPayrollAdjustmentsPage() {
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label>Tipo *</Label>
+                                <Label>Prioridade 1 *</Label>
                                 <Select
-                                    value={descontoForm.tipo_saida}
-                                    onValueChange={(value: typeof descontoForm.tipo_saida) =>
-                                        setDescontoForm((previous) => ({ ...previous, tipo_saida: value }))
+                                    value={descontoForm.prioridade_1}
+                                    onValueChange={(value: typeof descontoForm.prioridade_1) =>
+                                        setDescontoForm((previous) => ({ ...previous, prioridade_1: value }))
                                     }
                                 >
                                     <SelectTrigger>
@@ -686,7 +714,46 @@ export default function TransportPayrollAdjustmentsPage() {
                                         <SelectItem value="extras">Extras</SelectItem>
                                         <SelectItem value="salario">Salário mensal</SelectItem>
                                         <SelectItem value="beneficios">Benefícios</SelectItem>
-                                        <SelectItem value="direto">Desconto direto</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Prioridade 2 (opcional)</Label>
+                                <Select
+                                    value={descontoForm.prioridade_2}
+                                    onValueChange={(value: typeof descontoForm.prioridade_2) =>
+                                        setDescontoForm((previous) => ({ ...previous, prioridade_2: value }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sem prioridade 2" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Sem prioridade 2</SelectItem>
+                                        <SelectItem value="extras">Extras</SelectItem>
+                                        <SelectItem value="salario">Salário mensal</SelectItem>
+                                        <SelectItem value="beneficios">Benefícios</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Prioridade 3 (opcional)</Label>
+                                <Select
+                                    value={descontoForm.prioridade_3}
+                                    onValueChange={(value: typeof descontoForm.prioridade_3) =>
+                                        setDescontoForm((previous) => ({ ...previous, prioridade_3: value }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sem prioridade 3" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Sem prioridade 3</SelectItem>
+                                        <SelectItem value="extras">Extras</SelectItem>
+                                        <SelectItem value="salario">Salário mensal</SelectItem>
+                                        <SelectItem value="beneficios">Benefícios</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

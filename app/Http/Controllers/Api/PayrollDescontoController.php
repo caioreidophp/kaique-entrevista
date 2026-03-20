@@ -35,9 +35,21 @@ class PayrollDescontoController extends Controller
 
         $data = $request->validated();
         $colaborador = Colaborador::query()->whereKey((int) $data['colaborador_id'])->firstOrFail();
+        $priorities = collect((array) ($data['tipo_saida_prioridades'] ?? []))
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => $item !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($priorities) === 0 && isset($data['tipo_saida'])) {
+            $priorities = [(string) $data['tipo_saida']];
+        }
 
         $desconto = DescontoColaborador::query()->create([
             ...$data,
+            'tipo_saida' => (string) ($priorities[0] ?? $data['tipo_saida']),
+            'tipo_saida_prioridades' => $priorities,
             'unidade_id' => (int) $colaborador->unidade_id,
             'autor_id' => (int) $request->user()->id,
             'total_parcelas' => ($data['parcelado'] ?? false) ? ($data['total_parcelas'] ?? null) : null,
@@ -59,9 +71,21 @@ class PayrollDescontoController extends Controller
 
         $data = $request->validated();
         $colaborador = Colaborador::query()->whereKey((int) $data['colaborador_id'])->firstOrFail();
+        $priorities = collect((array) ($data['tipo_saida_prioridades'] ?? []))
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => $item !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($priorities) === 0 && isset($data['tipo_saida'])) {
+            $priorities = [(string) $data['tipo_saida']];
+        }
 
         $desconto->update([
             ...$data,
+            'tipo_saida' => (string) ($priorities[0] ?? $data['tipo_saida']),
+            'tipo_saida_prioridades' => $priorities,
             'unidade_id' => (int) $colaborador->unidade_id,
             'total_parcelas' => ($data['parcelado'] ?? false) ? ($data['total_parcelas'] ?? null) : null,
             'parcela_atual' => ($data['parcelado'] ?? false) ? ($data['parcela_atual'] ?? 1) : null,

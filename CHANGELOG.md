@@ -40,6 +40,10 @@
 - Cadastro de Colaboradores passou a abrir com filtro padrão `Ativos` e converte automaticamente preferência legada `Todos` para `Ativos`.
 - Listas de Fretes e Pagamentos receberam exportação direta em `XLSX` com novos endpoints de download.
 - A coluna de ações em Pagamentos foi compactada para ícones (visualizar/editar/imprimir/excluir), reduzindo poluição visual em telas com muitos lançamentos.
+- Lançar Pagamentos agora bloqueia combinações entre tipos salariais (`Adiantamento`, `Décimo Terceiro`, `Salário Mensal`) e tipos de benefícios/extras no mesmo lançamento, com desabilitação visual dos grupos conflitantes.
+- Ao selecionar `Cesta Básica` no lançamento, a tabela exibe campo global no topo da coluna para aplicar valor fixo automaticamente em todos os colaboradores marcados.
+- Descontos de Folha passaram a suportar prioridades múltiplas de aplicação (`prioridade 1`, `2`, `3`) por colaborador, com consumo sequencial por tipo e suporte a acúmulo quando a prioridade disponível no mês não cobre a parcela.
+- Na Lista de Pagamentos, somente o botão de imprimir permanece em verde; visualizar/editar foram normalizados para preto.
 
 ### Painel de Folha
 

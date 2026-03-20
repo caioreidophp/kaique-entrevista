@@ -12,6 +12,24 @@ class StoreDescontoColaboradorRequest extends FormRequest
         if ($this->filled('valor')) {
             $this->merge(['valor' => $this->normalizeDecimalInput($this->input('valor'))]);
         }
+
+        $priorities = collect((array) $this->input('tipo_saida_prioridades', []))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter(fn ($item) => $item !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($priorities) === 0 && $this->filled('tipo_saida')) {
+            $priorities = [(string) $this->input('tipo_saida')];
+        }
+
+        if (count($priorities) > 0) {
+            $this->merge([
+                'tipo_saida_prioridades' => $priorities,
+                'tipo_saida' => $priorities[0],
+            ]);
+        }
     }
 
     private function normalizeDecimalInput(mixed $value): string
@@ -49,6 +67,8 @@ class StoreDescontoColaboradorRequest extends FormRequest
             'colaborador_id' => ['required', 'integer', 'exists:colaboradores,id'],
             'descricao' => ['required', 'string', 'max:255'],
             'tipo_saida' => ['required', Rule::in(['extras', 'salario', 'beneficios', 'direto'])],
+            'tipo_saida_prioridades' => ['nullable', 'array', 'min:1', 'max:3'],
+            'tipo_saida_prioridades.*' => ['required', Rule::in(['extras', 'salario', 'beneficios']), 'distinct'],
             'forma_pagamento' => ['required', Rule::in(['dinheiro', 'pix', 'desconto_folha'])],
             'valor' => ['required', 'numeric', 'min:0.01'],
             'parcelado' => ['required', 'boolean'],
