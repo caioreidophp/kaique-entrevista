@@ -7,6 +7,7 @@ export interface TransportAuthUser {
     name: string;
     email: string;
     role: 'master_admin' | 'admin' | 'usuario';
+    permissions: Record<string, boolean>;
 }
 
 let inMemoryUser: TransportAuthUser | null = null;

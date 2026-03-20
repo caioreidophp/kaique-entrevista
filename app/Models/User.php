@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\RolePermissionCatalog;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -67,6 +68,15 @@ class User extends Authenticatable
     public function isUsuario(): bool
     {
         return $this->role === 'usuario';
+    }
+
+    public function hasPermission(string $permissionKey): bool
+    {
+        if ($this->isMasterAdmin()) {
+            return true;
+        }
+
+        return RolePermissionCatalog::isAllowed((string) $this->role, $permissionKey);
     }
 
     public function interviews(): HasMany

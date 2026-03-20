@@ -9,12 +9,16 @@ class DriverInterviewPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isMasterAdmin() || $user->isAdmin() || $user->isUsuario();
+        return $user->hasPermission('interviews.list');
     }
 
     public function view(User $user, DriverInterview $driverInterview): bool
     {
-        if ($user->isMasterAdmin()) {
+        if (! $user->hasPermission('interviews.list')) {
+            return false;
+        }
+
+        if ($user->hasPermission('visibility.interviews.other-authors')) {
             return true;
         }
 
@@ -23,12 +27,16 @@ class DriverInterviewPolicy
 
     public function create(User $user): bool
     {
-        return $user->isMasterAdmin() || $user->isAdmin() || $user->isUsuario();
+        return $user->hasPermission('interviews.create');
     }
 
     public function update(User $user, DriverInterview $driverInterview): bool
     {
-        if ($user->isMasterAdmin()) {
+        if (! $user->hasPermission('interviews.update')) {
+            return false;
+        }
+
+        if ($user->hasPermission('visibility.interviews.other-authors')) {
             return true;
         }
 
@@ -37,7 +45,11 @@ class DriverInterviewPolicy
 
     public function delete(User $user, DriverInterview $driverInterview): bool
     {
-        if ($user->isMasterAdmin()) {
+        if (! $user->hasPermission('interviews.delete')) {
+            return false;
+        }
+
+        if ($user->hasPermission('visibility.interviews.other-authors')) {
             return true;
         }
 
@@ -46,7 +58,11 @@ class DriverInterviewPolicy
 
     public function print(User $user, DriverInterview $driverInterview): bool
     {
-        if ($user->isMasterAdmin()) {
+        if (! $user->hasPermission('interviews.pdf')) {
+            return false;
+        }
+
+        if ($user->hasPermission('visibility.interviews.other-authors')) {
             return true;
         }
 

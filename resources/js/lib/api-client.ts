@@ -41,16 +41,6 @@ const cacheableGetPaths = [
     '/settings/two-factor',
 ];
 
-const criticalActionFragments = [
-    '/import',
-    '/bulk',
-    '/bill',
-    '/unbill',
-    '/backup',
-    '/settings/password',
-    '/registry/users',
-];
-
 function shouldCacheGet(path: string): boolean {
     return cacheableGetPaths.some((candidate) => path.startsWith(candidate));
 }
@@ -83,58 +73,6 @@ function setCachedGet(path: string, value: unknown): void {
 
 function invalidateGetCache(): void {
     getCache.clear();
-}
-
-function isCriticalAction(method: RequestConfig['method'], path: string): boolean {
-    if (!method || method === 'GET') return false;
-
-    return criticalActionFragments.some((fragment) => path.includes(fragment));
-}
-
-function hasRecentCriticalConfirmation(): boolean {
-    if (typeof window === 'undefined') return true;
-
-    const raw = window.sessionStorage.getItem('transport.critical-confirmed-at');
-    const value = raw ? Number(raw) : 0;
-
-    if (!Number.isFinite(value) || value <= 0) {
-        return false;
-    }
-
-    return Date.now() - value < 5 * 60_000;
-}
-
-function markCriticalConfirmation(): void {
-    if (typeof window === 'undefined') return;
-
-    window.sessionStorage.setItem(
-        'transport.critical-confirmed-at',
-        String(Date.now()),
-    );
-}
-
-function ensureCriticalActionConfirmation(method: RequestConfig['method'], path: string): boolean {
-    if (!isCriticalAction(method, path)) {
-        return true;
-    }
-
-    if (hasRecentCriticalConfirmation()) {
-        return true;
-    }
-
-    if (typeof window === 'undefined') {
-        return true;
-    }
-
-    const confirmed = window.confirm(
-        'Ação crítica detectada. Confirma continuar com esta operação?',
-    );
-
-    if (confirmed) {
-        markCriticalConfirmation();
-    }
-
-    return confirmed;
 }
 
 function normalizeApiErrorMessage(message?: string): string {
@@ -197,10 +135,6 @@ async function request<T>(
 ): Promise<T> {
     const { method = 'GET', body, auth = true } = config;
 
-    if (!ensureCriticalActionConfirmation(method, path)) {
-        throw new ApiError(400, 'Ação crítica cancelada pelo usuário.');
-    }
-
     if (method === 'GET' && shouldCacheGet(path)) {
         const cached = getCachedGet<T>(path);
 
@@ -229,10 +163,6 @@ async function request<T>(
         }
 
         headers.Authorization = `Bearer ${token}`;
-    }
-
-    if (isCriticalAction(method, path)) {
-        headers['X-Confirm-Action'] = 'yes';
     }
 
     const response = await fetch(`${API_BASE}${path}`, {

@@ -38,6 +38,10 @@ class DriverInterviewController extends Controller
             ->with(['author:id,name,email', 'hiringUnidade:id,nome,slug'])
             ->latest('id');
 
+        if (! $request->user()->hasPermission('visibility.interviews.other-authors')) {
+            $query->where('author_id', $request->user()->id);
+        }
+
         if ($request->filled('name')) {
             $name = (string) $request->string('name');
             $query->where('full_name', 'like', "%{$name}%");
@@ -47,7 +51,7 @@ class DriverInterviewController extends Controller
             $query->where('hr_status', (string) $request->string('status'));
         }
 
-        if ($request->filled('author_id') && $request->user()->isMasterAdmin()) {
+        if ($request->filled('author_id') && $request->user()->hasPermission('visibility.interviews.other-authors')) {
             $query->where('author_id', (int) $request->integer('author_id'));
         }
 

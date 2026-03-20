@@ -3,7 +3,6 @@
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogSensitiveApiActions;
-use App\Http\Middleware\RequireCriticalActionConfirmation;
 use App\Http\Middleware\SetRequestContext;
 use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -20,10 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);
-
-        $middleware->api(append: [
-            RequireCriticalActionConfirmation::class,
-        ]);
 
         if ((bool) env('TRANSPORT_FEATURE_SECURITY_HEADERS', true)) {
             $middleware->append(SetSecurityHeaders::class);

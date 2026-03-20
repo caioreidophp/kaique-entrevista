@@ -26,6 +26,7 @@ interface LoginResponse {
         name: string;
         email: string;
         role: 'master_admin' | 'admin' | 'usuario';
+        permissions: Record<string, boolean>;
     };
 }
 
