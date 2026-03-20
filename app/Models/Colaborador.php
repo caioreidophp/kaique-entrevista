@@ -27,6 +27,7 @@ class Colaborador extends Model
         'apelido',
         'sexo',
         'ativo',
+        'adiantamento_salarial',
         'cpf',
         'rg',
         'cnh',
@@ -75,6 +76,7 @@ class Colaborador extends Model
     {
         return [
             'ativo' => 'boolean',
+            'adiantamento_salarial' => 'boolean',
             'validade_cnh' => 'date',
             'validade_exame_toxicologico' => 'date',
             'data_nascimento' => 'date',

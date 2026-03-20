@@ -22,6 +22,11 @@
 - Layout administrativo passou a ouvir eventos globais de erro da API e exibir feedback padronizado em toast sem depender de implementação manual em cada tela.
 - Criado comando operacional `php artisan transport:cleanup-simulation` (com `--dry-run`) para limpeza repetível de dados de simulação e órfãos em ambiente operacional.
 - Componente de notificação recebeu melhoria de acessibilidade no botão de fechar com destaque de foco via teclado (`focus-visible`).
+- Limpeza manual complementar removeu resíduos de simulação no cadastro (funções, tipos de pagamento e registros auxiliares com nome de teste) para impedir poluição visual/operacional.
+- Lançar Fretes passou a converter corretamente campos inteiros com milhar em formato pt-BR (ex.: `242.666`), evitando perda de escala na lista de fretes.
+- Cadastro de Colaboradores recebeu novo campo `Adiantamento Salarial (S/N)` com persistência completa em banco e edição rápida no perfil.
+- Lançar Pagamentos passou a auto-marcar colaboradores com `Adiantamento Salarial = S` quando tipo de pagamento de adiantamento é selecionado, mantendo edição manual livre da seleção.
+- Pendências (`/transport/pendencias`) agora exibe explicação curta em cada card para facilitar leitura operacional sem ambiguidade.
 
 ### Painel de Folha
 

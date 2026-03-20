@@ -74,6 +74,7 @@ interface Colaborador {
     apelido: string | null;
     sexo: string | null;
     ativo: boolean;
+    adiantamento_salarial: boolean;
     cpf: string;
     rg: string | null;
     cnh: string | null;
@@ -133,6 +134,7 @@ interface ColaboradorFormData {
     apelido: string;
     sexo: string;
     ativo: boolean;
+    adiantamento_salarial: boolean;
     cpf: string;
     rg: string;
     cnh: string;
@@ -223,6 +225,7 @@ const emptyForm: ColaboradorFormData = {
     apelido: '',
     sexo: '',
     ativo: true,
+    adiantamento_salarial: false,
     cpf: '',
     rg: '',
     cnh: '',
@@ -264,6 +267,7 @@ function collaboratorToFormData(item: Colaborador): ColaboradorFormData {
         apelido: item.apelido ?? '',
         sexo: item.sexo ?? '',
         ativo: item.ativo,
+        adiantamento_salarial: item.adiantamento_salarial,
         cpf: formatCpf(item.cpf),
         rg: sanitizeRg(item.rg ?? ''),
         cnh: sanitizeCnh(item.cnh ?? ''),
@@ -824,6 +828,7 @@ export default function TransportRegistryCollaboratorsPage() {
             apelido: normalizeNullable(source.apelido),
             sexo: normalizeNullable(source.sexo),
             ativo: source.ativo,
+            adiantamento_salarial: source.adiantamento_salarial,
             cpf: sanitizedCpf,
             rg: sanitizedRg !== '' ? sanitizedRg : null,
             cnh: sanitizedCnh !== '' ? sanitizedCnh : null,
@@ -889,7 +894,8 @@ export default function TransportRegistryCollaboratorsPage() {
         const nextFormData: ColaboradorFormData = {
             ...formData,
             [quickEditField]:
-                quickEditField === 'ativo'
+                quickEditField === 'ativo' ||
+                quickEditField === 'adiantamento_salarial'
                     ? quickEditValue === '1'
                     : quickEditValue,
         } as ColaboradorFormData;
@@ -1707,7 +1713,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-3">
+                            <div className="grid gap-3 md:grid-cols-4">
                                 <div className="space-y-2">
                                     <Label>Unidade *</Label>
                                     <Select
@@ -1783,6 +1789,27 @@ export default function TransportRegistryCollaboratorsPage() {
                                             <SelectItem value="0">
                                                 Inativo
                                             </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Adiantamento Salarial (S/N)</Label>
+                                    <Select
+                                        value={formData.adiantamento_salarial ? '1' : '0'}
+                                        onValueChange={(value) =>
+                                            setFormData((previous) => ({
+                                                ...previous,
+                                                adiantamento_salarial: value === '1',
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1">S</SelectItem>
+                                            <SelectItem value="0">N</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -2567,7 +2594,7 @@ export default function TransportRegistryCollaboratorsPage() {
                                             </div>
                                         </div>
 
-                                        <div className="grid gap-3 md:grid-cols-4">
+                                        <div className="grid gap-3 md:grid-cols-5">
                                             <div
                                                 className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
                                                 onDoubleClick={() =>
@@ -2596,6 +2623,36 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     {detailsItem.ativo
                                                         ? 'Sim'
                                                         : 'Não'}
+                                                </p>
+                                            </div>
+                                            <div
+                                                className="cursor-pointer rounded-lg border bg-background p-3 transition-colors hover:bg-muted/40"
+                                                onDoubleClick={() =>
+                                                    openQuickEdit(
+                                                        'adiantamento_salarial',
+                                                        'Adiantamento Salarial',
+                                                        'select',
+                                                        [
+                                                            {
+                                                                value: '1',
+                                                                label: 'S',
+                                                            },
+                                                            {
+                                                                value: '0',
+                                                                label: 'N',
+                                                            },
+                                                        ],
+                                                    )
+                                                }
+                                                title="Dê dois cliques para editar"
+                                            >
+                                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                                    Adiantamento Salarial
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {detailsItem.adiantamento_salarial
+                                                        ? 'S'
+                                                        : 'N'}
                                                 </p>
                                             </div>
                                             <div

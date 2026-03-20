@@ -40,6 +40,7 @@ class StoreColaboradorRequest extends FormRequest
             'apelido' => ['nullable', 'string', 'max:255'],
             'sexo' => ['nullable', Rule::in(['M', 'F'])],
             'ativo' => ['required', 'boolean'],
+            'adiantamento_salarial' => ['nullable', 'boolean'],
             'cpf' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/', 'unique:colaboradores,cpf'],
             'rg' => ['nullable', 'string', 'max:30', 'regex:/^[0-9A-Z]+$/'],
             'cnh' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],

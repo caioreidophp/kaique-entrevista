@@ -46,6 +46,7 @@ interface LaunchCandidate {
     id: number;
     nome: string;
     cpf: string;
+    adiantamento_salarial: boolean;
     unidade?: Unidade;
     pagamentos_existentes_por_tipo: Record<
         string,
@@ -181,6 +182,7 @@ export default function TransportPayrollLaunchPage() {
     const [draftResolved, setDraftResolved] = useState(false);
     const [skipNextAutoLoad, setSkipNextAutoLoad] = useState(false);
     const valueInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+    const previousSalaryAdvanceTypeSelectedRef = useRef(false);
 
     const selectedTipos = useMemo(
         () =>
@@ -190,6 +192,11 @@ export default function TransportPayrollLaunchPage() {
 
     const hasSalaryTypeSelected = useMemo(
         () => selectedTipos.some((tipo) => tipo.categoria === 'salario'),
+        [selectedTipos],
+    );
+
+    const hasSalaryAdvanceTypeSelected = useMemo(
+        () => selectedTipos.some((tipo) => normalizePaymentName(tipo.nome).includes('adiantamento')),
         [selectedTipos],
     );
 
@@ -745,6 +752,33 @@ export default function TransportPayrollLaunchPage() {
         workDaysByCollaborator,
     ]);
 
+    useEffect(() => {
+        const wasSelected = previousSalaryAdvanceTypeSelectedRef.current;
+
+        if (hasSalaryAdvanceTypeSelected && !wasSelected && candidates.length > 0) {
+            setSelectedCollaborators((previous) => {
+                const next = { ...previous };
+
+                candidates.forEach((candidate) => {
+                    if (candidate.adiantamento_salarial) {
+                        next[candidate.id] = true;
+                    } else if (!(candidate.id in next)) {
+                        next[candidate.id] = false;
+                    }
+                });
+
+                return next;
+            });
+
+            setNotification({
+                message: 'Adiantamento selecionado: colaboradores com Adiantamento Salarial = S foram marcados automaticamente.',
+                variant: 'info',
+            });
+        }
+
+        previousSalaryAdvanceTypeSelectedRef.current = hasSalaryAdvanceTypeSelected;
+    }, [hasSalaryAdvanceTypeSelected, candidates]);
+
     async function handleLaunch(): Promise<void> {
         const pagamentos = candidates.map((item) => {
             const valoresPorTipo: Record<string, string> = {};
@@ -1152,6 +1186,7 @@ export default function TransportPayrollLaunchPage() {
                                                         <td className="px-2 py-2">
                                                             <p className="font-medium">{item.nome}</p>
                                                             <p className="text-xs text-muted-foreground">CPF: {item.cpf}</p>
+                                                            <p className="text-xs text-muted-foreground">Adiantamento Salarial: {item.adiantamento_salarial ? 'S' : 'N'}</p>
                                                         </td>
                                                         {hasBenefitDailyAutoFill ? (
                                                             <td className="px-2 py-2">

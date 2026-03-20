@@ -174,6 +174,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Componente de notificação recebeu refinamento de acessibilidade no botão de fechar com foco visível via teclado, mantendo padrão UX sem regressão visual.',
                         ],
                     },
+                    {
+                        title: 'Ajustes operacionais finais: limpeza de simulação, aves em milhar, adiantamento salarial e cards de pendências com explicação',
+                        details: [
+                            'Registros de simulação remanescentes foram removidos do banco (funções, tipos de pagamento e cadastros auxiliares com nome de teste), eliminando itens indevidos na operação diária.',
+                            'Lançar Fretes passou a interpretar corretamente entradas com separador de milhar em campos inteiros (ex.: `242.666`), evitando truncamento para `242` na lista de fretes.',
+                            'Perfil de colaborador ganhou campo `Adiantamento Salarial (S/N)` com persistência no cadastro e edição rápida no perfil, permitindo controle direto por pessoa.',
+                            'No Lançar Pagamentos, ao selecionar tipo de pagamento com `adiantamento`, colaboradores com flag `S` são marcados automaticamente, mantendo liberdade para remover/adicionar manualmente.',
+                            'Tela de Pendências recebeu descrição curta em cada card para explicar objetivamente o significado de cada indicador, no mesmo padrão de ajuda contextual da Home.',
+                        ],
+                    },
                 ],
             },
             {

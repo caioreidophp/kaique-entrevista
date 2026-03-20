@@ -27,11 +27,20 @@ interface PendingInsightsResponse {
     };
 }
 
-function PendingCard({ title, value }: { title: string; value: number }) {
+function PendingCard({
+    title,
+    description,
+    value,
+}: {
+    title: string;
+    description: string;
+    value: number;
+}) {
     return (
         <Card>
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+                <p className="text-xs text-muted-foreground">{description}</p>
             </CardHeader>
             <CardContent>
                 <p className="text-2xl font-semibold">{formatIntegerBR(value)}</p>
@@ -93,12 +102,36 @@ export default function TransportOperationsHubPage() {
                         </Card>
 
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            <PendingCard title="Entrevistas pendentes" value={data.interviews.total} />
-                            <PendingCard title="Férias vencidas" value={data.vacations.expired} />
-                            <PendingCard title="Férias até 2 meses" value={data.vacations.due_2_months} />
-                            <PendingCard title="Cargas a receber" value={data.freight.canceled_to_receive} />
-                            <PendingCard title="Folha sem lançamento" value={data.payroll.pending_collaborators} />
-                            <PendingCard title="GUEP a fazer" value={data.interviews.guep_to_do} />
+                            <PendingCard
+                                title="Entrevistas pendentes"
+                                description="Candidatos aguardando avanço de etapa no funil de entrevistas."
+                                value={data.interviews.total}
+                            />
+                            <PendingCard
+                                title="Férias vencidas"
+                                description="Períodos de férias já vencidos e ainda não lançados."
+                                value={data.vacations.expired}
+                            />
+                            <PendingCard
+                                title="Férias até 2 meses"
+                                description="Colaboradores que entram na janela próxima para programação de férias."
+                                value={data.vacations.due_2_months}
+                            />
+                            <PendingCard
+                                title="Cargas a receber"
+                                description="Cargas canceladas aguardando faturamento/recebimento."
+                                value={data.freight.canceled_to_receive}
+                            />
+                            <PendingCard
+                                title="Folha sem lançamento"
+                                description="Colaboradores ativos sem pagamento lançado na competência atual."
+                                value={data.payroll.pending_collaborators}
+                            />
+                            <PendingCard
+                                title="GUEP a fazer"
+                                description="Entrevistas com status de GUEP ainda pendente de execução."
+                                value={data.interviews.guep_to_do}
+                            />
                         </div>
                     </>
                 ) : null}

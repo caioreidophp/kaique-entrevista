@@ -196,6 +196,7 @@ class PayrollController extends Controller
                     'id' => $colaborador->id,
                     'nome' => $colaborador->nome,
                     'cpf' => $colaborador->cpf,
+                    'adiantamento_salarial' => (bool) $colaborador->adiantamento_salarial,
                     'unidade_id' => $colaborador->unidade_id,
                     'unidade' => $colaborador->unidade,
                     'pagamentos_existentes_por_tipo' => $existingByType?->toArray() ?? [],

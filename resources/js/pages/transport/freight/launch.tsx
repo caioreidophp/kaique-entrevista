@@ -234,6 +234,12 @@ function toNumberOrZero(value: string): number {
 }
 
 function toIntegerOrZero(value: string): number {
+    const onlyDigits = value.replace(/\D/g, '');
+
+    if (onlyDigits !== '') {
+        return Number(onlyDigits);
+    }
+
     const normalized = toNumberSafe(value);
 
     if (!Number.isFinite(normalized) || normalized <= 0) {
