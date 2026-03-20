@@ -164,7 +164,7 @@ export default function TransportPayrollLaunchPage() {
     >({});
     const [values, setValues] = useState<Record<string, string>>({});
     const [pensionValues, setPensionValues] = useState<Record<string, string>>({});
-    const [editablePaymentIds, setEditablePaymentIds] = useState<number[]>([]);
+    const [, setEditablePaymentIds] = useState<number[]>([]);
     const [defaultWorkDays, setDefaultWorkDays] = useState('0');
     const [defaultVrDaily, setDefaultVrDaily] = useState('0');
     const [defaultVtDaily, setDefaultVtDaily] = useState('0');
@@ -201,11 +201,6 @@ export default function TransportPayrollLaunchPage() {
     const hasSalaryAdvanceTypeSelected = useMemo(
         () => selectedTipos.some((tipo) => normalizePaymentName(tipo.nome).includes('adiantamento')),
         [selectedTipos],
-    );
-
-    const editablePaymentIdSet = useMemo(
-        () => new Set(editablePaymentIds),
-        [editablePaymentIds],
     );
 
     const selectedValeRefeicaoTypeIds = useMemo(
@@ -265,6 +260,7 @@ export default function TransportPayrollLaunchPage() {
     const hasValeTransporteSelected = selectedValeTransporteTypeIds.length > 0;
     const hasBenefitDailyAutoFill = hasValeRefeicaoSelected || hasValeTransporteSelected;
     const hasCestaBasicaAutoFill = selectedCestaBasicaTypeIds.length > 0;
+    const hasGlobalTopAutoFill = hasBenefitDailyAutoFill || hasCestaBasicaAutoFill;
 
     const allChecked =
         candidates.length > 0 &&
@@ -282,24 +278,6 @@ export default function TransportPayrollLaunchPage() {
 
         return items;
     }, [candidates, nameSortDirection]);
-
-    function buildInitialValuesFromExisting(data: LaunchCandidate[]): Record<string, string> {
-        const initialValues: Record<string, string> = {};
-
-        data.forEach((candidate) => {
-            selectedTipoIds.forEach((tipoId) => {
-                const existing = candidate.pagamentos_existentes_por_tipo[String(tipoId)];
-
-                if (!existing) {
-                    return;
-                }
-
-                initialValues[valueKey(candidate.id, tipoId)] = Number(existing.valor ?? 0).toFixed(2);
-            });
-        });
-
-        return initialValues;
-    }
 
     async function loadUnidades(): Promise<void> {
         setLoading(true);
@@ -351,7 +329,7 @@ export default function TransportPayrollLaunchPage() {
             );
             setCandidates(response.data);
             setSelectedCollaborators({});
-            setValues(buildInitialValuesFromExisting(response.data));
+            setValues({});
             setPensionValues({});
             setEditablePaymentIds([]);
             setWorkDaysByCollaborator(
@@ -1204,7 +1182,7 @@ export default function TransportPayrollLaunchPage() {
                                 <div className="overflow-x-auto rounded-md border">
                                     <table className="w-full min-w-[760px] text-sm">
                                         <thead className="bg-muted/40">
-                                            {hasBenefitDailyAutoFill ? (
+                                            {hasGlobalTopAutoFill ? (
                                                 <tr>
                                                     <th className="w-[40px] px-2 py-2 text-left" />
                                                     <th className="px-2 py-2 text-left" />
@@ -1373,7 +1351,6 @@ export default function TransportPayrollLaunchPage() {
                                                         ) : null}
                                                         <td className="px-2 py-2">{item.unidade?.nome ?? '-'}</td>
                                                         {selectedTipos.map((tipo) => {
-                                                            const existing = item.pagamentos_existentes_por_tipo[String(tipo.id)];
                                                             const key = valueKey(item.id, tipo.id);
 
                                                             return (
@@ -1405,11 +1382,7 @@ export default function TransportPayrollLaunchPage() {
                                                                             handleArrowNavigation(event, key);
                                                                         }}
                                                                         disabled={
-                                                                            !selectedCollaborators[item.id] ||
-                                                                            (Boolean(existing) &&
-                                                                                !editablePaymentIdSet.has(
-                                                                                    Number(existing?.id ?? 0),
-                                                                                ))
+                                                                            !selectedCollaborators[item.id]
                                                                         }
                                                                         placeholder="0,00"
                                                                     />

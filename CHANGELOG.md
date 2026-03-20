@@ -44,6 +44,8 @@
 - Ao selecionar `Cesta Básica` no lançamento, a tabela exibe campo global no topo da coluna para aplicar valor fixo automaticamente em todos os colaboradores marcados.
 - Descontos de Folha passaram a suportar prioridades múltiplas de aplicação (`prioridade 1`, `2`, `3`) por colaborador, com consumo sequencial por tipo e suporte a acúmulo quando a prioridade disponível no mês não cobre a parcela.
 - Na Lista de Pagamentos, somente o botão de imprimir permanece em verde; visualizar/editar foram normalizados para preto.
+- Corrigido bug no Lançar Pagamentos em que alguns valores eram exibidos/travados sem interação do usuário ao carregar colaboradores; a grade volta a iniciar sem auto-preenchimento indevido.
+- Campo global de valor da `Cesta Básica` passou a aparecer corretamente no topo da tabela sempre que o tipo estiver selecionado, mesmo sem VR/VT ativos.
 
 ### Painel de Folha
 
