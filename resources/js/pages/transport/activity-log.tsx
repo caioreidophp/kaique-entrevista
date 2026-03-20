@@ -142,6 +142,14 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Atualização de permissões agora incrementa versão de cache para forçar refresh rápido dos painéis da Home após mudanças de acesso.',
                         ],
                     },
+                    {
+                        title: 'Correção global de toast persistente + limpeza de dados de simulação',
+                        details: [
+                            'Componente compartilhado de notificação recebeu auto-fechamento padrão (5s) e botão de fechar, evitando mensagens presas em qualquer tela que use o mesmo toast.',
+                            'Foi removida a unidade de simulação criada para testes e também os registros órfãos associados, eliminando lixo operacional visível no cadastro.',
+                            'Ajuste foi aplicado de forma centralizada no componente, cobrindo páginas de Cadastro, Fretes, Folha, Férias, Entrevistas e Onboarding sem precisar alterar cada fluxo manualmente.',
+                        ],
+                    },
                 ],
             },
             {

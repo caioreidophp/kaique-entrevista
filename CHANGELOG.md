@@ -15,6 +15,8 @@
 - Hardening de segurança adicionado com middleware `MonitorSuspiciousApiActivity`, detectando rajadas de 401/403/419 e aplicando bloqueio temporário por IP em abuso de API.
 - Performance otimizada com cache curto da Home por fingerprint de permissões/período e cache de permissões por cargo no `RolePermissionCatalog` com invalidação automática.
 - Atualização de permissões por função agora incrementa versão global de cache para refletir rapidamente mudanças de acesso na Home sem depender de expiração longa.
+- Toast compartilhado (`Notification`) passou a auto-fechar por padrão em 5s e ganhou ação de fechar manualmente, corrigindo casos de mensagem fixa na tela após operações concluídas.
+- Limpeza de dados de simulação executada no banco: unidade/cadastro temporários removidos e descontos órfãos relacionados excluídos para manter base operacional consistente.
 
 ### Painel de Folha
 
