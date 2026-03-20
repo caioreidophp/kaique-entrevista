@@ -378,7 +378,7 @@ class FreightApiTest extends TestCase
 
     private function buildKaiqueSpreadsheetBinary(string $unitName): string
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         $sheet->setCellValue('A1', 'DATA');

@@ -7,15 +7,15 @@ use App\Http\Requests\ImportAviariosSpreadsheetRequest;
 use App\Http\Requests\StoreAviarioRequest;
 use App\Http\Requests\UpdateAviarioRequest;
 use App\Models\Aviario;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AviarioController extends Controller
 {
@@ -187,6 +187,7 @@ class AviarioController extends Controller
                         'tipo' => 'campos_obrigatorios',
                         'erro' => 'Nome e cidade são obrigatórios.',
                     ];
+
                     continue;
                 }
 
@@ -207,6 +208,7 @@ class AviarioController extends Controller
                             'erro' => 'KM inválido.',
                             'km' => $kmRaw,
                         ];
+
                         continue;
                     }
 
@@ -219,6 +221,7 @@ class AviarioController extends Controller
                             'erro' => 'KM não pode ser negativo.',
                             'km' => $kmRaw,
                         ];
+
                         continue;
                     }
                 }
@@ -231,6 +234,7 @@ class AviarioController extends Controller
                         'tipo' => 'duplicado_planilha',
                         'erro' => 'Aviário duplicado na planilha (nome + cidade).',
                     ];
+
                     continue;
                 }
 
@@ -248,6 +252,7 @@ class AviarioController extends Controller
                         'tipo' => 'duplicado_sistema',
                         'erro' => 'Aviário já existe no sistema (nome + cidade).',
                     ];
+
                     continue;
                 }
 

@@ -73,7 +73,7 @@ class TransportSettingsController extends Controller
             }
 
             $zipPath = $backupDir.DIRECTORY_SEPARATOR.$fileName;
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $opened = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
             if ($opened !== true) {
@@ -354,7 +354,7 @@ class TransportSettingsController extends Controller
     }
 
     /**
-     * @param array<int, string> $excludedPathFragments
+     * @param  array<int, string>  $excludedPathFragments
      */
     private function addDirectoryToZip(
         ZipArchive $zip,
@@ -394,7 +394,7 @@ class TransportSettingsController extends Controller
     }
 
     /**
-     * @param array<int, string> $details
+     * @param  array<int, string>  $details
      */
     private function backupError(
         string $message,

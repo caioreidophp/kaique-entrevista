@@ -16,8 +16,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { apiGet, apiPost } from '@/lib/api-client';
-import { formatDateTimeBR } from '@/lib/transport-format';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
+import { formatDateTimeBR } from '@/lib/transport-format';
 import type { DriverInterviewFormData } from '@/types/driver-interview';
 
 const INTERVIEW_DRAFT_STORAGE_KEY = 'transport:interview:create-draft:v1';

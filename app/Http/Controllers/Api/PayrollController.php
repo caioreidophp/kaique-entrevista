@@ -268,7 +268,7 @@ class PayrollController extends Controller
         $created = DB::transaction(function () use ($data, $request, $dataPagamento, $dataPagamentoDate, $descricao, $tiposMap) {
             return collect((array) $data['pagamentos'])
                 ->flatMap(function (array $item) use ($data, $request, $dataPagamento, $dataPagamentoDate, $descricao, $tiposMap) {
-                    if (!($item['selected'] ?? false)) {
+                    if (! ($item['selected'] ?? false)) {
                         return [];
                     }
 
@@ -342,6 +342,7 @@ class PayrollController extends Controller
                             ]);
 
                             $createdItems[] = $existingPayment->refresh();
+
                             continue;
                         }
 
@@ -722,11 +723,11 @@ class PayrollController extends Controller
             $category = (string) $row->categoria;
             $value = (float) ($row->total_valor ?? 0);
 
-            if (!isset($result[$collaboratorId])) {
+            if (! isset($result[$collaboratorId])) {
                 $result[$collaboratorId] = [];
             }
 
-            if (!isset($result[$collaboratorId][$monthKey])) {
+            if (! isset($result[$collaboratorId][$monthKey])) {
                 $result[$collaboratorId][$monthKey] = [
                     'salario' => 0.0,
                     'beneficios' => 0.0,
@@ -785,6 +786,7 @@ class PayrollController extends Controller
 
                 if ($openBalance <= 0) {
                     $iterKey = $this->addMonthsToCompetenciaKey($iterKey, 1);
+
                     continue;
                 }
 

@@ -19,7 +19,7 @@ class StoreFreightEntryRequestTest extends TestCase
             'canceladas_escaladas_viagens' => 0,
         ]);
 
-        $formRequest = new StoreFreightEntryRequest();
+        $formRequest = new StoreFreightEntryRequest;
         $validator = Validator::make($request->all(), $formRequest->rules());
         $request->withValidator($validator);
 
@@ -39,7 +39,7 @@ class StoreFreightEntryRequestTest extends TestCase
             'km_rodado' => 12000,
         ]);
 
-        $formRequest = new StoreFreightEntryRequest();
+        $formRequest = new StoreFreightEntryRequest;
         $validator = Validator::make($request->all(), $formRequest->rules());
         $request->withValidator($validator);
 

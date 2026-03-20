@@ -23,7 +23,7 @@ import {
     TrendingUp,
     CircleX,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -36,12 +36,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ApiError, apiPost } from '@/lib/api-client';
-import { transportFeatures } from '@/lib/transport-features';
 import {
     clearAuthToken,
     getAuthToken,
     redirectToLogin,
 } from '@/lib/transport-auth';
+import { transportFeatures } from '@/lib/transport-features';
 import {
     clearStoredUser,
     fetchCurrentUser,
@@ -724,6 +724,48 @@ export function AdminLayout({
         return 'interviews';
     }, [active, module]);
 
+    const hasPermission = useCallback((permissionKey: string): boolean => {
+        if (!user) return false;
+        if (user.role === 'master_admin') return true;
+
+        if (!user.permissions || Object.keys(user.permissions).length === 0) {
+            return true;
+        }
+
+        return Boolean(user.permissions?.[permissionKey]);
+    }, [user]);
+
+    const sidebarPermissionByLinkKey = useMemo<Record<string, string>>(() => ({
+        dashboard: 'sidebar.dashboard.view',
+        interviews: 'sidebar.interviews.view',
+        create: 'sidebar.interviews.create',
+        'next-steps': 'sidebar.next-steps.view',
+        onboarding: 'sidebar.onboarding.view',
+        'registry-collaborators': 'sidebar.registry.collaborators.view',
+        'registry-users': 'sidebar.registry.users.view',
+        'registry-functions': 'sidebar.registry.functions.view',
+        'registry-payment-types': 'sidebar.registry.payment-types.view',
+        'registry-plates-aviaries': 'sidebar.registry.plates-aviaries.view',
+        'payroll-dashboard': 'sidebar.payroll.dashboard.view',
+        'payroll-launch': 'sidebar.payroll.launch.view',
+        'payroll-list': 'sidebar.payroll.list.view',
+        'payroll-adjustments': 'sidebar.payroll.adjustments.view',
+        'payroll-report-unit': 'sidebar.payroll.report-unit.view',
+        'payroll-report-collaborator': 'sidebar.payroll.report-collaborator.view',
+        'vacations-dashboard': 'sidebar.vacations.dashboard.view',
+        'vacations-list': 'sidebar.vacations.list.view',
+        'vacations-launch': 'sidebar.vacations.launch.view',
+        'freight-dashboard': 'sidebar.freight.dashboard.view',
+        'freight-launch': 'sidebar.freight.launch.view',
+        'freight-list': 'sidebar.freight.list.view',
+        'freight-spot': 'sidebar.freight.spot.view',
+        'freight-canceled-loads': 'sidebar.freight.canceled-loads.view',
+        'freight-timeline': 'sidebar.freight.timeline.view',
+        'operations-hub': 'sidebar.operations-hub.view',
+        settings: 'sidebar.settings.view',
+        'activity-log': 'sidebar.activity-log.view',
+    }), []);
+
     const links = useMemo(
         () => [
             ...(currentModule === 'home'
@@ -938,6 +980,16 @@ export function AdminLayout({
         [settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
     );
 
+    const visibleLinks = useMemo(
+        () => links.filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? '')),
+        [hasPermission, links, sidebarPermissionByLinkKey],
+    );
+
+    const visibleFixedLinks = useMemo(
+        () => fixedLinks.filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? '')),
+        [fixedLinks, hasPermission, sidebarPermissionByLinkKey],
+    );
+
     const panelTitle = useMemo(() => {
         if (currentModule === 'home') return 'Painel Principal';
         if (currentModule === 'registry') return 'Painel de Cadastro';
@@ -1092,7 +1144,7 @@ export function AdminLayout({
                                     </p>
                                 ) : null}
                                 <nav className="space-y-2">
-                                    {links.map((link) => {
+                                    {visibleLinks.map((link) => {
                                         const Icon = link.icon;
                                         const isActive = link.key === active;
 
@@ -1127,7 +1179,7 @@ export function AdminLayout({
                                         Acesso geral
                                     </p>
                                 ) : null}
-                                {fixedLinks.map((link) => {
+                                {visibleFixedLinks.map((link) => {
                                     const Icon = link.icon;
                                     const isActive = link.key === active;
 
@@ -1212,7 +1264,7 @@ export function AdminLayout({
                                         Navegação do módulo
                                     </p>
                                     <nav className="space-y-2">
-                                        {links.map((link) => {
+                                        {visibleLinks.map((link) => {
                                             const Icon = link.icon;
                                             const isActive = link.key === active;
 
@@ -1242,7 +1294,7 @@ export function AdminLayout({
                                     <p className="mb-2 text-[11px] tracking-wide text-muted-foreground uppercase">
                                         Acesso geral
                                     </p>
-                                    {fixedLinks.map((link) => {
+                                    {visibleFixedLinks.map((link) => {
                                         const Icon = link.icon;
                                         const isActive = link.key === active;
 

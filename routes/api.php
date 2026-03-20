@@ -4,8 +4,8 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverInterviewController;
-use App\Http\Controllers\Api\FreightController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
+use App\Http\Controllers\Api\FreightController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\NextStepController;
 use App\Http\Controllers\Api\OnboardingController;
@@ -15,15 +15,16 @@ use App\Http\Controllers\Api\PayrollEmprestimoController;
 use App\Http\Controllers\Api\PayrollPensaoController;
 use App\Http\Controllers\Api\PayrollVacationController;
 use App\Http\Controllers\Api\ReferenceCityController;
+use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
 use App\Http\Controllers\Api\Registry\FuncaoController;
-use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\PlacaFrotaController;
 use App\Http\Controllers\Api\Registry\RegistryUserController;
+use App\Http\Controllers\Api\Registry\RolePermissionController;
 use App\Http\Controllers\Api\Registry\TipoPagamentoController;
 use App\Http\Controllers\Api\Registry\UnidadeController;
-use App\Http\Controllers\Api\TransportSettingsController;
 use App\Http\Controllers\Api\TransportInsightsController;
+use App\Http\Controllers\Api\TransportSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login'])
@@ -181,6 +182,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::put('users/{user}', [RegistryUserController::class, 'update'])
             ->middleware('throttle:transport-heavy');
         Route::delete('users/{user}', [RegistryUserController::class, 'destroy'])
+            ->middleware('throttle:transport-heavy');
+        Route::get('role-permissions', [RolePermissionController::class, 'index']);
+        Route::put('role-permissions/{role}', [RolePermissionController::class, 'update'])
             ->middleware('throttle:transport-heavy');
     });
 });

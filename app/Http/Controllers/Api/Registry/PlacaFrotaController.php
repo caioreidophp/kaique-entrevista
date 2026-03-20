@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePlacaFrotaRequest;
 use App\Http\Requests\UpdatePlacaFrotaRequest;
 use App\Models\PlacaFrota;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class PlacaFrotaController extends Controller
 {

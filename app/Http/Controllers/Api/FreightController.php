@@ -501,7 +501,7 @@ class FreightController extends Controller
 
         // Detecta o formato: Kaique (sem cabeçalhos) ou padrão (com cabeçalhos)
         $firstCellValue = trim((string) $sheet->getCell('A1')->getFormattedValue());
-        $isKaiqueFormat = strtoupper($firstCellValue) === 'DATA' || 
+        $isKaiqueFormat = strtoupper($firstCellValue) === 'DATA' ||
                          strtoupper($firstCellValue) === 'DATA ENTRADA' ||
                          strtoupper($firstCellValue) === 'DATA LANÇAMENTO';
 
@@ -597,14 +597,14 @@ class FreightController extends Controller
         foreach ($cellMap as $cellRef => $fieldName) {
             $rawValue = $sheet->getCell($cellRef)->getValue();
             $formatted = $sheet->getCell($cellRef)->getFormattedValue();
-            
+
             if ($fieldName === 'data') {
                 $data[$fieldName] = $this->parseSpreadsheetDate($rawValue, (string) $formatted);
             } elseif ($fieldName === 'unidade_id') {
                 $unitRaw = trim((string) $formatted);
                 $unitKey = Str::of($unitRaw)->lower()->ascii()->replaceMatches('/[^a-z0-9]+/', '')->value();
                 $unidade = $unitsByName->get($unitKey);
-                
+
                 if (! $unidade) {
                     $errors[] = [
                         'linha' => 2,
@@ -612,6 +612,7 @@ class FreightController extends Controller
                         'unidade' => $unitRaw,
                     ];
                     $skipped++;
+
                     return response()->json([
                         'total_lidos' => 1,
                         'total_importados' => $imported,
@@ -619,7 +620,7 @@ class FreightController extends Controller
                         'erros' => $errors,
                     ]);
                 }
-                
+
                 $data[$fieldName] = (int) $unidade->id;
             } elseif (in_array($fieldName, [
                 'veiculos',
@@ -645,6 +646,7 @@ class FreightController extends Controller
         if (! $data['data']) {
             $errors[] = ['linha' => 1, 'erro' => 'Data inválida na célula B1.'];
             $skipped++;
+
             return response()->json([
                 'total_lidos' => 1,
                 'total_importados' => $imported,
@@ -705,12 +707,12 @@ class FreightController extends Controller
         // Processa cargas canceladas escaladas (linhas 30+)
         $canceledCount = (int) ($data['canceladas_escaladas_viagens'] ?? 0);
         $canceledLoads = [];
-        
+
         for ($row = 30; $row < 30 + $canceledCount; $row++) {
-            $aviarioCell = trim((string) $sheet->getCell('A' . $row)->getFormattedValue());
-            $placaCell = trim((string) $sheet->getCell('C' . $row)->getFormattedValue());
-            $freteCell = $sheet->getCell('D' . $row)->getValue();
-            
+            $aviarioCell = trim((string) $sheet->getCell('A'.$row)->getFormattedValue());
+            $placaCell = trim((string) $sheet->getCell('C'.$row)->getFormattedValue());
+            $freteCell = $sheet->getCell('D'.$row)->getValue();
+
             if ($aviarioCell !== '' || $placaCell !== '' || $freteCell !== null) {
                 $canceledLoads[] = [
                     'aviario' => $aviarioCell,
@@ -794,6 +796,7 @@ class FreightController extends Controller
                     'erro' => 'Unidade não encontrada no sistema.',
                     'unidade' => $unitRaw,
                 ];
+
                 continue;
             }
 
@@ -806,6 +809,7 @@ class FreightController extends Controller
                     'linha' => $line,
                     'erro' => 'Data inválida.',
                 ];
+
                 continue;
             }
 
@@ -907,6 +911,7 @@ class FreightController extends Controller
 
             if ($fieldName === 'data') {
                 $data[$fieldName] = $this->parseSpreadsheetDate($rawValue, (string) $formatted);
+
                 continue;
             }
 
@@ -922,6 +927,7 @@ class FreightController extends Controller
                 }
 
                 $data[$fieldName] = (int) $unidade->id;
+
                 continue;
             }
 
@@ -941,6 +947,7 @@ class FreightController extends Controller
                 'canceladas_escaladas_aves',
             ], true)) {
                 $data[$fieldName] = $this->parseSpreadsheetInteger($rawValue);
+
                 continue;
             }
 

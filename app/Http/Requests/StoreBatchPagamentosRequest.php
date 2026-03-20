@@ -206,6 +206,7 @@ class StoreBatchPagamentosRequest extends FormRequest
                                 "pagamentos.{$index}.valores_por_tipo.{$tipoPagamentoId}",
                                 'O valor por tipo não pode ser negativo.',
                             );
+
                             continue;
                         }
 
@@ -242,6 +243,7 @@ class StoreBatchPagamentosRequest extends FormRequest
                                 "pagamentos.{$index}.valores_pensao",
                                 'A pensão informada é inválida.',
                             );
+
                             continue;
                         }
 
@@ -250,6 +252,7 @@ class StoreBatchPagamentosRequest extends FormRequest
                                 "pagamentos.{$index}.valores_pensao.{$pensaoId}",
                                 'O valor de pensão não pode ser negativo.',
                             );
+
                             continue;
                         }
 

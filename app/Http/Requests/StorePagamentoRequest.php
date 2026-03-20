@@ -96,6 +96,7 @@ class StorePagamentoRequest extends FormRequest
                         'Já existe lançamento deste tipo para o colaborador na data informada.',
                     );
                 }
+
                 return;
             }
 

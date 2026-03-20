@@ -18,9 +18,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ColaboradorController extends Controller
 {
@@ -92,8 +92,7 @@ class ColaboradorController extends Controller
             return response()->json($query->paginate($perPage)->withQueryString());
         }
 
-        $payload = Cache::remember(self::INDEX_CACHE_KEY, now()->addSeconds(45), fn () =>
-            $query->paginate($perPage)->withQueryString()
+        $payload = Cache::remember(self::INDEX_CACHE_KEY, now()->addSeconds(45), fn () => $query->paginate($perPage)->withQueryString()
         );
 
         return response()->json($payload);

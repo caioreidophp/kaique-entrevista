@@ -31,15 +31,15 @@ class FreightCanceledLoadController extends Controller
             ->latest('data')
             ->latest('id');
 
-        if (!empty($validated['placa'])) {
+        if (! empty($validated['placa'])) {
             $query->where('placa', 'like', '%'.trim((string) $validated['placa']).'%');
         }
 
-        if (!empty($validated['unidade_id'])) {
+        if (! empty($validated['unidade_id'])) {
             $query->where('unidade_id', (int) $validated['unidade_id']);
         }
 
-        if (!empty($validated['mes'])) {
+        if (! empty($validated['mes'])) {
             [$year, $month] = explode('-', (string) $validated['mes']);
             $query
                 ->whereYear('data', (int) $year)
@@ -107,10 +107,10 @@ class FreightCanceledLoadController extends Controller
         $updatedCount = FreightCanceledLoad::query()
             ->whereIn('id', $loads->pluck('id')->all())
             ->update([
-            'batch_id' => $batch->id,
-            'status' => 'recebida',
-            'data_pagamento' => (string) $validated['data_pagamento'],
-        ]);
+                'batch_id' => $batch->id,
+                'status' => 'recebida',
+                'data_pagamento' => (string) $validated['data_pagamento'],
+            ]);
 
         return response()->json([
             'updated_count' => $updatedCount,

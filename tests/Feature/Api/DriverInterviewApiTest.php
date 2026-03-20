@@ -51,15 +51,20 @@ class DriverInterviewApiTest extends TestCase
 
     public function test_authenticated_user_can_filter_interviews_by_name_status_and_date(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
         DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'user_id' => $user->id,
             'full_name' => 'Carlos Aprovado',
             'hr_status' => 'aprovado',
             'created_at' => now()->subDay(),
         ]);
 
         DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'user_id' => $user->id,
             'full_name' => 'Bruno Reprovado',
             'hr_status' => 'reprovado',
             'created_at' => now()->subDays(10),

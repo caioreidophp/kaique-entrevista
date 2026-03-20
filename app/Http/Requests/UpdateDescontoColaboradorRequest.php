@@ -2,6 +2,4 @@
 
 namespace App\Http\Requests;
 
-class UpdateDescontoColaboradorRequest extends StoreDescontoColaboradorRequest
-{
-}
+class UpdateDescontoColaboradorRequest extends StoreDescontoColaboradorRequest {}

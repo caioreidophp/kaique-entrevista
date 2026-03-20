@@ -944,7 +944,6 @@ export default function TransportRegistryCollaboratorsPage() {
         setNotification(null);
 
         const sanitizedCpf = sanitizeCpf(formData.cpf);
-        const sanitizedRg = sanitizeRg(formData.rg);
         const sanitizedPhone = sanitizePhone(formData.telefone);
         const sanitizedCnh = sanitizeCnh(formData.cnh);
         const normalizedEmail = formData.email.trim();

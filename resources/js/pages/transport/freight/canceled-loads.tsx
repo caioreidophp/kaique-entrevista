@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -22,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
@@ -808,7 +808,7 @@ export default function TransportFreightCanceledLoadsPage() {
                                                                 kind: 'delete-b',
                                                                 id: group.batchId as number,
                                                                 title: 'Excluir pagamento',
-                                                                description: `Deseja excluir o pagamento \"${group.descricao}\"? Todas as cargas do lote serão removidas.`,
+                                                                description: `Deseja excluir o pagamento "${group.descricao}"? Todas as cargas do lote serão removidas.`,
                                                             })
                                                         }
                                                         disabled={processingId === `delete-b:${group.batchId}`}
@@ -876,7 +876,7 @@ export default function TransportFreightCanceledLoadsPage() {
                                                                                     kind: 'delete-b',
                                                                                     id: group.batchId as number,
                                                                                     title: 'Excluir pagamento',
-                                                                                    description: `Deseja excluir o pagamento \"${group.descricao}\"? Todas as cargas do lote serão removidas.`,
+                                                                                    description: `Deseja excluir o pagamento "${group.descricao}"? Todas as cargas do lote serão removidas.`,
                                                                                 })
                                                                             }
                                                                             disabled={processingId === `delete-b:${group.batchId}`}

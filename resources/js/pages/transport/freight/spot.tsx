@@ -12,7 +12,6 @@ import {
     decimalThousandsMaskBR,
     formatCurrencyBR,
     formatDateBR,
-    formatIntegerBR,
     integerThousandsMaskBR,
     moneyMaskBR,
     toNumberSafe,

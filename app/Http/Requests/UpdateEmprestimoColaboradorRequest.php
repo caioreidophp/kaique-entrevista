@@ -2,6 +2,4 @@
 
 namespace App\Http\Requests;
 
-class UpdateEmprestimoColaboradorRequest extends StoreEmprestimoColaboradorRequest
-{
-}
+class UpdateEmprestimoColaboradorRequest extends StoreEmprestimoColaboradorRequest {}

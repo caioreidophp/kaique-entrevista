@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiGet, apiPost } from '@/lib/api-client';
-import { formatCurrencyBR, formatDateTimeBR } from '@/lib/transport-format';
+import { formatDateTimeBR } from '@/lib/transport-format';
 
 interface Unidade {
     id: number;
@@ -739,6 +739,7 @@ export default function TransportPayrollLaunchPage() {
         defaultWorkDays,
         benefitAutoFillTouched,
         hasBenefitDailyAutoFill,
+        selectedTipoIds.length,
         selectedValeRefeicaoTypeIds,
         selectedValeTransporteTypeIds,
         workDaysByCollaborator,

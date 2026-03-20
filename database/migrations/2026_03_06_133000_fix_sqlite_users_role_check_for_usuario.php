@@ -47,10 +47,10 @@ return new class extends Migration
             remember_token, created_at, updated_at
         FROM users");
 
-        DB::statement("DROP TABLE users");
-        DB::statement("ALTER TABLE users_new RENAME TO users");
-        DB::statement("CREATE UNIQUE INDEX users_email_unique ON users (email)");
-        DB::statement("CREATE INDEX users_role_index ON users (role)");
+        DB::statement('DROP TABLE users');
+        DB::statement('ALTER TABLE users_new RENAME TO users');
+        DB::statement('CREATE UNIQUE INDEX users_email_unique ON users (email)');
+        DB::statement('CREATE INDEX users_role_index ON users (role)');
 
         Schema::enableForeignKeyConstraints();
     }
@@ -96,10 +96,10 @@ return new class extends Migration
             remember_token, created_at, updated_at
         FROM users");
 
-        DB::statement("DROP TABLE users");
-        DB::statement("ALTER TABLE users_old RENAME TO users");
-        DB::statement("CREATE UNIQUE INDEX users_email_unique ON users (email)");
-        DB::statement("CREATE INDEX users_role_index ON users (role)");
+        DB::statement('DROP TABLE users');
+        DB::statement('ALTER TABLE users_old RENAME TO users');
+        DB::statement('CREATE UNIQUE INDEX users_email_unique ON users (email)');
+        DB::statement('CREATE INDEX users_role_index ON users (role)');
 
         Schema::enableForeignKeyConstraints();
     }
