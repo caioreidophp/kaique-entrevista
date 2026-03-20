@@ -53,6 +53,7 @@ interface LaunchCandidate {
         {
             id: number;
             valor: number;
+            dias_uteis?: number | null;
         }
     >;
     pensoes: PensaoLaunchItem[];
@@ -479,9 +480,16 @@ export default function TransportPayrollLaunchPage() {
             ),
         );
         setWorkDaysByCollaborator(
-            Object.fromEntries(
-                draftSnapshot.data.candidates.map((item) => [item.id, '0']),
-            ),
+            draftSnapshot.data.workDaysByCollaborator
+                ? Object.fromEntries(
+                      draftSnapshot.data.candidates.map((item) => [
+                          item.id,
+                          draftSnapshot.data.workDaysByCollaborator?.[item.id] ?? '0',
+                      ]),
+                  )
+                : Object.fromEntries(
+                      draftSnapshot.data.candidates.map((item) => [item.id, '0']),
+                  ),
         );
         setBenefitAutoFillTouched(false);
         setDraftResolved(true);
@@ -899,6 +907,9 @@ export default function TransportPayrollLaunchPage() {
             return {
                 colaborador_id: item.id,
                 selected: Boolean(selectedCollaborators[item.id]),
+                dias_uteis: parseWorkDaysInput(
+                    workDaysByCollaborator[item.id] ?? defaultWorkDays,
+                ),
                 valores_por_tipo: valoresPorTipo,
                 valores_pensao: valoresPensao,
                 pagamentos_existentes_por_tipo:

@@ -229,6 +229,8 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'A impressão dos lançamentos de benefícios/extras (tipos da coluna 2 e 3) foi convertida para formato planilha em paisagem com colunas fixas: `NOME`, `DIAS ÚTEIS`, `VR`, `PRÊMIO`, `VT`, `EXTRAS`, `CB`, `DESCONTOS`, `TOTAL CARTÕES` e `A PAGAR DINHEIRO`.',
                             'A composição dos totais segue a regra operacional solicitada: `TOTAL CARTÕES = VR + PRÊMIO + CB` e `A PAGAR DINHEIRO = VT + EXTRAS - DESCONTOS`.',
                             'O layout de impressão dos tipos da coluna 2/3 foi compactado (fonte menor e linhas mais baixas) para caber mais colaboradores por página sem alterar a impressão dos tipos salariais da coluna 1.',
+                            'Dias úteis informado no lançamento agora é enviado no payload do lote, salvo no `observacao` de cada pagamento e reaproveitado no fluxo de edição do lançamento completo.',
+                            'Com isso, o campo `DIAS ÚTEIS` passa a aparecer na impressão quando o lançamento foi salvo com essa informação, sem depender de recalcular VR/VT depois.',
                         ],
                     },
                 ],

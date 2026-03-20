@@ -742,7 +742,11 @@ export default function TransportPayrollListPage() {
 
         const candidates: LaunchDraftCandidate[] = launch.colaboradores.map((row) => {
             selectedCollaborators[row.colaborador.id] = true;
-            workDaysByCollaborator[row.colaborador.id] = '0';
+            const existingWorkDays = row.allItems
+                .map((payment) => parseWorkDaysFromObservation(payment.observacao))
+                .find((value) => value !== null);
+
+            workDaysByCollaborator[row.colaborador.id] = String(existingWorkDays ?? 0);
 
             const pagamentosExistentesPorTipo: Record<string, { id: number; valor: number }> = {};
 

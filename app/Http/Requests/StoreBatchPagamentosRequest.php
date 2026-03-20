@@ -51,6 +51,10 @@ class StoreBatchPagamentosRequest extends FormRequest
                         ->all();
                 }
 
+                if (array_key_exists('dias_uteis', $item)) {
+                    $item['dias_uteis'] = (int) preg_replace('/\D/', '', (string) ($item['dias_uteis'] ?? '0'));
+                }
+
                 return $item;
             })
             ->all();
@@ -111,6 +115,7 @@ class StoreBatchPagamentosRequest extends FormRequest
             'pagamentos.*.colaborador_id' => ['required', 'integer', 'exists:colaboradores,id'],
             'pagamentos.*.selected' => ['nullable', 'boolean'],
             'pagamentos.*.valor' => ['nullable', 'numeric', 'min:0'],
+            'pagamentos.*.dias_uteis' => ['nullable', 'integer', 'min:0'],
             'pagamentos.*.valores_por_tipo' => ['nullable', 'array'],
             'pagamentos.*.valores_pensao' => ['nullable', 'array'],
             'pagamentos.*.pagamentos_existentes_por_tipo' => ['nullable', 'array'],

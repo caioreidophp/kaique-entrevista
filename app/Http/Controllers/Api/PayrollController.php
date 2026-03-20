@@ -276,6 +276,7 @@ class PayrollController extends Controller
                         return [];
                     }
 
+                    $diasUteis = max((int) ($item['dias_uteis'] ?? 0), 0);
                     $valoresPorTipo = (array) ($item['valores_por_tipo'] ?? []);
                     $pagamentosExistentesPorTipo = collect((array) ($item['pagamentos_existentes_por_tipo'] ?? []))
                         ->mapWithKeys(function ($entry, $tipoId): array {
@@ -299,19 +300,24 @@ class PayrollController extends Controller
                         }
 
                         $tipoPagamento = $tiposMap->get($tipoId);
+                        $observacaoPayload = [];
 
-                        $observacao = null;
+                        if ($diasUteis > 0) {
+                            $observacaoPayload['dias_uteis'] = $diasUteis;
+                        }
 
                         if ($tipoPagamento?->categoria === 'salario' && count($valoresPensao) > 0) {
-                            $observacao = json_encode([
-                                'pensoes' => collect($valoresPensao)->map(
-                                    fn (float $valorPensao, int $pensaoId): array => [
-                                        'pensao_id' => $pensaoId,
-                                        'valor' => round($valorPensao, 2),
-                                    ],
-                                )->values()->all(),
-                            ]);
+                            $observacaoPayload['pensoes'] = collect($valoresPensao)->map(
+                                fn (float $valorPensao, int $pensaoId): array => [
+                                    'pensao_id' => $pensaoId,
+                                    'valor' => round($valorPensao, 2),
+                                ],
+                            )->values()->all();
                         }
+
+                        $observacao = count($observacaoPayload) > 0
+                            ? json_encode($observacaoPayload)
+                            : null;
 
                         $existingPaymentId = (int) ($pagamentosExistentesPorTipo[$tipoId] ?? 0);
 

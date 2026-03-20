@@ -50,6 +50,8 @@
 - Impressão dos tipos de benefícios/extras (colunas 2 e 3) foi reformatada para planilha em paisagem com layout compacto e colunas fixas: `NOME`, `DIAS ÚTEIS`, `VR`, `PRÊMIO`, `VT`, `EXTRAS`, `CB`, `DESCONTOS`, `TOTAL CARTÕES` e `A PAGAR DINHEIRO`.
 - Na impressão de benefícios/extras, os totais operacionais agora seguem as fórmulas: `TOTAL CARTÕES = VR + PRÊMIO + CB` e `A PAGAR DINHEIRO = VT + EXTRAS - DESCONTOS`.
 - A impressão dos tipos salariais da coluna 1 (`Salário Mensal`, `Adiantamento`, `Décimo Terceiro`) foi preservada sem alterações de layout/regra.
+- `Dias úteis` passou a ser persistido no lançamento em lote de pagamentos (payload + backend), armazenado em `observacao` e reaplicado ao abrir edição de lançamento completo.
+- Com a persistência, o campo `DIAS ÚTEIS` agora aparece na impressão de benefícios/extras para lançamentos salvos com essa informação.
 
 ### Painel de Folha
 
