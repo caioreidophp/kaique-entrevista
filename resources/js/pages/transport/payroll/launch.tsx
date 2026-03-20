@@ -185,7 +185,6 @@ export default function TransportPayrollLaunchPage() {
     const [draftResolved, setDraftResolved] = useState(false);
     const [skipNextAutoLoad, setSkipNextAutoLoad] = useState(false);
     const valueInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-    const previousSalaryAdvanceTypeSelectedRef = useRef(false);
 
     const selectedTipos = useMemo(
         () =>
@@ -853,30 +852,33 @@ export default function TransportPayrollLaunchPage() {
     ]);
 
     useEffect(() => {
-        const wasSelected = previousSalaryAdvanceTypeSelectedRef.current;
+        if (!hasSalaryAdvanceTypeSelected || candidates.length === 0) {
+            return;
+        }
 
-        if (hasSalaryAdvanceTypeSelected && !wasSelected && candidates.length > 0) {
-            setSelectedCollaborators((previous) => {
-                const next = { ...previous };
+        let hasAnySalaryAdvance = false;
 
-                candidates.forEach((candidate) => {
-                    if (candidate.adiantamento_salarial) {
-                        next[candidate.id] = true;
-                    } else if (!(candidate.id in next)) {
-                        next[candidate.id] = false;
-                    }
-                });
+        setSelectedCollaborators((previous) => {
+            const next = { ...previous };
 
-                return next;
+            candidates.forEach((candidate) => {
+                if (candidate.adiantamento_salarial) {
+                    hasAnySalaryAdvance = true;
+                    next[candidate.id] = true;
+                } else if (!(candidate.id in next)) {
+                    next[candidate.id] = false;
+                }
             });
 
+            return next;
+        });
+
+        if (hasAnySalaryAdvance) {
             setNotification({
                 message: 'Adiantamento selecionado: colaboradores com Adiantamento Salarial = S foram marcados automaticamente.',
                 variant: 'info',
             });
         }
-
-        previousSalaryAdvanceTypeSelectedRef.current = hasSalaryAdvanceTypeSelected;
     }, [hasSalaryAdvanceTypeSelected, candidates]);
 
     async function handleLaunch(): Promise<void> {

@@ -260,6 +260,33 @@ function parsePensionValuesFromObservation(observacao: string | null | undefined
     }
 }
 
+function normalizePaymentName(value: string | null | undefined): string {
+    if (!value) return '';
+
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+}
+
+function parseWorkDaysFromObservation(observacao: string | null | undefined): number | null {
+    if (!observacao) return null;
+
+    try {
+        const parsed = JSON.parse(observacao) as Record<string, unknown>;
+        const rawValue = parsed.dias_uteis ?? parsed.diasUteis ?? parsed.work_days ?? parsed.workDays;
+        const numericValue = Number(rawValue ?? 0);
+
+        if (!Number.isFinite(numericValue) || numericValue <= 0) {
+            return null;
+        }
+
+        return Math.round(numericValue);
+    } catch {
+        return null;
+    }
+}
+
 export default function TransportPayrollListPage() {
     const [items, setItems] = useState<Pagamento[]>([]);
     const [tipos, setTipos] = useState<TipoPagamento[]>([]);
@@ -1020,61 +1047,88 @@ export default function TransportPayrollListPage() {
                 return;
             }
 
-            const typeHeaders = launch.tipoIds
-                .map((tipoId) => `<th>${escapeHtml(tipos.find((tipo) => tipo.id === tipoId)?.nome ?? 'Tipo')}</th>`)
-                .join('');
-
             const sortedRows = getSortedCollaborators(launch);
 
-            const tableRows = sortedRows
-                .map((row) => {
-                    const collaboratorPreview = previewMap.get(row.colaborador.id);
-                    const grossTotal = launch.tipoIds.reduce(
-                        (acc, tipoId) => acc + Number(row.byType.get(tipoId)?.valor ?? 0),
-                        0,
-                    );
+            const spreadsheetRows = sortedRows.map((row) => {
+                const collaboratorPreview = previewMap.get(row.colaborador.id);
+                const workDays = row.allItems
+                    .map((payment) => parseWorkDaysFromObservation(payment.observacao))
+                    .find((value) => value !== null);
 
-                    const discountTotal = Number(collaboratorPreview?.total_descontado ?? 0);
-                    const netTotal = Number(collaboratorPreview?.total_liquido ?? grossTotal);
+                let vr = 0;
+                let premio = 0;
+                let vt = 0;
+                let extras = 0;
+                let cestaBasica = 0;
 
-                    const cells = launch.tipoIds
-                        .map((tipoId) => `<td>${escapeHtml(formatCurrencyBR(row.byType.get(tipoId)?.valor ?? 0))}</td>`)
-                        .join('');
+                launch.tipoIds.forEach((tipoId) => {
+                    const tipo = tipos.find((item) => item.id === tipoId);
+                    const normalizedTypeName = normalizePaymentName(tipo?.nome);
+                    const amount = Number(row.byType.get(tipoId)?.valor ?? 0);
 
-                    const discountDetail = (collaboratorPreview?.descontos ?? [])
-                        .filter((item) => item.aplicado_no_mes > 0 || item.saldo_restante > 0)
-                        .map((item) => {
-                            const applied = formatCurrencyBR(item.aplicado_no_mes);
-                            const remaining = formatCurrencyBR(item.saldo_restante);
-                            return `${escapeHtml(item.descricao)} (aplicado: ${escapeHtml(applied)} | saldo: ${escapeHtml(remaining)})`;
-                        })
-                        .join(' | ');
+                    if (normalizedTypeName.includes('vale refeicao')) {
+                        vr += amount;
+                        return;
+                    }
 
-                    return `
-                        <tr>
-                            <td>${escapeHtml(row.colaborador.nome)}</td>
-                            ${cells}
-                            <td>${escapeHtml(formatCurrencyBR(grossTotal))}</td>
-                            <td>${escapeHtml(formatCurrencyBR(discountTotal))}</td>
-                            <td>${escapeHtml(formatCurrencyBR(netTotal))}</td>
-                            <td>${discountDetail || '-'}</td>
-                        </tr>
-                    `;
-                })
+                    if (normalizedTypeName.includes('premio')) {
+                        premio += amount;
+                        return;
+                    }
+
+                    if (normalizedTypeName.includes('vale transporte')) {
+                        vt += amount;
+                        return;
+                    }
+
+                    if (normalizedTypeName.includes('cesta basica')) {
+                        cestaBasica += amount;
+                        return;
+                    }
+
+                    if (tipo?.categoria === 'extras' || normalizedTypeName.includes('extra')) {
+                        extras += amount;
+                    }
+                });
+
+                const descontos = Number(collaboratorPreview?.total_descontado ?? 0);
+                const totalCartoes = vr + premio + cestaBasica;
+                const pagarDinheiro = (vt + extras) - descontos;
+
+                return {
+                    nome: row.colaborador.nome,
+                    diasUteis: workDays,
+                    vr,
+                    premio,
+                    vt,
+                    extras,
+                    cestaBasica,
+                    descontos,
+                    totalCartoes,
+                    pagarDinheiro,
+                };
+            });
+
+            const tableRows = spreadsheetRows
+                .map((row) => `
+                    <tr>
+                        <td>${escapeHtml(row.nome)}</td>
+                        <td>${escapeHtml(row.diasUteis !== null ? String(row.diasUteis) : '-')}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.vr))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.premio))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.vt))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.extras))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.cestaBasica))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.descontos))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.totalCartoes))}</td>
+                        <td>${escapeHtml(formatCurrencyBR(row.pagarDinheiro))}</td>
+                    </tr>
+                `)
                 .join('');
 
-            const totalBruto = sortedRows.reduce(
-                (acc, row) =>
-                    acc +
-                    launch.tipoIds.reduce(
-                        (inner, tipoId) => inner + Number(row.byType.get(tipoId)?.valor ?? 0),
-                        0,
-                    ),
-                0,
-            );
-
-            const totalDescontado = preview.data.reduce((acc, row) => acc + Number(row.total_descontado ?? 0), 0);
-            const totalLiquido = Math.max(totalBruto - totalDescontado, 0);
+            const totalCartoes = spreadsheetRows.reduce((acc, row) => acc + row.totalCartoes, 0);
+            const totalPagarDinheiro = spreadsheetRows.reduce((acc, row) => acc + row.pagarDinheiro, 0);
+            const totalDescontado = spreadsheetRows.reduce((acc, row) => acc + row.descontos, 0);
 
             const html = `
                 <!doctype html>
@@ -1083,17 +1137,18 @@ export default function TransportPayrollListPage() {
                     <meta charset="UTF-8" />
                     <title>Planilha de Pagamento</title>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
-                        h1 { margin: 0 0 8px; }
-                        p { margin: 0 0 6px; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
-                        th, td { border: 1px solid #cfcfcf; padding: 7px; text-align: left; font-size: 12px; }
+                        @page { size: landscape; margin: 8mm; }
+                        body { font-family: Arial, sans-serif; margin: 8px; color: #111; font-size: 9px; }
+                        h1 { margin: 0 0 4px; font-size: 13px; }
+                        p { margin: 0 0 2px; font-size: 9px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                        th, td { border: 1px solid #cfcfcf; padding: 3px 4px; text-align: left; font-size: 9px; line-height: 1.2; }
                         th { background: #f3f4f6; }
-                        .meta { margin-top: 10px; }
+                        .meta { margin-top: 6px; }
                     </style>
                 </head>
                 <body>
-                    <h1>Planilha de Pagamento - Lançamento Agrupado</h1>
+                    <h1>Planilha de Lançamento - Benefícios e Extras</h1>
                     <p><strong>Lançamento:</strong> ${escapeHtml(launch.descricao)}</p>
                     <p><strong>Unidade:</strong> ${escapeHtml(launch.unidade?.nome ?? '-')}</p>
                     <p><strong>Data:</strong> ${escapeHtml(formatDateBR(launch.data_pagamento))}</p>
@@ -1102,23 +1157,27 @@ export default function TransportPayrollListPage() {
                     <table>
                         <thead>
                             <tr>
-                                <th>Colaborador</th>
-                                ${typeHeaders}
-                                <th>Total Bruto</th>
-                                <th>Desconto no Mês</th>
-                                <th>Total Líquido (a pagar)</th>
-                                <th>Detalhe de desconto</th>
+                                <th>NOME</th>
+                                <th>DIAS ÚTEIS</th>
+                                <th>VR</th>
+                                <th>PRÊMIO</th>
+                                <th>VT</th>
+                                <th>EXTRAS</th>
+                                <th>CB</th>
+                                <th>DESCONTOS</th>
+                                <th>TOTAL CARTÕES</th>
+                                <th>A PAGAR DINHEIRO</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${tableRows}
+                            ${tableRows || '<tr><td colspan="10">Sem colaboradores neste lançamento.</td></tr>'}
                         </tbody>
                     </table>
 
                     <div class="meta">
-                        <p><strong>Total bruto do lançamento:</strong> ${escapeHtml(formatCurrencyBR(totalBruto))}</p>
-                        <p><strong>Total de descontos aplicados:</strong> ${escapeHtml(formatCurrencyBR(totalDescontado))}</p>
-                        <p><strong>Total líquido para pagamento:</strong> ${escapeHtml(formatCurrencyBR(totalLiquido))}</p>
+                        <p><strong>Total descontos:</strong> ${escapeHtml(formatCurrencyBR(totalDescontado))}</p>
+                        <p><strong>Total cartões (VR + Prêmio + CB):</strong> ${escapeHtml(formatCurrencyBR(totalCartoes))}</p>
+                        <p><strong>Total a pagar em dinheiro (VT + Extras - Descontos):</strong> ${escapeHtml(formatCurrencyBR(totalPagarDinheiro))}</p>
                     </div>
                 </body>
                 </html>

@@ -46,6 +46,10 @@
 - Na Lista de Pagamentos, somente o botão de imprimir permanece em verde; visualizar/editar foram normalizados para preto.
 - Corrigido bug no Lançar Pagamentos em que alguns valores eram exibidos/travados sem interação do usuário ao carregar colaboradores; a grade volta a iniciar sem auto-preenchimento indevido.
 - Campo global de valor da `Cesta Básica` passou a aparecer corretamente no topo da tabela sempre que o tipo estiver selecionado, mesmo sem VR/VT ativos.
+- Corrigido o auto-check do `Adiantamento Salarial = S` no Lançar Pagamentos para também funcionar quando os colaboradores são carregados após a seleção do tipo de adiantamento.
+- Impressão dos tipos de benefícios/extras (colunas 2 e 3) foi reformatada para planilha em paisagem com layout compacto e colunas fixas: `NOME`, `DIAS ÚTEIS`, `VR`, `PRÊMIO`, `VT`, `EXTRAS`, `CB`, `DESCONTOS`, `TOTAL CARTÕES` e `A PAGAR DINHEIRO`.
+- Na impressão de benefícios/extras, os totais operacionais agora seguem as fórmulas: `TOTAL CARTÕES = VR + PRÊMIO + CB` e `A PAGAR DINHEIRO = VT + EXTRAS - DESCONTOS`.
+- A impressão dos tipos salariais da coluna 1 (`Salário Mensal`, `Adiantamento`, `Décimo Terceiro`) foi preservada sem alterações de layout/regra.
 
 ### Painel de Folha
 

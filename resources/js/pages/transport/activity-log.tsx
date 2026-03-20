@@ -222,6 +222,15 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'O campo global no topo agora aparece corretamente quando Cesta Básica está selecionada, mesmo sem Vale Refeição/Transporte ativos.',
                         ],
                     },
+                    {
+                        title: 'Correções de fechamento no Lançar/Imprimir Pagamentos para operação de benefícios e extras',
+                        details: [
+                            'No Lançar Pagamentos, ao selecionar tipo de Adiantamento, o auto-check voltou a marcar corretamente todos os colaboradores com `Adiantamento Salarial = S` mesmo quando a lista é carregada após a seleção do tipo.',
+                            'A impressão dos lançamentos de benefícios/extras (tipos da coluna 2 e 3) foi convertida para formato planilha em paisagem com colunas fixas: `NOME`, `DIAS ÚTEIS`, `VR`, `PRÊMIO`, `VT`, `EXTRAS`, `CB`, `DESCONTOS`, `TOTAL CARTÕES` e `A PAGAR DINHEIRO`.',
+                            'A composição dos totais segue a regra operacional solicitada: `TOTAL CARTÕES = VR + PRÊMIO + CB` e `A PAGAR DINHEIRO = VT + EXTRAS - DESCONTOS`.',
+                            'O layout de impressão dos tipos da coluna 2/3 foi compactado (fonte menor e linhas mais baixas) para caber mais colaboradores por página sem alterar a impressão dos tipos salariais da coluna 1.',
+                        ],
+                    },
                 ],
             },
             {
