@@ -29,6 +29,7 @@
 - Pendências (`/transport/pendencias`) agora exibe explicação curta em cada card para facilitar leitura operacional sem ambiguidade.
 - Cards de Pendências tiveram hierarquia visual reforçada: título principal em destaque (preto/negrito/maior) e descrição em linha secundária para leitura mais rápida.
 - Modo foco recebeu sidebar inteligente por hover no desktop: ao encostar o mouse na borda esquerda o menu lateral abre, e recolhe ao sair da área.
+- No modo foco, quando a sidebar por hover é exibida, o conteúdo principal também desloca para a direita e retorna ao retrair, evitando sobreposição de conteúdo.
 - Grid de cards do Pendências foi memoizada para reduzir recomposição desnecessária da tela durante re-render.
 
 ### Painel de Folha

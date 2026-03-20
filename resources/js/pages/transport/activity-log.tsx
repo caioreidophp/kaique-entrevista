@@ -189,6 +189,7 @@ const updateLogTimeline: UpdateLogDay[] = [
                         details: [
                             'Os títulos dos cards em Pendências foram promovidos para hierarquia visual principal (preto, negrito e maior) para separar claramente título e descrição.',
                             'Modo foco ganhou navegação lateral por hover: ao encostar o mouse na borda esquerda no desktop, a sidebar aparece; ao tirar o mouse, ela recolhe automaticamente.',
+                            'Quando a sidebar do modo foco aparece, o conteúdo principal agora também desloca para a direita com transição suave e retorna ao fechar, eliminando sobreposição de área útil da página.',
                             'Ajuste preserva o ganho de área útil do foco sem perder acesso rápido ao menu, reduzindo cliques de troca entre módulos durante operação contínua.',
                             'Tela de Pendências também recebeu pequeno refino de renderização com composição memoizada dos cards, diminuindo trabalho repetido de montagem da grade.',
                         ],

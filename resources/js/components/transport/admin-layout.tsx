@@ -1499,7 +1499,13 @@ export function AdminLayout({
                         </div>
                     )}
 
-                    <main className="transport-page min-w-0 rounded-xl border bg-card p-3 shadow-sm sm:p-4 lg:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+                    <main
+                        className={`transport-page min-w-0 rounded-xl border bg-card p-3 shadow-sm transition-[margin] duration-200 ease-out sm:p-4 lg:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none ${
+                            focusMode && focusSidebarVisible
+                                ? 'lg:ml-[284px]'
+                                : 'lg:ml-0'
+                        }`}
+                    >
                         <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b pb-3 print:hidden">
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold">{title}</p>
