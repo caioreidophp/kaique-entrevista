@@ -106,6 +106,10 @@ export function AdminLayout({
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.sidebar.collapsed') === '1';
     });
+    const [focusMode, setFocusMode] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return false;
+        return window.localStorage.getItem('transport.focus.mode') === '1';
+    });
     const [user, setUser] = useState<TransportAuthUser | null>(() =>
         typeof window === 'undefined' ? null : getStoredUser(),
     );
@@ -119,6 +123,11 @@ export function AdminLayout({
             sidebarCollapsed ? '1' : '0',
         );
     }, [sidebarCollapsed]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem('transport.focus.mode', focusMode ? '1' : '0');
+    }, [focusMode]);
 
     useEffect(() => {
         const token = getAuthToken();
@@ -1022,7 +1031,9 @@ export function AdminLayout({
                 ) : null}
                 <div
                     className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0 ${
-                        sidebarCollapsed
+                        focusMode
+                            ? 'lg:grid-cols-[1fr]'
+                            : sidebarCollapsed
                             ? 'lg:grid-cols-[92px_1fr]'
                             : 'lg:grid-cols-[260px_1fr]'
                     }`}
@@ -1048,7 +1059,9 @@ export function AdminLayout({
                     </div>
 
                     <aside
-                        className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:flex lg:h-[calc(100vh-3rem)] print:hidden ${
+                        className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
+                            focusMode ? 'lg:hidden' : 'lg:flex'
+                        } ${
                             sidebarCollapsed ? 'p-2' : 'p-4'
                         }`}
                     >
@@ -1333,6 +1346,32 @@ export function AdminLayout({
                     )}
 
                     <main className="transport-page min-w-0 rounded-xl border bg-card p-3 shadow-sm sm:p-4 lg:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+                        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b pb-3 print:hidden">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold">{title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Padrão global ativo · Ctrl+S salvar · Alt+Q navegação rápida · Alt+A ação principal
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setFocusMode((previous) => !previous)}
+                                >
+                                    {focusMode ? 'Sair do foco' : 'Modo foco'}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setNavigationOpen(true)}
+                                >
+                                    Navegação rápida
+                                </Button>
+                            </div>
+                        </div>
                         {children}
                     </main>
                 </div>

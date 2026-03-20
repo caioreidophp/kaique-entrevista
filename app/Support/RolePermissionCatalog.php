@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\RolePermission;
+use Illuminate\Support\Facades\Cache;
 
 class RolePermissionCatalog
 {
@@ -251,25 +252,26 @@ class RolePermissionCatalog
      */
     public static function forRole(string $role): array
     {
-        $defaults = self::defaultsForRole($role);
+        return Cache::remember(self::cacheKeyForRole($role), now()->addMinutes(10), function () use ($role): array {
+            $defaults = self::defaultsForRole($role);
+            $record = RolePermission::query()->where('role', $role)->first();
 
-        $record = RolePermission::query()->where('role', $role)->first();
+            if (! $record) {
+                return $defaults;
+            }
 
-        if (! $record) {
-            return $defaults;
-        }
+            $custom = is_array($record->permissions) ? $record->permissions : [];
+            $all = self::allPermissionKeys();
 
-        $custom = is_array($record->permissions) ? $record->permissions : [];
-        $all = self::allPermissionKeys();
+            $final = [];
 
-        $final = [];
+            foreach ($all as $key) {
+                $value = $custom[$key] ?? $defaults[$key] ?? false;
+                $final[$key] = (bool) $value;
+            }
 
-        foreach ($all as $key) {
-            $value = $custom[$key] ?? $defaults[$key] ?? false;
-            $final[$key] = (bool) $value;
-        }
-
-        return $final;
+            return $final;
+        });
     }
 
     /**
@@ -288,6 +290,8 @@ class RolePermissionCatalog
             ['role' => $role],
             ['permissions' => $normalized],
         );
+
+        Cache::forget(self::cacheKeyForRole($role));
 
         return self::forRole($role);
     }
@@ -335,5 +339,10 @@ class RolePermissionCatalog
         return collect($all)
             ->mapWithKeys(fn (string $key): array => [$key => in_array($key, $allowed, true)])
             ->all();
+    }
+
+    private static function cacheKeyForRole(string $role): string
+    {
+        return 'transport:role-permissions:v1:'.$role;
     }
 }

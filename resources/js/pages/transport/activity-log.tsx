@@ -132,6 +132,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Checks operacionais finais foram repetidos no fechamento (migrate, optimize e health endpoint) mantendo resultado estável e status 200 em produção.',
                         ],
                     },
+                    {
+                        title: 'Padronização transversal de telas + hardening de API + cache de performance',
+                        details: [
+                            'Admin Layout recebeu barra de comando padrão em todas as páginas com atalhos operacionais visíveis e botão de Navegação rápida, reduzindo inconsistência de UX entre módulos.',
+                            'Foi incluído Modo foco global para telas operacionais, ocultando a navegação lateral no desktop durante execução de tarefas longas de lançamento/edição.',
+                            'Segurança de API foi reforçada com monitor de tentativas inválidas (401/403/419), com bloqueio temporário progressivo por IP em cenários de abuso e registro de auditoria no log.',
+                            'Home passou a usar cache curto por fingerprint de permissões/período e o catálogo de permissões por cargo passou a ser servido por cache com invalidação automática no update, reduzindo consultas repetidas.',
+                            'Atualização de permissões agora incrementa versão de cache para forçar refresh rápido dos painéis da Home após mudanças de acesso.',
+                        ],
+                    },
                 ],
             },
             {

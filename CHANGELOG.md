@@ -10,6 +10,11 @@
 - Corrigidos erros de lint no frontend/mobile (ordem de imports, variáveis não utilizadas, escapes desnecessários e estabilização de dependências de hooks) com `npm run lint:check` e `npm run types` aprovados.
 - Dívida de estilo PHP foi zerada com `composer lint` (Pint), corrigindo 46 apontamentos e deixando `composer test:lint` totalmente verde.
 - Rodada final de validação repetida após os ajustes: backend completo, lint/types/build no frontend, `migrate --force`, `optimize:clear + optimize` e health check no domínio fixo com HTTP `200`.
+- Padronização global de UX aplicada no layout administrativo com barra de comando unificada em todas as telas (`Ctrl+S`, `Alt+Q`, `Alt+A`) para reduzir variação de uso entre módulos.
+- Incluído `Modo foco` persistido em `localStorage` para operação contínua em desktop, ocultando a sidebar durante tarefas de lançamento em lote e edição prolongada.
+- Hardening de segurança adicionado com middleware `MonitorSuspiciousApiActivity`, detectando rajadas de 401/403/419 e aplicando bloqueio temporário por IP em abuso de API.
+- Performance otimizada com cache curto da Home por fingerprint de permissões/período e cache de permissões por cargo no `RolePermissionCatalog` com invalidação automática.
+- Atualização de permissões por função agora incrementa versão global de cache para refletir rapidamente mudanças de acesso na Home sem depender de expiração longa.
 
 ### Painel de Folha
 

@@ -11,6 +11,7 @@ use App\Models\Pagamento;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
@@ -27,6 +28,26 @@ class HomeController extends Controller
         $canViewOperationsPanel = $user->hasPermission('sidebar.operations-hub.view')
             && (bool) config('transport_features.operations_hub', true);
 
+        $cacheFingerprint = [
+            'user_id' => (int) $user->id,
+            'permissions_version' => (int) Cache::get('transport:permissions-version', 1),
+            'is_master' => (bool) $isMaster,
+            'interviews' => (bool) $canViewInterviewsPanel,
+            'payroll' => (bool) $canViewPayrollPanel,
+            'vacations' => (bool) $canViewVacationsPanel,
+            'registry' => (bool) $canViewRegistryPanel,
+            'freight' => (bool) $canViewFreightPanel,
+            'operations' => (bool) $canViewOperationsPanel,
+            'month' => (int) now()->month,
+            'year' => (int) now()->year,
+        ];
+        $cacheKey = 'transport:home:v3:'.sha1(json_encode($cacheFingerprint));
+        $cachedPayload = Cache::get($cacheKey);
+
+        if (is_array($cachedPayload)) {
+            return response()->json($cachedPayload);
+        }
+
         $interviewsTotal = 0;
 
         if ($canViewInterviewsPanel) {
@@ -39,10 +60,19 @@ class HomeController extends Controller
             $interviewsTotal = (clone $interviewsQuery)->count();
         }
 
-        $hasColaboradores = Schema::hasTable('colaboradores');
-        $hasPagamentos = Schema::hasTable('pagamentos');
-        $hasFreightEntries = Schema::hasTable('freight_entries');
-        $hasFeriasLancamentos = Schema::hasTable('ferias_lancamentos');
+        $tablePresence = Cache::remember('transport:home:table-presence:v1', now()->addMinutes(30), function (): array {
+            return [
+                'colaboradores' => Schema::hasTable('colaboradores'),
+                'pagamentos' => Schema::hasTable('pagamentos'),
+                'freight_entries' => Schema::hasTable('freight_entries'),
+                'ferias_lancamentos' => Schema::hasTable('ferias_lancamentos'),
+            ];
+        });
+
+        $hasColaboradores = (bool) ($tablePresence['colaboradores'] ?? false);
+        $hasPagamentos = (bool) ($tablePresence['pagamentos'] ?? false);
+        $hasFreightEntries = (bool) ($tablePresence['freight_entries'] ?? false);
+        $hasFeriasLancamentos = (bool) ($tablePresence['ferias_lancamentos'] ?? false);
 
         $colaboradoresAtivos = 0;
         $totalPagamentosMes = 0.0;
@@ -213,8 +243,12 @@ class HomeController extends Controller
             ];
         }
 
-        return response()->json([
+        $payload = [
             'modules' => $modules,
-        ]);
+        ];
+
+        Cache::put($cacheKey, $payload, now()->addSeconds(45));
+
+        return response()->json($payload);
     }
 }

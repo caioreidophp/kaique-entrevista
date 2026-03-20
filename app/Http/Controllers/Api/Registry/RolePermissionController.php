@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\RolePermissionCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class RolePermissionController extends Controller
 {
@@ -38,6 +39,12 @@ class RolePermissionController extends Controller
         abort_unless(in_array($role, ['master_admin', 'admin', 'usuario'], true), 422);
 
         $saved = RolePermissionCatalog::saveForRole($role, (array) $data['permissions']);
+
+        if (! Cache::has('transport:permissions-version')) {
+            Cache::put('transport:permissions-version', 1, now()->addDays(7));
+        }
+
+        Cache::increment('transport:permissions-version');
 
         return response()->json([
             'role' => $role,
