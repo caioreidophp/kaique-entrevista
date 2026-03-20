@@ -204,6 +204,17 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'App mobile de motoristas passou a ter scripts de qualidade (`lint` e `typecheck`) no package para permitir varredura automática contínua dentro da rotina de validação.',
                         ],
                     },
+                    {
+                        title: 'Ajustes finais de operação diária: adiantamento em lote, exportação XLSX e correções de lista de pagamentos',
+                        details: [
+                            'Foi aplicada marcação em lote de `Adiantamento Salarial = S` para os motoristas enviados nas listas (fotos), com comparação normalizada de nomes para evitar falha por acentuação.',
+                            'Listas de Fretes e Pagamentos ganharam botão de exportação em XLSX direto na tela, respeitando filtros ativos.',
+                            'Lista de Pagamentos foi corrigida para carregar todos os registros filtrados em visão única antes do agrupamento, eliminando paginação inconsistente (várias páginas para poucos lançamentos agrupados).',
+                            'Ações em Pagamentos foram compactadas para ícones (visualizar/editar/imprimir/excluir), reduzindo ruído visual na coluna de ações.',
+                            'Lançar Pagamentos passou a ter ordenação por nome com alternância crescente/decrescente no cabeçalho da coluna Nome.',
+                            'Cadastro de Colaboradores passou a abrir com filtro padrão em Ativos e migra automaticamente preferência antiga `Todos` para `Ativos` ao carregar.',
+                        ],
+                    },
                 ],
             },
             {

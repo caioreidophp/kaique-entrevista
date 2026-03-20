@@ -418,8 +418,14 @@ export default function TransportRegistryCollaboratorsPage() {
     const [activeFilter, setActiveFilter, resetActiveFilter] =
         usePersistedState<'all' | '1' | '0'>(
             'transport:registry:collaborators:activeFilter',
-            'all',
+            '1',
         );
+
+    useEffect(() => {
+        if (activeFilter === 'all') {
+            setActiveFilter('1');
+        }
+    }, [activeFilter, setActiveFilter]);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);

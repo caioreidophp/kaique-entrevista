@@ -1,4 +1,4 @@
-import { LoaderCircle, PencilLine, Printer, Trash2 } from 'lucide-react';
+import { Eye, FileSpreadsheet, LoaderCircle, PencilLine, Printer, Trash2 } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { usePersistedState } from '@/hooks/use-persisted-state';
-import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
+import { ApiError, apiDelete, apiDownload, apiGet, apiPost, apiPut } from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
 
 interface Unidade {
@@ -283,9 +283,7 @@ export default function TransportPayrollListPage() {
         'all',
     );
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
-    const [total, setTotal] = useState(0);
+    const [totalRows, setTotalRows] = useState(0);
 
     const [notification, setNotification] = useState<{
         message: string;
@@ -443,7 +441,7 @@ export default function TransportPayrollListPage() {
     function buildQuery(page: number): string {
         const params = new URLSearchParams();
         params.set('page', String(page));
-        params.set('per_page', '80');
+        params.set('per_page', '500');
         params.set('competencia_mes', monthFilter);
         params.set('competencia_ano', yearFilter);
 
@@ -459,11 +457,18 @@ export default function TransportPayrollListPage() {
         setNotification(null);
 
         try {
-            const response = await apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(page)}`);
-            setItems(response.data);
-            setCurrentPage(response.current_page);
-            setLastPage(response.last_page);
-            setTotal(response.total);
+            const firstPage = await apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(page)}`);
+            let mergedItems = [...firstPage.data];
+
+            if (firstPage.last_page > firstPage.current_page) {
+                for (let nextPage = firstPage.current_page + 1; nextPage <= firstPage.last_page; nextPage += 1) {
+                    const nextResponse = await apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(nextPage)}`);
+                    mergedItems = mergedItems.concat(nextResponse.data);
+                }
+            }
+
+            setItems(mergedItems);
+            setTotalRows(mergedItems.length);
         } catch {
             setNotification({
                 message: 'Não foi possível carregar a lista de pagamentos.',
@@ -479,6 +484,33 @@ export default function TransportPayrollListPage() {
         void load(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    async function exportXlsx(): Promise<void> {
+        const params = new URLSearchParams();
+        params.set('competencia_mes', monthFilter);
+        params.set('competencia_ano', yearFilter);
+
+        if (unidadeFilter !== 'all') {
+            params.set('unidade_id', unidadeFilter);
+        }
+
+        try {
+            await apiDownload(
+                `/payroll/pagamentos/export-xlsx?${params.toString()}`,
+                `pagamentos_${yearFilter}_${monthFilter}.xlsx`,
+            );
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({ message: error.message, variant: 'error' });
+                return;
+            }
+
+            setNotification({
+                message: 'Não foi possível exportar pagamentos em XLSX.',
+                variant: 'error',
+            });
+        }
+    }
 
     function clearFilters(): void {
         resetMonthFilter();
@@ -605,7 +637,7 @@ export default function TransportPayrollListPage() {
             await Promise.all(payloads.map((entry) => apiPut(`/payroll/pagamentos/${entry.id}`, entry.payload)));
             setNotification({ message: 'Pagamentos atualizados com sucesso.', variant: 'success' });
             setEditCandidate(null);
-            await load(currentPage);
+            await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
@@ -626,7 +658,7 @@ export default function TransportPayrollListPage() {
             await Promise.all(deleteCandidate.allItems.map((item) => apiDelete(`/payroll/pagamentos/${item.id}`)));
             setNotification({ message: 'Lançamento excluído com sucesso.', variant: 'success' });
             setDeleteCandidate(null);
-            await load(currentPage);
+            await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
@@ -663,7 +695,7 @@ export default function TransportPayrollListPage() {
                 setExpandedLaunchKey(null);
             }
             setDeleteLaunchCandidate(null);
-            await load(currentPage);
+            await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
@@ -1180,6 +1212,9 @@ export default function TransportPayrollListPage() {
                                 <Button variant="outline" onClick={clearFilters}>
                                     Limpar
                                 </Button>
+                                <Button type="button" variant="outline" onClick={() => void exportXlsx()}>
+                                    <FileSpreadsheet className="size-4 text-green-600" />
+                                </Button>
                             </div>
                         </div>
                     </CardContent>
@@ -1243,8 +1278,9 @@ export default function TransportPayrollListPage() {
                                                                         event.stopPropagation();
                                                                         toggleLaunchExpanded(launch.key);
                                                                     }}
+                                                                    title={isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
                                                                 >
-                                                                    {isExpanded ? 'Ocultar' : 'Expandir'}
+                                                                    <Eye className="size-4 text-green-600" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -1253,9 +1289,9 @@ export default function TransportPayrollListPage() {
                                                                         event.stopPropagation();
                                                                         editFullLaunch(launch);
                                                                     }}
+                                                                    title="Editar completo"
                                                                 >
-                                                                    <PencilLine className="size-4" />
-                                                                    Editar completo
+                                                                    <PencilLine className="size-4 text-green-600" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -1265,9 +1301,9 @@ export default function TransportPayrollListPage() {
                                                                         void printLaunch(launch);
                                                                     }}
                                                                     disabled={printingLaunchKey === launch.key}
+                                                                    title={printingLaunchKey === launch.key ? 'Gerando impressão' : 'Imprimir'}
                                                                 >
-                                                                    <Printer className="size-4" />
-                                                                    {printingLaunchKey === launch.key ? 'Gerando...' : 'Imprimir'}
+                                                                    <Printer className="size-4 text-green-600" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
@@ -1276,9 +1312,9 @@ export default function TransportPayrollListPage() {
                                                                         event.stopPropagation();
                                                                         setDeleteLaunchCandidate(launch);
                                                                     }}
+                                                                    title="Excluir completo"
                                                                 >
                                                                     <Trash2 className="size-4" />
-                                                                    Excluir
                                                                 </Button>
                                                             </div>
                                                         </td>
@@ -1348,17 +1384,17 @@ export default function TransportPayrollListPage() {
                                                                                                     size="sm"
                                                                                                     variant="outline"
                                                                                                     onClick={() => openEditDialog(item)}
+                                                                                                    title="Editar"
                                                                                                 >
-                                                                                                    <PencilLine className="size-4" />
-                                                                                                    Editar
+                                                                                                    <PencilLine className="size-4 text-green-600" />
                                                                                                 </Button>
                                                                                                 <Button
                                                                                                     size="sm"
                                                                                                     variant="destructive"
                                                                                                     onClick={() => setDeleteCandidate(item)}
+                                                                                                    title="Excluir"
                                                                                                 >
                                                                                                     <Trash2 className="size-4" />
-                                                                                                    Excluir
                                                                                                 </Button>
                                                                                             </div>
                                                                                         </td>
@@ -1381,24 +1417,9 @@ export default function TransportPayrollListPage() {
 
                         <div className="mt-4 flex items-center justify-between">
                             <p className="text-xs text-muted-foreground">
-                                Página {currentPage} de {lastPage} - Total de registros: {total}
+                                Total de linhas carregadas: {totalRows} · Total de lançamentos agrupados: {launchGroups.length}
                             </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    disabled={currentPage <= 1 || loading}
-                                    onClick={() => void load(currentPage - 1)}
-                                >
-                                    Anterior
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    disabled={currentPage >= lastPage || loading}
-                                    onClick={() => void load(currentPage + 1)}
-                                >
-                                    Próxima
-                                </Button>
-                            </div>
+                            <div className="text-xs text-muted-foreground">Paginação consolidada em uma única visão.</div>
                         </div>
                     </CardContent>
                 </Card>

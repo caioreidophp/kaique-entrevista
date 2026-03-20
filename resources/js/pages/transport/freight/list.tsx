@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { FileSpreadsheet, Pencil, Plus, Trash2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ApiError, apiDelete, apiGet } from '@/lib/api-client';
+import { ApiError, apiDelete, apiDownload, apiGet } from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR, formatIntegerBR } from '@/lib/transport-format';
 
 interface WrappedResponse<T> {
@@ -132,6 +132,34 @@ export default function FreightList() {
         router.get(`/transport/freight/launch?edit=${item.id}`);
     }
 
+    async function handleExportXlsx(): Promise<void> {
+        const params = new URLSearchParams();
+
+        if (filterUnit !== 'all') {
+            params.set('unidade_id', filterUnit);
+        }
+
+        if (filterDate) {
+            params.set('start_date', filterDate);
+            params.set('end_date', filterDate);
+        }
+
+        try {
+            await apiDownload(
+                `/freight/entries/export-xlsx?${params.toString()}`,
+                `fretes_${new Date().toISOString().slice(0, 10)}.xlsx`,
+            );
+        } catch (error) {
+            let message = 'Não foi possível exportar os fretes em XLSX.';
+
+            if (error instanceof ApiError) {
+                message = error.message;
+            }
+
+            setNotification({ message, variant: 'error' });
+        }
+    }
+
     const filteredItems = useMemo(() => {
         return items.filter((item) => {
             const unitMatch = filterUnit === 'all' || item.unidade_id === Number(filterUnit);
@@ -214,16 +242,21 @@ export default function FreightList() {
                         </div>
 
                         <div className="flex justify-between">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setFilterUnit('all');
-                                    setFilterDate('');
-                                }}
-                            >
-                                Limpar filtros
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setFilterUnit('all');
+                                        setFilterDate('');
+                                    }}
+                                >
+                                    Limpar filtros
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => void handleExportXlsx()} title="Exportar XLSX">
+                                    <FileSpreadsheet className="size-4 text-green-600" />
+                                </Button>
+                            </div>
 
                             <Button
                                 type="button"
@@ -322,7 +355,7 @@ export default function FreightList() {
                                                             }
                                                             title="Editar"
                                                         >
-                                                            <Pencil className="size-4" />
+                                                            <Pencil className="size-4 text-green-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"

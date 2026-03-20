@@ -55,6 +55,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/reports/colaborador', [PayrollController::class, 'reportByCollaborator'])
         ->middleware('throttle:transport-heavy');
+    Route::get('payroll/pagamentos/export-xlsx', [PayrollController::class, 'exportXlsx'])
+        ->middleware('throttle:transport-heavy');
     Route::apiResource('payroll/pagamentos', PayrollController::class)
         ->middleware('throttle:transport-heavy');
     Route::apiResource('payroll/descontos', PayrollDescontoController::class)
@@ -103,6 +105,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-uploads');
     Route::apiResource('freight/entries', FreightController::class)
         ->only(['index', 'store', 'update', 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('freight/entries/export-xlsx', [FreightController::class, 'exportXlsx'])
         ->middleware('throttle:transport-heavy');
     Route::post('freight/entries/import-spreadsheet-preview', [FreightController::class, 'previewSpreadsheet'])
         ->middleware('throttle:transport-import');

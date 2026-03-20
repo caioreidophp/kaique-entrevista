@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpAZ, LoaderCircle } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -168,6 +168,7 @@ export default function TransportPayrollLaunchPage() {
     const [defaultVrDaily, setDefaultVrDaily] = useState('0');
     const [defaultVtDaily, setDefaultVtDaily] = useState('0');
     const [workDaysByCollaborator, setWorkDaysByCollaborator] = useState<Record<number, string>>({});
+    const [nameSortDirection, setNameSortDirection] = useState<'asc' | 'desc'>('asc');
     const [benefitAutoFillTouched, setBenefitAutoFillTouched] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
@@ -228,6 +229,19 @@ export default function TransportPayrollLaunchPage() {
     const allChecked =
         candidates.length > 0 &&
         candidates.every((candidate) => selectedCollaborators[candidate.id]);
+
+    const sortedCandidates = useMemo(() => {
+        const items = [...candidates];
+        items.sort((first, second) => {
+            const comparison = first.nome.localeCompare(second.nome, 'pt-BR', {
+                sensitivity: 'base',
+            });
+
+            return nameSortDirection === 'asc' ? comparison : -comparison;
+        });
+
+        return items;
+    }, [candidates, nameSortDirection]);
 
     function buildInitialValuesFromExisting(data: LaunchCandidate[]): Record<string, string> {
         const initialValues: Record<string, string> = {};
@@ -1151,7 +1165,22 @@ export default function TransportPayrollLaunchPage() {
                                                     />
                                                 </th>
                                                 <th className="px-2 py-2 text-left font-medium">
-                                                    Nome
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1"
+                                                        onClick={() =>
+                                                            setNameSortDirection((previous) =>
+                                                                previous === 'asc' ? 'desc' : 'asc',
+                                                            )
+                                                        }
+                                                    >
+                                                        Nome
+                                                        {nameSortDirection === 'asc' ? (
+                                                            <ArrowUpAZ className="size-4" />
+                                                        ) : (
+                                                            <ArrowDownAZ className="size-4" />
+                                                        )}
+                                                    </button>
                                                 </th>
                                                 {hasBenefitDailyAutoFill ? (
                                                     <th className="px-2 py-2 text-left font-medium">
@@ -1172,7 +1201,7 @@ export default function TransportPayrollLaunchPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {candidates.map((item) => (
+                                            {sortedCandidates.map((item) => (
                                                 <Fragment key={item.id}>
                                                     <tr className="border-t">
                                                         <td className="px-2 py-2">

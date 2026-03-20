@@ -18,6 +18,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollController extends Controller
 {
@@ -953,7 +956,7 @@ class PayrollController extends Controller
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
+        $perPage = min(max((int) $request->integer('per_page', 15), 1), 500);
 
         $query = $this->basePaymentsQueryForUser($request)
             ->with([
@@ -1006,6 +1009,123 @@ class PayrollController extends Controller
         }
 
         return response()->json($query->paginate($perPage)->withQueryString());
+    }
+
+    public function exportXlsx(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $query = $this->basePaymentsQueryForUser($request)
+            ->with([
+                'colaborador:id,nome,cpf,unidade_id',
+                'unidade:id,nome,slug',
+                'autor:id,name,email',
+                'tipoPagamento:id,nome,categoria,forma_pagamento',
+            ])
+            ->latest('lancado_em')
+            ->latest('id');
+
+        if ($request->filled('competencia_mes')) {
+            $query->where('competencia_mes', (int) $request->integer('competencia_mes'));
+        }
+
+        if ($request->filled('competencia_ano')) {
+            $query->where('competencia_ano', (int) $request->integer('competencia_ano'));
+        }
+
+        if ($request->filled('unidade_id')) {
+            $query->where('unidade_id', (int) $request->integer('unidade_id'));
+        }
+
+        if ($request->filled('colaborador_id')) {
+            $query->where('colaborador_id', (int) $request->integer('colaborador_id'));
+        }
+
+        if ($request->filled('descricao')) {
+            $query->where('descricao', 'like', '%'.(string) $request->string('descricao').'%');
+        }
+
+        if ($request->filled('data_pagamento')) {
+            $query->whereDate('data_pagamento', (string) $request->string('data_pagamento'));
+        }
+
+        if ($request->filled('tipo_pagamento_id')) {
+            $query->where('tipo_pagamento_id', (int) $request->integer('tipo_pagamento_id'));
+        }
+
+        if ($request->filled('name')) {
+            $name = (string) $request->string('name');
+            $query->whereHas('colaborador', function (Builder $builder) use ($name): void {
+                $builder->where('nome', 'like', "%{$name}%");
+            });
+        }
+
+        if ($request->filled('autor_id') && $request->user()?->isMasterAdmin()) {
+            $query->where('autor_id', (int) $request->integer('autor_id'));
+        }
+
+        $rows = $query->get();
+
+        $fileName = sprintf(
+            'pagamentos_%s.xlsx',
+            now()->format('Ymd_His'),
+        );
+
+        return response()->streamDownload(function () use ($rows): void {
+            $spreadsheet = new Spreadsheet;
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Pagamentos');
+
+            $sheet->fromArray([
+                'ID',
+                'Colaborador',
+                'CPF',
+                'Unidade',
+                'Tipo de Pagamento',
+                'Categoria',
+                'Descrição',
+                'Valor',
+                'Data Pagamento',
+                'Competência Mês',
+                'Competência Ano',
+                'Autor',
+                'Lançado em',
+            ], null, 'A1');
+
+            $line = 2;
+            foreach ($rows as $row) {
+                $sheet->fromArray([
+                    $row->id,
+                    $row->colaborador?->nome,
+                    $row->colaborador?->cpf,
+                    $row->unidade?->nome,
+                    $row->tipoPagamento?->nome,
+                    $row->tipoPagamento?->categoria,
+                    $row->descricao,
+                    (float) $row->valor,
+                    $row->data_pagamento?->format('Y-m-d'),
+                    $row->competencia_mes,
+                    $row->competencia_ano,
+                    $row->autor?->name,
+                    $row->lancado_em?->format('Y-m-d H:i:s'),
+                ], null, 'A'.$line);
+
+                $line++;
+            }
+
+            $sheet->getStyle('H2:H'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
+
+            foreach (range('A', 'M') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function store(StorePagamentoRequest $request): JsonResponse

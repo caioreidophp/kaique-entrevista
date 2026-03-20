@@ -34,6 +34,12 @@
 - Varredura completa em todas as telas do módulo de transporte aplicada com padronização visual de títulos/espaçamentos (Fretes Lista, Fretes Dashboard e Log) para manter consistência global de UX.
 - Overlays de Fretes (dropdown custom e tooltip da Central Analítica) tiveram `z-index` elevado para reduzir risco de conflito de camadas com componentes flutuantes.
 - App mobile (`mobile/driver-app`) recebeu scripts de qualidade `lint` e `typecheck`, entrando na rotina de varredura automática junto com web/backend.
+- Motoristas informados em lista operacional foram atualizados em lote para `Adiantamento Salarial = S` no cadastro de colaboradores.
+- Lista de Pagamentos foi corrigida para consolidar carregamento completo por filtros antes do agrupamento, eliminando paginação incoerente (muitas páginas para poucos lançamentos agrupados).
+- Lançar Pagamentos ganhou ordenação por nome (crescente/decrescente) no cabeçalho da coluna `Nome`.
+- Cadastro de Colaboradores passou a abrir com filtro padrão `Ativos` e converte automaticamente preferência legada `Todos` para `Ativos`.
+- Listas de Fretes e Pagamentos receberam exportação direta em `XLSX` com novos endpoints de download.
+- A coluna de ações em Pagamentos foi compactada para ícones (visualizar/editar/imprimir/excluir), reduzindo poluição visual em telas com muitos lançamentos.
 
 ### Painel de Folha
 

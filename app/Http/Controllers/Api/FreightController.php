@@ -18,6 +18,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FreightController extends Controller
 {
@@ -320,6 +323,91 @@ class FreightController extends Controller
         }
 
         return response()->json($query->paginate($perPage)->withQueryString());
+    }
+
+    public function exportXlsx(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $query = $this->queryForUser($request)
+            ->with(['unidade:id,nome', 'autor:id,name,email'])
+            ->latest('data')
+            ->latest('id');
+
+        if ($request->filled('unidade_id')) {
+            $query->where('unidade_id', (int) $request->integer('unidade_id'));
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('data', '>=', (string) $request->string('start_date'));
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('data', '<=', (string) $request->string('end_date'));
+        }
+
+        $rows = $query->get();
+
+        $fileName = sprintf('fretes_%s.xlsx', now()->format('Ymd_His'));
+
+        return response()->streamDownload(function () use ($rows): void {
+            $spreadsheet = new Spreadsheet;
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Fretes');
+
+            $sheet->fromArray([
+                'ID',
+                'Data',
+                'Unidade',
+                'Frete Total',
+                'Frete Líquido',
+                'Cargas',
+                'Aves',
+                'Veículos',
+                'KM Rodado',
+                'KM Terceiros',
+                'Frete Terceiros',
+                'Viagens Terceiros',
+                'Observações',
+                'Autor',
+            ], null, 'A1');
+
+            $line = 2;
+            foreach ($rows as $row) {
+                $sheet->fromArray([
+                    $row->id,
+                    $row->data?->format('Y-m-d'),
+                    $row->unidade?->nome,
+                    (float) $row->frete_total,
+                    (float) $row->frete_liquido,
+                    (int) $row->cargas,
+                    (int) $row->aves,
+                    (int) $row->veiculos,
+                    (float) $row->km_rodado,
+                    (float) $row->km_terceiros,
+                    (float) $row->frete_terceiros,
+                    (int) $row->viagens_terceiros,
+                    $row->observacoes,
+                    $row->autor?->name,
+                ], null, 'A'.$line);
+
+                $line++;
+            }
+
+            $sheet->getStyle('D2:E'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('I2:K'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
+
+            foreach (range('A', 'N') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function spotIndex(Request $request): JsonResponse
