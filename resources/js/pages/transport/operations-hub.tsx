@@ -39,7 +39,7 @@ function PendingCard({
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
                 <p className="text-xs text-muted-foreground">{description}</p>
             </CardHeader>
             <CardContent>
@@ -73,6 +73,43 @@ export default function TransportOperationsHubPage() {
         );
     }, [data]);
 
+    const pendingCards = useMemo(() => {
+        if (!data) return [];
+
+        return [
+            {
+                title: 'Entrevistas pendentes',
+                description: 'Candidatos aguardando avanço de etapa no funil de entrevistas.',
+                value: data.interviews.total,
+            },
+            {
+                title: 'Férias vencidas',
+                description: 'Períodos de férias já vencidos e ainda não lançados.',
+                value: data.vacations.expired,
+            },
+            {
+                title: 'Férias até 2 meses',
+                description: 'Colaboradores que entram na janela próxima para programação de férias.',
+                value: data.vacations.due_2_months,
+            },
+            {
+                title: 'Cargas a receber',
+                description: 'Cargas canceladas aguardando faturamento/recebimento.',
+                value: data.freight.canceled_to_receive,
+            },
+            {
+                title: 'Folha sem lançamento',
+                description: 'Colaboradores ativos sem pagamento lançado na competência atual.',
+                value: data.payroll.pending_collaborators,
+            },
+            {
+                title: 'GUEP a fazer',
+                description: 'Entrevistas com status de GUEP ainda pendente de execução.',
+                value: data.interviews.guep_to_do,
+            },
+        ];
+    }, [data]);
+
     return (
         <AdminLayout title="Pendências" active="operations-hub" module="home">
             <div className="space-y-6">
@@ -102,36 +139,14 @@ export default function TransportOperationsHubPage() {
                         </Card>
 
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            <PendingCard
-                                title="Entrevistas pendentes"
-                                description="Candidatos aguardando avanço de etapa no funil de entrevistas."
-                                value={data.interviews.total}
-                            />
-                            <PendingCard
-                                title="Férias vencidas"
-                                description="Períodos de férias já vencidos e ainda não lançados."
-                                value={data.vacations.expired}
-                            />
-                            <PendingCard
-                                title="Férias até 2 meses"
-                                description="Colaboradores que entram na janela próxima para programação de férias."
-                                value={data.vacations.due_2_months}
-                            />
-                            <PendingCard
-                                title="Cargas a receber"
-                                description="Cargas canceladas aguardando faturamento/recebimento."
-                                value={data.freight.canceled_to_receive}
-                            />
-                            <PendingCard
-                                title="Folha sem lançamento"
-                                description="Colaboradores ativos sem pagamento lançado na competência atual."
-                                value={data.payroll.pending_collaborators}
-                            />
-                            <PendingCard
-                                title="GUEP a fazer"
-                                description="Entrevistas com status de GUEP ainda pendente de execução."
-                                value={data.interviews.guep_to_do}
-                            />
+                            {pendingCards.map((item) => (
+                                <PendingCard
+                                    key={item.title}
+                                    title={item.title}
+                                    description={item.description}
+                                    value={item.value}
+                                />
+                            ))}
                         </div>
                     </>
                 ) : null}

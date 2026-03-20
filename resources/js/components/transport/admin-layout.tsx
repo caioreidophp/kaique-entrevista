@@ -23,7 +23,7 @@ import {
     TrendingUp,
     CircleX,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -115,6 +115,28 @@ export function AdminLayout({
     );
     const [globalNotice, setGlobalNotice] = useState<GlobalNotice | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
+    const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
+
+    const clearFocusSidebarCloseTimeout = useCallback((): void => {
+        if (focusSidebarCloseTimeoutRef.current !== null) {
+            window.clearTimeout(focusSidebarCloseTimeoutRef.current);
+            focusSidebarCloseTimeoutRef.current = null;
+        }
+    }, []);
+
+    const showFocusSidebar = useCallback((): void => {
+        clearFocusSidebarCloseTimeout();
+        setFocusSidebarVisible(true);
+    }, [clearFocusSidebarCloseTimeout]);
+
+    const scheduleHideFocusSidebar = useCallback((delay = 110): void => {
+        clearFocusSidebarCloseTimeout();
+        focusSidebarCloseTimeoutRef.current = window.setTimeout(() => {
+            setFocusSidebarVisible(false);
+            focusSidebarCloseTimeoutRef.current = null;
+        }, delay);
+    }, [clearFocusSidebarCloseTimeout]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -128,6 +150,13 @@ export function AdminLayout({
         if (typeof window === 'undefined') return;
         window.localStorage.setItem('transport.focus.mode', focusMode ? '1' : '0');
     }, [focusMode]);
+
+    useEffect(() => {
+        if (!focusMode) {
+            setFocusSidebarVisible(false);
+            clearFocusSidebarCloseTimeout();
+        }
+    }, [clearFocusSidebarCloseTimeout, focusMode]);
 
     useEffect(() => {
         const token = getAuthToken();
@@ -1073,6 +1102,15 @@ export function AdminLayout({
                         </div>
                     </div>
 
+                    {focusMode ? (
+                        <div
+                            className="fixed inset-y-0 left-0 z-40 hidden w-3 lg:block print:hidden"
+                            onMouseEnter={showFocusSidebar}
+                            onMouseLeave={() => scheduleHideFocusSidebar()}
+                            aria-hidden="true"
+                        />
+                    ) : null}
+
                     <aside
                         className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
                             focusMode ? 'lg:hidden' : 'lg:flex'
@@ -1247,6 +1285,107 @@ export function AdminLayout({
                             {!sidebarCollapsed ? 'Sair' : null}
                         </Button>
                     </aside>
+
+                    {focusMode ? (
+                        <aside
+                            className={`fixed top-6 bottom-6 left-6 z-50 hidden w-[260px] flex-col overflow-hidden rounded-xl border bg-card p-4 shadow-xl transition-all duration-200 ease-out lg:flex print:hidden ${
+                                focusSidebarVisible
+                                    ? 'translate-x-0 opacity-100'
+                                    : '-translate-x-[120%] opacity-0 pointer-events-none'
+                            }`}
+                            onMouseEnter={showFocusSidebar}
+                            onMouseLeave={() => scheduleHideFocusSidebar(60)}
+                        >
+                            <div className="mb-6 border-b pb-4">
+                                <div className="mb-3 block w-full">
+                                    <Link href="/transport/home" prefetch className="mb-3 block w-full">
+                                        <div className="flex min-h-[96px] w-full items-center justify-center rounded-lg border bg-muted/20 p-2">
+                                            <Logo className="h-16 w-full max-w-[236px] object-contain object-center" />
+                                        </div>
+                                    </Link>
+                                </div>
+                                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                    Kaique Transportes
+                                </p>
+                                <h1 className="mt-1 text-lg font-semibold">
+                                    {panelTitle}
+                                    {hasUnsavedChanges ? ' • alterações pendentes' : ''}
+                                </h1>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    {user?.name} ({user?.email})
+                                </p>
+                            </div>
+
+                            <div className="flex min-h-0 flex-1 flex-col">
+                                <div className="flex-1 overflow-y-auto">
+                                    <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                        Navegação do módulo
+                                    </p>
+                                    <nav className="space-y-2">
+                                        {visibleLinks.map((link) => {
+                                            const Icon = link.icon;
+                                            const isActive = link.key === active;
+
+                                            return (
+                                                <Link
+                                                    key={link.key}
+                                                    href={link.href}
+                                                    prefetch
+                                                    title={link.label}
+                                                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                        isActive
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <Icon className="size-4" />
+                                                    <span>{link.label}</span>
+                                                </Link>
+                                            );
+                                        })}
+                                    </nav>
+                                </div>
+
+                                <div className="mt-4 border-t pt-4">
+                                    <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                        Acesso geral
+                                    </p>
+                                    {visibleFixedLinks.map((link) => {
+                                        const Icon = link.icon;
+                                        const isActive = link.key === active;
+
+                                        return (
+                                            <Link
+                                                key={link.key}
+                                                href={link.href}
+                                                prefetch
+                                                title={link.label}
+                                                className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                    isActive
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'hover:bg-muted'
+                                                }`}
+                                            >
+                                                <Icon className="size-4" />
+                                                <span>{link.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="mt-3 w-full"
+                                onClick={handleLogout}
+                                title="Sair"
+                            >
+                                <LogOut className="size-4" />
+                                Sair
+                            </Button>
+                        </aside>
+                    ) : null}
 
                     {mobileMenuOpen && (
                         <div className="fixed inset-0 z-50 lg:hidden print:hidden">

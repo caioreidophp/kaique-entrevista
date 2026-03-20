@@ -27,6 +27,9 @@
 - Cadastro de Colaboradores recebeu novo campo `Adiantamento Salarial (S/N)` com persistência completa em banco e edição rápida no perfil.
 - Lançar Pagamentos passou a auto-marcar colaboradores com `Adiantamento Salarial = S` quando tipo de pagamento de adiantamento é selecionado, mantendo edição manual livre da seleção.
 - Pendências (`/transport/pendencias`) agora exibe explicação curta em cada card para facilitar leitura operacional sem ambiguidade.
+- Cards de Pendências tiveram hierarquia visual reforçada: título principal em destaque (preto/negrito/maior) e descrição em linha secundária para leitura mais rápida.
+- Modo foco recebeu sidebar inteligente por hover no desktop: ao encostar o mouse na borda esquerda o menu lateral abre, e recolhe ao sair da área.
+- Grid de cards do Pendências foi memoizada para reduzir recomposição desnecessária da tela durante re-render.
 
 ### Painel de Folha
 

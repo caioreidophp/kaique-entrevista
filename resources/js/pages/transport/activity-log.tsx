@@ -184,6 +184,15 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Tela de Pendências recebeu descrição curta em cada card para explicar objetivamente o significado de cada indicador, no mesmo padrão de ajuda contextual da Home.',
                         ],
                     },
+                    {
+                        title: 'Refino visual e de navegação: títulos de pendências em destaque + sidebar inteligente no modo foco',
+                        details: [
+                            'Os títulos dos cards em Pendências foram promovidos para hierarquia visual principal (preto, negrito e maior) para separar claramente título e descrição.',
+                            'Modo foco ganhou navegação lateral por hover: ao encostar o mouse na borda esquerda no desktop, a sidebar aparece; ao tirar o mouse, ela recolhe automaticamente.',
+                            'Ajuste preserva o ganho de área útil do foco sem perder acesso rápido ao menu, reduzindo cliques de troca entre módulos durante operação contínua.',
+                            'Tela de Pendências também recebeu pequeno refino de renderização com composição memoizada dos cards, diminuindo trabalho repetido de montagem da grade.',
+                        ],
+                    },
                 ],
             },
             {
