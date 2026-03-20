@@ -1,9 +1,11 @@
-import { LoaderCircle, Pencil, PlusSquare, Trash2 } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { LoaderCircle, Pencil, PlusSquare, ShieldCheck, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -56,6 +58,31 @@ interface UserFormData {
     colaborador_id: string;
 }
 
+type RoleName = 'master_admin' | 'admin' | 'usuario';
+
+interface PermissionCatalogItem {
+    key: string;
+    label: string;
+}
+
+interface PermissionCatalogGroup {
+    key: string;
+    label: string;
+    items: PermissionCatalogItem[];
+}
+
+interface PermissionCatalogSection {
+    key: string;
+    label: string;
+    groups: PermissionCatalogGroup[];
+}
+
+interface RolePermissionResponse {
+    roles: RoleName[];
+    sections: PermissionCatalogSection[];
+    permissions_by_role: Record<RoleName, Record<string, boolean>>;
+}
+
 const emptyForm: UserFormData = {
     name: '',
     email: '',
@@ -80,21 +107,40 @@ export default function TransportRegistryUsersPage() {
         message: string;
         variant: 'success' | 'error' | 'info';
     } | null>(null);
+    const [permissionsOpen, setPermissionsOpen] = useState(false);
+    const [permissionsSaving, setPermissionsSaving] = useState(false);
+    const [permissionRoles, setPermissionRoles] = useState<RoleName[]>([]);
+    const [permissionSections, setPermissionSections] = useState<
+        PermissionCatalogSection[]
+    >([]);
+    const [permissionsByRole, setPermissionsByRole] = useState<
+        Record<RoleName, Record<string, boolean>>
+    >({
+        master_admin: {},
+        admin: {},
+        usuario: {},
+    });
+    const [selectedPermissionRole, setSelectedPermissionRole] =
+        useState<RoleName>('admin');
 
     async function load(): Promise<void> {
         setLoading(true);
         setNotification(null);
 
         try {
-            const [usersResponse, colaboradoresResponse] = await Promise.all([
+            const [usersResponse, colaboradoresResponse, permissionsResponse] = await Promise.all([
                 apiGet<WrappedResponse<RegistryUser[]>>('/registry/users'),
                 apiGet<PaginatedCollaborators>(
                     '/registry/colaboradores?active=1&per_page=100',
                 ),
+                apiGet<RolePermissionResponse>('/registry/role-permissions'),
             ]);
 
             setItems(usersResponse.data);
             setColaboradores(colaboradoresResponse.data);
+            setPermissionRoles(permissionsResponse.roles);
+            setPermissionSections(permissionsResponse.sections);
+            setPermissionsByRole(permissionsResponse.permissions_by_role);
         } catch (error) {
             if (error instanceof ApiError && error.status === 403) {
                 setNotification({
@@ -227,6 +273,60 @@ export default function TransportRegistryUsersPage() {
         }
     }
 
+    function togglePermission(permissionKey: string, checked: boolean): void {
+        setPermissionsByRole((previous) => ({
+            ...previous,
+            [selectedPermissionRole]: {
+                ...previous[selectedPermissionRole],
+                [permissionKey]: checked,
+            },
+        }));
+    }
+
+    function roleLabel(role: RoleName): string {
+        if (role === 'master_admin') return 'Master Admin';
+        if (role === 'usuario') return 'Usuário';
+        return 'Admin';
+    }
+
+    async function handleSavePermissions(): Promise<void> {
+        setPermissionsSaving(true);
+        setNotification(null);
+
+        try {
+            const response = await apiPut<{
+                role: RoleName;
+                permissions: Record<string, boolean>;
+            }>(`/registry/role-permissions/${selectedPermissionRole}`, {
+                permissions: permissionsByRole[selectedPermissionRole] ?? {},
+            });
+
+            setPermissionsByRole((previous) => ({
+                ...previous,
+                [response.role]: response.permissions,
+            }));
+
+            setNotification({
+                message: `Permissões de ${roleLabel(response.role)} atualizadas com sucesso.`,
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({
+                    message: error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível salvar as permissões.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setPermissionsSaving(false);
+        }
+    }
+
     return (
         <AdminLayout
             title="Cadastro - Usuários"
@@ -256,6 +356,27 @@ export default function TransportRegistryUsersPage() {
                         variant={notification.variant}
                     />
                 ) : null}
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Permissões por função</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm text-muted-foreground">
+                        <p>
+                            Defina exatamente o que cada função da hierarquia
+                            pode ver e fazer (painéis, páginas de sidebar,
+                            ações e visibilidade de dados de outros usuários).
+                        </p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPermissionsOpen(true)}
+                        >
+                            <ShieldCheck className="size-4" />
+                            Gerenciar permissões por função
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>
@@ -576,6 +697,16 @@ export default function TransportRegistryUsersPage() {
                         <Button
                             type="button"
                             variant="outline"
+                            onClick={() => {
+                                setPermissionsOpen(false);
+                                router.visit('/transport/home');
+                            }}
+                        >
+                            Ver painéis na Home
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
                             onClick={() => setDeleteCandidate(null)}
                             disabled={deleting}
                         >
@@ -594,6 +725,113 @@ export default function TransportRegistryUsersPage() {
                                 </>
                             ) : (
                                 'Excluir'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={permissionsOpen} onOpenChange={setPermissionsOpen}>
+                <DialogContent className="flex max-h-[92vh] flex-col overflow-hidden sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Permissões por função</DialogTitle>
+                        <DialogDescription>
+                            Marque manualmente tudo que o cargo selecionado pode
+                            ver e executar no sistema.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                        <div className="space-y-2">
+                            <Label>Função</Label>
+                            <Select
+                                value={selectedPermissionRole}
+                                onValueChange={(value) =>
+                                    setSelectedPermissionRole(value as RoleName)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {permissionRoles.map((role) => (
+                                        <SelectItem key={role} value={role}>
+                                            {roleLabel(role)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {permissionSections.map((section) => (
+                            <Card key={section.key}>
+                                <CardHeader>
+                                    <CardTitle className="text-base">
+                                        {section.label}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {section.groups.map((group) => (
+                                        <div key={group.key} className="space-y-2">
+                                            <p className="text-sm font-medium">
+                                                {group.label}
+                                            </p>
+                                            <div className="grid gap-2 md:grid-cols-2">
+                                                {group.items.map((item) => (
+                                                    <label
+                                                        key={item.key}
+                                                        className="flex items-start gap-2 rounded-md border p-2"
+                                                    >
+                                                        <Checkbox
+                                                            checked={Boolean(
+                                                                permissionsByRole[
+                                                                    selectedPermissionRole
+                                                                ]?.[item.key],
+                                                            )}
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                togglePermission(
+                                                                    item.key,
+                                                                    Boolean(
+                                                                        checked,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
+                                                        <span className="text-sm leading-5">
+                                                            {item.label}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPermissionsOpen(false)}
+                        >
+                            Fechar
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleSavePermissions}
+                            disabled={permissionsSaving}
+                        >
+                            {permissionsSaving ? (
+                                <>
+                                    <LoaderCircle className="size-4 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Salvar permissões'
                             )}
                         </Button>
                     </DialogFooter>

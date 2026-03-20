@@ -233,6 +233,16 @@ function toNumberOrZero(value: string): number {
     return toNumberSafe(value);
 }
 
+function toIntegerOrZero(value: string): number {
+    const normalized = toNumberSafe(value);
+
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+        return 0;
+    }
+
+    return Math.trunc(normalized);
+}
+
 function toIntegerString(value: number): string {
     return formatIntegerBR(Math.max(0, Math.trunc(value)));
 }
@@ -543,12 +553,12 @@ export default function TransportFreightLaunchPage() {
         }
 
         const totalViagens =
-            toNumberOrZero(form.programado_viagens) +
-            toNumberOrZero(form.kaique_geral_viagens) +
-            toNumberOrZero(form.terceiros_viagens) +
-            toNumberOrZero(form.abatedouro_viagens) +
-            toNumberOrZero(form.canceladas_sem_escalar_viagens) +
-            toNumberOrZero(form.canceladas_escaladas_viagens);
+            toIntegerOrZero(form.programado_viagens) +
+            toIntegerOrZero(form.kaique_geral_viagens) +
+            toIntegerOrZero(form.terceiros_viagens) +
+            toIntegerOrZero(form.abatedouro_viagens) +
+            toIntegerOrZero(form.canceladas_sem_escalar_viagens) +
+            toIntegerOrZero(form.canceladas_escaladas_viagens);
 
         if (totalViagens <= 0) {
             setNotification({
@@ -564,30 +574,30 @@ export default function TransportFreightLaunchPage() {
         const payload = {
             data: form.data,
             unidade_id: Number(form.unidade_id),
-            veiculos: toNumberOrZero(form.veiculos),
+            veiculos: toIntegerOrZero(form.veiculos),
             programado_frete: toNumberOrZero(form.programado_frete),
-            programado_viagens: toNumberOrZero(form.programado_viagens),
-            programado_aves: toNumberOrZero(form.programado_aves),
+            programado_viagens: toIntegerOrZero(form.programado_viagens),
+            programado_aves: toIntegerOrZero(form.programado_aves),
             programado_km: toNumberOrZero(form.programado_km),
             kaique_geral_frete: toNumberOrZero(form.kaique_geral_frete),
-            kaique_geral_viagens: toNumberOrZero(form.kaique_geral_viagens),
-            kaique_geral_aves: toNumberOrZero(form.kaique_geral_aves),
+            kaique_geral_viagens: toIntegerOrZero(form.kaique_geral_viagens),
+            kaique_geral_aves: toIntegerOrZero(form.kaique_geral_aves),
             kaique_geral_km: toNumberOrZero(form.kaique_geral_km),
             terceiros_frete: toNumberOrZero(form.terceiros_frete),
-            terceiros_viagens: toNumberOrZero(form.terceiros_viagens),
-            terceiros_aves: toNumberOrZero(form.terceiros_aves),
+            terceiros_viagens: toIntegerOrZero(form.terceiros_viagens),
+            terceiros_aves: toIntegerOrZero(form.terceiros_aves),
             terceiros_km: toNumberOrZero(form.terceiros_km),
             abatedouro_frete: toNumberOrZero(form.abatedouro_frete),
-            abatedouro_viagens: toNumberOrZero(form.abatedouro_viagens),
-            abatedouro_aves: toNumberOrZero(form.abatedouro_aves),
+            abatedouro_viagens: toIntegerOrZero(form.abatedouro_viagens),
+            abatedouro_aves: toIntegerOrZero(form.abatedouro_aves),
             abatedouro_km: toNumberOrZero(form.abatedouro_km),
             canceladas_sem_escalar_frete: toNumberOrZero(form.canceladas_sem_escalar_frete),
-            canceladas_sem_escalar_viagens: toNumberOrZero(form.canceladas_sem_escalar_viagens),
-            canceladas_sem_escalar_aves: toNumberOrZero(form.canceladas_sem_escalar_aves),
+            canceladas_sem_escalar_viagens: toIntegerOrZero(form.canceladas_sem_escalar_viagens),
+            canceladas_sem_escalar_aves: toIntegerOrZero(form.canceladas_sem_escalar_aves),
             canceladas_sem_escalar_km: toNumberOrZero(form.canceladas_sem_escalar_km),
             canceladas_escaladas_frete: toNumberOrZero(form.canceladas_escaladas_frete),
-            canceladas_escaladas_viagens: toNumberOrZero(form.canceladas_escaladas_viagens),
-            canceladas_escaladas_aves: toNumberOrZero(form.canceladas_escaladas_aves),
+            canceladas_escaladas_viagens: toIntegerOrZero(form.canceladas_escaladas_viagens),
+            canceladas_escaladas_aves: toIntegerOrZero(form.canceladas_escaladas_aves),
             canceladas_escaladas_km: toNumberOrZero(form.canceladas_escaladas_km),
             placas: null,
             obs: form.obs || null,

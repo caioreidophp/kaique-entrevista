@@ -22,6 +22,21 @@
 - Fluxo de lançamento de pagamentos ajustado para tratar colaboradores selecionados com valor zerado como ignorados (sem erro crítico), mantendo foco/alerta informativo quando todos os selecionados estão sem valor.
 - Cadastro/Edição de colaboradores simplificado: retirada da validação rígida de RG (9 dígitos + 1 caractere) e remoção dos campos redundantes `Endereço completo`, `Dados bancários 1` e `Dados bancários 2` do formulário.
 - Correção transversal da ação crítica: operações `DELETE` comuns (ex.: exclusões de rotina em pagamentos/listas) deixaram de disparar confirmação crítica automática; a confirmação agora ocorre apenas em rotas explicitamente sensíveis.
+- Matriz de permissões foi expandida para checklist completo do Master Admin em `documentos/transport-permissions-matrix.md`, cobrindo menu/sidebar, páginas, ações por endpoint e visibilidade granular de dados (próprio autor vs todos).
+- `Cadastro > Usuários` recebeu bloco direto “O que cada perfil faz” com resumo prático de Master Admin, Admin e Usuário na própria tela de criação/edição de acessos.
+- Log interno do dia 17/03/2026 foi recategorizado para `Painel de Cadastro` nesse item de permissões, removendo classificação incorreta em `Gestão de Fretes`.
+- Implementada tela real de gestão de permissões por função em `Cadastro > Usuários` com checklist completo de painéis, páginas de sidebar, ações e visibilidade de dados por cargo (`master_admin`, `admin`, `usuario`).
+- Criada persistência de permissões em banco (`role_permissions`) + APIs de leitura/edição (`/api/registry/role-permissions`) para uso exclusivo de Master Admin.
+- Sessão autenticada passou a retornar permissões efetivas no `/api/me` e login, permitindo renderização dinâmica de navegação conforme o cargo configurado.
+- Política/controlador de Entrevistas foram conectados às permissões dinâmicas, incluindo controle explícito da visibilidade de entrevistas de outros usuários.
+- Removido integralmente o fluxo de “Ação Crítica” no frontend e backend: sem popup de confirmação, sem header `X-Confirm-Action` e sem bloqueio HTTP `428` na API.
+- Importações e operações operacionais (incluindo XLSX em Lançar Fretes) voltaram ao fluxo normal sem interceptação por confirmação crítica.
+- Modal "Permissões por função" em Cadastro de Usuários foi ajustado para rolagem completa vertical (conteúdo interno com scroll), permitindo acessar todos os grupos e checkboxes sem corte.
+- Arquivo legado de middleware de ação crítica foi removido do projeto, mantendo apenas referência histórica no changelog.
+- Home passou a respeitar permissões configuradas por função para exibição de painéis (sem precisar abrir módulo por URL), com leitura baseada nas permissões de sidebar.
+- Modal de permissões ganhou botão direto `Ver painéis na Home` para validar imediatamente o resultado da configuração.
+- Correção no Lançar Fretes: campos inteiros de aves/viagens/veículos agora normalizam sempre para inteiro no payload, evitando erro de validação quando o usuário digita milhar no padrão pt-BR (ex.: `233.222`).
+- Performance da Home melhorada com cálculo condicional de métricas: consultas pesadas só rodam para painéis realmente permitidos ao perfil.
 
 ## [2026-03-16] - Fechamento de pendências (navegação, permissões, smoke e testes críticos)
 

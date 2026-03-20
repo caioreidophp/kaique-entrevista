@@ -84,6 +84,46 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Terça-Feira, 17/03/2026',
+        sections: [
+            {
+                panel: 'Painel de Cadastro',
+                items: [
+                    {
+                        title: 'Matriz completa de permissões para Master Admin (checklist operacional por painel/página/ação)',
+                        details: [
+                            'Consolidado checklist único de permissões para uso do Master Admin com cobertura de Sidebar, páginas web e ações de API por módulo (Entrevistas, Cadastro, Folha, Férias, Fretes, Configurações e Log).',
+                            'Estrutura passou a separar permissão de navegação (ver item no menu) de permissão de execução (listar, criar, editar, excluir, importar, exportar), reduzindo ambiguidade na configuração de papéis.',
+                            'Inventário agora inclui permissões granulares de visibilidade de dados (somente próprios registros vs todos os autores) e campos sensíveis (documentos, dados bancários e trilha de auditoria).',
+                            'Cadastro de Usuários recebeu tela funcional de Permissões por função com checklist editável por cargo (Master Admin/Admin/Usuário), com gravação em banco e leitura por API dedicada.',
+                            'O menu lateral passou a respeitar permissões configuradas para exibir/ocultar painéis e páginas da sidebar conforme o cargo selecionado pelo Master Admin.',
+                            'Exemplo crítico solicitado foi aplicado: visibilidade de entrevistas de outros usuários virou permissão explícita e já influencia política/controlador da lista de entrevistas.',
+                            'Documento operacional de referência foi atualizado em `documentos/transport-permissions-matrix.md` para marcação manual por perfil antes da implementação do gerenciador de permissões na interface.',
+                        ],
+                    },
+                    {
+                        title: 'Rollback total de Ação Crítica para restaurar fluxo operacional',
+                        details: [
+                            'Removido o gatilho de confirmação crítica no cliente da API, eliminando popup e cancelamentos automáticos em operações de uso diário.',
+                            'Removido o bloqueio backend que exigia header de confirmação e retornava HTTP 428 em rotas sensíveis.',
+                            'Pipeline da API deixou de registrar middleware de Ação Crítica, garantindo que importações XLSX e demais ações sigam sem bloqueio adicional.',
+                            'Modal de Permissões por função recebeu correção de rolagem vertical completa para exibir todos os painéis/grupos/checklists até o final sem conteúdo cortado.',
+                        ],
+                    },
+                    {
+                        title: 'Permissões por função integradas à Home + correção de inteiro no Lançar Fretes',
+                        details: [
+                            'A Home passou a renderizar painéis de acordo com permissões realmente configuradas por função, eliminando cenário de precisar entrar por URL para acessar módulo autorizado.',
+                            'Tela de Permissões por função recebeu botão direto "Ver painéis na Home" para validar visualmente a configuração após salvar.',
+                            'No Lançar Fretes, campos de aves/viagens/veículos passaram a ser normalizados para inteiro no envio, evitando erro de validação `integer` em entradas com separador de milhar no padrão brasileiro.',
+                            'Cálculo de métricas da Home foi otimizado para rodar apenas para módulos permitidos ao perfil, reduzindo consultas desnecessárias.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Segunda-Feira, 16/03/2026',
         sections: [
             {

@@ -19,15 +19,25 @@ class HomeController extends Controller
     {
         $user = $request->user();
         $isMaster = $user->isMasterAdmin();
-        $isUsuario = $user->isUsuario();
+        $canViewInterviewsPanel = $user->hasPermission('sidebar.interviews.view');
+        $canViewPayrollPanel = $user->hasPermission('sidebar.payroll.dashboard.view');
+        $canViewVacationsPanel = $user->hasPermission('sidebar.vacations.dashboard.view');
+        $canViewRegistryPanel = $user->hasPermission('sidebar.registry.collaborators.view');
+        $canViewFreightPanel = $user->hasPermission('sidebar.freight.dashboard.view');
+        $canViewOperationsPanel = $user->hasPermission('sidebar.operations-hub.view')
+            && (bool) config('transport_features.operations_hub', true);
 
-        $interviewsQuery = DriverInterview::query();
+        $interviewsTotal = 0;
 
-        if (! $isMaster) {
-            $interviewsQuery->where('author_id', $user->id);
+        if ($canViewInterviewsPanel) {
+            $interviewsQuery = DriverInterview::query();
+
+            if (! $isMaster) {
+                $interviewsQuery->where('author_id', $user->id);
+            }
+
+            $interviewsTotal = (clone $interviewsQuery)->count();
         }
-
-        $interviewsTotal = (clone $interviewsQuery)->count();
 
         $hasColaboradores = Schema::hasTable('colaboradores');
         $hasPagamentos = Schema::hasTable('pagamentos');
@@ -42,13 +52,13 @@ class HomeController extends Controller
         $feriasVencidas = 0;
         $feriasProximos2Meses = 0;
 
-        if ($hasColaboradores) {
+        if (($canViewRegistryPanel || $canViewVacationsPanel || $canViewOperationsPanel) && $hasColaboradores) {
             $colaboradoresAtivos = Colaborador::query()
                 ->where('ativo', true)
                 ->count();
         }
 
-        if ($hasPagamentos) {
+        if ($canViewPayrollPanel && $hasPagamentos) {
             $mesAtual = (int) now()->month;
             $anoAtual = (int) now()->year;
 
@@ -64,7 +74,7 @@ class HomeController extends Controller
             $totalPagamentosMes = (float) ((clone $pagamentosQuery)->sum('valor'));
         }
 
-        if ($hasFreightEntries) {
+        if ($canViewFreightPanel && $hasFreightEntries) {
             $mesAtual = (int) now()->month;
             $anoAtual = (int) now()->year;
 
@@ -80,7 +90,7 @@ class HomeController extends Controller
             $freightTotalMes = (float) ((clone $freightQuery)->sum('frete_total'));
         }
 
-        if ($hasColaboradores && $hasFeriasLancamentos) {
+        if (($canViewVacationsPanel || $canViewOperationsPanel) && $hasColaboradores && $hasFeriasLancamentos) {
             $activeCollaborators = Colaborador::query()
                 ->where('ativo', true)
                 ->whereNotNull('data_admissao')
@@ -120,8 +130,10 @@ class HomeController extends Controller
             }
         }
 
-        $modules = [
-            [
+        $modules = [];
+
+        if ($canViewInterviewsPanel) {
+            $modules[] = [
                 'key' => 'interviews',
                 'title' => 'Entrevistas',
                 'description' => 'Gestão de entrevistas e próximos passos de candidatos.',
@@ -130,10 +142,10 @@ class HomeController extends Controller
                 'metrics' => [
                     'total_interviews' => $interviewsTotal,
                 ],
-            ],
-        ];
+            ];
+        }
 
-        if (! $isUsuario) {
+        if ($canViewPayrollPanel) {
             $modules[] = [
                 'key' => 'payroll',
                 'title' => 'Pagamentos',
@@ -145,7 +157,9 @@ class HomeController extends Controller
                     'total_current_month' => $totalPagamentosMes,
                 ],
             ];
+        }
 
+        if ($canViewVacationsPanel) {
             $modules[] = [
                 'key' => 'vacations',
                 'title' => 'Férias',
@@ -157,7 +171,9 @@ class HomeController extends Controller
                     'vacations_due_2_months' => $feriasProximos2Meses,
                 ],
             ];
+        }
 
+        if ($canViewRegistryPanel) {
             $modules[] = [
                 'key' => 'registry',
                 'title' => 'Cadastro',
@@ -168,7 +184,9 @@ class HomeController extends Controller
                     'active_collaborators' => $colaboradoresAtivos,
                 ],
             ];
+        }
 
+        if ($canViewFreightPanel) {
             $modules[] = [
                 'key' => 'freight',
                 'title' => 'Gestão de Fretes',
@@ -180,19 +198,19 @@ class HomeController extends Controller
                     'freight_total_current_month' => $freightTotalMes,
                 ],
             ];
+        }
 
-            if ((bool) config('transport_features.operations_hub', true)) {
-                $modules[] = [
-                    'key' => 'operations',
-                    'title' => 'Pendências',
-                    'description' => 'Central de pendências críticas para priorização diária.',
-                    'href' => '/transport/pendencias',
-                    'icon' => 'clipboard-check',
-                    'metrics' => [
-                        'operations_pending_total' => $feriasVencidas + $feriasProximos2Meses,
-                    ],
-                ];
-            }
+        if ($canViewOperationsPanel) {
+            $modules[] = [
+                'key' => 'operations',
+                'title' => 'Pendências',
+                'description' => 'Central de pendências críticas para priorização diária.',
+                'href' => '/transport/pendencias',
+                'icon' => 'clipboard-check',
+                'metrics' => [
+                    'operations_pending_total' => $feriasVencidas + $feriasProximos2Meses,
+                ],
+            ];
         }
 
         return response()->json([
