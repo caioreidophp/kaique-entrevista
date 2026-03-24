@@ -56,6 +56,7 @@
 - Nova planilha de exportação contém colunas `Nome`, `VR` e `VA`, somando todos os lançamentos do mês por pessoa.
 - Regra de cálculo aplicada na planilha: `VR` = apenas Vale Refeição; `VA` = `Prêmio Média + Cesta Básica`.
 - A planilha inclui título superior da competência no formato `Mês/AA` (ex.: `Março/26`) e linha final com total geral de `VR` e `VA`.
+- Corrigido bug na exportação VR/VA que poderia gerar colunas vazias mesmo com lançamentos no mês: a identificação dos tipos agora normaliza variações de acentuação/nome e usa fallback por `tipo_pagamento_id`.
 
 ### Painel de Folha
 

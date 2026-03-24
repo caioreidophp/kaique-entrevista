@@ -240,6 +240,7 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'A planilha passou a ter três colunas fixas (`Nome`, `VR`, `VA`), somando todos os lançamentos do mês por colaborador.',
                             'No cálculo: `VR` considera somente tipos de Vale Refeição e `VA` considera `Prêmio Média + Cesta Básica` (CB).',
                             'No rodapé da planilha são exibidos os totais gerais de VR e VA e, no topo, título de competência no formato `Mês/AA` (ex.: `Março/26`).',
+                            'Corrigido cenário em que VR/VA saíam zerados no Excel mesmo com lançamentos no mês: a classificação agora usa normalização robusta de nomes (com/sem acento) e fallback por `tipo_pagamento_id` quando necessário.',
                         ],
                     },
                 ],

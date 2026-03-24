@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -1050,6 +1051,19 @@ class PayrollController extends Controller
             ->latest('id');
 
         $rows = $query->get();
+        $fallbackTypeNames = TipoPagamento::query()
+            ->withoutGlobalScopes()
+            ->whereIn(
+                'id',
+                $rows
+                    ->pluck('tipo_pagamento_id')
+                    ->filter(fn ($id) => $id !== null)
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all(),
+            )
+            ->pluck('nome', 'id');
 
         $grouped = [];
 
@@ -1066,16 +1080,20 @@ class PayrollController extends Controller
                 ];
             }
 
-            $normalizedType = $this->normalizePaymentName((string) ($row->tipoPagamento?->nome ?? ''));
+            $typeName = (string) (
+                $row->tipoPagamento?->nome
+                ?? $fallbackTypeNames->get((int) ($row->tipo_pagamento_id ?? 0), '')
+            );
+            $normalizedType = $this->normalizePaymentName($typeName);
             $value = (float) $row->valor;
 
-            if ($this->containsAny($normalizedType, ['vale refeicao'])) {
+            if ($this->containsAny($normalizedType, ['vale refeicao', 'vr'])) {
                 $grouped[$key]['vr'] += $value;
 
                 continue;
             }
 
-            if ($this->containsAny($normalizedType, ['premio media', 'cesta basica'])) {
+            if ($this->containsAny($normalizedType, ['premio media', 'cesta basica', 'cb', 'va'])) {
                 $grouped[$key]['va'] += $value;
             }
         }
@@ -1256,9 +1274,10 @@ class PayrollController extends Controller
     private function normalizePaymentName(string $value): string
     {
         $lower = mb_strtolower($value, 'UTF-8');
-        $converted = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $lower);
+        $ascii = Str::ascii($lower);
+        $sanitized = preg_replace('/[^a-z0-9\s]/', ' ', $ascii) ?? $ascii;
 
-        return $converted !== false ? $converted : $lower;
+        return trim(preg_replace('/\s+/', ' ', $sanitized) ?? $sanitized);
     }
 
     /**
@@ -1267,7 +1286,7 @@ class PayrollController extends Controller
     private function containsAny(string $subject, array $terms): bool
     {
         foreach ($terms as $term) {
-            if (str_contains($subject, $term)) {
+            if (str_contains($subject, $this->normalizePaymentName($term))) {
                 return true;
             }
         }
