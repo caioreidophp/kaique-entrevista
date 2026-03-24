@@ -40,7 +40,7 @@ interface VacationCandidateRow {
     periodo_aquisitivo_fim: string;
     direito: string;
     limite: string;
-    status: 'vencida' | 'a_vencer';
+    status: 'vencida' | 'a_vencer' | 'liberada' | 'atencao' | 'urgente';
 }
 
 interface VacationLaunchedRow {
@@ -88,6 +88,40 @@ function formatDate(date: string | null): string {
 
 function normalizeText(value: string | null | undefined): string {
     return (value ?? '').toLocaleLowerCase('pt-BR');
+}
+
+function vacationStatusLabel(status: VacationCandidateRow['status']): string {
+    switch (status) {
+        case 'a_vencer':
+            return 'À Vencer';
+        case 'liberada':
+            return 'Liberada';
+        case 'atencao':
+            return 'Atenção';
+        case 'urgente':
+            return 'Urgente';
+        case 'vencida':
+            return 'Vencida';
+        default:
+            return status;
+    }
+}
+
+function vacationStatusClass(status: VacationCandidateRow['status']): string {
+    switch (status) {
+        case 'a_vencer':
+            return 'font-medium text-sky-700';
+        case 'liberada':
+            return 'font-medium text-emerald-700';
+        case 'atencao':
+            return 'font-medium text-amber-700';
+        case 'urgente':
+            return 'font-medium text-orange-700';
+        case 'vencida':
+            return 'font-medium text-destructive';
+        default:
+            return 'font-medium text-foreground';
+    }
 }
 
 function SortHeader({
@@ -227,8 +261,6 @@ export default function VacationsListPage() {
 
     const filteredCandidates = useMemo(() => {
         const normalizedQuery = normalizeText(nameFilter);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
         return [...candidates]
             .filter((item) => {
@@ -247,14 +279,7 @@ export default function VacationsListPage() {
                     numeric: true,
                     sensitivity: 'base',
                 }) * direction;
-            })
-            .map((item) => ({
-                ...item,
-                status:
-                    new Date(`${item.limite}T00:00:00`).getTime() < today.getTime()
-                        ? 'vencida'
-                        : 'a_vencer',
-            }));
+            });
     }, [candidateSortBy, candidateSortDirection, candidates, nameFilter]);
 
     const filteredLaunched = useMemo(() => {
@@ -474,14 +499,8 @@ export default function VacationsListPage() {
                                                     <td className="py-2 pr-3">{formatDate(item.direito)}</td>
                                                     <td className="py-2 pr-3">{formatDate(item.limite)}</td>
                                                     <td className="py-2 pr-3">
-                                                        <span
-                                                            className={
-                                                                item.status === 'vencida'
-                                                                    ? 'font-medium text-destructive'
-                                                                    : 'font-medium text-emerald-700'
-                                                            }
-                                                        >
-                                                            {item.status === 'vencida' ? 'Vencida' : 'A vencer'}
+                                                        <span className={vacationStatusClass(item.status)}>
+                                                            {vacationStatusLabel(item.status)}
                                                         </span>
                                                     </td>
                                                 </tr>

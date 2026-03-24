@@ -108,6 +108,7 @@ export default function FreightList() {
             setItems((prev) => prev.filter((i) => i.id !== item.id));
             setDeleteConfirmOpen(false);
             setEditingItem(null);
+            await loadData();
 
             setNotification({
                 message: 'Lançamento de frete deletado com sucesso.',

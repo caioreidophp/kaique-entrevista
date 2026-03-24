@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
@@ -55,7 +56,7 @@ class FreightController extends Controller
         $participacaoTerceiros = $totalFrete > 0 ? ($totalFreteTerceiros / $totalFrete) * 100 : 0.0;
 
         $kmMuitoAltoCount = (clone $query)
-            ->where('km_rodado', '>', 10000)
+            ->where('km_rodado', '>', 25000)
             ->count();
 
         $kmMuitoBaixoCount = (clone $query)
@@ -78,7 +79,7 @@ class FreightController extends Controller
             $alerts[] = [
                 'level' => 'warning',
                 'key' => 'km_muito_alto',
-                'message' => "{$kmMuitoAltoCount} lançamento(s) com KM muito alto no período (>10000).",
+                'message' => "{$kmMuitoAltoCount} lançamento(s) com KM muito alto no período (>25000).",
             ];
         }
 
@@ -1274,7 +1275,10 @@ class FreightController extends Controller
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        $freightEntry->delete();
+        DB::transaction(function () use ($freightEntry): void {
+            $freightEntry->canceledLoads()->delete();
+            $freightEntry->delete();
+        });
 
         return response()->json([], 204);
     }

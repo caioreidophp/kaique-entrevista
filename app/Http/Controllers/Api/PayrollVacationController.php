@@ -42,7 +42,9 @@ class PayrollVacationController extends Controller
         $plus4Months = $today->addMonths(4);
 
         $feriasVencidas = $rows->where('status', 'vencida')->count();
-        $feriasAVencer = $rows->where('status', 'a_vencer')->count();
+        $feriasAVencer = $rows
+            ->whereIn('status', ['a_vencer', 'liberada', 'atencao', 'urgente'])
+            ->count();
 
         $limiteProximos2Meses = $rows
             ->filter(fn (array $row): bool => CarbonImmutable::parse($row['limite'])->betweenIncluded($today, $plus2Months))
@@ -108,8 +110,8 @@ class PayrollVacationController extends Controller
                 $limite = CarbonImmutable::parse($row['limite']);
 
                 return match ($limiteFilter) {
-                    'vencidas' => $limite->lt($today),
-                    'a_vencer' => $limite->gte($today),
+                    'vencidas' => $row['status'] === 'vencida',
+                    'a_vencer' => $row['status'] !== 'vencida',
                     'proximos_2_meses' => $limite->betweenIncluded($today, $plus2Months),
                     'proximos_4_meses' => $limite->betweenIncluded($today, $plus4Months),
                     default => true,
@@ -320,6 +322,8 @@ class PayrollVacationController extends Controller
 
                 $baseDate = (string) ($latestPeriodEndByCollaborator->get($colaborador->id) ?? $admissao);
                 $base = CarbonImmutable::parse($baseDate);
+                $diasDesdeBase = max($base->diffInDays($today) + 1, 1);
+                $status = $this->resolveVacationStatusByDays($diasDesdeBase);
 
                 $direito = $base->addYear();
                 $limite = $direito->addMonths(11);
@@ -335,11 +339,32 @@ class PayrollVacationController extends Controller
                     'periodo_aquisitivo_fim' => $base->addDays(364)->toDateString(),
                     'direito' => $direito->toDateString(),
                     'limite' => $limite->toDateString(),
-                    'status' => $today->gt($limite) ? 'vencida' : 'a_vencer',
+                    'status' => $status,
                 ];
             })
             ->filter(fn (?array $row): bool => $row !== null)
             ->values();
+    }
+
+    private function resolveVacationStatusByDays(int $daysSinceBase): string
+    {
+        if ($daysSinceBase <= 365) {
+            return 'a_vencer';
+        }
+
+        if ($daysSinceBase <= 576) {
+            return 'liberada';
+        }
+
+        if ($daysSinceBase <= 636) {
+            return 'atencao';
+        }
+
+        if ($daysSinceBase <= 699) {
+            return 'urgente';
+        }
+
+        return 'vencida';
     }
 
     private function eligibleCollaboratorsQuery(Request $request): Builder

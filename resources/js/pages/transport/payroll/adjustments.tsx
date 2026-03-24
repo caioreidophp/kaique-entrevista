@@ -184,6 +184,8 @@ export default function TransportPayrollAdjustmentsPage() {
     const [descontoForm, setDescontoForm] = useState<DescontoForm>(emptyDesconto);
     const [emprestimoForm, setEmprestimoForm] = useState<EmprestimoForm>(emptyEmprestimo);
     const [pensaoForm, setPensaoForm] = useState<PensaoForm>(emptyPensao);
+    const [descontoCollaboratorSearch, setDescontoCollaboratorSearch] = useState('');
+    const [emprestimoCollaboratorSearch, setEmprestimoCollaboratorSearch] = useState('');
     const [pensaoCollaboratorSearch, setPensaoCollaboratorSearch] = useState('');
 
     const collaboratorMap = useMemo(() => {
@@ -203,6 +205,22 @@ export default function TransportPayrollAdjustmentsPage() {
 
         return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
     }, [pensaoCollaboratorSearch, sortedColaboradores]);
+
+    const filteredDescontoCollaborators = useMemo(() => {
+        const term = descontoCollaboratorSearch.trim().toLowerCase();
+
+        if (!term) return sortedColaboradores;
+
+        return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
+    }, [descontoCollaboratorSearch, sortedColaboradores]);
+
+    const filteredEmprestimoCollaborators = useMemo(() => {
+        const term = emprestimoCollaboratorSearch.trim().toLowerCase();
+
+        if (!term) return sortedColaboradores;
+
+        return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
+    }, [emprestimoCollaboratorSearch, sortedColaboradores]);
 
     async function load(): Promise<void> {
         setLoading(true);
@@ -237,6 +255,7 @@ export default function TransportPayrollAdjustmentsPage() {
     function openNewDesconto(): void {
         setEditingDesconto(null);
         setDescontoForm(emptyDesconto);
+        setDescontoCollaboratorSearch('');
         setDescontoOpen(true);
     }
 
@@ -264,12 +283,14 @@ export default function TransportPayrollAdjustmentsPage() {
             parcela_atual: String(item.parcela_atual ?? 1),
             data_referencia: item.data_referencia?.slice(0, 10) ?? '',
         });
+        setDescontoCollaboratorSearch(item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '');
         setDescontoOpen(true);
     }
 
     function openNewEmprestimo(): void {
         setEditingEmprestimo(null);
         setEmprestimoForm(emptyEmprestimo);
+        setEmprestimoCollaboratorSearch('');
         setEmprestimoOpen(true);
     }
 
@@ -285,6 +306,7 @@ export default function TransportPayrollAdjustmentsPage() {
             data_inicio: item.data_inicio.slice(0, 10),
             ativo: item.ativo,
         });
+        setEmprestimoCollaboratorSearch(item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '');
         setEmprestimoOpen(true);
     }
 
@@ -674,21 +696,34 @@ export default function TransportPayrollAdjustmentsPage() {
                     <form className="space-y-3" onSubmit={saveDesconto}>
                         <div className="space-y-2">
                             <Label>Colaborador *</Label>
-                            <Select
-                                value={descontoForm.colaborador_id}
-                                onValueChange={(value) => setDescontoForm((previous) => ({ ...previous, colaborador_id: value }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {colaboradores.map((item) => (
-                                        <SelectItem key={item.id} value={String(item.id)}>
-                                            {item.nome}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Input
+                                value={descontoCollaboratorSearch}
+                                onChange={(event) => setDescontoCollaboratorSearch(event.target.value)}
+                                placeholder="Digite para filtrar (ex.: Ada)"
+                            />
+                            <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/20 p-1">
+                                {filteredDescontoCollaborators.length === 0 ? (
+                                    <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                ) : (
+                                    filteredDescontoCollaborators.map((item) => {
+                                        const selected = descontoForm.colaborador_id === String(item.id);
+
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
+                                                onClick={() => {
+                                                    setDescontoForm((previous) => ({ ...previous, colaborador_id: String(item.id) }));
+                                                    setDescontoCollaboratorSearch(item.nome);
+                                                }}
+                                            >
+                                                {item.nome}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="desc-desconto">Descrição *</Label>
@@ -850,23 +885,34 @@ export default function TransportPayrollAdjustmentsPage() {
                     <form className="space-y-3" onSubmit={saveEmprestimo}>
                         <div className="space-y-2">
                             <Label>Colaborador *</Label>
-                            <Select
-                                value={emprestimoForm.colaborador_id}
-                                onValueChange={(value) =>
-                                    setEmprestimoForm((previous) => ({ ...previous, colaborador_id: value }))
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {colaboradores.map((item) => (
-                                        <SelectItem key={item.id} value={String(item.id)}>
-                                            {item.nome}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Input
+                                value={emprestimoCollaboratorSearch}
+                                onChange={(event) => setEmprestimoCollaboratorSearch(event.target.value)}
+                                placeholder="Digite para filtrar (ex.: Ada)"
+                            />
+                            <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/20 p-1">
+                                {filteredEmprestimoCollaborators.length === 0 ? (
+                                    <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                ) : (
+                                    filteredEmprestimoCollaborators.map((item) => {
+                                        const selected = emprestimoForm.colaborador_id === String(item.id);
+
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
+                                                onClick={() => {
+                                                    setEmprestimoForm((previous) => ({ ...previous, colaborador_id: String(item.id) }));
+                                                    setEmprestimoCollaboratorSearch(item.nome);
+                                                }}
+                                            >
+                                                {item.nome}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="desc-emprestimo">Descrição *</Label>

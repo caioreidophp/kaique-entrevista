@@ -243,6 +243,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Corrigido cenário em que VR/VA saíam zerados no Excel mesmo com lançamentos no mês: a classificação agora usa normalização robusta de nomes (com/sem acento) e fallback por `tipo_pagamento_id` quando necessário.',
                         ],
                     },
+                    {
+                        title: 'Refino operacional transversal: férias por faixas, cores globais, ajustes de colaborador e robustez de frete',
+                        details: [
+                            'No painel/lista de Férias, o status passou a seguir a nova régua por dias corridos desde a base (admissão ou fim do último período aquisitivo): `1-365 À Vencer`, `366-576 Liberada`, `577-636 Atenção`, `637-699 Urgente`, `>=700 Vencida`.',
+                            'A UI global recebeu reforço de legibilidade sem abandonar o estilo clean: tokens de tema foram ajustados para contraste mais útil em operação, com cabeçalhos de tabela mais destacados e hover de linhas com sinal visual mais claro.',
+                            'Nos ajustes de Folha (descontos/empréstimos), seleção de colaborador agora fica em ordem alfabética e com busca parcial por nome (ex.: digitar `Ada` já filtra opções correspondentes).',
+                            'Limites de KM no lançamento de frete foram atualizados para operação diária com validação de faixa (`mínimo 1000` quando informado e `máximo 25000`) e alerta de dashboard alinhado ao novo teto.',
+                            'Fluxo de exclusão na Lista de Fretes foi reforçado para evitar sensação de item “não excluído”: remoção agora limpa cargas canceladas vinculadas em transação e recarrega a listagem após deletar.',
+                        ],
+                    },
                 ],
             },
             {

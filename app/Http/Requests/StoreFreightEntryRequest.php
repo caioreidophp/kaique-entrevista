@@ -116,10 +116,19 @@ class StoreFreightEntryRequest extends FormRequest
                     continue;
                 }
 
-                if ((float) $raw > 10000) {
+                $value = (float) $raw;
+
+                if ($value > 0 && $value < 1000) {
                     $validator->errors()->add(
                         $field,
-                        'KM muito alto para um lançamento diário. Revise o valor informado.',
+                        'KM muito baixo para um lançamento diário. O mínimo aceito é 1000.',
+                    );
+                }
+
+                if ($value > 25000) {
+                    $validator->errors()->add(
+                        $field,
+                        'KM muito alto para um lançamento diário. O máximo aceito é 25000.',
                     );
                 }
             }

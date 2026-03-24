@@ -57,6 +57,13 @@
 - Regra de cálculo aplicada na planilha: `VR` = apenas Vale Refeição; `VA` = `Prêmio Média + Cesta Básica`.
 - A planilha inclui título superior da competência no formato `Mês/AA` (ex.: `Março/26`) e linha final com total geral de `VR` e `VA`.
 - Corrigido bug na exportação VR/VA que poderia gerar colunas vazias mesmo com lançamentos no mês: a identificação dos tipos agora normaliza variações de acentuação/nome e usa fallback por `tipo_pagamento_id`.
+- Painel de Férias passou a usar régua operacional por dias desde a base (admissão ou fim do último período aquisitivo): `1-365 À Vencer`, `366-576 Liberada`, `577-636 Atenção`, `637-699 Urgente` e `>=700 Vencida`.
+- Lista de Férias passou a exibir os novos status com diferenciação visual direta para leitura rápida em operação.
+- Ajustes globais de UI/UX foram aplicados via tokens de tema e estilos compartilhados (contraste de tabela/cartões, hover mais evidente e feedback visual mais distinto) mantendo o visual limpo.
+- Em `Descontos` e `Empréstimos`, seleção de colaborador agora é alfabética com busca parcial por nome para reduzir tempo de cadastro.
+- Regras de KM no lançamento de frete foram ajustadas para faixa operacional (`mínimo 1000` quando informado e `máximo 25000`) com mensagens de validação atualizadas.
+- Alertas de dashboard de frete para KM alto foram alinhados ao novo teto (`>25000`).
+- Exclusão de frete foi robustecida com remoção transacional dos vínculos de cargas canceladas e recarregamento da lista após exclusão para evitar inconsistência visual.
 
 ### Painel de Folha
 
