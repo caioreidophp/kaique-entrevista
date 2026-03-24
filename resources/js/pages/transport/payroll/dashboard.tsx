@@ -103,13 +103,13 @@ export default function TransportPayrollDashboardPage() {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Pagamentos a fazer
+                                        Pagamentos lançados
                                     </CardTitle>
                                     <Wallet className="size-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {data.total_pagamentos_a_fazer}
+                                        {formatIntegerBR(data.total_pagamentos_lancados)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -129,12 +129,12 @@ export default function TransportPayrollDashboardPage() {
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-sm text-muted-foreground">
-                                        Pendências da competência
+                                        Pagamentos a fazer
                                     </CardTitle>
                                     <Wallet className="size-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-2xl font-semibold">
+                                    <p className="text-2xl font-semibold text-amber-700">
                                         {formatIntegerBR(data.total_pagamentos_a_fazer)}
                                     </p>
                                 </CardContent>

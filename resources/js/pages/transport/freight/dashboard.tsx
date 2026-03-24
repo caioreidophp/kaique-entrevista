@@ -113,6 +113,7 @@ export default function TransportFreightDashboardPage() {
     const kpis = data?.kpis;
 
     const kpiMain = [
+        { title: 'Lançamentos no período', value: formatIntegerBR(kpis?.total_lancamentos ?? 0) },
         { title: 'Total frete', value: formatCurrencyBR(kpis?.total_frete ?? 0) },
         {
             title: 'Frete líquido',
@@ -235,7 +236,7 @@ export default function TransportFreightDashboardPage() {
                     </div>
                 ) : data ? (
                     <>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
                             {kpiMain.map((item) => (
                                 <Card key={item.title}>
                                     <CardHeader className="px-3 pt-2 pb-0.5">

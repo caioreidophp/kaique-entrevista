@@ -77,10 +77,16 @@ class HomeController extends Controller
         $colaboradoresAtivos = 0;
         $totalPagamentosMes = 0.0;
         $pagamentosLancadosMes = 0;
+        $pagamentosPendentesMes = 0;
+        $pagamentosCoberturaMes = 0.0;
         $freightEntriesMes = 0;
         $freightTotalMes = 0.0;
+        $freightTotalTerceirosMes = 0.0;
+        $freightKmMes = 0.0;
         $feriasVencidas = 0;
         $feriasProximos2Meses = 0;
+        $feriasProximos4Meses = 0;
+        $taxaFeriasVencidas = 0.0;
 
         if (($canViewRegistryPanel || $canViewVacationsPanel || $canViewOperationsPanel) && $hasColaboradores) {
             $colaboradoresAtivos = Colaborador::query()
@@ -102,6 +108,10 @@ class HomeController extends Controller
 
             $pagamentosLancadosMes = (clone $pagamentosQuery)->count();
             $totalPagamentosMes = (float) ((clone $pagamentosQuery)->sum('valor'));
+            $pagamentosPendentesMes = max(0, $colaboradoresAtivos - $pagamentosLancadosMes);
+            $pagamentosCoberturaMes = $colaboradoresAtivos > 0
+                ? round(($pagamentosLancadosMes / $colaboradoresAtivos) * 100, 2)
+                : 0.0;
         }
 
         if ($canViewFreightPanel && $hasFreightEntries) {
@@ -118,6 +128,8 @@ class HomeController extends Controller
 
             $freightEntriesMes = (clone $freightQuery)->count();
             $freightTotalMes = (float) ((clone $freightQuery)->sum('frete_total'));
+            $freightTotalTerceirosMes = (float) ((clone $freightQuery)->sum('frete_terceiros'));
+            $freightKmMes = (float) ((clone $freightQuery)->sum('km_rodado'));
         }
 
         if (($canViewVacationsPanel || $canViewOperationsPanel) && $hasColaboradores && $hasFeriasLancamentos) {
@@ -156,7 +168,15 @@ class HomeController extends Controller
                     if ($limite->betweenIncluded($today, $plus2Months)) {
                         $feriasProximos2Meses++;
                     }
+
+                    if ($limite->betweenIncluded($today, $today->addMonths(4))) {
+                        $feriasProximos4Meses++;
+                    }
                 }
+
+                $taxaFeriasVencidas = $activeCollaborators->count() > 0
+                    ? round(($feriasVencidas / $activeCollaborators->count()) * 100, 2)
+                    : 0.0;
             }
         }
 
@@ -185,6 +205,8 @@ class HomeController extends Controller
                 'metrics' => [
                     'payments_current_month' => $pagamentosLancadosMes,
                     'total_current_month' => $totalPagamentosMes,
+                    'payments_pending_current_month' => $pagamentosPendentesMes,
+                    'payments_coverage_current_month' => $pagamentosCoberturaMes,
                 ],
             ];
         }
@@ -199,6 +221,8 @@ class HomeController extends Controller
                 'metrics' => [
                     'vacations_expired' => $feriasVencidas,
                     'vacations_due_2_months' => $feriasProximos2Meses,
+                    'vacations_due_4_months' => $feriasProximos4Meses,
+                    'vacations_expired_rate' => $taxaFeriasVencidas,
                 ],
             ];
         }
@@ -226,6 +250,12 @@ class HomeController extends Controller
                 'metrics' => [
                     'freight_entries_current_month' => $freightEntriesMes,
                     'freight_total_current_month' => $freightTotalMes,
+                    'freight_avg_km_current_month' => $freightKmMes > 0
+                        ? round($freightTotalMes / $freightKmMes, 2)
+                        : 0.0,
+                    'freight_third_share_current_month' => $freightTotalMes > 0
+                        ? round(($freightTotalTerceirosMes / $freightTotalMes) * 100, 2)
+                        : 0.0,
                 ],
             ];
         }

@@ -254,6 +254,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Após validação visual em operação, o tema da sidebar/home e botões principais foi revertido para o padrão preto original (sem acentuação azul), mantendo apenas melhorias funcionais e de legibilidade que não alteram a identidade atual.',
                         ],
                     },
+                    {
+                        title: 'Home e dashboards enriquecidos com KPIs mais úteis para operação diária',
+                        details: [
+                            'Na Home, o card de Pagamentos foi corrigido para exibir `Pagamentos no mês atual` como quantidade (não moeda) e ganhou métricas adicionais de pendência/cobertura para leitura rápida de fechamento.',
+                            'Cards da Home de Férias e Fretes receberam indicadores extras para contexto de decisão (ex.: taxa de vencidas e participação de terceiros), mantendo layout limpo.',
+                            'No card de Férias da Home, `Férias vencidas` passou a ter destaque em vermelho quando houver volume, priorizando ação imediata.',
+                            'Dashboard de Férias foi ampliado com contadores por faixa operacional (`À Vencer`, `Liberada`, `Atenção`, `Urgente`, `Vencida`) e destaque visual forte para vencidas/taxa de vencidas.',
+                            'Dashboard de Fretes ganhou KPI explícito de lançamentos no período e o dashboard de Pagamentos teve revisão de cartões para separar melhor volume lançado, pendências e cobertura.',
+                        ],
+                    },
                 ],
             },
             {

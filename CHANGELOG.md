@@ -61,6 +61,11 @@
 - Lista de Férias passou a exibir os novos status com diferenciação visual direta para leitura rápida em operação.
 - Ajustes globais de UI/UX foram aplicados via tokens de tema e estilos compartilhados (contraste de tabela/cartões, hover mais evidente e feedback visual mais distinto) mantendo o visual limpo.
 - Tema visual da sidebar/home e dos botões de ação principais foi revertido para o padrão preto original após feedback operacional, removendo acentuação azul que fugia da identidade anterior.
+- Home foi enriquecida com mais informações operacionais nos cards principais (Pagamentos, Férias e Fretes), incluindo KPIs adicionais de cobertura/pendência e contexto de risco.
+- Corrigida a métrica `Pagamentos no mês atual` na Home para exibir quantidade de lançamentos (inteiro), deixando valores monetários apenas nos campos de total em reais.
+- Card de Férias na Home passou a destacar `Férias vencidas` em vermelho para facilitar priorização.
+- Dashboard de Férias recebeu ampliação com contadores por faixa (`À Vencer`, `Liberada`, `Atenção`, `Urgente`, `Vencida`) e ênfase visual para vencidas/taxa de vencidas.
+- Dashboard de Fretes passou a exibir KPI explícito de lançamentos no período e Dashboard de Pagamentos teve reorganização de cartões para leitura mais pertinente do fechamento mensal.
 - Em `Descontos` e `Empréstimos`, seleção de colaborador agora é alfabética com busca parcial por nome para reduzir tempo de cadastro.
 - Regras de KM no lançamento de frete foram ajustadas para faixa operacional (`mínimo 1000` quando informado e `máximo 25000`) com mensagens de validação atualizadas.
 - Alertas de dashboard de frete para KM alto foram alinhados ao novo teto (`>25000`).

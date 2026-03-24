@@ -45,6 +45,10 @@ class PayrollVacationController extends Controller
         $feriasAVencer = $rows
             ->whereIn('status', ['a_vencer', 'liberada', 'atencao', 'urgente'])
             ->count();
+        $faixaAVencer = $rows->where('status', 'a_vencer')->count();
+        $faixaLiberada = $rows->where('status', 'liberada')->count();
+        $faixaAtencao = $rows->where('status', 'atencao')->count();
+        $faixaUrgente = $rows->where('status', 'urgente')->count();
 
         $limiteProximos2Meses = $rows
             ->filter(fn (array $row): bool => CarbonImmutable::parse($row['limite'])->betweenIncluded($today, $plus2Months))
@@ -83,6 +87,10 @@ class PayrollVacationController extends Controller
             'data' => [
                 'ferias_vencidas' => $feriasVencidas,
                 'ferias_a_vencer' => $feriasAVencer,
+                'faixa_a_vencer' => $faixaAVencer,
+                'faixa_liberada' => $faixaLiberada,
+                'faixa_atencao' => $faixaAtencao,
+                'faixa_urgente' => $faixaUrgente,
                 'limite_proximos_4_meses' => $limiteProximos4Meses,
                 'limite_proximos_2_meses' => $limiteProximos2Meses,
                 'ferias_programadas_30_dias' => $feriasProgramadasProximos30Dias,

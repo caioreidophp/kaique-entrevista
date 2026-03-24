@@ -46,11 +46,17 @@ const metricLabels: Record<string, string> = {
     total_interviews: 'Total de entrevistas',
     payments_current_month: 'Pagamentos no mês atual',
     total_current_month: 'Total no mês atual',
+    payments_pending_current_month: 'Pagamentos pendentes',
+    payments_coverage_current_month: 'Cobertura de pagamentos',
     active_collaborators: 'Colaboradores ativos',
     freight_entries_current_month: 'Lançamentos de frete no mês',
     freight_total_current_month: 'Frete total no mês',
+    freight_avg_km_current_month: 'Média R$/KM no mês',
+    freight_third_share_current_month: 'Participação de terceiros',
     vacations_expired: 'Férias vencidas',
     vacations_due_2_months: 'Limite próximos 2 meses',
+    vacations_due_4_months: 'Limite próximos 4 meses',
+    vacations_expired_rate: 'Taxa de férias vencidas',
     operations_pending_total: 'Pendências totais',
     executive_approval_rate: 'Taxa de aprovação',
 };
@@ -60,15 +66,35 @@ function formatMetric(label: string, value: number): string {
         return formatPercentBR(value);
     }
 
+    if (label.includes('coverage') || label.includes('share') || label.includes('expired_rate')) {
+        return formatPercentBR(value);
+    }
+
     if (
         label.includes('total_current_month') ||
         label.includes('freight_total_current_month') ||
-        label.includes('payments_current_month')
+        label.includes('avg_km_current_month')
     ) {
         return formatCurrencyBR(value);
     }
 
     return formatIntegerBR(value);
+}
+
+function metricValueClass(label: string, value: number): string {
+    if (label === 'vacations_expired' && value > 0) {
+        return 'font-semibold text-destructive';
+    }
+
+    if (label === 'payments_pending_current_month' && value > 0) {
+        return 'font-semibold text-amber-700';
+    }
+
+    if (label === 'freight_third_share_current_month' && value >= 35) {
+        return 'font-semibold text-indigo-700';
+    }
+
+    return 'font-medium text-foreground';
 }
 
 function moduleIcon(key: HomeModule['key']) {
@@ -153,7 +179,7 @@ export default function TransportHomePage() {
                                                                 ' ',
                                                             )}
                                                     </span>
-                                                    <span className="font-medium text-foreground">
+                                                    <span className={metricValueClass(label, value)}>
                                                         {formatMetric(label, value)}
                                                     </span>
                                                 </div>

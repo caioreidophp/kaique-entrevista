@@ -13,6 +13,10 @@ interface WrappedResponse<T> {
 interface VacationDashboard {
     ferias_vencidas: number;
     ferias_a_vencer: number;
+    faixa_a_vencer: number;
+    faixa_liberada: number;
+    faixa_atencao: number;
+    faixa_urgente: number;
     limite_proximos_4_meses: number;
     limite_proximos_2_meses: number;
     ferias_programadas_30_dias: number;
@@ -72,7 +76,7 @@ export default function VacationsDashboardPage() {
                                 <CardTitle className="text-xs text-muted-foreground">Férias vencidas</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-2xl font-semibold">{formatIntegerBR(data?.ferias_vencidas ?? 0)}</p>
+                                <p className="text-2xl font-semibold text-destructive">{formatIntegerBR(data?.ferias_vencidas ?? 0)}</p>
                             </CardContent>
                         </Card>
 
@@ -82,6 +86,42 @@ export default function VacationsDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-2xl font-semibold">{formatIntegerBR(data?.ferias_a_vencer ?? 0)}</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs text-muted-foreground">Faixa: À Vencer</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-2xl font-semibold text-sky-700">{formatIntegerBR(data?.faixa_a_vencer ?? 0)}</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs text-muted-foreground">Faixa: Liberada</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-2xl font-semibold text-emerald-700">{formatIntegerBR(data?.faixa_liberada ?? 0)}</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs text-muted-foreground">Faixa: Atenção</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-2xl font-semibold text-amber-700">{formatIntegerBR(data?.faixa_atencao ?? 0)}</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xs text-muted-foreground">Faixa: Urgente</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-2xl font-semibold text-orange-700">{formatIntegerBR(data?.faixa_urgente ?? 0)}</p>
                             </CardContent>
                         </Card>
 
@@ -108,7 +148,7 @@ export default function VacationsDashboardPage() {
                                 <CardTitle className="text-xs text-muted-foreground">Taxa de vencidas</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-2xl font-semibold">{formatPercentBR(data?.taxa_vencidas_sobre_ativos ?? 0)}</p>
+                                <p className="text-2xl font-semibold text-destructive">{formatPercentBR(data?.taxa_vencidas_sobre_ativos ?? 0)}</p>
                             </CardContent>
                         </Card>
 
