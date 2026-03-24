@@ -11,9 +11,9 @@ interface NotificationProps {
 }
 
 const variantClasses: Record<NotificationVariant, string> = {
-    success: 'border-chart-2/35 bg-chart-2/10 text-foreground',
+    success: 'border-primary/30 bg-primary/10 text-foreground',
     error: 'border-destructive/30 bg-destructive/10 text-foreground',
-    info: 'border-chart-1/30 bg-chart-1/10 text-foreground',
+    info: 'border-border bg-muted/70 text-foreground',
 };
 
 const IconByVariant = {

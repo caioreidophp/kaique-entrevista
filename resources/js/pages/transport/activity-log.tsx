@@ -251,6 +251,7 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Nos ajustes de Folha (descontos/empréstimos), seleção de colaborador agora fica em ordem alfabética e com busca parcial por nome (ex.: digitar `Ada` já filtra opções correspondentes).',
                             'Limites de KM no lançamento de frete foram atualizados para operação diária com validação de faixa (`mínimo 1000` quando informado e `máximo 25000`) e alerta de dashboard alinhado ao novo teto.',
                             'Fluxo de exclusão na Lista de Fretes foi reforçado para evitar sensação de item “não excluído”: remoção agora limpa cargas canceladas vinculadas em transação e recarrega a listagem após deletar.',
+                            'Após validação visual em operação, o tema da sidebar/home e botões principais foi revertido para o padrão preto original (sem acentuação azul), mantendo apenas melhorias funcionais e de legibilidade que não alteram a identidade atual.',
                         ],
                     },
                 ],

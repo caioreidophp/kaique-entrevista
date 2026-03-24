@@ -60,6 +60,7 @@
 - Painel de Férias passou a usar régua operacional por dias desde a base (admissão ou fim do último período aquisitivo): `1-365 À Vencer`, `366-576 Liberada`, `577-636 Atenção`, `637-699 Urgente` e `>=700 Vencida`.
 - Lista de Férias passou a exibir os novos status com diferenciação visual direta para leitura rápida em operação.
 - Ajustes globais de UI/UX foram aplicados via tokens de tema e estilos compartilhados (contraste de tabela/cartões, hover mais evidente e feedback visual mais distinto) mantendo o visual limpo.
+- Tema visual da sidebar/home e dos botões de ação principais foi revertido para o padrão preto original após feedback operacional, removendo acentuação azul que fugia da identidade anterior.
 - Em `Descontos` e `Empréstimos`, seleção de colaborador agora é alfabética com busca parcial por nome para reduzir tempo de cadastro.
 - Regras de KM no lançamento de frete foram ajustadas para faixa operacional (`mínimo 1000` quando informado e `máximo 25000`) com mensagens de validação atualizadas.
 - Alertas de dashboard de frete para KM alto foram alinhados ao novo teto (`>25000`).
