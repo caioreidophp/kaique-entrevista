@@ -23,7 +23,7 @@ import {
     TrendingUp,
     CircleX,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -43,11 +43,27 @@ import {
 } from '@/lib/transport-auth';
 import { transportFeatures } from '@/lib/transport-features';
 import {
+    getStoredTransportLanguage,
+    normalizeTransportLanguage,
+    setStoredTransportLanguage,
+    TRANSPORT_LANGUAGE_EVENT,
+    TRANSPORT_LANGUAGE_STORAGE_KEY,
+    type TransportLanguage,
+} from '@/lib/transport-language';
+import {
     clearStoredUser,
     fetchCurrentUser,
     getStoredUser,
     type TransportAuthUser,
 } from '@/lib/transport-session';
+
+const BobChatButton = lazy(async () => {
+    const module = await import('@/components/transport/bob-chat');
+
+    return {
+        default: module.BobChatButton,
+    };
+});
 
 type GlobalNotice = {
     message: string;
@@ -90,15 +106,138 @@ interface AdminLayoutProps {
         | 'registry-plates-aviaries'
         | 'activity-log';
     module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight' | 'vacations';
+    showBobChat?: boolean;
     children: React.ReactNode;
 }
+
+const adminLayoutCopy = {
+    'pt-BR': {
+        languageLabel: 'Idioma',
+        languagePortuguese: 'Português',
+        languageEnglish: 'Inglês',
+        moduleNavigation: 'Navegação do módulo',
+        generalAccess: 'Acesso geral',
+        profile: 'Perfil',
+        roleUser: 'Usuário',
+        roleAdmin: 'Admin',
+        openMenu: 'Abrir menu',
+        closeMenu: 'Fechar menu',
+        expandMenu: 'Expandir menu',
+        collapseMenu: 'Minimizar menu',
+        logout: 'Sair',
+        pendingChanges: ' • alterações pendentes',
+        quickNavigationTitle: 'Navegação rápida',
+        quickNavigationDescription: 'Digite um número para navegar:',
+        quickNavigationPlaceholder: 'Digite 1-5',
+        shortcutsLegend:
+            'Atalhos globais: Ctrl+S (salvar), Alt+Shift+1..3 (salvar perfil), Alt+1..3 (aplicar perfil), ESC (fechar).',
+        panelHome: 'Painel Principal',
+        panelRegistry: 'Painel de Cadastro',
+        panelPayroll: 'Painel de Pagamentos',
+        panelVacations: 'Painel Controle de Férias',
+        panelFreight: 'Central de Fretes',
+        panelInterviews: 'Painel de Entrevistas',
+        quickInterviews: 'Entrevistas',
+        quickPayroll: 'Pagamentos',
+        quickVacations: 'Férias',
+        quickRegistry: 'Cadastro',
+        quickFreight: 'Gestão de Fretes',
+        linkDashboard: 'Dashboard',
+        linkInterviews: 'Entrevistas',
+        linkNewInterview: 'Nova entrevista',
+        linkNextSteps: 'Próximos Passos',
+        linkOnboarding: 'Onboarding',
+        linkCollaborators: 'Colaboradores',
+        linkUsers: 'Usuários',
+        linkFunctions: 'Funções',
+        linkPaymentTypes: 'Tipo de Pagamentos',
+        linkPlatesAviaries: 'Placas e Aviários',
+        linkLaunchPayments: 'Lançar Pagamentos',
+        linkPaymentList: 'Lista de Pagamentos',
+        linkDiscounts: 'Descontos',
+        linkUnitReport: 'Relatório por Unidade',
+        linkCollaboratorReport: 'Relatório por Colaborador',
+        linkVacationList: 'Lista de Férias',
+        linkLaunchVacation: 'Lançar Férias',
+        linkLaunchFreight: 'Lançar Fretes',
+        linkFreightList: 'Lista de Fretes',
+        linkSpotFreight: 'Lançar Fretes Spot',
+        linkCanceledLoads: 'Cargas Canceladas',
+        linkAnalyticsHub: 'Central Analítica',
+        linkPending: 'Pendências',
+        linkSettings: 'Configurações',
+        linkLog: 'Log',
+    },
+    'en-US': {
+        languageLabel: 'Language',
+        languagePortuguese: 'Portuguese',
+        languageEnglish: 'English',
+        moduleNavigation: 'Module navigation',
+        generalAccess: 'General access',
+        profile: 'Profile',
+        roleUser: 'User',
+        roleAdmin: 'Admin',
+        openMenu: 'Open menu',
+        closeMenu: 'Close menu',
+        expandMenu: 'Expand menu',
+        collapseMenu: 'Collapse menu',
+        logout: 'Log out',
+        pendingChanges: ' • pending changes',
+        quickNavigationTitle: 'Quick navigation',
+        quickNavigationDescription: 'Type a number to navigate:',
+        quickNavigationPlaceholder: 'Type 1-5',
+        shortcutsLegend:
+            'Global shortcuts: Ctrl+S (save), Alt+Shift+1..3 (save profile), Alt+1..3 (apply profile), ESC (close).',
+        panelHome: 'Main panel',
+        panelRegistry: 'Registry panel',
+        panelPayroll: 'Payroll panel',
+        panelVacations: 'Vacation control panel',
+        panelFreight: 'Freight hub',
+        panelInterviews: 'Interviews panel',
+        quickInterviews: 'Interviews',
+        quickPayroll: 'Payroll',
+        quickVacations: 'Vacations',
+        quickRegistry: 'Registry',
+        quickFreight: 'Freight management',
+        linkDashboard: 'Dashboard',
+        linkInterviews: 'Interviews',
+        linkNewInterview: 'New interview',
+        linkNextSteps: 'Next steps',
+        linkOnboarding: 'Onboarding',
+        linkCollaborators: 'Collaborators',
+        linkUsers: 'Users',
+        linkFunctions: 'Functions',
+        linkPaymentTypes: 'Payment types',
+        linkPlatesAviaries: 'Plates and aviaries',
+        linkLaunchPayments: 'Launch payroll',
+        linkPaymentList: 'Payroll list',
+        linkDiscounts: 'Deductions',
+        linkUnitReport: 'Unit report',
+        linkCollaboratorReport: 'Collaborator report',
+        linkVacationList: 'Vacation list',
+        linkLaunchVacation: 'Launch vacation',
+        linkLaunchFreight: 'Launch freight',
+        linkFreightList: 'Freight list',
+        linkSpotFreight: 'Launch spot freight',
+        linkCanceledLoads: 'Canceled loads',
+        linkAnalyticsHub: 'Analytics hub',
+        linkPending: 'Pending items',
+        linkSettings: 'Settings',
+        linkLog: 'Log',
+    },
+} as const;
 
 export function AdminLayout({
     title,
     active,
     module,
+    showBobChat = true,
     children,
 }: AdminLayoutProps) {
+    const bobEnabled = import.meta.env.VITE_BOB_ENABLED === 'true';
+    const [language, setLanguage] = useState<TransportLanguage>(() =>
+        getStoredTransportLanguage(),
+    );
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [navigationInput, setNavigationInput] = useState('');
@@ -117,6 +256,46 @@ export function AdminLayout({
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
+    const copy = useMemo(() => adminLayoutCopy[language], [language]);
+
+    useEffect(() => {
+        setStoredTransportLanguage(language);
+    }, [language]);
+
+    useEffect(() => {
+        function handleTransportLanguageChanged(event: Event): void {
+            const customEvent = event as CustomEvent<{
+                language?: TransportLanguage;
+            }>;
+            const nextLanguage = normalizeTransportLanguage(
+                customEvent.detail?.language,
+            );
+
+            setLanguage(nextLanguage);
+        }
+
+        function handleStorage(event: StorageEvent): void {
+            if (event.key !== TRANSPORT_LANGUAGE_STORAGE_KEY) {
+                return;
+            }
+
+            setLanguage(getStoredTransportLanguage());
+        }
+
+        window.addEventListener(
+            TRANSPORT_LANGUAGE_EVENT,
+            handleTransportLanguageChanged as EventListener,
+        );
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            window.removeEventListener(
+                TRANSPORT_LANGUAGE_EVENT,
+                handleTransportLanguageChanged as EventListener,
+            );
+            window.removeEventListener('storage', handleStorage);
+        };
+    }, []);
 
     const clearFocusSidebarCloseTimeout = useCallback((): void => {
         if (focusSidebarCloseTimeoutRef.current !== null) {
@@ -350,7 +529,7 @@ export function AdminLayout({
             const byText = Array.from(
                 scope.querySelectorAll<HTMLButtonElement>('button:not([disabled])'),
             ).find((button) =>
-                /(salvar|gravar|lançar|cadastrar|finalizar|importar)/i.test(
+                /(salvar|gravar|lançar|cadastrar|finalizar|importar|save|submit|create|finish)/i.test(
                     button.textContent ?? '',
                 ),
             );
@@ -617,7 +796,7 @@ export function AdminLayout({
                     'button:not([disabled])',
                 ),
             ).find((button) =>
-                /(salvar|gravar|lançar|cadastrar|finalizar|importar)/i.test(
+                /(salvar|gravar|lançar|cadastrar|finalizar|importar|save|submit|create|finish)/i.test(
                     button.textContent ?? '',
                 ),
             );
@@ -722,23 +901,23 @@ export function AdminLayout({
         { label: string; href: string }
     > = {
         '1': {
-            label: 'Entrevistas',
+            label: copy.quickInterviews,
             href: '/transport/interviews',
         },
         '2': {
-            label: 'Pagamentos',
+            label: copy.quickPayroll,
             href: '/transport/payroll/dashboard',
         },
         '3': {
-            label: 'Férias',
+            label: copy.quickVacations,
             href: '/transport/vacations/dashboard',
         },
         '4': {
-            label: 'Cadastro',
+            label: copy.quickRegistry,
             href: '/transport/registry/collaborators',
         },
         '5': {
-            label: 'Central de Fretes',
+            label: copy.quickFreight,
             href: '/transport/freight/dashboard',
         },
     };
@@ -823,34 +1002,34 @@ export function AdminLayout({
             ...(currentModule === 'home'
                 ? []
                 : currentModule === 'registry'
-                  ? [
+                    ? [
                         {
                             key: 'registry-collaborators',
-                            label: 'Colaboradores',
+                            label: copy.linkCollaborators,
                             href: '/transport/registry/collaborators',
                             icon: Users,
                         },
                         {
                             key: 'registry-users',
-                            label: 'Usuários',
+                            label: copy.linkUsers,
                             href: '/transport/registry/users',
                             icon: UserPlus,
                         },
                         {
                             key: 'registry-functions',
-                            label: 'Funções',
+                            label: copy.linkFunctions,
                             href: '/transport/registry/functions',
                             icon: Briefcase,
                         },
                         {
                             key: 'registry-payment-types',
-                            label: 'Tipo de Pagamentos',
+                            label: copy.linkPaymentTypes,
                             href: '/transport/registry/payment-types',
                             icon: ReceiptText,
                         },
                         {
                             key: 'registry-plates-aviaries',
-                            label: 'Placas e Aviários',
+                            label: copy.linkPlatesAviaries,
                             href: '/transport/registry/plates-aviaries',
                             icon: Truck,
                         },
@@ -859,37 +1038,37 @@ export function AdminLayout({
                     ? [
                           {
                               key: 'payroll-dashboard',
-                              label: 'Dashboard',
+                              label: copy.linkDashboard,
                               href: '/transport/payroll/dashboard',
                               icon: Wallet,
                           },
                           {
                               key: 'payroll-launch',
-                              label: 'Lançar Pagamentos',
+                              label: copy.linkLaunchPayments,
                               href: '/transport/payroll/launch',
                               icon: ReceiptText,
                           },
                           {
                               key: 'payroll-list',
-                              label: 'Lista de Pagamentos',
+                              label: copy.linkPaymentList,
                               href: '/transport/payroll/list',
                               icon: List,
                           },
                           {
                               key: 'payroll-adjustments',
-                              label: 'Descontos',
+                              label: copy.linkDiscounts,
                               href: '/transport/payroll/adjustments',
                               icon: ReceiptText,
                           },
                           {
                               key: 'payroll-report-unit',
-                              label: 'Relatório por Unidade',
+                              label: copy.linkUnitReport,
                               href: '/transport/payroll/reports/unit',
                               icon: BarChart3,
                           },
                           {
                               key: 'payroll-report-collaborator',
-                              label: 'Relatório por Colaborador',
+                              label: copy.linkCollaboratorReport,
                               href: '/transport/payroll/reports/collaborator',
                               icon: ChartColumn,
                           },
@@ -898,19 +1077,19 @@ export function AdminLayout({
                       ? [
                             {
                                 key: 'vacations-dashboard',
-                                label: 'Dashboard',
+                                label: copy.linkDashboard,
                                 href: '/transport/vacations/dashboard',
                                 icon: ClipboardCheck,
                             },
                             {
                                 key: 'vacations-list',
-                                label: 'Lista de Férias',
+                                label: copy.linkVacationList,
                                 href: '/transport/vacations/list',
                                 icon: List,
                             },
                             {
                                 key: 'vacations-launch',
-                                label: 'Lançar Férias',
+                                label: copy.linkLaunchVacation,
                                 href: '/transport/vacations/launch',
                                 icon: PlusSquare,
                             },
@@ -919,37 +1098,37 @@ export function AdminLayout({
                       ? [
                             {
                                 key: 'freight-dashboard',
-                                label: 'Dashboard',
+                                label: copy.linkDashboard,
                                 href: '/transport/freight/dashboard',
                                 icon: LayoutDashboard,
                             },
                             {
                                 key: 'freight-launch',
-                                label: 'Lançar Fretes',
+                                label: copy.linkLaunchFreight,
                                 href: '/transport/freight/launch',
                                 icon: PlusSquare,
                             },
                             {
                                 key: 'freight-list',
-                                label: 'Lista de Fretes',
+                                label: copy.linkFreightList,
                                 href: '/transport/freight/list',
                                 icon: List,
                             },
                             {
                                 key: 'freight-spot',
-                                label: 'Lançar Fretes Spot',
+                                label: copy.linkSpotFreight,
                                 href: '/transport/freight/spot',
                                 icon: Truck,
                             },
                             {
                                 key: 'freight-canceled-loads',
-                                label: 'Cargas Canceladas',
+                                label: copy.linkCanceledLoads,
                                 href: '/transport/freight/canceled-loads',
                                 icon: CircleX,
                             },
                             {
                                 key: 'freight-timeline',
-                                label: 'Central Analítica',
+                                label: copy.linkAnalyticsHub,
                                 href: '/transport/freight/timeline',
                                 icon: TrendingUp,
                             },
@@ -957,47 +1136,47 @@ export function AdminLayout({
                       : [
                             {
                                 key: 'dashboard',
-                                label: 'Dashboard',
+                                label: copy.linkDashboard,
                                 href: '/transport/dashboard',
                                 icon: LayoutDashboard,
                             },
                             {
                                 key: 'interviews',
-                                label: 'Entrevistas',
+                                label: copy.linkInterviews,
                                 href: '/transport/interviews',
                                 icon: ListChecks,
                             },
                             {
                                 key: 'create',
-                                label: 'Nova entrevista',
+                                label: copy.linkNewInterview,
                                 href: '/transport/interviews/create',
                                 icon: PlusSquare,
                             },
                             {
                                 key: 'next-steps',
-                                label: 'Próximos Passos',
+                                label: copy.linkNextSteps,
                                 href: '/transport/next-steps',
                                 icon: Workflow,
                             },
                             {
                                 key: 'onboarding',
-                                label: 'Onboarding',
+                                label: copy.linkOnboarding,
                                 href: '/transport/onboarding',
                                 icon: ClipboardCheck,
                             },
                         ]),
         ],
-        [currentModule],
+        [copy, currentModule],
     );
 
     const settingsLink = useMemo(
         () => ({
             key: 'settings',
-            label: 'Configurações',
+            label: copy.linkSettings,
             href: '/transport/settings',
             icon: Cog,
         }),
-        [],
+        [copy.linkSettings],
     );
 
     const fixedLinks = useMemo(
@@ -1006,7 +1185,7 @@ export function AdminLayout({
                 ? [
                       {
                           key: 'operations-hub' as const,
-                          label: 'Pendências',
+                          label: copy.linkPending,
                           href: '/transport/pendencias',
                           icon: Workflow,
                       },
@@ -1016,7 +1195,7 @@ export function AdminLayout({
                 ? [
                       {
                           key: 'activity-log' as const,
-                          label: 'Log',
+                          label: copy.linkLog,
                           href: '/transport/activity-log',
                           icon: ScrollText,
                       },
@@ -1029,7 +1208,7 @@ export function AdminLayout({
                 icon: settingsLink.icon,
             },
         ],
-        [settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
+        [copy.linkLog, copy.linkPending, settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
     );
 
     const visibleLinks = useMemo(
@@ -1043,13 +1222,13 @@ export function AdminLayout({
     );
 
     const panelTitle = useMemo(() => {
-        if (currentModule === 'home') return 'Painel Principal';
-        if (currentModule === 'registry') return 'Painel de Cadastro';
-        if (currentModule === 'payroll') return 'Painel de Pagamentos';
-        if (currentModule === 'vacations') return 'Painel Controle de Férias';
-        if (currentModule === 'freight') return 'Central de Fretes';
-        return 'Painel de Entrevistas';
-    }, [currentModule]);
+        if (currentModule === 'home') return copy.panelHome;
+        if (currentModule === 'registry') return copy.panelRegistry;
+        if (currentModule === 'payroll') return copy.panelPayroll;
+        if (currentModule === 'vacations') return copy.panelVacations;
+        if (currentModule === 'freight') return copy.panelFreight;
+        return copy.panelInterviews;
+    }, [copy, currentModule]);
 
     async function handleLogout(): Promise<void> {
         try {
@@ -1088,7 +1267,7 @@ export function AdminLayout({
                             variant="outline"
                             size="icon"
                             onClick={() => setMobileMenuOpen(true)}
-                            aria-label="Abrir menu"
+                            aria-label={copy.openMenu}
                         >
                             <Menu className="size-5" />
                         </Button>
@@ -1160,8 +1339,8 @@ export function AdminLayout({
                                         variant="outline"
                                         size="icon"
                                         onClick={() => setSidebarCollapsed(false)}
-                                        aria-label="Expandir menu"
-                                        title="Expandir menu"
+                                        aria-label={copy.expandMenu}
+                                        title={copy.expandMenu}
                                     >
                                         <ChevronRight className="size-4" />
                                     </Button>
@@ -1174,15 +1353,15 @@ export function AdminLayout({
                                     <div className="mt-1 flex items-center justify-between gap-2">
                                         <h1 className="text-lg font-semibold">
                                             {panelTitle}
-                                            {hasUnsavedChanges ? ' • alterações pendentes' : ''}
+                                            {hasUnsavedChanges ? copy.pendingChanges : ''}
                                         </h1>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="icon"
                                             onClick={() => setSidebarCollapsed(true)}
-                                            aria-label="Minimizar menu"
-                                            title="Minimizar menu"
+                                            aria-label={copy.collapseMenu}
+                                            title={copy.collapseMenu}
                                         >
                                             <ChevronLeft className="size-4" />
                                         </Button>
@@ -1191,12 +1370,12 @@ export function AdminLayout({
                                         {user?.name} ({user?.email})
                                     </p>
                                     <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
-                                        Perfil:{' '}
+                                        {copy.profile}:{' '}
                                         {user?.role === 'master_admin'
                                             ? 'Master Admin'
                                             : user?.role === 'usuario'
-                                              ? 'Usuário'
-                                              : 'Admin'}
+                                              ? copy.roleUser
+                                              : copy.roleAdmin}
                                     </p>
                                 </>
                             )}
@@ -1206,7 +1385,7 @@ export function AdminLayout({
                             <div className="flex-1 overflow-y-auto">
                                 {!sidebarCollapsed ? (
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Navegação do módulo
+                                        {copy.moduleNavigation}
                                     </p>
                                 ) : null}
                                 <nav className="space-y-2">
@@ -1242,7 +1421,7 @@ export function AdminLayout({
                             <div className="mt-4 border-t pt-4">
                                 {!sidebarCollapsed ? (
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Acesso geral
+                                        {copy.generalAccess}
                                     </p>
                                 ) : null}
                                 {visibleFixedLinks.map((link) => {
@@ -1274,15 +1453,43 @@ export function AdminLayout({
                             </div>
                         </div>
 
+                        <div className={`mt-3 ${sidebarCollapsed ? 'flex flex-col items-center gap-1' : 'rounded-md border bg-muted/20 p-2'}`}>
+                            {!sidebarCollapsed ? (
+                                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                                    {copy.languageLabel}
+                                </p>
+                            ) : null}
+                            <div className={sidebarCollapsed ? 'flex flex-col gap-1' : 'mt-2 grid grid-cols-2 gap-1'}>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={language === 'pt-BR' ? 'default' : 'outline'}
+                                    className={sidebarCollapsed ? 'px-2 text-xs' : 'w-full'}
+                                    onClick={() => setLanguage('pt-BR')}
+                                >
+                                    {sidebarCollapsed ? 'PT' : copy.languagePortuguese}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={language === 'en-US' ? 'default' : 'outline'}
+                                    className={sidebarCollapsed ? 'px-2 text-xs' : 'w-full'}
+                                    onClick={() => setLanguage('en-US')}
+                                >
+                                    {sidebarCollapsed ? 'EN' : copy.languageEnglish}
+                                </Button>
+                            </div>
+                        </div>
+
                         <Button
                             type="button"
                             variant="outline"
                             className={`mt-3 ${sidebarCollapsed ? 'w-auto self-center px-2' : 'w-full'}`}
                             onClick={handleLogout}
-                            title="Sair"
+                            title={copy.logout}
                         >
                             <LogOut className="size-4" />
-                            {!sidebarCollapsed ? 'Sair' : null}
+                            {!sidebarCollapsed ? copy.logout : null}
                         </Button>
                     </aside>
 
@@ -1309,7 +1516,7 @@ export function AdminLayout({
                                 </p>
                                 <h1 className="mt-1 text-lg font-semibold">
                                     {panelTitle}
-                                    {hasUnsavedChanges ? ' • alterações pendentes' : ''}
+                                    {hasUnsavedChanges ? copy.pendingChanges : ''}
                                 </h1>
                                 <p className="mt-2 text-sm text-muted-foreground">
                                     {user?.name} ({user?.email})
@@ -1319,7 +1526,7 @@ export function AdminLayout({
                             <div className="flex min-h-0 flex-1 flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Navegação do módulo
+                                        {copy.moduleNavigation}
                                     </p>
                                     <nav className="space-y-2">
                                         {visibleLinks.map((link) => {
@@ -1348,7 +1555,7 @@ export function AdminLayout({
 
                                 <div className="mt-4 border-t pt-4">
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Acesso geral
+                                        {copy.generalAccess}
                                     </p>
                                     {visibleFixedLinks.map((link) => {
                                         const Icon = link.icon;
@@ -1374,15 +1581,41 @@ export function AdminLayout({
                                 </div>
                             </div>
 
+                            <div className="mt-3 rounded-md border bg-muted/20 p-2">
+                                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                                    {copy.languageLabel}
+                                </p>
+                                <div className="mt-2 grid grid-cols-2 gap-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={language === 'pt-BR' ? 'default' : 'outline'}
+                                        className="w-full"
+                                        onClick={() => setLanguage('pt-BR')}
+                                    >
+                                        {copy.languagePortuguese}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={language === 'en-US' ? 'default' : 'outline'}
+                                        className="w-full"
+                                        onClick={() => setLanguage('en-US')}
+                                    >
+                                        {copy.languageEnglish}
+                                    </Button>
+                                </div>
+                            </div>
+
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="mt-3 w-full"
                                 onClick={handleLogout}
-                                title="Sair"
+                                title={copy.logout}
                             >
                                 <LogOut className="size-4" />
-                                Sair
+                                {copy.logout}
                             </Button>
                         </aside>
                     ) : null}
@@ -1393,7 +1626,7 @@ export function AdminLayout({
                                 type="button"
                                 className="absolute inset-0 bg-black/60"
                                 onClick={() => setMobileMenuOpen(false)}
-                                aria-label="Fechar menu"
+                                aria-label={copy.closeMenu}
                             />
                             <aside className="relative flex h-full w-[78%] max-w-[320px] flex-col border-r bg-card p-4 shadow-xl">
                                 <div className="mb-6 border-b pb-4">
@@ -1417,18 +1650,18 @@ export function AdminLayout({
                                         {user?.name} ({user?.email})
                                     </p>
                                     <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
-                                        Perfil:{' '}
+                                        {copy.profile}:{' '}
                                         {user?.role === 'master_admin'
                                             ? 'Master Admin'
-                                                                                        : user?.role === 'usuario'
-                                                                                            ? 'Usuário'
-                                                                                            : 'Admin'}
+                                            : user?.role === 'usuario'
+                                                ? copy.roleUser
+                                                : copy.roleAdmin}
                                     </p>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto">
                                     <p className="mb-2 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Navegação do módulo
+                                        {copy.moduleNavigation}
                                     </p>
                                     <nav className="space-y-2">
                                         {visibleLinks.map((link) => {
@@ -1459,7 +1692,7 @@ export function AdminLayout({
 
                                 <div className="border-t pt-4">
                                     <p className="mb-2 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        Acesso geral
+                                        {copy.generalAccess}
                                     </p>
                                     {visibleFixedLinks.map((link) => {
                                         const Icon = link.icon;
@@ -1486,6 +1719,32 @@ export function AdminLayout({
                                     })}
                                 </div>
 
+                                <div className="mt-3 rounded-md border bg-muted/20 p-2">
+                                    <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                                        {copy.languageLabel}
+                                    </p>
+                                    <div className="mt-2 grid grid-cols-2 gap-1">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={language === 'pt-BR' ? 'default' : 'outline'}
+                                            className="w-full"
+                                            onClick={() => setLanguage('pt-BR')}
+                                        >
+                                            {copy.languagePortuguese}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={language === 'en-US' ? 'default' : 'outline'}
+                                            className="w-full"
+                                            onClick={() => setLanguage('en-US')}
+                                        >
+                                            {copy.languageEnglish}
+                                        </Button>
+                                    </div>
+                                </div>
+
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -1493,63 +1752,43 @@ export function AdminLayout({
                                     onClick={handleLogout}
                                 >
                                     <LogOut className="size-4" />
-                                    Sair
+                                    {copy.logout}
                                 </Button>
                             </aside>
                         </div>
                     )}
 
                     <main
-                        className={`transport-page min-w-0 rounded-xl border bg-card p-3 shadow-sm transition-[margin] duration-200 ease-out sm:p-4 lg:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none ${
+                        className={`transport-page min-w-0 rounded-xl border bg-card p-3 pb-24 shadow-sm transition-[margin] duration-200 ease-out sm:p-4 sm:pb-24 lg:p-6 lg:pb-28 print:rounded-none print:border-0 print:p-0 print:shadow-none ${
                             focusMode && focusSidebarVisible
                                 ? 'lg:ml-[284px]'
                                 : 'lg:ml-0'
                         }`}
                     >
-                        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b pb-3 print:hidden">
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold">{title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    Padrão global ativo · Ctrl+S salvar · Alt+Q navegação rápida · Alt+A ação principal
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setFocusMode((previous) => !previous)}
-                                >
-                                    {focusMode ? 'Sair do foco' : 'Modo foco'}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setNavigationOpen(true)}
-                                >
-                                    Navegação rápida
-                                </Button>
-                            </div>
-                        </div>
                         {children}
                     </main>
                 </div>
             </div>
 
+            {bobEnabled && showBobChat ? (
+                <Suspense fallback={null}>
+                    <BobChatButton />
+                </Suspense>
+            ) : null}
+
             <Dialog open={navigationOpen} onOpenChange={setNavigationOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Navegação rápida</DialogTitle>
+                        <DialogTitle>{copy.quickNavigationTitle}</DialogTitle>
                         <DialogDescription>
-                            Digite um número para navegar:
+                            {copy.quickNavigationDescription}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4">
                         <Input
                             autoFocus
-                            placeholder="Digite 1-5"
+                            placeholder={copy.quickNavigationPlaceholder}
                             value={navigationInput}
                             onChange={(event) =>
                                 setNavigationInput(event.target.value)
@@ -1563,39 +1802,39 @@ export function AdminLayout({
                                 <span className="text-muted-foreground">
                                     1
                                 </span>
-                                <span className="font-medium">Entrevistas</span>
+                                <span className="font-medium">{copy.quickInterviews}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">
                                     2
                                 </span>
-                                <span className="font-medium">Pagamentos</span>
+                                <span className="font-medium">{copy.quickPayroll}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">
                                     3
                                 </span>
-                                <span className="font-medium">Férias</span>
+                                <span className="font-medium">{copy.quickVacations}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">
                                     4
                                 </span>
-                                <span className="font-medium">Cadastro</span>
+                                <span className="font-medium">{copy.quickRegistry}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">
                                     5
                                 </span>
                                 <span className="font-medium">
-                                    Gestão de Fretes
+                                    {copy.quickFreight}
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Atalhos globais: Ctrl+S (salvar), Alt+Shift+1..3 (salvar perfil), Alt+1..3 (aplicar perfil), ESC (fechar).
+                        {copy.shortcutsLegend}
                     </p>
                 </DialogContent>
             </Dialog>

@@ -84,6 +84,347 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Quarta-Feira, 01/04/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Login com atalho Demo no primeiro acesso + idioma PT/EN tambem em Configuracoes',
+                        details: [
+                            'Tela de login de Transporte passou a mostrar, no primeiro acesso do navegador, um botao `Demo` que auto preenche credenciais de demonstracao para acelerar entrada em ambiente de apresentacao.',
+                            'A exibicao do botao Demo e controlada por flag local de primeiro acesso, evitando poluicao visual recorrente apos o usuario ja conhecer o fluxo.',
+                            'Pagina de Configuracoes recebeu controle dedicado de idioma (Portugues/English), sincronizado com o seletor global ja existente no layout administrativo.',
+                            'Troca de idioma agora propaga evento global para atualizar interfaces montadas em tempo real sem depender de recarregamento completo da pagina.',
+                        ],
+                    },
+                    {
+                        title: 'Layout administrativo com seletor de idioma (PT/EN) e formatação dinâmica de números/datas',
+                        details: [
+                            'Admin Layout recebeu seletor persistente de idioma (Português/Inglês) no menu lateral padrão, no modo foco e no menu mobile.',
+                            'Navegação compartilhada (títulos de painel, rótulos de links, diálogo de navegação rápida e atalhos exibidos) agora alterna entre PT/EN em tempo real.',
+                            'Funções centrais de formatação do transporte passaram a respeitar o idioma selecionado para exibição de datas, números, percentuais e moeda.',
+                            'Preferência de idioma é salva em `localStorage` e aplicada no atributo `lang` do documento para manter consistência de UX entre sessões.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: gráfico Abono x Sem Abono com percentual + quantidade real e proteção contra inconsistência automática de 20/30 dias',
+                        details: [
+                            'Dashboard de Férias passou a retornar e exibir, no bloco de Abono x Sem Abono, não só o percentual, mas também a quantidade absoluta de férias `Com abono` e `Sem abono`, além do total considerado no filtro atual.',
+                            'No donut e na legenda, a leitura agora mostra `% + quantidade`, reduzindo ambiguidade na comparação entre unidade específica e visão `Todas as unidades`.',
+                            'Store/Update de férias foram reforçados para derivar `dias_ferias` e `com_abono` a partir do intervalo real entre `data_inicio` e `data_fim` quando a data final é informada, evitando registro inconsistente por combinação divergente no formulário.',
+                            'Foi adicionada validação de integridade para bloquear intervalos que não resultem em 20 ou 30 dias, eliminando gravações que distorçam o indicador de abono no dashboard.',
+                            'Testes de API de férias foram ampliados para cobrir totais do gráfico por unidade/todos e regressão de consistência entre datas, dias e abono.',
+                        ],
+                    },
+                    {
+                        title: 'GitHub em inglês para admissions: README técnico, roteiro de demo de 2 minutos e checklist de publicação final',
+                        details: [
+                            'README principal do projeto foi reescrito em inglês com narrativa de engenharia orientada a admissions dos EUA, cobrindo problema, arquitetura, módulos, confiabilidade, testes e deploy.',
+                            'Foi incluído roteiro prático de demo de 2 minutos em inglês com timeline por blocos (problema, walkthrough, profundidade técnica, qualidade de entrega e impacto).',
+                            'Foi adicionada checklist de publicação para GitHub/demo com critérios de apresentação, prova de qualidade, segurança operacional e sequência final de validação antes de compartilhar.',
+                            'A documentação nova foi vinculada no README para facilitar leitura rápida por avaliadores técnicos e não técnicos.',
+                        ],
+                    },
+                    {
+                        title: 'Pacote de estabilização final: regressões corrigidas, permissões reforçadas e suíte 100% verde',
+                        details: [
+                            'Corrigidas regressões de segurança de acesso para o papel Usuário nas rotas sensíveis de Fretes e Férias, restaurando bloqueio padrão por permissão no backend.',
+                            'Fluxo de lançamento em lote de Pagamentos foi ajustado para atualizar corretamente registros existentes por colaborador/tipo/data sem violar chave única.',
+                            'Testes de Fretes e Férias foram alinhados às regras vigentes (KM fora de faixa apenas com alerta no front; payload de férias com campo tipo obrigatório).',
+                            'Validação funcional concluída com sucesso: suíte de testes completa passou (128 testes), build de frontend ok, migrate sem pendências, optimize clear/rebuild ok e domínio público online.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: Abono x Sem Abono agora respeita filtro de unidade + lista de Férias Gozadas sem corte visual incorreto',
+                        details: [
+                            'Dashboard de Férias foi corrigido para calcular percentuais de `Com abono` e `Sem abono` com base na unidade selecionada no filtro, eliminando leitura global quando a visão está segmentada por unidade.',
+                            'Métricas derivadas de lançamentos do dashboard (incluindo programadas e lançamentos do ano) passaram a seguir o mesmo recorte de unidade para manter consistência entre cards e gráfico.',
+                            'No bloco de relatórios por período, a lista de `Férias gozadas` deixou de limitar visualização em 5 itens, removendo divergência entre total exibido no card e quantidade renderizada abaixo.',
+                            'Listas de `Admissões` e `Demissões` também foram ajustadas para exibir todos os registros no período com rolagem interna, sem truncamento silencioso.',
+                            'Adicionado teste de regressão em API garantindo que o percentual de abono muda corretamente conforme o `unidade_id` informado no endpoint de dashboard de férias.',
+                        ],
+                    },
+                    {
+                        title: 'Pacote viabilidade/impacto >=7 implementado: idempotência crítica, limite adaptativo, observabilidade central, painel de filas, contratos e E2E no CI',
+                        details: [
+                            'Adicionado middleware de idempotência para operações críticas de escrita (Fretes, Spot, Lançamento em lote de Pagamentos e criação de Férias), com replay seguro por `Idempotency-Key`.',
+                            'Rate limit evoluído para modelo adaptativo por perfil e risco da rota, reduzindo limite automaticamente em endpoints sensíveis e cenários de tentativa suspeita.',
+                            'Nova central de observabilidade via API com métricas de latência por rota, agregados HTTP 2xx/4xx/5xx, exceções recentes e alertas automáticos por threshold.',
+                            'Gestão de filas reforçada com endpoints administrativos para visão geral, listagem de failed jobs, retry individual/em massa e limpeza controlada.',
+                            'Criados testes de contrato de API para dashboards principais e suíte E2E crítica autenticada cobrindo login e fluxos centrais de Fretes/Pagamentos/Férias.',
+                            'Workflow de testes recebeu gates explícitos de Contrato e E2E antes da suíte completa, com limpeza de caches otimizados para evitar rotas/config desatualizadas no CI.',
+                            'Validação final concluída com sucesso: contratos e E2E passando, suíte completa verde (134 testes), build ok, migrate sem pendências, optimize clear/rebuild ok e checks local/público online.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        dateLabel: 'Quarta-Feira, 25/03/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Férias: eixo da timeline corrigido após coluna de nomes + gráfico de pizza azul/vermelho em Abono x Sem Abono',
+                        details: [
+                            'A régua de datas da timeline passou a iniciar exatamente após a divisória da coluna de nomes, eliminando rótulos sobrepostos na área de identificação dos colaboradores.',
+                            'O topo do card `Abono x Sem Abono` foi atualizado para gráfico de pizza com duas cores de leitura direta (azul para com abono e vermelho para sem abono), mantendo a distribuição e legenda aprovadas.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: timeline 100% responsiva sem scroll horizontal + marcação de 4 em 4 dias + edição por duplo clique',
+                        details: [
+                            'A timeline do Dashboard de Férias foi ajustada para ocupar sempre a largura máxima visível do painel, removendo necessidade de rolagem horizontal para leitura geral.',
+                            'O eixo superior passou a exibir marcações espaçadas (a cada 4 dias) para reduzir poluição visual, mantendo posicionamento proporcional real dos blocos de férias no intervalo entre os marcos.',
+                            'Lançamentos na timeline agora podem ser editados com duplo clique diretamente no retângulo da barra, abrindo modal de edição com tipo, dias, abono e datas.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: timeline alinhada por dia, filtro sutil por unidade, taxa de liberadas e relatórios por período',
+                        details: [
+                            'Dashboard de Férias foi reestruturado com foco visual na timeline: cabeçalho de datas diário e barras agora compartilham a mesma escala horizontal em pixels por dia, eliminando desalinhamento entre eixo e períodos.',
+                            'Filtro sutil de unidade foi aplicado no topo da dashboard para restringir timeline e bloco de vigentes por unidade específica (com opção Todas as unidades).',
+                            'Card duplicado de `Férias a vencer` foi removido, mantendo a leitura por faixa operacional (`Faixa: À Vencer`).',
+                            'Indicador `Taxa de vencidas` foi substituído por `Taxa de liberadas`, alinhando o KPI com foco de planejamento ativo.',
+                            'Adicionado gráfico de pizza (donut) de `Com abono` versus `Sem abono` com percentual e legenda simples em duas cores.',
+                            'Incluída seção de relatórios por período (data inicial/final) com consolidados e listas de `Férias gozadas`, `Admissões` e `Demissões`, alimentada por novo endpoint dedicado de reports.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: observações persistidas no cadastro + campo de observação no Lançar Férias',
+                        details: [
+                            'Corrigida persistência de observações em lançamentos de férias (create/update), com retorno no histórico do colaborador dentro do Painel de Cadastro.',
+                            'Adicionado campo de observações no painel `Lançar Férias` para registrar contexto do lançamento sem impactar a listagem operacional principal.',
+                            'As observações ficam disponíveis no histórico de férias do perfil do colaborador (Cadastro), conforme fluxo de consulta individual.',
+                        ],
+                    },
+                    {
+                        title: 'Cadastro: ao editar admissão, períodos aquisitivos de férias agora são recalculados automaticamente',
+                        details: [
+                            'Ao atualizar a data de admissão no cadastro do colaborador, o sistema agora reprocessa automaticamente todos os períodos aquisitivos de férias já lançados para esse colaborador.',
+                            'O recálculo mantém a âncora fixa anual na data de admissão (mesmo dia/mês em todos os ciclos), corrigindo sequência histórica sem intervenção manual.',
+                            'Foi adicionada validação para bloquear datas de admissão inválidas antigas (ex.: ano 0024), aceitando apenas datas a partir de 01/01/1900.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: período aquisitivo corrigido para âncora fixa na data de admissão + recálculo global do histórico',
+                        details: [
+                            'A lógica de período aquisitivo foi corrigida para respeitar a data de admissão como âncora fixa anual (mesmo dia/mês em todos os ciclos), sem deslocar por data de lançamento de férias.',
+                            'O próximo período passou a iniciar no dia seguinte ao fim do período anterior, removendo o erro de sobreposição/deslocamento de um dia na base de cálculo.',
+                            'Store, update e delete de férias agora recalculam automaticamente toda a sequência de períodos do colaborador para manter consistência permanente após qualquer ajuste.',
+                            'Foi aplicada migration de recálculo retroativo em todos os lançamentos já existentes para corrigir `periodo_aquisitivo_inicio` e `periodo_aquisitivo_fim` no banco.',
+                            'As regras de status (`a_vencer`, `liberada`, `atencao`, `urgente`, `vencida`) foram mantidas, mudando apenas a base correta do período aquisitivo.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: regra automática por intervalo no perfil + histórico normalizado + editar/excluir em Realizadas',
+                        details: [
+                            'No perfil do colaborador, férias passadas agora aplicam regra automática por intervalo informado: 17–27 dias normaliza para 20 dias com abono; 28+ normaliza para 30 dias sem abono.',
+                            'Ajustada persistência para salvar `dias_ferias` explicitamente e normalizar `data_fim` conforme a regra do perfil, evitando divergência entre datas digitadas e tipo final de férias.',
+                            'Incluída migration de correção retroativa para lançamentos `passada` já existentes, alinhando histórico com a mesma regra aplicada aos novos lançamentos.',
+                            'Painel Lançar Férias manteve controles manuais de `Dias` e `Abono`, agora enviados explicitamente ao backend para preservar operação administrativa.',
+                            'Aba Realizadas da Lista de Férias recebeu ações de `Editar` e `Excluir`, com modal de edição e integração completa com API de atualização/remoção.',
+                        ],
+                    },
+                    {
+                        title: 'Cadastro: férias passadas em lote no perfil + permissões do tipo Usuário para operar cadastro completo',
+                        details: [
+                            'No perfil do colaborador, o modal de Nova Férias passou a permitir lançamento em lote de períodos passados: agora é possível adicionar vários pares de data início/fim com botão de adicionar (+) e gravar tudo de uma vez.',
+                            'Cada período em lote é enviado automaticamente como tipo passada, mantendo compatibilidade com o Controle de Férias e acelerando carga histórica de dados no arranque do sistema.',
+                            'Ajustadas permissões padrão do papel Usuário para acessar e operar o Painel de Cadastro completo (colaboradores, funções, tipos de pagamento, placas e aviários), mantendo bloqueio da área de Usuários.',
+                            'Controllers de Cadastro e de Férias foram migrados de bloqueio fixo por role para validação por chave de permissão, permitindo granularidade real por ação sem abrir acesso indevido a gestão de usuários.',
+                            'Regras de entrevistas seguem com comportamento de autoria: usuário sem permissão de visibilidade global continua sem acesso/edição de entrevistas de outros autores.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: tipo Passada automático no perfil do colaborador + timeline com apenas datas dentro das barras',
+                        details: [
+                            'Cadastro de férias no perfil do colaborador foi ajustado para enviar `tipo=passada` automaticamente (sem exibir campo de tipo nessa tela).',
+                            'Validação de férias no backend passou a aceitar o novo tipo `passada`, mantendo `confirmado` e `previsao` no painel principal.',
+                            'Timeline visual de férias foi simplificada: dentro de cada retângulo agora aparece somente o intervalo de datas (início → fim), sem textos de status/tipo.',
+                            'Lançamento principal de férias recebeu nova opção `Passada` para uso manual quando necessário.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: timeline visual em gráfico com eixo de dias e barras por colaborador (estilo Gantt)',
+                        details: [
+                            'A seção de linha do tempo do Dashboard de Férias deixou de ser lista textual e passou a ser um gráfico horizontal com eixo de datas e barras por colaborador.',
+                            'Cada barra agora representa claramente início e fim das férias, com leitura visual imediata de duração e sobreposição entre vigentes e agendadas.',
+                            'Foi adicionada marcação de data atual no gráfico para facilitar comparação operacional entre quem já iniciou, quem está em curso e quem ainda vai iniciar.',
+                        ],
+                    },
+                    {
+                        title: 'Férias: vigentes no dashboard, tipo confirmado/previsão no lançamento e timeline de vigentes/agendadas',
+                        details: [
+                            'Dashboard de Férias passou a exibir uma lista dedicada de férias vigentes com colaborador, período e dias restantes até o término.',
+                            'Lançamento de Férias recebeu novo campo obrigatório `Tipo` com opções `Confirmado` e `Previsão`, persistido no backend para diferenciar programação de confirmação.',
+                            'Lista de Férias (aba Realizadas) passou a mostrar a coluna `Tipo` para rastrear rapidamente quais lançamentos são previsão e quais estão confirmados.',
+                            'Dashboard de Férias ganhou bloco de linha do tempo com vigentes e agendadas, exibindo status operacional e intervalo de cada colaborador.',
+                            'Backend de Férias foi ampliado para retornar `ferias_vigentes` e `timeline` no endpoint de dashboard, mantendo os KPIs existentes no mesmo payload.',
+                        ],
+                    },
+                    {
+                        title: 'Prioridades máximas/segundas aplicadas: exportação assíncrona, telemetria, compressão, timeout/retry e filtros rápidos 7/30/90',
+                        details: [
+                            'Implementada infraestrutura de exportação XLSX assíncrona com fila (`async_exports`), jobs dedicados de Fretes/Pagamentos e rotas de status/download para desacoplar geração pesada da resposta HTTP síncrona.',
+                            'Adicionados middleware global de telemetria de API (coleta de latência com métricas p50/p95) e endpoint dedicado de observabilidade para acompanhamento de desempenho em produção.',
+                            'Adicionado middleware de compressão de respostas JSON (gzip) com ativação condicional por payload/accept-encoding para reduzir tráfego e tempo de transferência.',
+                            'Cliente HTTP do frontend recebeu timeout por requisição e política de retry/backoff com jitter para chamadas idempotentes, aumentando resiliência contra falhas transitórias.',
+                            'Dashboard de Pagamentos passou a consumir endpoint agregado (`/payroll/dashboard-page`) para reduzir múltiplas chamadas em cascata no carregamento inicial.',
+                            'Relatórios de Pagamentos por Unidade e por Colaborador receberam atalhos de período `7 dias`, `30 dias` e `90 dias` para acelerar filtros operacionais.',
+                            'Dashboard de Fretes passou a calcular KPIs e alertas críticos com uma única consulta agregada no banco, reduzindo múltiplas leituras repetidas no mesmo recorte.',
+                            'Filtros rápidos `7 dias`, `30 dias` e `90 dias` foram expandidos também para Dashboard de Fretes, Lista de Entrevistas e Log de Ações.',
+                            'Consulta de pagamentos recentes no dashboard foi ajustada para buscar apenas colunas necessárias e relações mínimas, reduzindo payload e custo de serialização.',
+                            'Dashboard de Pagamentos foi simplificado removendo os cards de `Pagamentos lançados`, `Cobertura da folha` e `Pagamentos a fazer`, mantendo foco em total do mês, ticket médio e distribuição real.',
+                            'Foi adicionada visualização em gráfico de pizza (donut) com legenda interativa por tipo de pagamento; ao passar o mouse na cor/fatia, o painel exibe o percentual correspondente.',
+                            'Gráfico de pizza do Dashboard de Pagamentos foi reposicionado para o topo da tela para leitura imediata ao abrir o painel, com destaque visual acima dos demais blocos.',
+                            'Paleta do gráfico foi ampliada e redefinida com cores distintas por categoria para melhorar separação visual dos tipos de pagamento.',
+                            'Dashboard de Pagamentos passou a aceitar seleção de competência por mês/ano no topo e recarrega o gráfico/indicadores conforme o período escolhido.',
+                            'Legenda do gráfico de pizza passou a exibir o percentual de cada tipo de pagamento de forma fixa (sem depender de hover), mantendo destaque no centro do gráfico quando o mouse passa sobre a fatia.',
+                            'Card de `Ticket médio por lançamento` foi substituído por `Valor médio por colaborador pago`, calculado como total do mês dividido pela quantidade de colaboradores com pagamento lançado.',
+                            'Exclusão de pagamentos foi ajustada para operação administrativa sem bloqueio por autor do registro, corrigindo falha de remoção no painel de lista.',
+                            'Home do sistema deixou de exibir métricas derivadas de `Pagamentos lançados`, `Cobertura` e `Pendências`, preservando somente o total financeiro mensal do módulo.',
+                            'Lista de Fretes recebeu switch de navegação no topo para alternar rapidamente entre `Integração` e `Spot`, seguindo o padrão visual de alternância já usado no Log.',
+                            'Cadastro de Colaboradores foi temporariamente padronizado para sexo `M` em toda a plataforma, com migração aplicada para atualizar registros existentes e persistência forçada no backend.',
+                        ],
+                    },
+                    {
+                        title: 'Pacote performance/QoL: paginação incremental, endpoint agregado, cache curto com invalidação e skeleton padronizado',
+                        details: [
+                            'Dashboard de Fretes passou a consumir endpoint agregado único (`/freight/dashboard-page`), reduzindo chamadas paralelas e melhorando latência percebida no carregamento inicial.',
+                            'Lista de Fretes saiu do padrão `per_page=500` para paginação incremental (`Carregar mais`) e virtualização de linhas no frontend, reduzindo custo de render em listas extensas.',
+                            'Dashboards pesados de Fretes e Pagamentos receberam cache curto (~60s) no backend, com versionamento e invalidação automática em operações de criação/edição/exclusão/importação.',
+                            'Filtros textuais estratégicos tiveram debounce ampliado para `450ms` (Log, Cargas Canceladas, Next Steps e Onboarding), reduzindo churn de reprocessamento e requisições sob digitação contínua.',
+                            'Relatórios longos de Pagamentos (por Unidade e por Colaborador) receberam skeleton loading padronizado para melhorar UX durante espera de consultas analíticas.',
+                            'Criada migration de índices de performance para `freight_entries` e `pagamentos`, priorizando colunas de maior uso em filtros por competência, data, autor e colaborador.',
+                        ],
+                    },
+                    {
+                        title: 'Bob em modo hibernado: desativado por flag sem exclusão do recurso',
+                        details: [
+                            'Bob foi mantido no código, porém desligado por configuração para não renderizar no frontend e não interferir no uso diário da plataforma.',
+                            'As rotas da API do Bob passaram a ser registradas apenas quando a flag de backend estiver ativa, removendo caminho de execução quando desabilitado.',
+                            'No layout administrativo, o chat do Bob passou para carregamento lazy e condicionado por flag de frontend, evitando custo de runtime e chamadas enquanto estiver desligado.',
+                            'Foram adicionadas variáveis dedicadas de ambiente (`BOB_ENABLED` e `VITE_BOB_ENABLED`) com padrão `false`, permitindo reativação futura sem refatoração.',
+                        ],
+                    },
+                    {
+                        title: 'Bob 100% interno: remoção do OpenAI e otimização de consultas para alta performance',
+                        details: [
+                            'Integração com OpenAI foi removida do backend, frontend, rotas e arquivos de ambiente para manter o Bob totalmente interno e sem dependência de chave paga.',
+                            'Motor do Bob foi consolidado em intenções operacionais internas para consultar e lançar dados em fretes, pagamentos, férias, entrevistas e colaboradores.',
+                            'Extração de colaborador/unidade foi otimizada para reduzir varredura completa em memória e priorizar busca filtrada no banco, melhorando tempo de resposta sob carga.',
+                            'Fluxo de resposta e histórico foi mantido com persistência por usuário, garantindo continuidade de contexto sem degradar a experiência do painel.',
+                        ],
+                    },
+                    {
+                        title: 'Transparência da IA no Bob: status OpenAI visível e fallback honesto',
+                        details: [
+                            'Foi adicionado endpoint de status do Bob para informar no frontend se a IA externa está ativa, qual provedor está em uso e o modelo configurado.',
+                            'Cabeçalho do chat agora exibe indicador de `IA OpenAI ativa` ou `IA externa inativa`, eliminando a sensação de que o bot está usando IA quando não está.',
+                            'Mensagem de fallback foi ajustada para informar claramente quando falta `OPENAI_API_KEY`, em vez de parecer resposta genérica programada.',
+                            'Arquivos de ambiente local e produção receberam variáveis de configuração do OpenAI (`OPENAI_API_KEY` e `OPENAI_MODEL`) para facilitar ativação real.',
+                        ],
+                    },
+                    {
+                        title: 'Bob híbrido com IA ampla + ocultação na tela de Nova Entrevista',
+                        details: [
+                            'Bob passou a ter rota híbrida com IA generativa (OpenAI) para respostas livres e conversacionais quando a solicitação não cair nas intenções operacionais estruturadas.',
+                            'Mensagens de fallback foram suavizadas para evitar resposta engessada de “não fui programado”, mantendo condução ativa com orientação prática ao usuário.',
+                            'Nova configuração de serviços foi adicionada para chave/modelo OpenAI e o Bob agora usa histórico recente do próprio usuário como contexto de conversa.',
+                            'Botão/chat do Bob foi removido especificamente da página Nova Entrevista para não interferir no preenchimento desse fluxo.',
+                        ],
+                    },
+                    {
+                        title: 'Bob ampliado para sistema completo + correções de sobreposição e botão arredondado',
+                        details: [
+                            'Bob deixou de atuar somente em fretes e passou a responder também sobre pagamentos, férias e entrevistas, incluindo visão geral consolidada do sistema.',
+                            'Foram adicionadas novas intenções no backend para resumo de pagamentos por competência, resumo de entrevistas e consulta de vencimento de férias por colaborador.',
+                            'Layout administrativo recebeu área de segurança no rodapé para impedir que o botão/chat do Bob sobreponha campos finais de formulários como observações em Nova Entrevista.',
+                            'Botão de abertura do Bob foi refinado com arredondamento completo nos quatro cantos e posicionamento estável no canto inferior direito com afastamento visual adequado.',
+                        ],
+                    },
+                    {
+                        title: 'Hotfix visual do Bob: posição fixa no canto e tamanho estável sem deslocamento',
+                        details: [
+                            'Corrigido comportamento de abertura em que o Bob podia iniciar fora do ponto final e deslocar para a direita com redução de tamanho durante renderização.',
+                            'Painel voltou ao tamanho grande fixo com ancoragem absoluta acima do botão, removendo efeito de movimento/encolhimento percebido na carga da página.',
+                            'Botão preto `Bob` foi mantido encostado no canto inferior direito de forma estável, sem ser empurrado pelo container do painel fechado.',
+                        ],
+                    },
+                    {
+                        title: 'Bob evoluído para operação contínua: histórico persistente, painel redimensionável e botão no canto exato',
+                        details: [
+                            'Histórico de conversa do Bob passou a ser persistido por usuário no backend, com carregamento automático ao abrir o sistema e manutenção do contexto entre sessões.',
+                            'Foram adicionados endpoints dedicados para consultar e limpar histórico do Bob com o mesmo controle de acesso administrativo já aplicado no chat.',
+                            'Painel do Bob agora é redimensionável e salva o tamanho preferido localmente, mantendo experiência estável para diferentes monitores e rotinas operacionais.',
+                            'Botão de abertura foi ancorado encostado no canto inferior direito e removidos elementos visuais de brilho para uma aparência mais limpa e corporativa.',
+                        ],
+                    },
+                    {
+                        title: 'Bob versão premium: visual corporativo e UX profissional de chat',
+                        details: [
+                            'Componente do Bob recebeu redesign completo para padrão enterprise com painel flutuante moderno, bordas refinadas e hierarquia visual mais limpa.',
+                            'Foram adicionados status online, contador de não lidas, horário por mensagem, botão de limpar conversa e transições suaves de abertura/fechamento.',
+                            'Composer e atalhos rápidos foram refinados para uso contínuo em operação, mantendo chat no canto da tela sem bloquear o trabalho no restante do sistema.',
+                        ],
+                    },
+                    {
+                        title: 'Refino visual do Bob: chat flutuante no canto sem bloquear a operação',
+                        details: [
+                            'Bob deixou de abrir em modal central e passou para chat flutuante fixo no canto inferior direito, mantendo a tela livre para continuar trabalhando.',
+                            'Layout do chat foi redesenhado com cabeçalho compacto, bolhas de conversa, rolagem automática, sugestões rápidas em linha e composer enxuto.',
+                            'Botão do Bob também foi refinado para visual mais moderno e consistente com o painel, com abertura/fechamento direto no próprio canto.',
+                        ],
+                    },
+                    {
+                        title: 'Bob (chatbot interno) implantado para consulta e lançamento operacional de fretes',
+                        details: [
+                            'Foi criado o Bob no painel com botão flutuante dedicado no canto inferior direito para abrir chat operacional dentro do sistema.',
+                            'Bob agora consegue consultar lançamentos de frete por dia, entregar resumo analítico mensal e filtrar por unidade quando informado no texto.',
+                            'Bob também consegue lançar frete por comando textual com validações de segurança para campos críticos (data, unidade, frete, cargas e km).',
+                            'Os botões antigos de `Navegação rápida` e `Modo foco` foram removidos do canto inferior direito e substituídos pelo acesso único ao Bob.',
+                            'Nova API dedicada (`POST /api/bob/chat`) foi adicionada com controle de acesso administrativo e parser de intenções para operação em linguagem natural.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        dateLabel: 'Terça-Feira, 24/03/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Hotfix: exclusão da Lista de Fretes voltou a remover de forma definitiva',
+                        details: [
+                            'Corrigido bug de model binding implícito no backend: a rota usa `{entry}` e o controller estava recebendo parâmetro com nome divergente em `update/destroy`, causando operação de exclusão sem efeito real.',
+                            'Assinaturas dos métodos de atualização e exclusão em Fretes foram alinhadas ao parâmetro da rota para garantir resolução correta do registro.',
+                            'Incluído teste de regressão para validar que o endpoint `DELETE /api/freight/entries/{id}` realmente remove o lançamento do banco (não apenas retorno 204).',
+                            'Validações finais executadas: build frontend, migrate, optimize:clear/optimize e check online/local com status 200.',
+                        ],
+                    },
+                    {
+                        title: 'Central Analítica reforçada com visão operacional/mensal consolidada e base API confiável',
+                        details: [
+                            'Dia da semana dos lançamentos de frete passou a ser calculado no backend e entregue pela API (`dia_semana`), removendo inconsistência de timezone no frontend.',
+                            'Dashboard de Fretes recebeu filtro por unidade integrado à API e também à tabela diária, mantendo totais e listagem alinhados ao mesmo recorte.',
+                            'Aba Operacional da Central Analítica foi redesenhada para modelo consolidado com bloco de Abatedouro e bloco Kaique com alternância por botões (`Integração` e `Spot`), sem alteração da aba Tendência.',
+                            'Aba Análise Mensal passou a exibir indicadores consolidados de Abatedouro e Kaique (Integração/Spot) com percentuais de realizado vs programado nos KPIs principais.',
+                            'Header duplicado no topo das páginas foi removido do layout administrativo para eliminar repetição visual de título em todas as telas.',
+                            'FreightController foi refatorado para entregar payloads operacionais/mensais mais completos por unidade, com métricas derivadas e percentuais padronizados.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Sexta-Feira, 20/03/2026',
         sections: [
             {
@@ -155,6 +496,28 @@ const updateLogTimeline: UpdateLogDay[] = [
             {
                 panel: 'Gestão de Fretes',
                 items: [
+                    {
+                        title: 'Fretes e Pagamentos: filtros por período, exclusão robusta, dia da semana e Excel por lançamento',
+                        details: [
+                            'Dashboard de Fretes passou a aceitar intervalo manual (`data inicial` + `data final`) e, quando as duas datas são informadas, o recorte por período sobrepõe a competência mês/ano automaticamente.',
+                            'Foi adicionado botão de limpar período no Dashboard de Fretes para retornar ao comportamento padrão por competência mensal.',
+                            'Na Lista de Fretes e na tabela diária do Dashboard de Fretes, entrou a coluna de dia da semana ao lado da data para leitura operacional mais rápida.',
+                            'Exclusão da Lista de Fretes foi endurecida com recarga anti-stale após delete (revalidação curta com cache-busting) para reduzir reaparecimento visual de lançamento removido.',
+                            'Barra superior global foi compactada para recuperar espaço vertical e os atalhos de `Modo foco`/`Navegação rápida` foram movidos para um controle flutuante fora do fluxo do conteúdo.',
+                            'Em Pagamentos, o botão de Excel mensal por filtro foi removido e substituído por exportação por lançamento (somente quando houver tipos VT/VR/Cesta Básica).',
+                            'Os gráficos de variação mensal dos relatórios de Pagamentos (por colaborador e por unidade) passaram a mostrar tooltip no hover de cada ponto, no mesmo padrão de interação da tendência da Central Analítica.',
+                        ],
+                    },
+                    {
+                        title: 'Refatoração visual corporativa dos dashboards e tabelas com cores semânticas controladas',
+                        details: [
+                            'Dashboards de Férias, Pagamentos, Fretes e Entrevistas foram retomados para base preta/neutra, mantendo cores somente para status e sinalização crítica.',
+                            'Foi aplicado padrão de hierarquia visual em 3 níveis (destaque, médio e detalhe) com classes compartilhadas de card KPI, título, valor principal e texto de apoio.',
+                            'Cards passaram a incluir ícones e fundos leves por contexto (`bg-soft`) sem poluição de layout, preservando visual clean e corporativo.',
+                            'Tabelas no escopo do layout administrativo receberam zebra striping, hover consistente e alinhamento vertical uniforme para leitura mais rápida.',
+                            'Status críticos foram convertidos para badges semânticas no padrão fixo (`vermelho = problema`, `amarelo = atenção`, `verde = positivo`, `azul = informativo`) em módulos de Férias, Entrevistas e Cadastro.',
+                        ],
+                    },
                     {
                         title: 'Permissões por função integradas à Home + correção de inteiro no Lançar Fretes',
                         details: [
@@ -636,6 +999,42 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Adicionado tooltip nativo por ponto com unidade, data e valor do frete.',
                         ],
                     },
+                    {
+                        title: 'Pagamentos e Férias: ajustes de gráfico, totais e gravação em lote',
+                        details: [
+                            'Dashboard de Pagamentos corrigido para renderizar donut corretamente quando existe somente 1 tipo no mês (fatia de 100%).',
+                            'Tela de Lançar Pagamentos recebeu totalizador em negrito no rodapé de cada coluna de tipo de pagamento.',
+                            'API de lançamento em lote de pagamentos ajustada para gravação por upsert na chave única (colaborador + tipo + data), evitando erro de duplicidade ao editar/reprocessar pagamento solo.',
+                            'Dashboard de Férias teve o gráfico de Abono x Sem Abono refinado para estilo donut mais próximo do visual de Pagamentos, sem alterar largura/tamanho do card.',
+                        ],
+                    },
+                    {
+                        title: 'Confirmações de exclusão padronizadas com modal do sistema',
+                        details: [
+                            'Removida confirmação nativa do navegador na Lista de Férias e substituída por Dialog visual padrão do sistema, com layout consistente e botões claros de cancelar/confirmar.',
+                            'Padronização aplicada após varredura global: não restaram usos de window.confirm/confirm no front-end do projeto.',
+                            'Fluxo mantém o mesmo funcionamento para o usuário (continua exigindo confirmação antes de excluir), apenas com experiência visual moderna e consistente.',
+                        ],
+                    },
+                    {
+                        title: 'Correção de faixa no Lançar Fretes (KM) e ajuste automático de tipo em Férias',
+                        details: [
+                            'Alerta de faixa no Lançar Fretes foi corrigido para atuar no KM (1.000 a 15.000), e não no valor de frete.',
+                            'Validação bloqueante de faixa de KM no backend foi removida para não impedir gravação; permanece apenas aviso de confirmação no front.',
+                            'Lançamentos de férias com data fim já encerrada agora têm tipo atualizado automaticamente para "passada" nas consultas das telas de Férias.',
+                        ],
+                    },
+                    {
+                        title: 'Hardening geral: segurança, performance e robustez de erro',
+                        details: [
+                            'Dashboard de Fretes reforçado com divisão segura em SQL (NULLIF) para evitar edge cases em cálculos com carga zero.',
+                            'Fluxo de lançamento em lote de Pagamentos otimizado para consulta indexada da data de pagamento e remoção de processamento redundante no backend.',
+                            'Sincronização automática de férias encerradas para tipo "passada" recebeu throttle por cache para reduzir custo de atualização em chamadas frequentes.',
+                            'Setup de 2FA no front foi endurecido: renderização do QR passou para data URL em imagem, removendo uso de dangerouslySetInnerHTML.',
+                            'Tratamento de erros nas telas de Fretes, Férias e Pagamentos reforçado com mensagens fallback, evitando retorno indefinido ao usuário final.',
+                            'Hospedagem pública no domínio fixo reiniciada com sucesso (app.kaiquetransportes.com.br).',
+                        ],
+                    },
                 ],
             },
             {
@@ -915,7 +1314,7 @@ export default function ActivityLogPage() {
     } | null>(null);
 
     const [search, setSearch] = useState('');
-    const debouncedSearch = useDebouncedValue(search, 300);
+    const debouncedSearch = useDebouncedValue(search, 450);
     const [logName, setLogName] = useState('');
     const [event, setEvent] = useState('');
     const [dateFrom, setDateFrom] = useState('');
@@ -1021,6 +1420,16 @@ export default function ActivityLogPage() {
             date_to: '',
             page: 1,
         });
+    }
+    function applyDatePreset(days: 7 | 30 | 90): void {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - days + 1);
+
+        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
+
+        setDateFrom(toIsoDate(start));
+        setDateTo(toIsoDate(end));
     }
 
     function goToPage(page: number) {
@@ -1162,6 +1571,15 @@ export default function ActivityLogPage() {
                                 className="w-36"
                                 title="Data final"
                             />
+                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(7)}>
+                                7 dias
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(30)}>
+                                30 dias
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(90)}>
+                                90 dias
+                            </Button>
                             <Button size="sm" onClick={applyFilters}>
                                 Filtrar
                             </Button>

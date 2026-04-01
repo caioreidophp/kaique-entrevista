@@ -30,11 +30,21 @@ interface LoginResponse {
     };
 }
 
+const DEMO_CTA_SEEN_KEY = 'transport.login.demo.cta.seen';
+
 export default function TransportLoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const [showDemoCta, setShowDemoCta] = useState(false);
+    const demoEnabled = import.meta.env.VITE_TRANSPORT_DEMO_ENABLED !== 'false';
+    const demoEmail =
+        (import.meta.env.VITE_TRANSPORT_DEMO_EMAIL as string | undefined)?.trim() ||
+        'demo@demo';
+    const demoPassword =
+        (import.meta.env.VITE_TRANSPORT_DEMO_PASSWORD as string | undefined)?.trim() ||
+        'demo';
 
     useEffect(() => {
         document
@@ -67,7 +77,27 @@ export default function TransportLoginPage() {
                 clearAuthToken();
                 clearStoredUser();
             });
+
+        if (!demoEnabled) {
+            return;
+        }
+
+        const alreadySeen =
+            window.localStorage.getItem(DEMO_CTA_SEEN_KEY) === '1';
+
+        if (!alreadySeen) {
+            setShowDemoCta(true);
+        }
     }, []);
+
+    function handleUseDemo(): void {
+        setEmail(demoEmail);
+        setPassword(demoPassword);
+        setShowDemoCta(false);
+        window.localStorage.setItem(DEMO_CTA_SEEN_KEY, '1');
+
+        setMessage(null);
+    }
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -120,6 +150,23 @@ export default function TransportLoginPage() {
                                     message={message}
                                     variant="error"
                                 />
+                            ) : null}
+
+                            {showDemoCta ? (
+                                <div className="rounded-md border bg-muted/25 p-3">
+                                    <p className="text-xs text-muted-foreground">
+                                        Primeiro acesso? Use o preenchimento rapido da conta de demonstracao.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                        onClick={handleUseDemo}
+                                    >
+                                        Demo
+                                    </Button>
+                                </div>
                             ) : null}
 
                             <div className="space-y-2">
