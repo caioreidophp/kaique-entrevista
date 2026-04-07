@@ -104,6 +104,7 @@ interface AdminLayoutProps {
         | 'registry-infractions'
         | 'fines-dashboard'
         | 'fines-launch'
+        | 'fines-launch-notification'
         | 'fines-list'
         | 'activity-log';
     module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight' | 'vacations' | 'programming' | 'fines';
@@ -174,6 +175,7 @@ const adminLayoutCopy = {
         linkAnalyticsHub: 'Central Analítica',
         linkFinesDashboard: 'Dashboard de Multas',
         linkFinesLaunch: 'Lançar Multas',
+        linkFinesLaunchNotification: 'Lançar Notificação',
         linkFinesList: 'Lista de Multas',
         linkPending: 'Pendências',
         linkSettings: 'Configurações',
@@ -241,6 +243,7 @@ const adminLayoutCopy = {
         linkAnalyticsHub: 'Analytics hub',
         linkFinesDashboard: 'Fines dashboard',
         linkFinesLaunch: 'Launch fines',
+        linkFinesLaunchNotification: 'Launch notification',
         linkFinesList: 'Fines list',
         linkPending: 'Pending items',
         linkSettings: 'Settings',
@@ -986,6 +989,7 @@ export function AdminLayout({
         'programming-dashboard': 'sidebar.programming.dashboard.view',
         'fines-dashboard': 'sidebar.fines.dashboard.view',
         'fines-launch': 'sidebar.fines.launch.view',
+        'fines-launch-notification': 'sidebar.fines.launch.view',
         'fines-list': 'sidebar.fines.list.view',
         'operations-hub': 'sidebar.operations-hub.view',
         settings: 'sidebar.settings.view',
@@ -1198,6 +1202,12 @@ export function AdminLayout({
                                 key: 'fines-launch',
                                 label: copy.linkFinesLaunch,
                                 href: '/transport/fines/launch',
+                                icon: PlusSquare,
+                            },
+                            {
+                                key: 'fines-launch-notification',
+                                label: copy.linkFinesLaunchNotification,
+                                href: '/transport/fines/launch-notification',
                                 icon: PlusSquare,
                             },
                             {

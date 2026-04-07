@@ -84,6 +84,36 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Terça-Feira, 07/04/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Backup v3.8: exportação reforçada para cobertura total de banco e arquivos',
+                        details: [
+                            'Geração de backup foi ajustada para incluir a pasta `storage` completa (não apenas `storage/app/public`), cobrindo uploads, logs e artefatos necessários para restauração integral.',
+                            'Dump SQL passou a incluir também objetos de banco além das tabelas/dados: views, triggers, routines (procedures/functions) e events quando disponíveis no MySQL.',
+                            'No modo SQLite, o dump passou a adicionar também SQL de índices e triggers para preservar melhor o comportamento estrutural na restauração.',
+                            'Pasta de backups gerados foi mantida fora do pacote (`storage/app/private/backups`) para evitar recursão e crescimento artificial do ZIP.',
+                        ],
+                    },
+                    {
+                        title: 'Gestão de Multas v3.9: lançamento de notificações, campo Hora e conversão direta para multa',
+                        details: [
+                            'Criada nova tela na sidebar `Lançar Notificação`, com formulário específico para pré-multa: Data, Hora, Placa, Infração, Descrição, Nº Auto de Infração, Órgão Atuador e Status.',
+                            'Campo `Hora` passou a existir também no lançamento e listagem de multas, mantendo rastreabilidade operacional de quando o evento ocorreu.',
+                            'Lista de multas recebeu alternância por botões entre `Multas` e `Notificações`, separando claramente os dois fluxos no operacional.',
+                            'Notificações não entram no dashboard e indicadores de multas, evitando distorção dos gráficos enquanto o caso ainda está em fase prévia.',
+                            'Na aba de notificações, cada linha agora possui ações de `Editar`, `Excluir` e `Transformar em multa`.',
+                            'Ação `Transformar em multa` abre a tela de Lançar Multa já pré-preenchida com dados da notificação e permite completar os campos extras de multa (valor, vencimento, culpa, motorista etc.) antes de salvar.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Segunda-Feira, 06/04/2026',
         sections: [
             {
@@ -174,15 +204,6 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Cartões de motoristas e caminhões foram convertidos em janelas flutuantes no desktop, com arrastar para mover, redimensionamento livre e empilhamento por foco (z-index).',
                             'Filtros operacionais dos painéis foram padronizados para `Todos`, `Disponíveis` e `Iniciadas`, usando status calculado por carga de trabalho (`Disponível`, `Viagem Iniciada`, `Encerrado`).',
                             'Backend recebeu persistência de ordem original de importação (`ordem_importacao`) para manter sequência operacional estável no dia e suportar regra da noite anterior expandida de 1..10 para 1..20.',
-                        ],
-                    },
-                    {
-                        title: 'Backup v3.8: exportação reforçada para cobertura total de banco e arquivos',
-                        details: [
-                            'Geração de backup foi ajustada para incluir a pasta `storage` completa (não apenas `storage/app/public`), cobrindo uploads, logs e artefatos necessários para restauração integral.',
-                            'Dump SQL passou a incluir também objetos de banco além das tabelas/dados: views, triggers, routines (procedures/functions) e events quando disponíveis no MySQL.',
-                            'No modo SQLite, o dump passou a adicionar também SQL de índices e triggers para preservar melhor o comportamento estrutural na restauração.',
-                            'Pasta de backups gerados foi mantida fora do pacote (`storage/app/private/backups`) para evitar recursão e crescimento artificial do ZIP.',
                         ],
                     },
                 ],

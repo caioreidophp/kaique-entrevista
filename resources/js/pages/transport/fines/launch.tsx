@@ -22,7 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ApiError, apiGet, apiPost } from '@/lib/api-client';
+import { ApiError, apiGet, apiPost, apiPut } from '@/lib/api-client';
 
 interface UnitItem {
     id: number;
@@ -63,6 +63,7 @@ interface ReferenceResponse {
 
 interface FineFormData {
     data: string;
+    hora: string;
     placa_frota_id: string;
     multa_infracao_id: string;
     descricao: string;
@@ -78,7 +79,9 @@ interface FineFormData {
 }
 
 interface FinePayload {
+    tipo_registro: 'multa';
     data: string;
+    hora: string;
     placa_frota_id: number;
     multa_infracao_id: number;
     descricao: string | null;
@@ -94,12 +97,39 @@ interface FinePayload {
     descontar: boolean;
 }
 
+interface FineShowResponse {
+    data: {
+        id: number;
+        tipo_registro: 'multa' | 'notificacao';
+        data: string;
+        hora: string | null;
+        placa_frota_id: number;
+        multa_infracao_id: number;
+        descricao: string | null;
+        numero_auto_infracao: string | null;
+        multa_orgao_autuador_id: number;
+        colaborador_id: number | null;
+        indicado_condutor: boolean;
+        culpa: 'empresa' | 'motorista';
+        valor: string;
+        tipo_valor: 'normal' | '20_percent' | '40_percent';
+        vencimento: string | null;
+        status: 'aguardando_motorista' | 'solicitado_boleto' | 'boleto_ok' | 'pago';
+        descontar: boolean;
+        orgao_autuador?: {
+            id: number;
+            nome: string;
+        } | null;
+    };
+}
+
 function todayDateString(): string {
     return new Date().toISOString().slice(0, 10);
 }
 
 const emptyForm = (): FineFormData => ({
     data: todayDateString(),
+    hora: '00:00',
     placa_frota_id: '',
     multa_infracao_id: '',
     descricao: '',
@@ -135,6 +165,7 @@ export default function TransportFinesLaunchPage() {
     const [orgaoInput, setOrgaoInput] = useState('');
     const [confirmNewOrgaoOpen, setConfirmNewOrgaoOpen] = useState(false);
     const [pendingFinePayload, setPendingFinePayload] = useState<Omit<FinePayload, 'multa_orgao_autuador_id'> | null>(null);
+    const [notificationIdForConversion, setNotificationIdForConversion] = useState<number | null>(null);
 
     async function loadReferences(): Promise<void> {
         setLoading(true);
@@ -154,6 +185,50 @@ export default function TransportFinesLaunchPage() {
 
     useEffect(() => {
         void loadReferences();
+    }, []);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const fromNotificationId = Number(params.get('from_notification_id') ?? '');
+
+        if (!Number.isFinite(fromNotificationId) || fromNotificationId <= 0) {
+            return;
+        }
+
+        setNotificationIdForConversion(fromNotificationId);
+
+        void (async () => {
+            try {
+                const response = await apiGet<FineShowResponse>(`/fines/${fromNotificationId}?tipo_registro=notificacao`);
+                const row = response.data;
+
+                setForm((previous) => ({
+                    ...previous,
+                    data: row.data,
+                    hora: (row.hora ?? '00:00').slice(0, 5),
+                    placa_frota_id: String(row.placa_frota_id ?? ''),
+                    multa_infracao_id: String(row.multa_infracao_id ?? ''),
+                    descricao: row.descricao ?? '',
+                    numero_auto_infracao: row.numero_auto_infracao ?? '',
+                    colaborador_id: row.colaborador_id ? String(row.colaborador_id) : '',
+                    indicado_condutor: row.indicado_condutor,
+                    culpa: row.culpa,
+                    valor: row.valor ? String(row.valor) : '',
+                    tipo_valor: row.tipo_valor,
+                    vencimento: row.vencimento ?? todayDateString(),
+                    status: row.status,
+                    descontar: row.descontar,
+                }));
+
+                setOrgaoInput(row.orgao_autuador?.nome ?? '');
+            } catch {
+                setNotification({
+                    message: 'Não foi possível carregar a notificação para transformação em multa.',
+                    variant: 'error',
+                });
+                setNotificationIdForConversion(null);
+            }
+        })();
     }, []);
 
     const sortedPlates = useMemo(() => {
@@ -197,7 +272,11 @@ export default function TransportFinesLaunchPage() {
         setNotification(null);
 
         try {
-            await apiPost('/fines', payload);
+            if (notificationIdForConversion) {
+                await apiPut(`/fines/${notificationIdForConversion}`, payload);
+            } else {
+                await apiPost('/fines', payload);
+            }
 
             if (payload.culpa === 'motorista' && payload.descontar) {
                 const params = new URLSearchParams({
@@ -213,9 +292,14 @@ export default function TransportFinesLaunchPage() {
             }
 
             setNotification({
-                message: 'Multa lançada com sucesso.',
+                message: notificationIdForConversion ? 'Notificação transformada em multa com sucesso.' : 'Multa lançada com sucesso.',
                 variant: 'success',
             });
+
+            if (notificationIdForConversion) {
+                router.visit('/transport/fines/list');
+                return;
+            }
 
             setForm(emptyForm());
             setOrgaoInput('');
@@ -245,7 +329,9 @@ export default function TransportFinesLaunchPage() {
         event.preventDefault();
 
         const payloadWithoutOrgao: Omit<FinePayload, 'multa_orgao_autuador_id'> = {
+            tipo_registro: 'multa',
             data: form.data,
+            hora: form.hora,
             placa_frota_id: Number(form.placa_frota_id),
             multa_infracao_id: Number(form.multa_infracao_id),
             descricao: form.descricao.trim() || null,
@@ -364,6 +450,19 @@ export default function TransportFinesLaunchPage() {
                                             value={form.data}
                                             onChange={(event) =>
                                                 setForm((previous) => ({ ...previous, data: event.target.value }))
+                                            }
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="hora">Hora *</Label>
+                                        <Input
+                                            id="hora"
+                                            type="time"
+                                            value={form.hora}
+                                            onChange={(event) =>
+                                                setForm((previous) => ({ ...previous, hora: event.target.value }))
                                             }
                                             required
                                         />
@@ -647,6 +746,7 @@ export default function TransportFinesLaunchPage() {
                                         disabled={
                                             saving
                                             || !form.data
+                                            || !form.hora
                                             || !form.placa_frota_id
                                             || !form.multa_infracao_id
                                             || !form.colaborador_id
@@ -663,7 +763,7 @@ export default function TransportFinesLaunchPage() {
                                         ) : (
                                             <>
                                                 <Save className="size-4" />
-                                                Lançar multa
+                                                {notificationIdForConversion ? 'Transformar em multa' : 'Lançar multa'}
                                             </>
                                         )}
                                     </Button>

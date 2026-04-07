@@ -17,6 +17,8 @@ class Multa extends Model
      */
     protected $fillable = [
         'data',
+        'hora',
+        'tipo_registro',
         'unidade_id',
         'placa_frota_id',
         'multa_infracao_id',
@@ -41,6 +43,7 @@ class Multa extends Model
     {
         return [
             'data' => 'date',
+            'hora' => 'string',
             'valor' => 'decimal:2',
             'vencimento' => 'date',
             'indicado_condutor' => 'boolean',

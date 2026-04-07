@@ -38,6 +38,7 @@ class FineController extends Controller
         $unidadeId = isset($validated['unidade_id']) ? (int) $validated['unidade_id'] : null;
 
         $baseQuery = Multa::query()
+            ->where('multas.tipo_registro', 'multa')
             ->whereDate('multas.data', '>=', $start->toDateString())
             ->whereDate('multas.data', '<=', $end->toDateString())
             ->when($unidadeId, fn ($query) => $query->where('multas.unidade_id', $unidadeId));
@@ -119,6 +120,7 @@ class FineController extends Controller
                 Rule::in([
                     'id',
                     'data',
+                    'hora',
                     'placa',
                     'infracao',
                     'descricao',
@@ -135,6 +137,7 @@ class FineController extends Controller
                 ]),
             ],
             'sort_direction' => ['nullable', Rule::in(['asc', 'desc'])],
+            'tipo_registro' => ['nullable', Rule::in(['multa', 'notificacao'])],
             'data_inicio' => ['nullable', 'date_format:Y-m-d'],
             'data_fim' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:data_inicio'],
             'unidade_id' => ['nullable', 'integer', 'exists:unidades,id'],
@@ -150,6 +153,7 @@ class FineController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 20);
         $sortBy = (string) ($validated['sort_by'] ?? 'data');
         $sortDirection = (string) ($validated['sort_direction'] ?? 'desc');
+        $tipoRegistro = (string) ($validated['tipo_registro'] ?? 'multa');
 
         $query = Multa::query()
             ->select('multas.*')
@@ -168,6 +172,8 @@ class FineController extends Controller
         if (! empty($validated['data_fim'])) {
             $query->whereDate('multas.data', '<=', (string) $validated['data_fim']);
         }
+
+        $query->where('multas.tipo_registro', $tipoRegistro);
 
         if (! empty($validated['unidade_id'])) {
             $query->where('multas.unidade_id', (int) $validated['unidade_id']);
@@ -236,6 +242,32 @@ class FineController extends Controller
         return response()->json($query->paginate($perPage)->withQueryString());
     }
 
+    public function show(Request $request, Multa $multa): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->hasPermission('fines.list.view')
+            || $request->user()?->hasPermission('fines.entries.create')
+            || $request->user()?->hasPermission('fines.entries.update'),
+            403,
+        );
+
+        $tipoRegistro = (string) $request->query('tipo_registro', '');
+
+        if ($tipoRegistro !== '' && $multa->tipo_registro !== $tipoRegistro) {
+            abort(404);
+        }
+
+        return response()->json([
+            'data' => $multa->load([
+                'unidade:id,nome',
+                'placaFrota:id,placa,unidade_id',
+                'infracao:id,nome',
+                'orgaoAutuador:id,nome',
+                'colaborador:id,nome,unidade_id',
+            ]),
+        ]);
+    }
+
     public function reference(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -275,14 +307,29 @@ class FineController extends Controller
         abort_unless($request->user()?->hasPermission('fines.entries.create'), 403);
 
         $data = $request->validated();
+        $tipoRegistro = (string) ($data['tipo_registro'] ?? 'multa');
+
+        if ($tipoRegistro === 'notificacao') {
+            $data['tipo_registro'] = 'notificacao';
+            $data['colaborador_id'] = null;
+            $data['indicado_condutor'] = false;
+            $data['culpa'] = 'empresa';
+            $data['valor'] = 0;
+            $data['tipo_valor'] = 'normal';
+            $data['vencimento'] = null;
+            $data['descontar'] = false;
+        } else {
+            $data['tipo_registro'] = 'multa';
+        }
 
         if (($data['culpa'] ?? 'empresa') !== 'motorista') {
             $data['descontar'] = false;
         }
 
-        $colaborador = Colaborador::query()->find((int) $data['colaborador_id']);
-
-        $data['unidade_id'] = $colaborador?->unidade_id;
+        $data['unidade_id'] = $this->resolveUnidadeId(
+            isset($data['colaborador_id']) ? (int) $data['colaborador_id'] : null,
+            (int) $data['placa_frota_id'],
+        );
         $data['autor_id'] = (int) $request->user()->id;
 
         $multa = Multa::query()->create($data);
@@ -303,13 +350,29 @@ class FineController extends Controller
         abort_unless($request->user()?->hasPermission('fines.entries.update'), 403);
 
         $data = $request->validated();
+        $tipoRegistro = (string) ($data['tipo_registro'] ?? $multa->tipo_registro ?? 'multa');
+
+        if ($tipoRegistro === 'notificacao') {
+            $data['tipo_registro'] = 'notificacao';
+            $data['colaborador_id'] = null;
+            $data['indicado_condutor'] = false;
+            $data['culpa'] = 'empresa';
+            $data['valor'] = 0;
+            $data['tipo_valor'] = 'normal';
+            $data['vencimento'] = null;
+            $data['descontar'] = false;
+        } else {
+            $data['tipo_registro'] = 'multa';
+        }
 
         if (($data['culpa'] ?? 'empresa') !== 'motorista') {
             $data['descontar'] = false;
         }
 
-        $colaborador = Colaborador::query()->find((int) $data['colaborador_id']);
-        $data['unidade_id'] = $colaborador?->unidade_id;
+        $data['unidade_id'] = $this->resolveUnidadeId(
+            isset($data['colaborador_id']) ? (int) $data['colaborador_id'] : null,
+            (int) $data['placa_frota_id'],
+        );
 
         $multa->update($data);
 
@@ -387,5 +450,20 @@ class FineController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    private function resolveUnidadeId(?int $colaboradorId, int $placaFrotaId): ?int
+    {
+        if ($colaboradorId) {
+            $colaborador = Colaborador::query()->find($colaboradorId);
+
+            if ($colaborador?->unidade_id) {
+                return (int) $colaborador->unidade_id;
+            }
+        }
+
+        $placa = PlacaFrota::query()->find($placaFrotaId);
+
+        return $placa?->unidade_id ? (int) $placa->unidade_id : null;
     }
 }

@@ -89,6 +89,7 @@ class RolePermissionCatalog
                         'items' => [
                             ['key' => 'sidebar.fines.dashboard.view', 'label' => 'Dashboard multas'],
                             ['key' => 'sidebar.fines.launch.view', 'label' => 'Lançar multas'],
+                            ['key' => 'sidebar.fines.launch-notification.view', 'label' => 'Lançar notificação'],
                             ['key' => 'sidebar.fines.list.view', 'label' => 'Lista de multas'],
                         ],
                     ],

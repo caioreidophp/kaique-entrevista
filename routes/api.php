@@ -181,6 +181,8 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::get('fines/reference', [FineController::class, 'reference']);
     Route::post('fines/orgaos', [FineController::class, 'storeOrgao'])
         ->middleware('throttle:transport-heavy');
+    Route::get('fines/{multa}', [FineController::class, 'show'])
+        ->middleware('throttle:transport-heavy');
     Route::apiResource('fines', FineController::class)
         ->parameters(['fines' => 'multa'])
         ->middleware('throttle:transport-heavy')

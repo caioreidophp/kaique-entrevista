@@ -132,6 +132,10 @@ Route::prefix('transport')->group(function (): void {
             return Inertia::render('transport/fines/launch');
         })->name('transport.fines.launch');
 
+        Route::get('launch-notification', function () {
+            return Inertia::render('transport/fines/launch-notification');
+        })->name('transport.fines.launch-notification');
+
         Route::get('list', function () {
             return Inertia::render('transport/fines/list');
         })->name('transport.fines.list');
