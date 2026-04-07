@@ -297,7 +297,7 @@ export default function TransportNextStepsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
     const [search, setSearch] = useState('');
-    const debouncedSearch = useDebouncedValue(search, 300);
+    const debouncedSearch = useDebouncedValue(search, 450);
     const [error, setError] = useState<string | null>(null);
     const [hiringItemId, setHiringItemId] = useState<number | null>(null);
     const [unidades, setUnidades] = useState<Unidade[]>([]);

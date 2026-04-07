@@ -58,6 +58,32 @@ export default function TransportFreightOperationalReportPage() {
             .finally(() => setLoading(false));
     }, [month, year]);
 
+    const abatedouroRows = data?.abatedouro.por_unidade ?? [];
+
+    const frotaRows = useMemo(() => {
+        if (!data) {
+            return [] as Array<{ unidade_id: number; unidade_nome: string | null; dentro: number; fora: number; total_frota: number }>;
+        }
+
+        const inside = data.kaique.integracao.por_unidade;
+        const spotByUnit = new Map(
+            data.kaique.spot.por_unidade.map((item) => [item.unidade_id, item.total_frete]),
+        );
+
+        return inside.map((item) => {
+            const fora = Number(spotByUnit.get(item.unidade_id) ?? 0);
+            const dentro = Number(item.total_frete ?? 0);
+
+            return {
+                unidade_id: item.unidade_id,
+                unidade_nome: item.unidade_nome,
+                dentro,
+                fora,
+                total_frota: dentro + fora,
+            };
+        });
+    }, [data]);
+
     return (
         <AdminLayout title="Gestão de Fretes - Relatório Operacional" active="freight-operational-report" module="freight">
             <div className="space-y-6">
@@ -157,12 +183,12 @@ export default function TransportFreightOperationalReportPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data.abatedouro.map((item) => (
+                                        {abatedouroRows.map((item) => (
                                             <tr key={item.unidade_id} className="border-b last:border-b-0">
                                                 <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
-                                                <td className="py-2 pr-3">{formatCurrencyBR(item.frota_no_abatedouro)}</td>
-                                                <td className="py-2 pr-3">{formatCurrencyBR(item.terceiros_no_abatedouro)}</td>
-                                                <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(item.total_abatedouro)}</td>
+                                                <td className="py-2 pr-3">{formatCurrencyBR(item.total_frete - item.frete_terceiros)}</td>
+                                                <td className="py-2 pr-3">{formatCurrencyBR(item.frete_terceiros)}</td>
+                                                <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(item.total_frete)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -185,7 +211,7 @@ export default function TransportFreightOperationalReportPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data.frota.map((item) => (
+                                        {frotaRows.map((item) => (
                                             <tr key={item.unidade_id} className="border-b last:border-b-0">
                                                 <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
                                                 <td className="py-2 pr-3">{formatCurrencyBR(item.dentro)}</td>

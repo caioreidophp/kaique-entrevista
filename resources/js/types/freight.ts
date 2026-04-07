@@ -6,6 +6,7 @@ export interface FreightUnit {
 export interface FreightEntry {
     id: number;
     data: string;
+    dia_semana?: string;
     unidade_id: number;
     autor_id: number;
     frete_total: string;
@@ -73,25 +74,65 @@ export interface FreightSpotEntry {
 export interface FreightOperationalReportResponse {
     competencia_mes: number;
     competencia_ano: number;
-    abatedouro: Array<{
-        unidade_id: number;
-        unidade_nome: string | null;
-        frota_no_abatedouro: number;
-        terceiros_no_abatedouro: number;
-        total_abatedouro: number;
-    }>;
-    frota: Array<{
-        unidade_id: number;
-        unidade_nome: string | null;
-        dentro: number;
-        fora: number;
-        total_frota: number;
-    }>;
+    unidade_id?: number | null;
+    programado?: {
+        frete: number;
+        km: number;
+        aves: number;
+        cargas: number;
+    };
+    abatedouro: {
+        resumo: FreightExecutionMetrics;
+        por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+    };
+    kaique: {
+        integracao: {
+            resumo: FreightExecutionMetrics;
+            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+        };
+        spot: {
+            resumo: FreightExecutionMetrics;
+            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+        };
+        percentual_spot_total: number;
+    };
     geral_kaique: {
         total_abatedouro: number;
         frota_dentro: number;
         frota_fora: number;
         total_frota: number;
+    };
+    abatedouro_legacy?: Array<Record<string, unknown>>;
+    frota?: Array<Record<string, unknown>>;
+}
+
+export interface FreightExecutionMetrics {
+    dias_abate: number;
+    total_frete: number;
+    km_rodado: number;
+    aves_abatidas: number;
+    cargas: number;
+    frete_por_km: number;
+    aves_por_carga: number;
+    frete_medio_carga: number;
+    raio_medio: number;
+    participacao_terceiros_percent: number;
+    frete_terceiros: number;
+    km_terceiros: number;
+    cargas_terceiros: number;
+    aves_terceiros: number;
+    percentual_spot: number;
+    programado: {
+        frete: number;
+        km: number;
+        aves: number;
+        cargas: number;
+    };
+    percentual_realizado: {
+        frete: number;
+        km: number;
+        aves: number;
+        cargas: number;
     };
 }
 
@@ -154,6 +195,9 @@ export interface FreightMonthlyResponse {
         frete_por_dia_trabalhado: number;
         media_reais_por_km: number;
         media_frete_por_km: number;
+        abatedouro: FreightExecutionMetrics;
+        kaique_integracao: FreightExecutionMetrics;
+        kaique_spot: FreightExecutionMetrics;
     }>;
 }
 

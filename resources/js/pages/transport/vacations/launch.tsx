@@ -58,10 +58,13 @@ export default function VacationsLaunchPage() {
     const [selectedCollaboratorId, setSelectedCollaboratorId] = useState('');
     const [collaboratorQuery, setCollaboratorQuery] = useState('');
     const [collaboratorDropdownOpen, setCollaboratorDropdownOpen] = useState(false);
+    const [tipo, setTipo] = useState<'confirmado' | 'previsao' | 'passada'>('confirmado');
     const [comAbono, setComAbono] = useState(true);
+    const [diasFerias, setDiasFerias] = useState<20 | 30>(20);
     const [dataInicio, setDataInicio] = useState(new Date().toISOString().slice(0, 10));
     const [periodoAquisitivoInicio, setPeriodoAquisitivoInicio] = useState('');
     const [periodoAquisitivoFim, setPeriodoAquisitivoFim] = useState('');
+    const [observacoes, setObservacoes] = useState('');
 
     const [notification, setNotification] = useState<{
         message: string;
@@ -99,8 +102,8 @@ export default function VacationsLaunchPage() {
     }, [collaboratorQuery, sortedCandidates]);
 
     const dataFimCalculada = useMemo(
-        () => addDays(dataInicio, comAbono ? 19 : 29),
-        [dataInicio, comAbono],
+        () => addDays(dataInicio, diasFerias - 1),
+        [dataInicio, diasFerias],
     );
 
     useEffect(() => {
@@ -163,11 +166,14 @@ export default function VacationsLaunchPage() {
         try {
             await apiPost('/payroll/vacations', {
                 colaborador_id: Number(selectedCollaboratorId),
+                tipo,
                 com_abono: comAbono,
+                dias_ferias: diasFerias,
                 data_inicio: dataInicio,
                 data_fim: dataFimCalculada,
                 periodo_aquisitivo_inicio: periodoAquisitivoInicio,
                 periodo_aquisitivo_fim: periodoAquisitivoFim,
+                observacoes: observacoes.trim() || null,
             });
 
             setNotification({
@@ -180,10 +186,13 @@ export default function VacationsLaunchPage() {
 
             setSelectedCollaboratorId('');
             setCollaboratorQuery('');
+            setTipo('confirmado');
             setPeriodoAquisitivoInicio('');
             setPeriodoAquisitivoFim('');
             setDataInicio(new Date().toISOString().slice(0, 10));
             setComAbono(true);
+            setDiasFerias(20);
+            setObservacoes('');
         } catch (error) {
             if (error instanceof ApiError) {
                 const firstError = error.errors
@@ -298,12 +307,53 @@ export default function VacationsLaunchPage() {
 
                                 <div className="grid gap-3 md:grid-cols-2">
                                     <div className="space-y-2">
+                                        <Label>Tipo</Label>
+                                        <Select
+                                            value={tipo}
+                                            onValueChange={(value: 'confirmado' | 'previsao' | 'passada') =>
+                                                setTipo(value)
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="confirmado">Confirmado</SelectItem>
+                                                <SelectItem value="previsao">Previsão</SelectItem>
+                                                <SelectItem value="passada">Passada</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Dias de férias</Label>
+                                        <Select
+                                            value={String(diasFerias)}
+                                            onValueChange={(value) => {
+                                                const nextDays = value === '30' ? 30 : 20;
+                                                setDiasFerias(nextDays);
+                                                setComAbono(nextDays === 20);
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="20">20 dias</SelectItem>
+                                                <SelectItem value="30">30 dias</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label>Abono</Label>
                                         <Select
                                             value={comAbono ? 'sim' : 'nao'}
-                                            onValueChange={(value) =>
-                                                setComAbono(value === 'sim')
-                                            }
+                                            onValueChange={(value) => {
+                                                const nextComAbono = value === 'sim';
+                                                setComAbono(nextComAbono);
+                                                setDiasFerias(nextComAbono ? 20 : 30);
+                                            }}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
@@ -360,6 +410,17 @@ export default function VacationsLaunchPage() {
                                             readOnly
                                         />
                                     </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="ferias-observacoes">Observações</Label>
+                                    <textarea
+                                        id="ferias-observacoes"
+                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        value={observacoes}
+                                        onChange={(event) => setObservacoes(event.target.value)}
+                                        placeholder="Observação opcional para aparecer no histórico de férias do cadastro"
+                                    />
                                 </div>
 
                                 {selectedCandidate ? (

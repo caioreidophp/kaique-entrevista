@@ -91,6 +91,44 @@ class RegistryApiTest extends TestCase
         Storage::disk('public')->assertExists((string) $colaborador->foto_3x4_path);
     }
 
+    public function test_admin_can_upload_colaborador_document_attachments(): void
+    {
+        Storage::fake('public');
+
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+        $colaborador = Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Carlos da Silva',
+            'ativo' => true,
+            'cpf' => '12345678901',
+        ]);
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+
+        $response = $this->post('/api/registry/colaboradores/'.$colaborador->id.'/attachments', [
+            'cnh_attachment_file' => UploadedFile::fake()->create('cnh.pdf', 250, 'application/pdf'),
+            'work_card_attachment_file' => UploadedFile::fake()->image('ct.jpg', 640, 800),
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.id', $colaborador->id)
+            ->assertJsonPath('data.cnh_attachment_original_name', 'cnh.pdf')
+            ->assertJsonPath('data.work_card_attachment_original_name', 'ct.jpg');
+
+        $colaborador->refresh();
+
+        $this->assertNotNull($colaborador->cnh_attachment_path);
+        $this->assertNotNull($colaborador->work_card_attachment_path);
+
+        Storage::disk('public')->assertExists((string) $colaborador->cnh_attachment_path);
+        Storage::disk('public')->assertExists((string) $colaborador->work_card_attachment_path);
+    }
+
     public function test_admin_can_delete_colaborador(): void
     {
         $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);

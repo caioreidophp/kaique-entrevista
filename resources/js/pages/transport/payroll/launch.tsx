@@ -23,7 +23,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiGet, apiPost } from '@/lib/api-client';
-import { formatDateTimeBR } from '@/lib/transport-format';
+import { compareTextPtBr } from '@/lib/transport-text';
+import { formatCurrencyBR, formatDateTimeBR } from '@/lib/transport-format';
 
 interface Unidade {
     id: number;
@@ -269,15 +270,40 @@ export default function TransportPayrollLaunchPage() {
     const sortedCandidates = useMemo(() => {
         const items = [...candidates];
         items.sort((first, second) => {
-            const comparison = first.nome.localeCompare(second.nome, 'pt-BR', {
-                sensitivity: 'base',
-            });
+            const comparison = compareTextPtBr(first.nome, second.nome);
+
+            if (comparison === 0) {
+                return nameSortDirection === 'asc'
+                    ? first.id - second.id
+                    : second.id - first.id;
+            }
 
             return nameSortDirection === 'asc' ? comparison : -comparison;
         });
 
         return items;
     }, [candidates, nameSortDirection]);
+
+    const columnTotalsByTipo = useMemo(() => {
+        const totals: Record<number, number> = {};
+
+        selectedTipoIds.forEach((tipoId) => {
+            totals[tipoId] = 0;
+        });
+
+        candidates.forEach((candidate) => {
+            if (!selectedCollaborators[candidate.id]) {
+                return;
+            }
+
+            selectedTipoIds.forEach((tipoId) => {
+                const key = valueKey(candidate.id, tipoId);
+                totals[tipoId] = (totals[tipoId] ?? 0) + parseMoneyInput(values[key] ?? '0');
+            });
+        });
+
+        return totals;
+    }, [candidates, selectedCollaborators, selectedTipoIds, values]);
 
     async function loadUnidades(): Promise<void> {
         setLoading(true);
@@ -606,7 +632,7 @@ export default function TransportPayrollLaunchPage() {
     function focusAdjacentLaunchInput(currentKey: string, direction: 1 | -1): void {
         const orderedKeys: string[] = [];
 
-        candidates.forEach((candidate) => {
+        sortedCandidates.forEach((candidate) => {
             selectedTipos.forEach((tipo) => {
                 orderedKeys.push(valueKey(candidate.id, tipo.id));
             });
@@ -641,7 +667,7 @@ export default function TransportPayrollLaunchPage() {
     function buildInputGrid(): string[][] {
         const rows: string[][] = [];
 
-        candidates.forEach((candidate) => {
+        sortedCandidates.forEach((candidate) => {
             const paymentRow = selectedTipos.map((tipo) => valueKey(candidate.id, tipo.id));
 
             if (paymentRow.length > 0) {
@@ -1001,7 +1027,7 @@ export default function TransportPayrollLaunchPage() {
                     ? Object.values(error.errors)[0]?.[0]
                     : null;
                 setNotification({
-                    message: firstError ?? error.message,
+                    message: firstError ?? error.message ?? 'Não foi possível lançar os pagamentos.',
                     variant: 'error',
                 });
             } else {
@@ -1465,6 +1491,19 @@ export default function TransportPayrollLaunchPage() {
                                                 </Fragment>
                                             ))}
                                         </tbody>
+                                        <tfoot>
+                                            <tr className="border-t bg-muted/35 font-semibold">
+                                                <td className="px-2 py-2" />
+                                                <td className="px-2 py-2">Total da coluna</td>
+                                                {hasBenefitDailyAutoFill ? <td className="px-2 py-2" /> : null}
+                                                <td className="px-2 py-2" />
+                                                {selectedTipos.map((tipo) => (
+                                                    <td key={`total-col-${tipo.id}`} className="px-2 py-2 font-semibold">
+                                                        {formatCurrencyBR(columnTotalsByTipo[tipo.id] ?? 0)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
 

@@ -27,7 +27,7 @@ class StoreFreightEntryRequestTest extends TestCase
         $this->assertArrayHasKey('kaique_geral_viagens', $validator->errors()->toArray());
     }
 
-    public function test_with_validator_rejects_km_over_daily_threshold(): void
+    public function test_with_validator_does_not_add_km_threshold_error_in_backend(): void
     {
         $request = StoreFreightEntryRequest::create('/api/freight/entries', 'POST', [
             'programado_viagens' => 1,
@@ -44,6 +44,6 @@ class StoreFreightEntryRequestTest extends TestCase
         $request->withValidator($validator);
 
         $this->assertTrue($validator->fails());
-        $this->assertArrayHasKey('km_rodado', $validator->errors()->toArray());
+        $this->assertArrayNotHasKey('km_rodado', $validator->errors()->toArray());
     }
 }

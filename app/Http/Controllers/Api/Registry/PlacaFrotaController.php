@@ -40,7 +40,7 @@ class PlacaFrotaController extends Controller
 
     public function store(StorePlacaFrotaRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $placaFrota = PlacaFrota::query()->create($request->validated());
 
@@ -53,7 +53,7 @@ class PlacaFrotaController extends Controller
 
     public function bulkStore(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $validated = Validator::make($request->all(), [
             'unidade_id' => ['required', 'integer', 'exists:unidades,id'],
@@ -105,7 +105,7 @@ class PlacaFrotaController extends Controller
 
     public function update(UpdatePlacaFrotaRequest $request, PlacaFrota $placaFrota): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $placaFrota->update($request->validated());
 
@@ -118,7 +118,7 @@ class PlacaFrotaController extends Controller
 
     public function destroy(Request $request, PlacaFrota $placaFrota): JsonResponse
     {
-        abort_unless($request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $placaFrota->delete();
 

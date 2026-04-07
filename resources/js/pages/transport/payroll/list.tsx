@@ -296,6 +296,7 @@ export default function TransportPayrollListPage() {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [printingLaunchKey, setPrintingLaunchKey] = useState<string | null>(null);
+    const [exportingLaunchKey, setExportingLaunchKey] = useState<string | null>(null);
 
     const [monthFilter, setMonthFilter, resetMonthFilter] = usePersistedState(
         'transport:payroll:list:monthFilter',
@@ -512,26 +513,65 @@ export default function TransportPayrollListPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function exportXlsx(): Promise<void> {
+    function launchHasBenefits(launch: LaunchGroup): boolean {
+        return launch.tipoIds.some((tipoId) => {
+            const rawName = tipos.find((item) => item.id === tipoId)?.nome ?? '';
+            const normalizedTypeName = normalizePaymentName(rawName);
+
+            return (
+                normalizedTypeName.includes('vale transporte') ||
+                normalizedTypeName.includes('vt') ||
+                normalizedTypeName.includes('vale refeicao') ||
+                normalizedTypeName.includes('vr') ||
+                normalizedTypeName.includes('cesta basica') ||
+                normalizedTypeName === 'cb'
+            );
+        });
+    }
+
+    async function exportLaunchBenefitsXlsx(launch: LaunchGroup): Promise<void> {
+        const paymentIds = Array.from(
+            new Set(
+                launch.colaboradores.flatMap((grouped) =>
+                    grouped.allItems.map((payment) => payment.id),
+                ),
+            ),
+        );
+
+        if (paymentIds.length === 0) {
+            setNotification({
+                message: 'Nenhum pagamento encontrado para exportar neste lançamento.',
+                variant: 'info',
+            });
+            return;
+        }
+
+        setExportingLaunchKey(launch.key);
+
         const params = new URLSearchParams();
-        params.set('competencia_mes', monthFilter);
-        params.set('competencia_ano', yearFilter);
+        params.set('pagamento_ids', paymentIds.join(','));
+
+        const launchDate = launch.data_pagamento ? launch.data_pagamento.replaceAll('-', '') : `${launch.competencia_ano}${String(launch.competencia_mes).padStart(2, '0')}`;
+        const launchSlug = normalizePaymentName(launch.descricao || 'lancamento')
+            .replaceAll(' ', '_')
+            .slice(0, 40);
 
         try {
             await apiDownload(
-                `/payroll/pagamentos/export-xlsx?${params.toString()}`,
-                `resumo_vr_va_${yearFilter}_${monthFilter}.xlsx`,
+                `/payroll/pagamentos/export-benefits-xlsx?${params.toString()}`,
+                `beneficios_${launchSlug}_${launchDate}.xlsx`,
             );
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
-                return;
+            } else {
+                setNotification({
+                    message: 'Não foi possível exportar o Excel deste lançamento.',
+                    variant: 'error',
+                });
             }
-
-            setNotification({
-                message: 'Não foi possível exportar pagamentos em XLSX.',
-                variant: 'error',
-            });
+        } finally {
+            setExportingLaunchKey(null);
         }
     }
 
@@ -1049,86 +1089,167 @@ export default function TransportPayrollListPage() {
 
             const sortedRows = getSortedCollaborators(launch);
 
+            type PaymentColumnKey = 'vr' | 'premio' | 'vt' | 'extras' | 'cestaBasica';
+
+            const paymentColumnLabels: Record<PaymentColumnKey, string> = {
+                vr: 'VR',
+                premio: 'PRÊMIO',
+                vt: 'VT',
+                extras: 'EXTRAS',
+                cestaBasica: 'CB',
+            };
+
+            const classifyTipoToPaymentColumn = (
+                tipoId: number,
+            ): PaymentColumnKey | null => {
+                const tipo = tipos.find((item) => item.id === tipoId);
+                const normalizedTypeName = normalizePaymentName(tipo?.nome);
+
+                if (normalizedTypeName.includes('vale refeicao')) {
+                    return 'vr';
+                }
+
+                if (normalizedTypeName.includes('premio')) {
+                    return 'premio';
+                }
+
+                if (normalizedTypeName.includes('vale transporte')) {
+                    return 'vt';
+                }
+
+                if (normalizedTypeName.includes('cesta basica')) {
+                    return 'cestaBasica';
+                }
+
+                if (tipo?.categoria === 'extras' || normalizedTypeName.includes('extra')) {
+                    return 'extras';
+                }
+
+                return null;
+            };
+
+            const selectedPaymentColumns = new Set<PaymentColumnKey>();
+
             const spreadsheetRows = sortedRows.map((row) => {
                 const collaboratorPreview = previewMap.get(row.colaborador.id);
                 const workDays = row.allItems
                     .map((payment) => parseWorkDaysFromObservation(payment.observacao))
                     .find((value) => value !== null);
 
-                let vr = 0;
-                let premio = 0;
-                let vt = 0;
-                let extras = 0;
-                let cestaBasica = 0;
+                const paymentValues: Record<PaymentColumnKey, number> = {
+                    vr: 0,
+                    premio: 0,
+                    vt: 0,
+                    extras: 0,
+                    cestaBasica: 0,
+                };
 
                 launch.tipoIds.forEach((tipoId) => {
-                    const tipo = tipos.find((item) => item.id === tipoId);
-                    const normalizedTypeName = normalizePaymentName(tipo?.nome);
                     const amount = Number(row.byType.get(tipoId)?.valor ?? 0);
+                    const columnKey = classifyTipoToPaymentColumn(tipoId);
 
-                    if (normalizedTypeName.includes('vale refeicao')) {
-                        vr += amount;
+                    if (!columnKey) {
                         return;
                     }
 
-                    if (normalizedTypeName.includes('premio')) {
-                        premio += amount;
-                        return;
-                    }
-
-                    if (normalizedTypeName.includes('vale transporte')) {
-                        vt += amount;
-                        return;
-                    }
-
-                    if (normalizedTypeName.includes('cesta basica')) {
-                        cestaBasica += amount;
-                        return;
-                    }
-
-                    if (tipo?.categoria === 'extras' || normalizedTypeName.includes('extra')) {
-                        extras += amount;
-                    }
+                    selectedPaymentColumns.add(columnKey);
+                    paymentValues[columnKey] += amount;
                 });
 
                 const descontos = Number(collaboratorPreview?.total_descontado ?? 0);
-                const totalCartoes = vr + premio + cestaBasica;
-                const pagarDinheiro = (vt + extras) - descontos;
+                const totalCartoes =
+                    paymentValues.vr + paymentValues.premio + paymentValues.cestaBasica;
+                const pagarDinheiro =
+                    paymentValues.vt + paymentValues.extras - descontos;
 
                 return {
                     nome: row.colaborador.nome,
                     diasUteis: workDays,
-                    vr,
-                    premio,
-                    vt,
-                    extras,
-                    cestaBasica,
+                    paymentValues,
                     descontos,
                     totalCartoes,
                     pagarDinheiro,
                 };
             });
 
+            const orderedPaymentColumns = (
+                ['vr', 'premio', 'vt', 'extras', 'cestaBasica'] as PaymentColumnKey[]
+            ).filter((key) => selectedPaymentColumns.has(key));
+
+            const totalByPaymentColumn = orderedPaymentColumns.reduce(
+                (accumulator, key) => {
+                    accumulator[key] = spreadsheetRows.reduce(
+                        (total, row) => total + row.paymentValues[key],
+                        0,
+                    );
+
+                    return accumulator;
+                },
+                {} as Record<PaymentColumnKey, number>,
+            );
+
+            const hasCardColumns =
+                orderedPaymentColumns.includes('vr')
+                || orderedPaymentColumns.includes('premio')
+                || orderedPaymentColumns.includes('cestaBasica');
+            const hasCashColumns =
+                orderedPaymentColumns.includes('vt')
+                || orderedPaymentColumns.includes('extras');
+            const totalDescontado = spreadsheetRows.reduce(
+                (acc, row) => acc + row.descontos,
+                0,
+            );
+            const includeDiscountColumn = totalDescontado > 0;
+            const includeTotalCardsColumn = hasCardColumns;
+            const includePagarDinheiroColumn = hasCashColumns || includeDiscountColumn;
+            const totalCartoes = spreadsheetRows.reduce(
+                (acc, row) => acc + row.totalCartoes,
+                0,
+            );
+            const totalPagarDinheiro = spreadsheetRows.reduce(
+                (acc, row) => acc + row.pagarDinheiro,
+                0,
+            );
+
+            const totalColumnsCount =
+                2
+                + orderedPaymentColumns.length
+                + (includeDiscountColumn ? 1 : 0)
+                + (includeTotalCardsColumn ? 1 : 0)
+                + (includePagarDinheiroColumn ? 1 : 0);
+
             const tableRows = spreadsheetRows
                 .map((row) => `
                     <tr>
                         <td>${escapeHtml(row.nome)}</td>
                         <td>${escapeHtml(row.diasUteis !== null ? String(row.diasUteis) : '-')}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.vr))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.premio))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.vt))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.extras))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.cestaBasica))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.descontos))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.totalCartoes))}</td>
-                        <td>${escapeHtml(formatCurrencyBR(row.pagarDinheiro))}</td>
+                        ${orderedPaymentColumns
+                            .map(
+                                (key) =>
+                                    `<td>${escapeHtml(formatCurrencyBR(row.paymentValues[key]))}</td>`,
+                            )
+                            .join('')}
+                        ${includeDiscountColumn ? `<td>${escapeHtml(formatCurrencyBR(row.descontos))}</td>` : ''}
+                        ${includeTotalCardsColumn ? `<td>${escapeHtml(formatCurrencyBR(row.totalCartoes))}</td>` : ''}
+                        ${includePagarDinheiroColumn ? `<td>${escapeHtml(formatCurrencyBR(row.pagarDinheiro))}</td>` : ''}
                     </tr>
                 `)
                 .join('');
 
-            const totalCartoes = spreadsheetRows.reduce((acc, row) => acc + row.totalCartoes, 0);
-            const totalPagarDinheiro = spreadsheetRows.reduce((acc, row) => acc + row.pagarDinheiro, 0);
-            const totalDescontado = spreadsheetRows.reduce((acc, row) => acc + row.descontos, 0);
+            const footerTotalsRow = `
+                <tr>
+                    <td colspan="2"><strong>TOTAL</strong></td>
+                    ${orderedPaymentColumns
+                        .map(
+                            (key) =>
+                                `<td><strong>${escapeHtml(formatCurrencyBR(totalByPaymentColumn[key] ?? 0))}</strong></td>`,
+                        )
+                        .join('')}
+                    ${includeDiscountColumn ? `<td><strong>${escapeHtml(formatCurrencyBR(totalDescontado))}</strong></td>` : ''}
+                    ${includeTotalCardsColumn ? `<td><strong>${escapeHtml(formatCurrencyBR(totalCartoes))}</strong></td>` : ''}
+                    ${includePagarDinheiroColumn ? `<td><strong>${escapeHtml(formatCurrencyBR(totalPagarDinheiro))}</strong></td>` : ''}
+                </tr>
+            `;
 
             const html = `
                 <!doctype html>
@@ -1144,6 +1265,7 @@ export default function TransportPayrollListPage() {
                         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
                         th, td { border: 1px solid #cfcfcf; padding: 3px 4px; text-align: left; font-size: 9px; line-height: 1.2; }
                         th { background: #f3f4f6; }
+                        tfoot td { background: #fafafa; }
                         .meta { margin-top: 6px; }
                     </style>
                 </head>
@@ -1159,25 +1281,26 @@ export default function TransportPayrollListPage() {
                             <tr>
                                 <th>NOME</th>
                                 <th>DIAS ÚTEIS</th>
-                                <th>VR</th>
-                                <th>PRÊMIO</th>
-                                <th>VT</th>
-                                <th>EXTRAS</th>
-                                <th>CB</th>
-                                <th>DESCONTOS</th>
-                                <th>TOTAL CARTÕES</th>
-                                <th>A PAGAR DINHEIRO</th>
+                                ${orderedPaymentColumns
+                                    .map((key) => `<th>${paymentColumnLabels[key]}</th>`)
+                                    .join('')}
+                                ${includeDiscountColumn ? '<th>DESCONTOS</th>' : ''}
+                                ${includeTotalCardsColumn ? '<th>TOTAL CARTÕES</th>' : ''}
+                                ${includePagarDinheiroColumn ? '<th>A PAGAR DINHEIRO</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
-                            ${tableRows || '<tr><td colspan="10">Sem colaboradores neste lançamento.</td></tr>'}
+                            ${tableRows || `<tr><td colspan="${totalColumnsCount}">Sem colaboradores neste lançamento.</td></tr>`}
                         </tbody>
+                        <tfoot>
+                            ${footerTotalsRow}
+                        </tfoot>
                     </table>
 
                     <div class="meta">
-                        <p><strong>Total descontos:</strong> ${escapeHtml(formatCurrencyBR(totalDescontado))}</p>
-                        <p><strong>Total cartões (VR + Prêmio + CB):</strong> ${escapeHtml(formatCurrencyBR(totalCartoes))}</p>
-                        <p><strong>Total a pagar em dinheiro (VT + Extras - Descontos):</strong> ${escapeHtml(formatCurrencyBR(totalPagarDinheiro))}</p>
+                        ${includeDiscountColumn ? `<p><strong>Total descontos:</strong> ${escapeHtml(formatCurrencyBR(totalDescontado))}</p>` : ''}
+                        ${includeTotalCardsColumn ? `<p><strong>Total cartões:</strong> ${escapeHtml(formatCurrencyBR(totalCartoes))}</p>` : ''}
+                        ${includePagarDinheiroColumn ? `<p><strong>Total a pagar em dinheiro:</strong> ${escapeHtml(formatCurrencyBR(totalPagarDinheiro))}</p>` : ''}
                     </div>
                 </body>
                 </html>
@@ -1271,9 +1394,6 @@ export default function TransportPayrollListPage() {
                                 <Button variant="outline" onClick={clearFilters}>
                                     Limpar
                                 </Button>
-                                <Button type="button" variant="outline" onClick={() => void exportXlsx()}>
-                                    <FileSpreadsheet className="size-4 text-green-600" />
-                                </Button>
                             </div>
                         </div>
                     </CardContent>
@@ -1330,6 +1450,24 @@ export default function TransportPayrollListPage() {
                                                         <td className="py-2 pr-3">{formatDateBR(launch.data_pagamento)}</td>
                                                         <td className="py-2">
                                                             <div className="flex justify-end gap-2">
+                                                                {launchHasBenefits(launch) ? (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            void exportLaunchBenefitsXlsx(launch);
+                                                                        }}
+                                                                        disabled={exportingLaunchKey === launch.key}
+                                                                        title={exportingLaunchKey === launch.key ? 'Gerando Excel' : 'Exportar Excel de benefícios'}
+                                                                    >
+                                                                        {exportingLaunchKey === launch.key ? (
+                                                                            <LoaderCircle className="size-4 animate-spin text-green-600" />
+                                                                        ) : (
+                                                                            <FileSpreadsheet className="size-4 text-green-600" />
+                                                                        )}
+                                                                    </Button>
+                                                                ) : null}
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"

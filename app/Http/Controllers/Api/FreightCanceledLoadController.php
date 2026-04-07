@@ -70,6 +70,41 @@ class FreightCanceledLoadController extends Controller
         ]);
     }
 
+    public function update(Request $request, FreightCanceledLoad $canceledLoad): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $this->ensureCanAccess($request, $canceledLoad);
+
+        $validated = Validator::make($request->all(), [
+            'data' => ['required', 'date'],
+            'placa' => ['required', 'string', 'max:20'],
+            'aviario' => ['nullable', 'string', 'max:255'],
+            'valor' => ['required', 'numeric', 'min:0'],
+            'n_viagem' => ['nullable', 'string', 'max:80'],
+            'obs' => ['nullable', 'string'],
+        ])->validate();
+
+        $canceledLoad->update([
+            'data' => (string) $validated['data'],
+            'placa' => strtoupper(trim((string) $validated['placa'])),
+            'aviario' => isset($validated['aviario'])
+                ? trim((string) $validated['aviario'])
+                : null,
+            'valor' => (float) $validated['valor'],
+            'n_viagem' => isset($validated['n_viagem'])
+                ? trim((string) $validated['n_viagem'])
+                : null,
+            'obs' => isset($validated['obs'])
+                ? trim((string) $validated['obs'])
+                : null,
+        ]);
+
+        return response()->json([
+            'data' => $canceledLoad->refresh()->load(['unidade:id,nome', 'batch:id,descricao,data_pagamento,numero_nota_fiscal']),
+        ]);
+    }
+
     public function bill(Request $request): JsonResponse
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);

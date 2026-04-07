@@ -23,6 +23,8 @@ interface RequestConfig {
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     body?: unknown;
     auth?: boolean;
+    timeoutMs?: number;
+    retries?: number;
 }
 
 interface CachedGetEntry {
@@ -41,6 +43,8 @@ const getCache = new Map<string, CachedGetEntry>();
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 const GET_CACHE_TTL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 20_000;
+const DOWNLOAD_TIMEOUT_MS = 60_000;
+const DEFAULT_RETRIES = 2;
 
 const cacheableGetPaths = [
     '/reference/cities',
@@ -150,11 +154,31 @@ function isFormDataBody(value: unknown): value is FormData {
     return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+}
+
+function shouldRetry(status: number): boolean {
+    return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
+function isIdempotent(method: RequestConfig['method']): boolean {
+    return method === 'GET' || method === 'PUT' || method === 'DELETE';
+}
+
 async function request<T>(
     path: string,
     config: RequestConfig = {},
 ): Promise<T> {
-    const { method = 'GET', body, auth = true } = config;
+    const {
+        method = 'GET',
+        body,
+        auth = true,
+        timeoutMs = REQUEST_TIMEOUT_MS,
+        retries = DEFAULT_RETRIES,
+    } = config;
 
     if (method === 'GET' && shouldCacheGet(path)) {
         const cached = getCachedGet<T>(path);
@@ -195,54 +219,76 @@ async function request<T>(
             headers.Authorization = `Bearer ${token}`;
         }
 
-        const abortController = new AbortController();
-        const timeoutId = window.setTimeout(
-            () => abortController.abort(),
-            REQUEST_TIMEOUT_MS,
-        );
+        let response: Response | null = null;
+        let lastError: ApiError | null = null;
+        const maxAttempts = isIdempotent(method) ? retries + 1 : 1;
 
-        let response: Response;
-
-        try {
-            response = await fetch(`${API_BASE}${path}`, {
-                method,
-                headers,
-                signal: abortController.signal,
-                body:
-                    body === undefined
-                        ? undefined
-                        : hasFormDataBody
-                          ? body
-                          : JSON.stringify(body),
-            });
-        } catch (error) {
-            let fallback = new ApiError(
-                500,
-                'Falha inesperada na comunicação com o servidor.',
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            const abortController = new AbortController();
+            const timeoutId = window.setTimeout(
+                () => abortController.abort(),
+                timeoutMs,
             );
 
-            if (error instanceof DOMException && error.name === 'AbortError') {
-                fallback = new ApiError(
-                    408,
-                    'A requisição demorou mais do que o esperado. Tente novamente.',
+            try {
+                response = await fetch(`${API_BASE}${path}`, {
+                    method,
+                    headers,
+                    signal: abortController.signal,
+                    body:
+                        body === undefined
+                            ? undefined
+                            : hasFormDataBody
+                              ? body
+                              : JSON.stringify(body),
+                });
+
+                if (!shouldRetry(response.status) || attempt === maxAttempts) {
+                    break;
+                }
+
+                const backoffMs = Math.min(2_000, 250 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 120);
+                await delay(backoffMs);
+            } catch (error) {
+                let fallback = new ApiError(
+                    500,
+                    'Falha inesperada na comunicação com o servidor.',
                 );
-            } else if (error instanceof TypeError) {
-                fallback = new ApiError(
-                    0,
-                    'Falha de conexão. Verifique sua internet e tente novamente.',
-                );
+
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    fallback = new ApiError(
+                        408,
+                        'A requisição demorou mais do que o esperado. Tente novamente.',
+                    );
+                } else if (error instanceof TypeError) {
+                    fallback = new ApiError(
+                        0,
+                        'Falha de conexão. Verifique sua internet e tente novamente.',
+                    );
+                }
+
+                lastError = fallback;
+
+                if (attempt === maxAttempts || !isIdempotent(method)) {
+                    dispatchApiClientError({
+                        path,
+                        method,
+                        status: fallback.status,
+                        message: fallback.message,
+                    });
+
+                    throw fallback;
+                }
+
+                const backoffMs = Math.min(2_000, 250 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 120);
+                await delay(backoffMs);
+            } finally {
+                window.clearTimeout(timeoutId);
             }
+        }
 
-            dispatchApiClientError({
-                path,
-                method,
-                status: fallback.status,
-                message: fallback.message,
-            });
-
-            throw fallback;
-        } finally {
-            window.clearTimeout(timeoutId);
+        if (!response) {
+            throw (lastError ?? new ApiError(500, 'Falha inesperada na comunicação com o servidor.'));
         }
 
         if (response.status === 401) {
@@ -316,6 +362,10 @@ export function apiGet<T>(path: string, auth = true): Promise<T> {
     return request<T>(path, { method: 'GET', auth });
 }
 
+export function apiGetWithConfig<T>(path: string, config: Omit<RequestConfig, 'method' | 'body'> = {}): Promise<T> {
+    return request<T>(path, { ...config, method: 'GET' });
+}
+
 export function apiPost<T>(
     path: string,
     body?: unknown,
@@ -345,13 +395,29 @@ export async function apiDownload(path: string, fallbackFileName: string): Promi
         throw new ApiError(401, 'Sessão expirada. Faça login novamente.');
     }
 
-    const response = await fetch(`${API_BASE}${path}`, {
-        method: 'GET',
-        headers: {
-            Accept: 'application/octet-stream',
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), DOWNLOAD_TIMEOUT_MS);
+
+    let response: Response;
+
+    try {
+        response = await fetch(`${API_BASE}${path}`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/octet-stream',
+                Authorization: `Bearer ${token}`,
+            },
+            signal: abortController.signal,
+        });
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            throw new ApiError(408, 'Download demorou além do esperado. Tente novamente.');
+        }
+
+        throw new ApiError(0, 'Falha de conexão durante download.');
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
 
     if (response.status === 401) {
         clearAuthToken();

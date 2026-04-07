@@ -15,7 +15,11 @@ class FuncaoController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless(
+            $user?->hasPermission('registry.functions.manage')
+            || $user?->hasPermission('registry.collaborators.list'),
+            403,
+        );
 
         $query = Funcao::query()->orderBy('nome');
 
@@ -30,7 +34,7 @@ class FuncaoController extends Controller
 
     public function store(StoreFuncaoRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.functions.manage'), 403);
 
         $funcao = Funcao::query()->create([
             ...$request->validated(),
@@ -42,14 +46,18 @@ class FuncaoController extends Controller
 
     public function show(Request $request, Funcao $funcao): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless(
+            $request->user()?->hasPermission('registry.functions.manage')
+            || $request->user()?->hasPermission('registry.collaborators.list'),
+            403,
+        );
 
         return response()->json(['data' => $funcao]);
     }
 
     public function update(UpdateFuncaoRequest $request, Funcao $funcao): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.functions.manage'), 403);
 
         $funcao->update($request->validated());
 
@@ -58,7 +66,7 @@ class FuncaoController extends Controller
 
     public function destroy(Request $request, Funcao $funcao): JsonResponse
     {
-        abort_unless($request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.functions.manage'), 403);
 
         if ($funcao->colaboradores()->exists()) {
             return response()->json([

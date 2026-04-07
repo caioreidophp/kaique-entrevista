@@ -84,17 +84,391 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Segunda-Feira, 06/04/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Programação v3: importação XLSX por colunas fixas (A..J), tratamento de buracos e tabela operacional para alocação manual por viagem',
+                        details: [
+                            'Importação da Programação foi ajustada para ler planilha no formato operacional fixo por coluna: A Data, B Aviário, C Cidade, D Distância, E Equipe, F Aves, G Nº Carga, H Saída prevista, I Carregamento e J Chegada prevista.',
+                            'Regra de qualidade da importação foi aplicada para ignorar linhas com buracos: qualquer linha com coluna A vazia, coluna B vazia ou Aves igual a 0 é automaticamente desconsiderada.',
+                            'Fluxo de importação passou a exigir unidade selecionada no painel para vincular as viagens importadas ao contexto operacional correto.',
+                            'Base de programação recebeu novos campos estruturados para refletir o Excel enviado pela operação: aviário, cidade, distância, equipe, aves, número da carga e horário de carregamento.',
+                            'Tela principal da Programação foi evoluída de board em cards para tabela horizontal de viagens, exibindo todas as colunas importadas e mantendo foco em leitura rápida para escala diária.',
+                            'Cada linha da tabela agora possui área de alocação manual para motorista e caminhão (select + suporte a arrastar e soltar), além de edição de horários e botão de salvar por viagem.',
+                        ],
+                    },
+                    {
+                        title: 'Dashboard de Multas: pacote da próxima etapa de performance aplicado (renderização sob demanda e proteção contra resposta antiga)',
+                        details: [
+                            'Gráficos do Dashboard de Multas passaram a usar carregamento sob demanda por visibilidade na tela (lazy mount), reduzindo custo de render inicial em períodos grandes.',
+                            'Chamadas de filtro agora possuem proteção contra respostas antigas: se o usuário trocar filtros rapidamente, apenas a resposta mais recente atualiza a tela.',
+                            'Ajuste reduz travamentos perceptíveis durante navegação e evita sobrescrita visual por requisição fora de ordem em cenários de latência.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.1: correção de importação XLSX real da operação + fluxo Ler XLSX e Salvar tabela do dia',
+                        details: [
+                            'Parser de importação da Programação foi reforçado para aceitar variações reais da planilha operacional (incluindo formatos de data e números com separador de milhar).',
+                            'Fluxo de importação virou duas etapas para controle operacional: primeiro `Ler XLSX` (pré-visualização) e depois `Salvar tabela do dia` para confirmar gravação no sistema.',
+                            'Resumo de prévia agora mostra totais de linhas lidas, válidas, ignoradas e com erro, facilitando entendimento quando a planilha tiver buracos ou inconsistências.',
+                            'Motivos de linhas ignoradas passaram a ser retornados pela API (ex.: data/aviário vazio e aves <= 0), evitando mensagem genérica sem contexto.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.2: tabela pós-importação agora abre automaticamente no dia importado',
+                        details: [
+                            'Após clicar em `Salvar tabela do dia`, o sistema passou a ajustar automaticamente o filtro de data para o dia predominante da importação.',
+                            'Com isso, a tabela de viagens não fica mais vazia por diferença de data entre filtro atual e planilha recém-importada.',
+                            'Resposta da API de importação foi enriquecida com `data_sugerida` e lista de datas importadas para apoiar a navegação automática no frontend.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.3: fallback automático de data no dashboard quando o dia filtrado estiver vazio',
+                        details: [
+                            'Dashboard da Programação passou a aplicar fallback automático para a última data com viagens da unidade quando o filtro atual não tiver registros.',
+                            'A resposta de filtros retorna a data efetiva utilizada no carregamento, mantendo frontend e backend sincronizados e evitando tabela vazia indevida.',
+                            'Com isso, o operador sempre visualiza a tabela de viagens disponível mais recente em vez da mensagem `Nenhuma viagem cadastrada` quando já existem dados importados.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.4: normalização de datas ISO no fallback para garantir abertura automática da tabela',
+                        details: [
+                            'Normalização de data no backend foi reforçada para converter corretamente timestamps ISO retornados pelo banco em `YYYY-MM-DD` antes de aplicar filtro.',
+                            'Correção evita cenário em que existiam viagens importadas (ex.: 07/04) mas o filtro permanecia em outro dia e a tabela continuava vazia.',
+                            'Diagnóstico validado em base real: viagens importadas foram confirmadas no banco por unidade/data e passam a aparecer com ajuste automático do filtro.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.5: correção definitiva de filtro por data com coluna datetime (tabela volta a carregar viagens importadas)',
+                        details: [
+                            'Causa raiz identificada em produção local: coluna `data_viagem` estava persistindo com hora (`YYYY-MM-DD 00:00:00`), e filtros com igualdade exata em `YYYY-MM-DD` retornavam zero viagens no dashboard.',
+                            'Consultas críticas da Programação foram corrigidas para `whereDate` no backend (dashboard, vínculos de escala e deduplicação na importação), garantindo compatibilidade com storage date ou datetime.',
+                            'Validação ponta a ponta confirmou a correção no endpoint real: para unidade 1 com filtro 06/04, o sistema agora resolve para 07/04 e retorna viagens normalmente.',
+                            'Efeito colateral resolvido: reimportações deixam de falhar no match por data e passam a atualizar corretamente os registros existentes em vez de multiplicar linhas.',
+                            'Frontend do dashboard recebeu proteção contra resposta antiga (stale response guard), impedindo que uma requisição anterior sobrescreva a tabela após importação ou troca rápida de filtros.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.6: limpar tabela do dia, layout compacto sem rolagem lateral, KM corrigido e regra operacional da saída no dia anterior',
+                        details: [
+                            'Backend recebeu novo endpoint `POST /api/programming/clear-day-table` para remover todas as viagens da unidade/data selecionada em operação de correção rápida.',
+                            'Tela da Programação ganhou ação `Limpar tabela do dia` com confirmação e recarga automática, permitindo refazer importação quando houver lançamento incorreto.',
+                            'Tabela de viagens foi redesenhada para versão compacta com colunas consolidadas e `table-fixed`, reduzindo largura e eliminando dependência de rolagem horizontal.',
+                            'Áreas de arrastar e soltar motorista/caminhão ficaram explícitas com borda pontilhada e mensagem contextual (`arraste`/`solte`), mantendo select como fallback operacional.',
+                            'Numeração sequencial por dia foi adicionada no retorno da API (`ordem_no_dia`) e exibida na grade para refletir ordem real 1..N conforme importação do dia.',
+                            'Regra de negócio implementada para viagens 1 a 10: quando saída prevista for a partir de 20:30, a saída operacional é calculada no dia anterior e sinalizada na interface.',
+                            'Leitura de distância na importação XLSX foi reforçada para priorizar valor formatado da célula e sanitizar sufixos como `km`, corrigindo casos em que a coluna vinha zerada.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v3.7: modal bonito de limpeza, tabela estilo Excel ultra-compacta, autosave e painéis flutuantes redimensionáveis',
+                        details: [
+                            'Confirmação de `Limpar tabela do dia` deixou de usar alerta nativo e agora usa modal customizado com contexto da data/unidade e feedback visual mais claro para operação.',
+                            'Grade operacional foi enxugada para fluxo de despacho rápido: linhas mais baixas, zebra para distinguir viagens, e remoção das colunas não essenciais no uso diário (data, aves e equipe).',
+                            'Campos de motorista e caminhão passaram a aceitar digitação com correspondência flexível por prefixo e similaridade (ex.: `Adai` resolve para `Adair`) sem depender apenas de seleção manual.',
+                            'Navegação por teclado foi acelerada: `Enter`, `ArrowDown` e `ArrowUp` aplicam a alocação da linha e movem foco para a próxima/anterior viagem, no mesmo padrão de planilha.',
+                            'Salvamento por viagem virou automático após alocação/ajuste de horário, com estado por linha (`Salvando`, erro de validação ou horário do último autosave) e sem botão manual de salvar.',
+                            'Cartões de motoristas e caminhões foram convertidos em janelas flutuantes no desktop, com arrastar para mover, redimensionamento livre e empilhamento por foco (z-index).',
+                            'Filtros operacionais dos painéis foram padronizados para `Todos`, `Disponíveis` e `Iniciadas`, usando status calculado por carga de trabalho (`Disponível`, `Viagem Iniciada`, `Encerrado`).',
+                            'Backend recebeu persistência de ordem original de importação (`ordem_importacao`) para manter sequência operacional estável no dia e suportar regra da noite anterior expandida de 1..10 para 1..20.',
+                        ],
+                    },
+                    {
+                        title: 'Backup v3.8: exportação reforçada para cobertura total de banco e arquivos',
+                        details: [
+                            'Geração de backup foi ajustada para incluir a pasta `storage` completa (não apenas `storage/app/public`), cobrindo uploads, logs e artefatos necessários para restauração integral.',
+                            'Dump SQL passou a incluir também objetos de banco além das tabelas/dados: views, triggers, routines (procedures/functions) e events quando disponíveis no MySQL.',
+                            'No modo SQLite, o dump passou a adicionar também SQL de índices e triggers para preservar melhor o comportamento estrutural na restauração.',
+                            'Pasta de backups gerados foi mantida fora do pacote (`storage/app/private/backups`) para evitar recursão e crescimento artificial do ZIP.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        dateLabel: 'Sexta-Feira, 03/04/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Novo painel Gestão de Multas completo: Dashboard, Lançar, Lista + Infrações no Cadastro e integração com Descontos',
+                        details: [
+                            'Criado novo painel `Gestão de Multas` com três páginas na sidebar: Dashboard, Lançar Multas e Lista de Multas, seguindo o mesmo padrão visual e de navegação dos demais painéis.',
+                            'Home foi ajustada para acomodar sete painéis com cards menores em grade de quatro colunas no desktop, mantendo leitura operacional limpa.',
+                            'Dashboard de multas foi entregue com filtros por período aberto (início/fim) e unidade, cartões de quantidade/valor e gráficos por infração, culpa, tipo de valor, status, placa e motorista.',
+                            'Tela de lançamento passou a cobrir todos os campos operacionais solicitados (data, placa, infração, descrição, nº auto, órgão, motorista, indicado condutor, culpa, valor, tipo valor, vencimento, status e descontar).',
+                            'Órgão autuador ganhou fluxo de auto cadastro: ao digitar um órgão inexistente, o sistema abre modal de confirmação e, ao confirmar, já cadastra o órgão e conclui o lançamento da multa.',
+                            'Foi criada em `Cadastro` a nova página `Infrações` para manutenção do catálogo de infrações (nome e status), usado diretamente no lançamento de multas.',
+                            'Lista de multas foi implementada com as colunas operacionais completas e ordenação em todos os campos, além de filtros por placa, motorista, infração, culpa, status e órgão.',
+                            'Integração com `Pagamentos > Descontos`: quando lançar multa com culpa do motorista e descontar = sim, o sistema redireciona para Descontos com motorista, valor e data pré-preenchidos (mantendo campos editáveis antes de salvar).',
+                            'Backend recebeu novas tabelas/modelos/controladores de multas, catálogo de órgãos e infrações, permissões dedicadas de sidebar/ações e rotas web/api para o módulo.',
+                        ],
+                    },
+                    {
+                        title: 'Novo 6º painel Programação (MVP): importação XLSX base, escalação motorista↔caminhão e jornada mensal',
+                        details: [
+                            'Criado novo módulo `Programação` como sexto painel do sistema, com rota web dedicada e acesso na Home e sidebar respeitando permissões.',
+                            'Catálogo de permissões foi ampliado com entradas de sidebar e ações para Programação (`dashboard`, `importação` e `escalação`), mantendo governança por perfil.',
+                            'Backend ganhou API base de programação com endpoints para dashboard operacional, preview/importação de planilha XLSX e gravação de escala por viagem.',
+                            'Importação XLSX da base foi implementada com leitura flexível de cabeçalho, validação de unidade/data e criação/atualização de viagens programadas.',
+                            'Escalação valida conflitos de motorista e caminhão na mesma data, além de garantir aderência de unidade antes de salvar.',
+                            'Nova tela `Programação de Viagens` foi entregue com seleção de unidade/data, upload XLSX, grid de viagens, seleção de motorista/caminhão e ação de salvar escala.',
+                            'Painel exibe também base de jornada mensal por motorista e blocos de disponibilidade diária (motoristas e caminhões) para apoiar a tomada de decisão operacional.',
+                            'Home passou a exibir card de Programação com métricas do dia (viagens previstas, sem escala, motoristas disponíveis e caminhões disponíveis).',
+                            'Estrutura de dados base foi criada com migrations e modelos específicos para viagens programadas e escalações.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v2: board de arrastar/soltar + regra de interjornada (11h) + horas extras diárias',
+                        details: [
+                            'Tela de Programação foi redesenhada para operação por `drag and drop`: motorista e caminhão agora são cards arrastáveis para slots dedicados em cada viagem.',
+                            'Cada viagem passou a exibir campos de horário (`saída` e `chegada/fim prevista`) diretamente no board, permitindo ajuste operacional sem sair da tela.',
+                            'Importação XLSX foi ampliada para reconhecer horários de início/fim (além de jornada), mantendo compatibilidade com planilhas sem essas colunas.',
+                            'Regra de interjornada mínima foi implementada no backend: ao tentar escalar com menos de 11h de descanso entre término anterior e início atual, o sistema bloqueia e avisa.',
+                            'Base de jornada do painel foi ajustada para foco diário: exibe horas trabalhadas no dia e horas extras após 8h, removendo o antigo conceito de saldo disponível mensal.',
+                            'Filtro de unidade agora aceita visão consolidada (`todas as unidades`) para evitar percepção de “faltando motoristas” quando o usuário precisa escalar sem recorte local.',
+                            'Board destaca visualmente viagens com alerta de interjornada para rápida identificação de conflito operacional no planejamento do dia seguinte.',
+                        ],
+                    },
+                    {
+                        title: 'Programação v2.1: filtro estrito de motoristas por unidade + organização da busca e linguagem operacional',
+                        details: [
+                            'Backend do dashboard passou a considerar somente colaboradores com função de motorista, removendo funções administrativas (ex.: gerente de frota) da lista de arraste.',
+                            'Escopo de listagem voltou a respeitar unidade selecionada como referência principal no painel, reduzindo ruído operacional na escala diária.',
+                            'Painel de motoristas ganhou filtros rápidos (`Disponíveis`, `Alocados`, `Todos`) para facilitar localizar nomes com agilidade em operação.',
+                            'Mensagens de ajuda no topo dos blocos deixam explícito o gesto de uso (`clique, segure e arraste`) para reduzir dúvida no time.',
+                            'Etiqueta `Sem CNH` foi removida do card de motorista conforme solicitação e textos foram ajustados para português com acentuação correta (ex.: `Caminhões`).',
+                        ],
+                    },
+                    {
+                        title: 'Navegação por seta padronizada + ordem alfabética acento-insensível em listas operacionais',
+                        details: [
+                            'Tela de Lançar Pagamentos foi corrigida para que navegação por setas (`↑/↓/←/→`) siga a mesma ordem exibida na grade (ordenação visual por nome), evitando saltos para colaboradores fora de contexto.',
+                            'Autocomplete do Relatório por Colaborador deixou de usar debounce na filtragem local, eliminando atraso entre digitação e navegação por seta que levava a seleção de itens indevidos.',
+                            'Busca e ordenação de colaboradores/cidades/placas/aviários foram padronizadas para comparação acento-insensível (`e` = `é`) e ordem alfabética consistente no frontend.',
+                            'Autocompletes de Frete e Entrevista passaram a usar o mesmo motor de normalização textual para manter comportamento uniforme entre módulos.',
+                        ],
+                    },
+                    {
+                        title: 'Relatório por Colaborador (Pagamentos): cálculo mensal consolidado e timeline limpa',
+                        details: [
+                            'Resumo mensal do Relatório por Colaborador passou a consolidar `salário + pensão - descontos` por competência, refletindo o valor real devido no mês.',
+                            'Timeline foi convertida para visão mensal consolidada com composição explícita de `Salário`, `Pensão`, `Descontos` e `Total consolidado do mês`.',
+                            'Indicador de `Variação` foi removido da linha do tempo conforme solicitado para foco no valor consolidado operacional.',
+                            'Observações técnicas em JSON (ex.: `dias_uteis`, `pensoes`) deixaram de ser exibidas na interface, mantendo o histórico visual limpo.',
+                            'Tela de Programação recebeu revisão de textos em português com correções de acentuação e termos operacionais (ex.: Programação, caminhão, horários, importação, disponível).',
+                        ],
+                    },
+                    {
+                        title: 'Ajuste fino no Relatório por Colaborador: descontos somando no valor devido + linha do tempo apenas com meses lançados',
+                        details: [
+                            'Cálculo mensal foi ajustado para o valor devido considerar soma de `salário líquido + pensão + descontos`, de forma que descontos elevem o bruto devido no mês em vez de reduzir.',
+                            'No relatório, `descontos` agora consolida tanto lançamentos de desconto quanto parcelas de empréstimo do colaborador na competência.',
+                            'Regra de empréstimo no relatório foi corrigida para aplicar parcelas restantes desde a competência de início do empréstimo, evitando sumiço de desconto em meses lançados.',
+                            'Linha do tempo deixou de listar competências sem lançamento (meses zerados/futuros), exibindo somente meses realmente processados.',
+                            'Composição textual da timeline foi refinada para evidenciar `Salário líquido`, `Descontos`, `Salário bruto` e `Pensão`, reduzindo ambiguidade de leitura operacional.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        dateLabel: 'Quinta-Feira, 02/04/2026',
+        sections: [
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Pagamentos/Currículos: ações por ícone, desconto parcelado corrigido, impressão enxuta com totais e aniversariantes dentro de Colaboradores',
+                        details: [
+                            'Tela de Currículos foi ajustada para ações visuais sem texto: recusar com ícone X, editar com ícone de lápis e excluir com lixeira vermelha.',
+                            'Currículos agora permitem edição de nome/telefone/função/unidade e exclusão direta (quando não vinculados a entrevista), mantendo fluxo mais rápido no operacional.',
+                            'Cálculo de desconto parcelado na prévia da folha foi corrigido para iniciar pela competência correta quando não há data de referência preenchida, evitando desconto total indevido em um único mês.',
+                            'Impressão de benefícios/extras passou a mostrar somente colunas realmente lançadas no pagamento (sem colunas zeradas não selecionadas) e ganhou linha final com soma por coluna em negrito.',
+                            'Exportação de benefícios por lançamento no Excel foi ajustada para padrão VR/VA: coluna `VA` agora consolida VT + Cesta Básica.',
+                            'Aniversariantes foi integrado dentro de `Cadastro > Colaboradores` (não mais como item separado na sidebar), com blocos de aniversariantes de hoje e do mês na própria tela de colaboradores.',
+                            'Consulta de aniversariantes foi ajustada para compatibilidade com SQLite ao ordenar por dia de nascimento, eliminando erro de função SQL em ambiente local.',
+                        ],
+                    },
+                    {
+                        title: 'Home: super dashboard por permissões + sidebar preenchida e Currículos com busca assistida em Unidade/Função',
+                        details: [
+                            'Home recebeu modo `Super dashboard` com opção de retorno para `Layout clássico`, permitindo reversão rápida caso o operacional prefira o modelo anterior.',
+                            'Sidebar da Home deixou de ficar vazia e passou a listar atalhos dos painéis principais (Entrevistas, Pagamentos, Férias, Cadastro e Gestão de Fretes), respeitando permissões.',
+                            'Super dashboard ganhou filtro de período com `1 mês`, `3 meses` e seleção de mês específico, refletindo os dados por permissão do usuário logado.',
+                            'Bloco de Frete exibe cards por unidade com valor total e participação percentual no total da empresa, além de card consolidado `Kaique`.',
+                            'Bloco de Férias mostra por unidade quem está de férias no momento (início/fim) e alerta de colaboradores em faixa `Urgente` na unidade.',
+                            'Bloco de Pagamentos mostra matriz por unidade com colunas `Extras`, `Salário Mensal`, `Adiantamento` e linha final de `Total`.',
+                            'Bloco de Entrevistas mostra total por unidade e listas de admissões e demissões recentes.',
+                            'Cadastro de Currículos passou a usar Unidade/Função carregadas do cadastro (sem texto livre), com busca por digitação parcial nas opções e seleção assistida.',
+                            'Campo de telefone em Currículos recebeu máscara `(11) 99999-9999` e rótulos foram corrigidos (ex.: `Função`).',
+                            'Upload principal de currículo passou a aceitar `JPEG` além de `PDF/DOC/DOCX`, com validação de backend e frontend atualizadas.',
+                        ],
+                    },
+                    {
+                        title: 'Home: facelift visual moderno em Férias + Pagamentos dinâmicos por tipo cadastrado e filtro mensal dedicado',
+                        details: [
+                            'Visual da Home foi refinado com identidade mais moderna: hero com destaque, contrastes mais vivos e tipografia mais forte para leitura operacional rápida.',
+                            'Bloco de Férias foi redesenhado com maior presença visual (cores em gradiente, cards por unidade com hierarquia clara e chips de urgência mais destacados).',
+                            'Tabela de Pagamentos deixou de usar colunas fixas e passou a montar colunas dinamicamente com todos os Tipos de Pagamento cadastrados em `Cadastro > Tipos de Pagamento`.',
+                            'Pagamentos recebeu seletor de competência mensal próprio dentro do card, permitindo trocar o mês da folha sem depender do filtro geral de período.',
+                            'Botão de alternância para layout clássico foi retirado da interface da Home; o código do layout antigo foi mantido no arquivo para reversão futura sob demanda.',
+                        ],
+                    },
+                    {
+                        title: 'Home: ajuste fino visual pedido pelo operacional (fonte original, textos enxutos e Frete em gráfico de colunas)',
+                        details: [
+                            'Fonte da Home voltou ao padrão original do sistema, mantendo a paleta de cores nova aplicada anteriormente.',
+                            'Texto `Visão operacional viva` foi removido do topo e os textos explicativos longos/legendas secundárias dos blocos foram enxugados para deixar o layout mais limpo.',
+                            'Bloco de Frete deixou de usar cards e passou para gráfico de colunas por unidade com destaque de valor e percentual em cada coluna, seguindo o estilo visual do site.',
+                            'Bloco de Férias manteve cores e destaque visual, porém com menos texto auxiliar para priorizar leitura direta da operação.',
+                        ],
+                    },
+                    {
+                        title: 'Home: gráfico de Frete refinado para estilo clean do sistema (barras proporcionais e compactas)',
+                        details: [
+                            'Gráfico de Frete foi refeito para eliminar efeito de barras com mesma altura: agora a altura de cada coluna escala proporcionalmente ao valor da unidade no período.',
+                            'Colunas ficaram mais finas e com espaçamento reduzido, alinhando com a estética mais limpa já usada no restante do painel.',
+                            'Cada coluna passou a combinar duas leituras visuais sem poluição: valor de frete em destaque e preenchimento interno proporcional ao percentual de participação da unidade.',
+                            'A composição visual foi simplificada para não fugir do estilo atual do site, com bordas limpas, contraste suave e tipografia consistente.',
+                        ],
+                    },
+                    {
+                        title: 'Home: padronização final com o design global do sistema (sem visual paralelo)',
+                        details: [
+                            'Home foi ajustada para seguir o mesmo padrão visual das demais telas: removidos gradientes/sombras de destaque e mantida linguagem limpa de cards, bordas e tipografia padrão.',
+                            'Bloco de Frete passou para layout 70/30: 70% com colunas retas e simples (sem efeitos), com altura proporcional real por valor; 30% com resumo objetivo de indicadores operacionais do frete.',
+                            'Colunas de Frete ficaram mais largas e mais próximas entre si para leitura direta, mantendo visual sóbrio e consistente com o restante do produto.',
+                            'Bloco de Férias foi reorganizado para usar melhor a largura disponível: unidades exibidas lado a lado em grade, reduzindo espaço ocioso e mantendo o mesmo estilo das telas de férias/listagens.',
+                        ],
+                    },
+                    {
+                        title: 'Home: reversão para versão anterior com backup do layout alternativo',
+                        details: [
+                            'Atendendo solicitação do operacional, a página Home foi revertida para o comportamento visual anterior.',
+                            'Layout alternativo mais recente foi preservado no arquivo `resources/js/backups/home-layout-salvo-2026-04-02.tsx` para possível reaproveitamento futuro sem retrabalho.',
+                        ],
+                    },
+                    {
+                        title: 'Entrevistas/Currículos/Colaboradores: Carteira de Trabalho, vínculo opcional e herança de anexos até contratação',
+                        details: [
+                            'Etapa Documentos da Entrevista agora aceita anexo de `Carteira de Trabalho` (CT), além de foto do candidato e anexo da CNH, com validação de tipo/tamanho e persistência no backend.',
+                            'Vínculo com currículo deixou de ser obrigatório na criação da entrevista: o fluxo permite seguir apenas com unidade de contratação e demais dados do candidato.',
+                            'Cadastro de Currículos foi ampliado para aceitar anexos opcionais de CNH e CT no momento do upload do currículo, mantendo o arquivo principal do currículo como obrigatório.',
+                            'Lista de Currículos ganhou coluna de status de anexos com leitura operacional (`-`, `CNH`, `CT`, `CNH/CT`), facilitando triagem rápida antes do vínculo na entrevista.',
+                            'No formulário da Entrevista, ao vincular um currículo, a seção Documentos agora mostra check de anexos herdados (CNH/CT) para indicar o que já veio do currículo.',
+                            'Perfil de Colaborador recebeu nova aba `Documentos` para upload/remoção e visualização de anexos de CNH e Carteira de Trabalho.',
+                            'Fluxo de contratação em Próximos Passos foi reforçado para sincronizar dados e anexos da entrevista (ou do currículo vinculado, quando aplicável) no perfil do colaborador ao marcar como contratado.',
+                            'Validação coberta com novos testes de API para anexos de entrevista, currículos, colaborador e cópia automática de anexos na contratação.',
+                        ],
+                    },
+                    {
+                        title: 'Currículos: cadastro com Função/Unidade/Telefone + correção de URL dos anexos',
+                        details: [
+                            'Tela de cadastro de Currículos passou a exigir os campos `Telefone`, `Função` e `Unidade`, além de nome e arquivo, com persistência completa no backend e banco de dados.',
+                            'Lista de Currículos foi ampliada para exibir os novos dados operacionais (telefone, função e unidade), facilitando triagem do RH antes do vínculo na entrevista.',
+                            'Links de anexos foram corrigidos para caminho relativo `/storage/...`, eliminando redirecionamento para host incorreto (`localhost`) quando o sistema está aberto em outro host/porta.',
+                            'Correção aplicada também nos recursos de entrevista para foto/CNH/currículo, padronizando abertura de arquivos anexados no host atual.',
+                            'Validação concluída com testes de API verdes, build ok, migration aplicada, caches reotimizados e checks local/público online.',
+                        ],
+                    },
+                    {
+                        title: 'Estabilização final da rodada: cache de rotas, suíte completa verde e checklist de publicação validado',
+                        details: [
+                            'Durante validação full (`php artisan test`) houve falha inicial de 404 nas rotas do Bob por efeito de cache antigo de rotas; problema resolvido com `php artisan optimize:clear` e reexecução da suíte.',
+                            'Revalidação concluída com sucesso: suíte completa passou integralmente com `150 testes` e `730 assertions`, incluindo contratos e fluxos E2E críticos.',
+                            'Checklist de publicação executado no fim da rodada: `npm run build`, `php artisan migrate --force`, `php artisan optimize:clear`, `php artisan optimize`.',
+                            'Checagens de disponibilidade confirmadas: ambiente local online (`127.0.0.1:8000`), domínio público online (`app.kaiquetransportes.com.br:443`) e login local respondendo `HTTP 200`.',
+                        ],
+                    },
+                    {
+                        title: 'Currículos: nova aba dedicada (Pendentes/Passados) com vínculo na entrevista e status automático',
+                        details: [
+                            'Criada nova tela de Currículos no painel de Entrevistas, com abas `Pendentes` e `Passados`, busca por nome e cadastro simplificado com apenas nome do candidato + arquivo (PDF/DOC/DOCX).',
+                            'Fluxo de recusa foi adicionado: ao recusar um currículo pendente, ele é movido automaticamente para `Passados` com status `Recusado`.',
+                            'Formulário de Nova Entrevista/Editar Entrevista passou a ter seletor de currículo para vínculo do candidato; o upload de currículo foi removido da etapa de documentos da entrevista.',
+                            'Ao vincular currículo na entrevista, o status sai de `Pendente` e passa para `Aguardando - Entrevista`; mudanças de status RH/contratação agora sincronizam automaticamente para `Aprovado - Entrevista` ou `Reprovado - Entrevista`.',
+                            'Backend recebeu novo módulo de currículos (migration/model/controller/resource), permissão dedicada na sidebar e testes de API cobrindo cadastro, listagem por aba, recusa e sincronização com entrevista/próximos passos.',
+                        ],
+                    },
+                    {
+                        title: 'Idioma em pausa: painel voltou para Português fixo',
+                        details: [
+                            'Removida a tradução automática em runtime e os controles de troca de idioma para evitar textos inconsistentes no fluxo operacional.',
+                            'Layout administrativo, login e configurações foram simplificados para operar somente em PT-BR, com formatação de números/datas estável no padrão brasileiro.',
+                        ],
+                    },
+                    {
+                        title: 'Entrevistas: anexos de Foto, CNH e Currículo no cadastro/edição',
+                        details: [
+                            'Nova entrevista e edição agora aceitam upload de foto do candidato, anexo da CNH e currículo diretamente no passo de Documentos e Habilitação.',
+                            'API de entrevistas recebeu endpoint dedicado para sincronização de anexos, com validação de tipo/tamanho e armazenamento em diretório próprio por entrevista.',
+                            'Tela de visualização passou a exibir links dos arquivos anexados e a lista de entrevistas ganhou indicador de currículo anexado/pendente.',
+                        ],
+                    },
+                    {
+                        title: 'Frete Spot: correção definitiva de máscara BR (milhar/milhão) e campos inteiros',
+                        details: [
+                            'Parser numérico do frontend foi reforçado para interpretar corretamente valores no formato brasileiro (ex.: 2.560 e 33.064) sem converter para formato americano.',
+                            'Request backend de Spot agora normaliza números localizados antes da validação, evitando erro de integer em Aves/Cargas e distorção de valores no período.',
+                            'Ajustado envio de Cargas/Aves como inteiros no payload do lançamento Spot para manter consistência com o schema do banco.',
+                        ],
+                    },
+                    {
+                        title: 'Cargas Canceladas: total do frete, edição completa e seleção em lote com marcar todas',
+                        details: [
+                            'Coluna Frete em A Receber agora exibe a soma total das cargas no cabeçalho para leitura rápida do valor acumulado.',
+                            'Fluxo de faturamento recebeu checkbox mestre acima da tabela para marcar/desmarcar todas as cargas de uma vez.',
+                            'Cargas canceladas lançadas agora podem ser editadas (data, placa, aviário, frete, nº viagem e observação) tanto em A Receber quanto em Recebidas.',
+                        ],
+                    },
+                    {
+                        title: 'UX fina: status de entrevistas com fundo colorido e donut de Abono com melhor legibilidade',
+                        details: [
+                            'Status GUEP/RH na lista de entrevistas passaram a usar fundo colorido também nos selects editáveis para facilitar triagem visual por master e usuário.',
+                            'Gráfico Abono x Sem Abono foi ampliado e teve área interna/fontes ajustadas para evitar sobreposição do texto e manter leitura limpa no centro do donut.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Quarta-Feira, 01/04/2026',
         sections: [
             {
                 panel: 'Gestão de Fretes',
                 items: [
                     {
+                        title: 'Idioma PT/EN agora aplicado no site inteiro do Transporte (não só sidebar)',
+                        details: [
+                            'Implementado motor global de tradução no frontend para toda a área de Transporte, cobrindo conteúdo das páginas (cards, títulos, botões, tabelas e mensagens visíveis) além da navegação lateral.',
+                            'Tradução passa a atuar em tempo real quando English é selecionado em Configurações, com observação de mudanças de tela para acompanhar navegação sem recarregar.',
+                            'Adicionado cache local de traduções para reduzir chamadas repetidas e manter experiência fluida entre sessões.',
+                            'Mudança foi aplicada sem alterar estrutura de banco, migrations ou registros já lançados.',
+                        ],
+                    },
+                    {
+                        title: 'Conta Demo protegida em modo somente leitura + idioma removido da sidebar',
+                        details: [
+                            'API autenticada agora aplica bloqueio de escrita para a conta Demo (POST/PUT/PATCH/DELETE), garantindo que acessos de apresentação não alterem informações já lançadas no banco.',
+                            'Proteção opera por middleware sem migrations e sem mutação em dados existentes, preservando integralmente os registros operacionais atuais.',
+                            'Seletor de idioma foi removido da sidebar (layout padrão, foco e mobile) para simplificar navegação e evitar ações duplicadas no menu lateral.',
+                            'Alteração de idioma permanece disponível somente em Configurações, com persistência global entre sessões.',
+                        ],
+                    },
+                    {
                         title: 'Login com atalho Demo no primeiro acesso + idioma PT/EN tambem em Configuracoes',
                         details: [
                             'Tela de login de Transporte passou a mostrar, no primeiro acesso do navegador, um botao `Demo` que auto preenche credenciais de demonstracao para acelerar entrada em ambiente de apresentacao.',
                             'A exibicao do botao Demo e controlada por flag local de primeiro acesso, evitando poluicao visual recorrente apos o usuario ja conhecer o fluxo.',
-                            'Pagina de Configuracoes recebeu controle dedicado de idioma (Portugues/English), sincronizado com o seletor global ja existente no layout administrativo.',
+                            'Pagina de Configuracoes recebeu controle dedicado de idioma (Portugues/English), aplicado globalmente no painel administrativo.',
                             'Troca de idioma agora propaga evento global para atualizar interfaces montadas em tempo real sem depender de recarregamento completo da pagina.',
                         ],
                     },

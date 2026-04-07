@@ -1,4 +1,4 @@
-import { Download, Languages, LoaderCircle, Moon, Sun } from 'lucide-react';
+import { Download, LoaderCircle, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -8,11 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ApiError, apiPut } from '@/lib/api-client';
-import {
-    getStoredTransportLanguage,
-    setStoredTransportLanguage,
-    type TransportLanguage,
-} from '@/lib/transport-language';
 import { getAuthToken } from '@/lib/transport-auth';
 import { getStoredUser } from '@/lib/transport-session';
 
@@ -23,27 +18,12 @@ export default function TransportSettingsPage() {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [language, setLanguage] = useState<TransportLanguage>(() =>
-        getStoredTransportLanguage(),
-    );
     const [savingPassword, setSavingPassword] = useState(false);
     const [downloadingBackup, setDownloadingBackup] = useState(false);
     const [message, setMessage] = useState<{
         text: string;
         variant: 'success' | 'error' | 'info';
     } | null>(null);
-
-    function handleLanguageChange(nextLanguage: TransportLanguage): void {
-        setLanguage(nextLanguage);
-        setStoredTransportLanguage(nextLanguage);
-        setMessage({
-            text:
-                nextLanguage === 'en-US'
-                    ? 'Language changed to English.'
-                    : 'Idioma alterado para Portugues.',
-            variant: 'info',
-        });
-    }
 
     async function handlePasswordSubmit(
         event: React.FormEvent<HTMLFormElement>,
@@ -243,48 +223,6 @@ export default function TransportSettingsPage() {
                                 Modo escuro
                             </Button>
                         </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="inline-flex items-center gap-2">
-                            <Languages className="size-4" />
-                            Idioma
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                variant={
-                                    language === 'pt-BR'
-                                        ? 'default'
-                                        : 'outline'
-                                }
-                                onClick={() =>
-                                    handleLanguageChange('pt-BR')
-                                }
-                            >
-                                Portugues
-                            </Button>
-                            <Button
-                                type="button"
-                                variant={
-                                    language === 'en-US'
-                                        ? 'default'
-                                        : 'outline'
-                                }
-                                onClick={() =>
-                                    handleLanguageChange('en-US')
-                                }
-                            >
-                                English
-                            </Button>
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                            Essa opcao sincroniza com o seletor global do menu lateral.
-                        </p>
                     </CardContent>
                 </Card>
 

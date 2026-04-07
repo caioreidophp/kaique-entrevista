@@ -15,7 +15,7 @@ class TipoPagamentoController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('registry.payment-types.manage'), 403);
 
         return response()->json([
             'data' => TipoPagamento::query()->orderBy('nome')->get(),
@@ -24,7 +24,7 @@ class TipoPagamentoController extends Controller
 
     public function store(StoreTipoPagamentoRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.payment-types.manage'), 403);
 
         $tipoPagamento = TipoPagamento::query()->create($request->validated());
 
@@ -33,14 +33,14 @@ class TipoPagamentoController extends Controller
 
     public function show(Request $request, TipoPagamento $tipoPagamento): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.payment-types.manage'), 403);
 
         return response()->json(['data' => $tipoPagamento]);
     }
 
     public function update(UpdateTipoPagamentoRequest $request, TipoPagamento $tipoPagamento): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.payment-types.manage'), 403);
 
         $tipoPagamento->update($request->validated());
 
@@ -49,7 +49,7 @@ class TipoPagamentoController extends Controller
 
     public function destroy(Request $request, TipoPagamento $tipoPagamento): JsonResponse
     {
-        abort_unless($request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.payment-types.manage'), 403);
 
         $tipoPagamento->delete();
 

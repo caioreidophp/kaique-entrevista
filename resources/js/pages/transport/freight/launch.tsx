@@ -34,6 +34,7 @@ import {
     moneyMaskBR,
     toNumberSafe,
 } from '@/lib/transport-format';
+import { compareTextPtBr, startsWithTextPtBr } from '@/lib/transport-text';
 import type { FreightEntry, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
@@ -277,17 +278,17 @@ function StartsWithAutocompleteInput({
     const [open, setOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState<number>(-1);
 
-    const normalizedInput = value.trim().toLocaleLowerCase('pt-BR');
+    const searchTerm = value.trim();
 
     const filtered = useMemo(() => {
-        if (!normalizedInput) {
-            return options.slice(0, 12);
-        }
+        const matchingOptions = searchTerm
+            ? options.filter((option) => startsWithTextPtBr(option, searchTerm))
+            : options;
 
-        return options
-            .filter((option) => option.toLocaleLowerCase('pt-BR').startsWith(normalizedInput))
+        return [...matchingOptions]
+            .sort((first, second) => compareTextPtBr(first, second))
             .slice(0, 12);
-    }, [normalizedInput, options]);
+    }, [options, searchTerm]);
 
     const highlightedIndex =
         open && filtered.length > 0 && activeIndex >= 0 && activeIndex < filtered.length
@@ -315,10 +316,32 @@ function StartsWithAutocompleteInput({
                 autoComplete="off"
                 onFocus={openOptions}
                 onBlur={() => {
-                    window.setTimeout(() => setOpen(false), 140);
+                    window.setTimeout(() => {
+                        setOpen(false);
+                        setActiveIndex(-1);
+                    }, 140);
                 }}
                 onKeyDown={(event) => {
-                    if (!open || filtered.length === 0) {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setOpen(false);
+                        setActiveIndex(-1);
+                        return;
+                    }
+
+                    if (
+                        event.key !== 'ArrowDown' &&
+                        event.key !== 'ArrowUp' &&
+                        event.key !== 'Enter'
+                    ) {
+                        return;
+                    }
+
+                    if (!open) {
+                        openOptions();
+                    }
+
+                    if (filtered.length === 0) {
                         return;
                     }
 
@@ -344,12 +367,6 @@ function StartsWithAutocompleteInput({
                             selectOption(filtered[highlightedIndex]);
                         }
                         return;
-                    }
-
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        setOpen(false);
-                        setActiveIndex(-1);
                     }
                 }}
                 onChange={(event) => {
@@ -411,7 +428,17 @@ export default function TransportFreightLaunchPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
     const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
+    const [kmOutlierConfirmed, setKmOutlierConfirmed] = useState(false);
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
+
+    const kaiqueKmAtual = useMemo(() => toNumberOrZero(form.kaique_geral_km), [form.kaique_geral_km]);
+    const kmOutlier = useMemo(() => {
+        if (kaiqueKmAtual <= 0) {
+            return false;
+        }
+
+        return kaiqueKmAtual < 1000 || kaiqueKmAtual > 15000;
+    }, [kaiqueKmAtual]);
 
     const buildEntriesQuery = useCallback(
         (page = 1, customStartDate = filterStartDate, customEndDate = filterEndDate, customUnidadeId = filterUnidadeId): string => {
@@ -488,7 +515,7 @@ export default function TransportFreightLaunchPage() {
                 setPlacasOptions(
                     placasResponse.data
                         .map((item) => item.placa)
-                        .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })),
+                        .sort((first, second) => compareTextPtBr(first, second)),
                 );
 
                 setAviariosOptions(
@@ -501,7 +528,7 @@ export default function TransportFreightLaunchPage() {
 
                             return `${item.nome} (${item.cidade})${kmText}`;
                         })
-                        .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })),
+                        .sort((first, second) => compareTextPtBr(first, second)),
                 );
 
                 if (unidadesResponse.data.length > 0) {
@@ -549,6 +576,10 @@ export default function TransportFreightLaunchPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [entries]);
 
+    useEffect(() => {
+        setKmOutlierConfirmed(false);
+    }, [form.kaique_geral_km, form.data, form.unidade_id]);
+
     async function handleSubmit(): Promise<void> {
         if (!form.data || !form.unidade_id || !form.veiculos) {
             setNotification({
@@ -571,6 +602,16 @@ export default function TransportFreightLaunchPage() {
                 message: 'Informe pelo menos uma carga/viagem no lançamento.',
                 variant: 'error',
             });
+            return;
+        }
+
+        if (kmOutlier && !kmOutlierConfirmed) {
+            setKmOutlierConfirmed(true);
+            setNotification({
+                message: `KM fora da faixa de referência (1.000 a 15.000): ${formatDecimalBR(kaiqueKmAtual, 2)} km. Clique em salvar novamente para confirmar o lançamento.`,
+                variant: 'info',
+            });
+
             return;
         }
 
@@ -639,7 +680,7 @@ export default function TransportFreightLaunchPage() {
             if (error instanceof ApiError) {
                 const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
                 setNotification({
-                    message: firstError ?? error.message,
+                    message: firstError ?? error.message ?? 'Não foi possível salvar o lançamento.',
                     variant: 'error',
                 });
             } else {
@@ -743,7 +784,7 @@ export default function TransportFreightLaunchPage() {
             await loadEntries(entriesCurrentPage);
         } catch (error) {
             if (error instanceof ApiError) {
-                setNotification({ message: error.message, variant: 'error' });
+                setNotification({ message: error.message ?? 'Não foi possível excluir o lançamento.', variant: 'error' });
             } else {
                 setNotification({
                     message: 'Não foi possível excluir o lançamento.',
@@ -1188,6 +1229,12 @@ export default function TransportFreightLaunchPage() {
                                             >
                                                 Cancelar edição
                                             </Button>
+                                        ) : null}
+                                        {kmOutlier ? (
+                                            <div className="max-w-[360px] rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+                                                KM fora da faixa de referência (1.000 a 15.000).
+                                                {kmOutlierConfirmed ? ' Clique em salvar para confirmar.' : ''}
+                                            </div>
                                         ) : null}
                                         <Button 
                                             type="button" 

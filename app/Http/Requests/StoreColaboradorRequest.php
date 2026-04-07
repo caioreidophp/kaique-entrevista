@@ -47,7 +47,7 @@ class StoreColaboradorRequest extends FormRequest
             'validade_cnh' => ['nullable', 'date'],
             'validade_exame_toxicologico' => ['nullable', 'date'],
             'data_nascimento' => ['nullable', 'date'],
-            'data_admissao' => ['nullable', 'date'],
+            'data_admissao' => ['nullable', 'date', 'after_or_equal:1900-01-01'],
             'data_demissao' => ['nullable', 'date', 'after_or_equal:data_admissao'],
             'telefone' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -89,6 +89,7 @@ class StoreColaboradorRequest extends FormRequest
             'cnh.regex' => 'CNH deve conter apenas números.',
             'telefone.size' => 'Telefone deve conter exatamente 11 dígitos.',
             'telefone.regex' => 'Telefone deve conter apenas números.',
+            'data_admissao.after_or_equal' => 'Data de admissão inválida. Informe uma data a partir de 01/01/1900.',
         ];
     }
 }

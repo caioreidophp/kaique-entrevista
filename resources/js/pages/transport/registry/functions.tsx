@@ -262,9 +262,13 @@ export default function TransportRegistryFunctionsPage() {
                                                     {item.descricao ?? '-'}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {item.ativo
-                                                        ? 'Ativa'
-                                                        : 'Inativa'}
+                                                    <span
+                                                        className={`transport-status-badge ${item.ativo ? 'transport-status-success' : 'transport-status-danger'}`}
+                                                    >
+                                                        {item.ativo
+                                                            ? 'Ativa'
+                                                            : 'Inativa'}
+                                                    </span>
                                                 </td>
                                                 <td className="py-2">
                                                     <div className="flex justify-end gap-2">

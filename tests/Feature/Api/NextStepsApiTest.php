@@ -6,10 +6,12 @@ use App\Enums\HrStatus;
 use App\Models\Colaborador;
 use App\Models\DriverInterview;
 use App\Models\Funcao;
+use App\Models\InterviewCurriculum;
 use App\Models\Onboarding;
 use App\Models\Unidade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -225,5 +227,98 @@ class NextStepsApiTest extends TestCase
         $this->assertNotNull(
             Onboarding::query()->where('driver_interview_id', $interview->id)->first(),
         );
+    }
+
+    public function test_mark_hired_updates_linked_curriculum_to_approved_interview_status(): void
+    {
+        $admin = User::factory()->create();
+        Sanctum::actingAs($admin);
+
+        $curriculum = InterviewCurriculum::factory()->create([
+            'author_id' => $admin->id,
+            'status' => 'aguardando_entrevista',
+        ]);
+
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $admin->id,
+            'user_id' => $admin->id,
+            'hr_status' => HrStatus::Aprovado,
+            'curriculum_id' => $curriculum->id,
+        ]);
+
+        $this->patchJson("/api/next-steps/{$interview->id}/hiring-status", [
+            'foi_contratado' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.foi_contratado', true);
+
+        $this->assertDatabaseHas('interview_curriculums', [
+            'id' => $curriculum->id,
+            'status' => 'aprovado_entrevista',
+        ]);
+    }
+
+    public function test_mark_hired_copies_interview_and_curriculum_attachments_to_colaborador(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create();
+        Sanctum::actingAs($admin);
+
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+
+        $curriculum = InterviewCurriculum::factory()->create([
+            'author_id' => $admin->id,
+            'cnh_attachment_path' => 'interview-curriculums/100/cnh/cnh-origem.pdf',
+            'cnh_attachment_original_name' => 'cnh-origem.pdf',
+            'work_card_attachment_path' => null,
+            'work_card_attachment_original_name' => null,
+            'status' => 'aguardando_entrevista',
+        ]);
+
+        Storage::disk('public')->put('interview-curriculums/100/cnh/cnh-origem.pdf', 'cnh');
+        Storage::disk('public')->put('driver-interviews/200/candidate-photo/foto.jpg', 'foto');
+        Storage::disk('public')->put('driver-interviews/200/work-card/ct-origem.pdf', 'ct');
+
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $admin->id,
+            'user_id' => $admin->id,
+            'hr_status' => HrStatus::Aprovado,
+            'cpf' => '12345678901',
+            'curriculum_id' => $curriculum->id,
+            'candidate_photo_path' => 'driver-interviews/200/candidate-photo/foto.jpg',
+            'cnh_attachment_path' => null,
+            'cnh_attachment_original_name' => null,
+            'work_card_attachment_path' => 'driver-interviews/200/work-card/ct-origem.pdf',
+            'work_card_attachment_original_name' => 'ct-origem.pdf',
+        ]);
+
+        $colaborador = Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Carlos',
+            'ativo' => true,
+            'cpf' => '12345678901',
+        ]);
+
+        $this->patchJson("/api/next-steps/{$interview->id}/hiring-status", [
+            'foi_contratado' => true,
+            'colaborador_id' => $colaborador->id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.foi_contratado', true);
+
+        $colaborador->refresh();
+
+        $this->assertNotNull($colaborador->foto_3x4_path);
+        $this->assertNotNull($colaborador->cnh_attachment_path);
+        $this->assertNotNull($colaborador->work_card_attachment_path);
+        $this->assertSame('cnh-origem.pdf', $colaborador->cnh_attachment_original_name);
+        $this->assertSame('ct-origem.pdf', $colaborador->work_card_attachment_original_name);
+
+        Storage::disk('public')->assertExists((string) $colaborador->foto_3x4_path);
+        Storage::disk('public')->assertExists((string) $colaborador->cnh_attachment_path);
+        Storage::disk('public')->assertExists((string) $colaborador->work_card_attachment_path);
     }
 }

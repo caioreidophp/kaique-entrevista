@@ -5,8 +5,16 @@ import { AdminLayout } from '@/components/transport/admin-layout';
 import { InterviewForm } from '@/components/transport/interview-form';
 import { Notification } from '@/components/transport/notification';
 import { apiGet, apiPut } from '@/lib/api-client';
+import {
+    splitInterviewPayload,
+    syncInterviewAttachments,
+} from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
-import type { DriverInterview } from '@/types/driver-interview';
+import type {
+    ApiPaginatedResponse,
+    DriverInterview,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 
 interface EditPageProps {
     interviewId: number;
@@ -36,6 +44,14 @@ export default function TransportInterviewsEditPage({
     const [hiringUnitOptions, setHiringUnitOptions] = useState<UnitOption[]>(
         [],
     );
+    const [curriculumOptions, setCurriculumOptions] = useState<
+        Array<{
+            id: number;
+            full_name: string;
+            has_cnh_attachment?: boolean;
+            has_work_card_attachment?: boolean;
+        }>
+    >([]);
     const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
 
     useEffect(() => {
@@ -52,6 +68,55 @@ export default function TransportInterviewsEditPage({
     }, []);
 
     useEffect(() => {
+        apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
+            '/interview-curriculums?tab=pendentes&per_page=200',
+        )
+            .then((response) => {
+                const options = response.data.map((curriculum) => ({
+                    id: curriculum.id,
+                    full_name: curriculum.full_name,
+                    has_cnh_attachment: curriculum.has_cnh_attachment,
+                    has_work_card_attachment:
+                        curriculum.has_work_card_attachment,
+                }));
+
+                if (
+                    item?.curriculum &&
+                    !options.some((option) => option.id === item.curriculum?.id)
+                ) {
+                    options.unshift({
+                        id: item.curriculum.id,
+                        full_name: item.curriculum.full_name,
+                        has_cnh_attachment:
+                            item.curriculum.has_cnh_attachment,
+                        has_work_card_attachment:
+                            item.curriculum.has_work_card_attachment,
+                    });
+                }
+
+                setCurriculumOptions(options);
+            })
+            .catch(() => {
+                if (item?.curriculum) {
+                    setCurriculumOptions([
+                        {
+                            id: item.curriculum.id,
+                            full_name: item.curriculum.full_name,
+                            has_cnh_attachment:
+                                item.curriculum.has_cnh_attachment,
+                            has_work_card_attachment:
+                                item.curriculum.has_work_card_attachment,
+                        },
+                    ]);
+
+                    return;
+                }
+
+                setCurriculumOptions([]);
+            });
+    }, [item?.curriculum?.full_name, item?.curriculum?.id]);
+
+    useEffect(() => {
         loadReferenceCitiesCached()
             .then((cities) => setCityOptions(cities))
             .catch(() => setCityOptions([]));
@@ -60,7 +125,11 @@ export default function TransportInterviewsEditPage({
     async function handleSubmit(
         payload: Record<string, unknown>,
     ): Promise<void> {
-        await apiPut(`/driver-interviews/${interviewId}`, payload);
+        const { data, attachments } = splitInterviewPayload(payload);
+
+        await apiPut(`/driver-interviews/${interviewId}`, data);
+        await syncInterviewAttachments(interviewId, attachments);
+
         setMessage('Entrevista atualizada com sucesso.');
         window.setTimeout(() => {
             router.visit(`/transport/interviews/${interviewId}`);
@@ -96,6 +165,7 @@ export default function TransportInterviewsEditPage({
                         mode="edit"
                         initialData={item}
                         hiringUnitOptions={hiringUnitOptions}
+                        curriculumOptions={curriculumOptions}
                         cityOptions={cityOptions}
                         onSubmit={handleSubmit}
                     />

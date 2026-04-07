@@ -92,7 +92,7 @@ class TransportSettingsController extends Controller
             $zip->addFromString('backup/README.txt', implode(PHP_EOL, [
                 'Backup gerado pelo sistema Kaique Transportes',
                 'Data: '.now()->toDateTimeString(),
-                'Conteúdo: banco.sql + .env + código + arquivos em storage/app/public',
+                'Conteúdo: banco.sql + .env + código + arquivos em storage (completo)',
                 'Error-ID desta execução: '.$errorId,
             ]));
 
@@ -136,8 +136,9 @@ class TransportSettingsController extends Controller
             );
             $this->addDirectoryToZip(
                 zip: $zip,
-                sourcePath: storage_path('app/public'),
-                zipBasePath: 'backup/storage/app/public',
+                sourcePath: storage_path(),
+                zipBasePath: 'backup/storage',
+                excludedPathFragments: ['storage/app/private/backups/'],
             );
 
             foreach (['artisan', 'composer.json', 'composer.lock', 'package.json', 'vite.config.ts'] as $file) {
@@ -252,6 +253,7 @@ class TransportSettingsController extends Controller
         $dump[] = '';
 
         $tables = $this->getTableNames($driver);
+        $views = $this->getViewNames($driver);
 
         foreach ($tables as $table) {
             $safeTable = str_replace('`', '``', $table);
@@ -276,6 +278,60 @@ class TransportSettingsController extends Controller
 
                     $dump[] = "INSERT INTO `{$safeTable}` ({$columns}) VALUES ({$values});";
                 }
+            }
+
+            $dump[] = '';
+        }
+
+        foreach ($views as $view) {
+            $safeView = str_replace('`', '``', $view);
+            $createViewSql = $this->getCreateViewSql($driver, $view);
+
+            if ($createViewSql === '') {
+                continue;
+            }
+
+            $dump[] = "DROP VIEW IF EXISTS `{$safeView}`;";
+            $dump[] = $createViewSql.';';
+            $dump[] = '';
+        }
+
+        if ($driver === 'sqlite') {
+            $dump[] = '-- SQLite indexes';
+
+            foreach ($this->getSQLiteObjectSqlByType('index') as $sql) {
+                $dump[] = $sql.';';
+            }
+
+            $dump[] = '';
+            $dump[] = '-- SQLite triggers';
+
+            foreach ($this->getSQLiteObjectSqlByType('trigger') as $sql) {
+                $dump[] = $sql.';';
+            }
+
+            $dump[] = '';
+        }
+
+        if ($driver !== 'sqlite') {
+            $dump[] = '-- MySQL triggers';
+
+            foreach ($this->getMySqlTriggerSql() as $sql) {
+                $dump[] = $sql;
+            }
+
+            $dump[] = '';
+            $dump[] = '-- MySQL routines';
+
+            foreach ($this->getMySqlRoutineSql() as $sql) {
+                $dump[] = $sql;
+            }
+
+            $dump[] = '';
+            $dump[] = '-- MySQL events';
+
+            foreach ($this->getMySqlEventSql() as $sql) {
+                $dump[] = $sql;
             }
 
             $dump[] = '';
@@ -315,6 +371,35 @@ class TransportSettingsController extends Controller
             ->values();
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    private function getViewNames(string $driver)
+    {
+        if ($driver === 'sqlite') {
+            return collect(DB::select("SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite_%' ORDER BY name"))
+                ->map(fn (object $row): string => (string) ((array) $row)['name'])
+                ->filter()
+                ->values();
+        }
+
+        $databaseName = (string) config('database.connections.mysql.database');
+
+        return collect(DB::select('SHOW FULL TABLES WHERE Table_type = "VIEW"'))
+            ->map(function (object $row) use ($databaseName): string {
+                $array = (array) $row;
+                $key = 'Tables_in_'.$databaseName;
+
+                if (array_key_exists($key, $array)) {
+                    return (string) $array[$key];
+                }
+
+                return (string) (array_values($array)[0] ?? '');
+            })
+            ->filter()
+            ->values();
+    }
+
     private function getCreateTableSql(string $driver, string $table): string
     {
         $safeTable = str_replace('`', '``', $table);
@@ -330,6 +415,167 @@ class TransportSettingsController extends Controller
         $createArray = (array) $createRow;
 
         return (string) ($createArray['Create Table'] ?? array_values($createArray)[1] ?? '');
+    }
+
+    private function getCreateViewSql(string $driver, string $view): string
+    {
+        $safeView = str_replace('`', '``', $view);
+
+        if ($driver === 'sqlite') {
+            $row = DB::selectOne("SELECT sql FROM sqlite_master WHERE type='view' AND name = ?", [$view]);
+            $array = (array) $row;
+
+            return (string) ($array['sql'] ?? '');
+        }
+
+        $createRow = DB::selectOne("SHOW CREATE VIEW `{$safeView}`");
+        $createArray = (array) $createRow;
+
+        return (string) ($createArray['Create View'] ?? array_values($createArray)[1] ?? '');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getSQLiteObjectSqlByType(string $type): array
+    {
+        if (! in_array($type, ['index', 'trigger'], true)) {
+            return [];
+        }
+
+        return collect(DB::select("SELECT sql FROM sqlite_master WHERE type = ? AND sql IS NOT NULL ORDER BY name", [$type]))
+            ->map(fn (object $row): string => (string) ((array) $row)['sql'])
+            ->filter(fn (string $sql): bool => trim($sql) !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getMySqlTriggerSql(): array
+    {
+        try {
+            $rows = DB::select('SHOW TRIGGERS');
+        } catch (Throwable) {
+            return ['-- Aviso: sem permissão para listar triggers (SHOW TRIGGERS).'];
+        }
+
+        $statements = [];
+
+        foreach ($rows as $row) {
+            $triggerName = (string) ((array) $row)['Trigger'];
+            $safeTriggerName = str_replace('`', '``', $triggerName);
+
+            try {
+                $createRow = DB::selectOne("SHOW CREATE TRIGGER `{$safeTriggerName}`");
+                $createArray = (array) $createRow;
+                $createSql = (string) ($createArray['SQL Original Statement'] ?? array_values($createArray)[2] ?? '');
+
+                if ($createSql === '') {
+                    continue;
+                }
+
+                $statements[] = "DROP TRIGGER IF EXISTS `{$safeTriggerName}`;";
+                $statements[] = $createSql.';';
+            } catch (Throwable) {
+                $statements[] = "-- Aviso: não foi possível exportar trigger {$triggerName}.";
+            }
+        }
+
+        return $statements;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getMySqlRoutineSql(): array
+    {
+        $databaseName = (string) config('database.connections.mysql.database');
+
+        try {
+            $rows = DB::select(
+                'SELECT ROUTINE_NAME, ROUTINE_TYPE FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = ? ORDER BY ROUTINE_TYPE, ROUTINE_NAME',
+                [$databaseName],
+            );
+        } catch (Throwable) {
+            return ['-- Aviso: sem permissão para listar routines (information_schema.ROUTINES).'];
+        }
+
+        $statements = [];
+
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $routineName = (string) ($data['ROUTINE_NAME'] ?? '');
+            $routineType = strtoupper((string) ($data['ROUTINE_TYPE'] ?? ''));
+
+            if ($routineName === '' || ! in_array($routineType, ['PROCEDURE', 'FUNCTION'], true)) {
+                continue;
+            }
+
+            $safeRoutine = str_replace('`', '``', $routineName);
+
+            try {
+                if ($routineType === 'PROCEDURE') {
+                    $createRow = DB::selectOne("SHOW CREATE PROCEDURE `{$safeRoutine}`");
+                    $createArray = (array) $createRow;
+                    $createSql = (string) ($createArray['Create Procedure'] ?? array_values($createArray)[2] ?? '');
+                } else {
+                    $createRow = DB::selectOne("SHOW CREATE FUNCTION `{$safeRoutine}`");
+                    $createArray = (array) $createRow;
+                    $createSql = (string) ($createArray['Create Function'] ?? array_values($createArray)[2] ?? '');
+                }
+
+                if ($createSql === '') {
+                    continue;
+                }
+
+                $statements[] = "DROP {$routineType} IF EXISTS `{$safeRoutine}`;";
+                $statements[] = $createSql.';';
+            } catch (Throwable) {
+                $statements[] = "-- Aviso: não foi possível exportar {$routineType} {$routineName}.";
+            }
+        }
+
+        return $statements;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getMySqlEventSql(): array
+    {
+        $databaseName = (string) config('database.connections.mysql.database');
+
+        try {
+            $rows = DB::select('SHOW EVENTS FROM `'.str_replace('`', '``', $databaseName).'`');
+        } catch (Throwable) {
+            return ['-- Aviso: sem permissão para listar eventos (SHOW EVENTS).'];
+        }
+
+        $statements = [];
+
+        foreach ($rows as $row) {
+            $eventName = (string) ((array) $row)['Name'];
+            $safeEvent = str_replace('`', '``', $eventName);
+
+            try {
+                $createRow = DB::selectOne("SHOW CREATE EVENT `{$safeEvent}`");
+                $createArray = (array) $createRow;
+                $createSql = (string) ($createArray['Create Event'] ?? array_values($createArray)[3] ?? '');
+
+                if ($createSql === '') {
+                    continue;
+                }
+
+                $statements[] = "DROP EVENT IF EXISTS `{$safeEvent}`;";
+                $statements[] = $createSql.';';
+            } catch (Throwable) {
+                $statements[] = "-- Aviso: não foi possível exportar evento {$eventName}.";
+            }
+        }
+
+        return $statements;
     }
 
     private function quoteSqlValue(mixed $value, \PDO $pdo): string

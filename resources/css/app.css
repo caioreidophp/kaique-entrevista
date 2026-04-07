@@ -148,6 +148,66 @@
         @apply border border-border/80 shadow-sm;
     }
 
+    .transport-page .transport-kpi-card {
+        @apply border border-border/80 bg-card;
+    }
+
+    .transport-page .transport-kpi-icon {
+        @apply rounded-md border border-border/70 bg-muted/45 p-1.5 text-foreground/70;
+    }
+
+    .transport-page .transport-kpi-title {
+        @apply text-xs font-medium tracking-wide text-muted-foreground;
+    }
+
+    .transport-page .transport-kpi-value {
+        @apply text-2xl font-semibold text-foreground;
+    }
+
+    .transport-page .transport-kpi-detail {
+        @apply mt-1 text-xs text-muted-foreground;
+    }
+
+    .transport-page .transport-kpi-soft-danger {
+        @apply bg-red-50/60;
+    }
+
+    .transport-page .transport-kpi-soft-warning {
+        @apply bg-yellow-50/60;
+    }
+
+    .transport-page .transport-kpi-soft-success {
+        @apply bg-green-50/60;
+    }
+
+    .transport-page .transport-kpi-soft-info {
+        @apply bg-blue-50/60;
+    }
+
+    .transport-page .transport-status-badge {
+        @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium;
+    }
+
+    .transport-page .transport-status-danger {
+        @apply border-red-200 bg-red-50 text-red-700;
+    }
+
+    .transport-page .transport-status-warning {
+        @apply border-yellow-200 bg-yellow-50 text-yellow-700;
+    }
+
+    .transport-page .transport-status-success {
+        @apply border-green-200 bg-green-50 text-green-700;
+    }
+
+    .transport-page .transport-status-info {
+        @apply border-blue-200 bg-blue-50 text-blue-700;
+    }
+
+    .transport-page .transport-status-neutral {
+        @apply border-border bg-muted/25 text-foreground;
+    }
+
     .transport-page table thead tr {
         @apply bg-muted/45;
     }
@@ -160,8 +220,17 @@
         @apply transition-colors;
     }
 
+    .transport-page table tbody tr:nth-child(even) {
+        @apply bg-muted/10;
+    }
+
     .transport-page table tbody tr:hover {
         @apply bg-muted/35;
+    }
+
+    .transport-page table th,
+    .transport-page table td {
+        @apply align-middle;
     }
 
     .transport-page h2 {

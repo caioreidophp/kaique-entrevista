@@ -43,6 +43,21 @@ class DriverInterviewListResource extends JsonResource
             'hr_status' => $this->hr_status?->value,
             'hr_rejection_reason' => $this->hr_rejection_reason,
             'guep_status' => $this->guep_status?->value,
+            'has_candidate_photo' => (bool) $this->candidate_photo_path,
+            'has_cnh_attachment' => (bool) $this->cnh_attachment_path,
+            'has_work_card_attachment' => (bool) $this->work_card_attachment_path,
+            'has_curriculum' => (bool) $this->curriculum_id,
+            'curriculum' => $this->whenLoaded('curriculum', function (): ?array {
+                if (! $this->curriculum) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->curriculum->id,
+                    'full_name' => $this->curriculum->full_name,
+                    'status' => $this->curriculum->status?->value,
+                ];
+            }),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

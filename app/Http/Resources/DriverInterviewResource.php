@@ -38,6 +38,7 @@ class DriverInterviewResource extends JsonResource
             'city' => $this->city,
             'cargo_pretendido' => $this->cargo_pretendido,
             'hiring_unidade_id' => $this->hiring_unidade_id,
+            'curriculum_id' => $this->curriculum_id,
             'hiring_unidade' => $this->whenLoaded('hiringUnidade', function (): ?array {
                 if (! $this->hiringUnidade) {
                     return null;
@@ -49,6 +50,31 @@ class DriverInterviewResource extends JsonResource
                     'slug' => $this->hiringUnidade->slug,
                 ];
             }),
+            'curriculum' => $this->whenLoaded('curriculum', function (): ?array {
+                if (! $this->curriculum) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->curriculum->id,
+                    'full_name' => $this->curriculum->full_name,
+                    'status' => $this->curriculum->status?->value,
+                    'document_original_name' => $this->curriculum->document_original_name,
+                    'document_url' => $this->curriculum->document_path
+                        ? '/storage/'.ltrim((string) $this->curriculum->document_path, '/')
+                        : null,
+                    'cnh_attachment_original_name' => $this->curriculum->cnh_attachment_original_name,
+                    'cnh_attachment_url' => $this->curriculum->cnh_attachment_path
+                        ? '/storage/'.ltrim((string) $this->curriculum->cnh_attachment_path, '/')
+                        : null,
+                    'work_card_attachment_original_name' => $this->curriculum->work_card_attachment_original_name,
+                    'work_card_attachment_url' => $this->curriculum->work_card_attachment_path
+                        ? '/storage/'.ltrim((string) $this->curriculum->work_card_attachment_path, '/')
+                        : null,
+                    'has_cnh_attachment' => (bool) $this->curriculum->cnh_attachment_path,
+                    'has_work_card_attachment' => (bool) $this->curriculum->work_card_attachment_path,
+                ];
+            }),
             'marital_status' => $this->marital_status,
             'has_children' => $this->has_children,
             'children_situation' => $this->children_situation,
@@ -58,6 +84,26 @@ class DriverInterviewResource extends JsonResource
             'cnh_number' => $this->cnh_number,
             'cnh_category' => $this->cnh_category,
             'cnh_expiration_date' => $this->cnh_expiration_date?->format('Y-m-d'),
+            'candidate_photo_path' => $this->candidate_photo_path,
+            'candidate_photo_original_name' => $this->candidate_photo_original_name,
+            'candidate_photo_url' => $this->candidate_photo_path
+                ? '/storage/'.ltrim((string) $this->candidate_photo_path, '/')
+                : null,
+            'cnh_attachment_path' => $this->cnh_attachment_path,
+            'cnh_attachment_original_name' => $this->cnh_attachment_original_name,
+            'cnh_attachment_url' => $this->cnh_attachment_path
+                ? '/storage/'.ltrim((string) $this->cnh_attachment_path, '/')
+                : null,
+            'work_card_attachment_path' => $this->work_card_attachment_path,
+            'work_card_attachment_original_name' => $this->work_card_attachment_original_name,
+            'work_card_attachment_url' => $this->work_card_attachment_path
+                ? '/storage/'.ltrim((string) $this->work_card_attachment_path, '/')
+                : null,
+            'curriculum_path' => $this->curriculum_path,
+            'curriculum_original_name' => $this->curriculum_original_name,
+            'curriculum_url' => $this->curriculum_path
+                ? '/storage/'.ltrim((string) $this->curriculum_path, '/')
+                : null,
             'ear' => $this->ear,
 
             'last_company' => $this->last_company,

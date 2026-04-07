@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Registry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportColaboradoresSpreadsheetRequest;
 use App\Http\Requests\StoreColaboradorRequest;
+use App\Http\Requests\UpdateColaboradorAttachmentsRequest;
 use App\Http\Requests\UpdateColaboradorRequest;
 use App\Http\Requests\UploadColaboradorPhotoRequest;
 use App\Models\Colaborador;
@@ -13,6 +14,7 @@ use App\Models\Unidade;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,11 +28,51 @@ class ColaboradorController extends Controller
 {
     private const INDEX_CACHE_KEY = 'transport:registry:colaboradores:index:default';
 
+    public function birthdays(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('registry.collaborators.list'), 403);
+
+        $today = Carbon::today();
+        $month = (int) $today->month;
+        $day = (int) $today->day;
+        $driver = DB::connection()->getDriverName();
+
+        $todayRows = Colaborador::query()
+            ->with(['unidade:id,nome', 'funcao:id,nome'])
+            ->where('ativo', true)
+            ->whereNotNull('data_nascimento')
+            ->whereMonth('data_nascimento', $month)
+            ->whereDay('data_nascimento', $day)
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'data_nascimento', 'unidade_id', 'funcao_id']);
+
+        $monthRows = Colaborador::query()
+            ->with(['unidade:id,nome', 'funcao:id,nome'])
+            ->where('ativo', true)
+            ->whereNotNull('data_nascimento')
+            ->whereMonth('data_nascimento', $month)
+            ->orderByRaw(
+                $driver === 'sqlite'
+                    ? "cast(strftime('%d', data_nascimento) as integer) asc"
+                    : 'DAY(data_nascimento) asc'
+            )
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'data_nascimento', 'unidade_id', 'funcao_id']);
+
+        return response()->json([
+            'today' => $today->toDateString(),
+            'today_birthdays' => $todayRows,
+            'month_birthdays' => $monthRows,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('registry.collaborators.list'), 403);
 
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
 
@@ -100,7 +142,7 @@ class ColaboradorController extends Controller
 
     public function store(StoreColaboradorRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.create'), 403);
 
         $colaborador = Colaborador::query()->create($request->validated());
 
@@ -113,7 +155,7 @@ class ColaboradorController extends Controller
 
     public function show(Request $request, Colaborador $colaborador): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.list'), 403);
 
         return response()->json([
             'data' => $colaborador->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -122,7 +164,7 @@ class ColaboradorController extends Controller
 
     public function update(UpdateColaboradorRequest $request, Colaborador $colaborador): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
 
         $colaborador->update($request->validated());
 
@@ -135,11 +177,7 @@ class ColaboradorController extends Controller
 
     public function destroy(Request $request, Colaborador $colaborador): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
-
-        if ($colaborador->foto_3x4_path) {
-            Storage::disk('public')->delete($colaborador->foto_3x4_path);
-        }
+        abort_unless($request->user()?->hasPermission('registry.collaborators.delete'), 403);
 
         $colaborador->delete();
 
@@ -150,7 +188,7 @@ class ColaboradorController extends Controller
 
     public function uploadPhoto(UploadColaboradorPhotoRequest $request, Colaborador $colaborador): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
 
         $file = $request->file('foto');
 
@@ -175,9 +213,68 @@ class ColaboradorController extends Controller
         ]);
     }
 
+    public function updateAttachments(
+        UpdateColaboradorAttachmentsRequest $request,
+        Colaborador $colaborador,
+    ): JsonResponse {
+        abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
+
+        $validated = $request->validated();
+        $updates = [];
+
+        if ((bool) ($validated['remove_cnh_attachment'] ?? false)) {
+            $this->clearAttachment($colaborador, 'cnh_attachment_path', 'cnh_attachment_original_name');
+            $updates['cnh_attachment_path'] = null;
+            $updates['cnh_attachment_original_name'] = null;
+        }
+
+        if ((bool) ($validated['remove_work_card_attachment'] ?? false)) {
+            $this->clearAttachment($colaborador, 'work_card_attachment_path', 'work_card_attachment_original_name');
+            $updates['work_card_attachment_path'] = null;
+            $updates['work_card_attachment_original_name'] = null;
+        }
+
+        $cnhAttachment = $request->file('cnh_attachment_file');
+
+        if ($cnhAttachment instanceof UploadedFile) {
+            $stored = $this->replaceAttachment(
+                $colaborador,
+                $cnhAttachment,
+                'cnh_attachment_path',
+                'cnh',
+            );
+
+            $updates['cnh_attachment_path'] = $stored;
+            $updates['cnh_attachment_original_name'] = $cnhAttachment->getClientOriginalName();
+        }
+
+        $workCardAttachment = $request->file('work_card_attachment_file');
+
+        if ($workCardAttachment instanceof UploadedFile) {
+            $stored = $this->replaceAttachment(
+                $colaborador,
+                $workCardAttachment,
+                'work_card_attachment_path',
+                'work-card',
+            );
+
+            $updates['work_card_attachment_path'] = $stored;
+            $updates['work_card_attachment_original_name'] = $workCardAttachment->getClientOriginalName();
+        }
+
+        if ($updates !== []) {
+            $colaborador->update($updates);
+            Cache::forget(self::INDEX_CACHE_KEY);
+        }
+
+        return response()->json([
+            'data' => $colaborador->refresh()->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
+        ]);
+    }
+
     public function importSpreadsheet(ImportColaboradoresSpreadsheetRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.import'), 403);
 
         $uploaded = $request->file('file');
 
@@ -440,7 +537,7 @@ class ColaboradorController extends Controller
 
     public function exportCsv(Request $request): StreamedResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.collaborators.export'), 403);
         abort_unless((bool) config('transport_features.csv_exports', true), 404);
 
         $name = trim((string) $request->string('name', ''));
@@ -506,6 +603,33 @@ class ColaboradorController extends Controller
         }
 
         return true;
+    }
+
+    private function replaceAttachment(
+        Colaborador $colaborador,
+        UploadedFile $file,
+        string $pathField,
+        string $folder,
+    ): string {
+        $nameField = $pathField === 'cnh_attachment_path'
+            ? 'cnh_attachment_original_name'
+            : 'work_card_attachment_original_name';
+
+        $this->clearAttachment($colaborador, $pathField, $nameField);
+
+        return $file->store("colaboradores/{$colaborador->id}/{$folder}", 'public');
+    }
+
+    private function clearAttachment(Colaborador $colaborador, string $pathField, string $nameField): void
+    {
+        $currentPath = (string) ($colaborador->{$pathField} ?? '');
+
+        if ($currentPath !== '') {
+            Storage::disk('public')->delete($currentPath);
+        }
+
+        $colaborador->{$pathField} = null;
+        $colaborador->{$nameField} = null;
     }
 
     private function parseSpreadsheetDateValue(mixed $rawValue, string $formattedValue): ?string

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -60,6 +62,10 @@ class Colaborador extends Model
         'conta_pagamento',
         'cartao_beneficio',
         'foto_3x4_path',
+        'cnh_attachment_path',
+        'cnh_attachment_original_name',
+        'work_card_attachment_path',
+        'work_card_attachment_original_name',
     ];
 
     /**
@@ -67,6 +73,8 @@ class Colaborador extends Model
      */
     protected $appends = [
         'foto_3x4_url',
+        'cnh_attachment_url',
+        'work_card_attachment_url',
     ];
 
     /**
@@ -83,6 +91,62 @@ class Colaborador extends Model
             'data_admissao' => 'date',
             'data_demissao' => 'date',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $colaborador): void {
+            $colaborador->sexo = 'M';
+        });
+
+        static::deleting(function (self $colaborador): void {
+            foreach ([
+                $colaborador->foto_3x4_path,
+                $colaborador->cnh_attachment_path,
+                $colaborador->work_card_attachment_path,
+            ] as $path) {
+                $normalizedPath = trim((string) $path);
+
+                if ($normalizedPath !== '') {
+                    Storage::disk('public')->delete($normalizedPath);
+                }
+            }
+        });
+
+        static::updated(function (self $colaborador): void {
+            if (! $colaborador->wasChanged('data_admissao')) {
+                return;
+            }
+
+            if (! $colaborador->data_admissao) {
+                return;
+            }
+
+            self::recalculateVacationAcquisitionPeriods($colaborador);
+        });
+    }
+
+    private static function recalculateVacationAcquisitionPeriods(self $colaborador): void
+    {
+        $admissao = CarbonImmutable::parse($colaborador->data_admissao->toDateString());
+
+        $lancamentos = FeriasLancamento::query()
+            ->where('colaborador_id', (int) $colaborador->id)
+            ->orderBy('data_inicio')
+            ->orderBy('id')
+            ->get(['id']);
+
+        foreach ($lancamentos as $index => $lancamento) {
+            $periodoInicio = $admissao->addYearsNoOverflow($index);
+            $periodoFim = $periodoInicio->addYear()->subDay();
+
+            FeriasLancamento::query()
+                ->whereKey((int) $lancamento->id)
+                ->update([
+                    'periodo_aquisitivo_inicio' => $periodoInicio->toDateString(),
+                    'periodo_aquisitivo_fim' => $periodoFim->toDateString(),
+                ]);
+        }
     }
 
     public function unidade(): BelongsTo
@@ -145,6 +209,24 @@ class Colaborador extends Model
         $version = $this->updated_at?->timestamp ?? time();
 
         return '/storage/'.$path.'?v='.$version;
+    }
+
+    public function getCnhAttachmentUrlAttribute(): ?string
+    {
+        if (! $this->cnh_attachment_path) {
+            return null;
+        }
+
+        return '/storage/'.ltrim((string) $this->cnh_attachment_path, '/');
+    }
+
+    public function getWorkCardAttachmentUrlAttribute(): ?string
+    {
+        if (! $this->work_card_attachment_path) {
+            return null;
+        }
+
+        return '/storage/'.ltrim((string) $this->work_card_attachment_path, '/');
     }
 
     public function getActivitylogOptions(): LogOptions

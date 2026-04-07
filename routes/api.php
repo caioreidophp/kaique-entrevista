@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\ApiTelemetryController;
+use App\Http\Controllers\Api\AsyncExportController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BobAssistantController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverInterviewController;
+use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\InterviewCurriculumController;
 use App\Http\Controllers\Api\NextStepController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PayrollController;
@@ -14,10 +19,14 @@ use App\Http\Controllers\Api\PayrollDescontoController;
 use App\Http\Controllers\Api\PayrollEmprestimoController;
 use App\Http\Controllers\Api\PayrollPensaoController;
 use App\Http\Controllers\Api\PayrollVacationController;
+use App\Http\Controllers\Api\ProgrammingController;
+use App\Http\Controllers\Api\QueueMonitorController;
 use App\Http\Controllers\Api\ReferenceCityController;
+use App\Http\Controllers\Api\SystemObservabilityController;
 use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
 use App\Http\Controllers\Api\Registry\FuncaoController;
+use App\Http\Controllers\Api\Registry\MultaInfracaoController;
 use App\Http\Controllers\Api\Registry\PlacaFrotaController;
 use App\Http\Controllers\Api\Registry\RegistryUserController;
 use App\Http\Controllers\Api\Registry\RolePermissionController;
@@ -25,12 +34,14 @@ use App\Http\Controllers\Api\Registry\TipoPagamentoController;
 use App\Http\Controllers\Api\Registry\UnidadeController;
 use App\Http\Controllers\Api\TransportInsightsController;
 use App\Http\Controllers\Api\TransportSettingsController;
+use App\Http\Middleware\IdempotencyKeyMiddleware;
+use App\Http\Middleware\ReadOnlyDemoAccountMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:transport-login');
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group(function (): void {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::put('settings/password', [TransportSettingsController::class, 'updatePassword'])
@@ -39,16 +50,48 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-backup');
     Route::post('users', [TransportSettingsController::class, 'storeUser'])
         ->middleware('throttle:transport-heavy');
+    Route::get('system/telemetry/latency', [ApiTelemetryController::class, 'latency'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/observability', [SystemObservabilityController::class, 'overview'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/queue', [QueueMonitorController::class, 'overview'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/queue/failed', [QueueMonitorController::class, 'failed'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/queue/failed/{id}/retry', [QueueMonitorController::class, 'retry'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/queue/failed/retry-all', [QueueMonitorController::class, 'retryAll'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('system/queue/failed/{id}', [QueueMonitorController::class, 'forget'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('system/queue/failed', [QueueMonitorController::class, 'flush'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('exports/async', [AsyncExportController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('exports/async/{id}', [AsyncExportController::class, 'show'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('exports/async/{id}/download', [AsyncExportController::class, 'download'])
+        ->middleware('throttle:transport-heavy');
 
     Route::get('home', HomeController::class);
+    if (config('services.bob.enabled') || app()->runningUnitTests()) {
+        Route::post('bob/chat', [BobAssistantController::class, 'chat'])
+            ->middleware('throttle:transport-heavy');
+        Route::get('bob/history', [BobAssistantController::class, 'history'])
+            ->middleware('throttle:transport-heavy');
+        Route::delete('bob/history', [BobAssistantController::class, 'clearHistory'])
+            ->middleware('throttle:transport-heavy');
+    }
     Route::get('dashboard/summary', DashboardController::class);
     Route::get('insights/pending', [TransportInsightsController::class, 'pending'])
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/dashboard', [PayrollController::class, 'dashboard']);
+    Route::get('payroll/dashboard-page', [PayrollController::class, 'dashboardPage'])
+        ->middleware('throttle:transport-heavy');
     Route::get('payroll/summary', [PayrollController::class, 'summary']);
     Route::get('payroll/launch-candidates', [PayrollController::class, 'launchCandidates']);
     Route::post('payroll/launch-batch', [PayrollController::class, 'launchBatch'])
-        ->middleware('throttle:transport-heavy');
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
     Route::post('payroll/launch-discount-preview', [PayrollController::class, 'launchDiscountPreview'])
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/reports/unidade', [PayrollController::class, 'reportByUnit'])
@@ -56,6 +99,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('payroll/reports/colaborador', [PayrollController::class, 'reportByCollaborator'])
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/pagamentos/export-xlsx', [PayrollController::class, 'exportXlsx'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('payroll/pagamentos/export-benefits-xlsx', [PayrollController::class, 'exportBenefitsXlsx'])
         ->middleware('throttle:transport-heavy');
     Route::apiResource('payroll/pagamentos', PayrollController::class)
         ->middleware('throttle:transport-heavy');
@@ -72,15 +117,20 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-heavy')
         ->only(['index', 'store', 'update', 'destroy']);
     Route::get('payroll/vacations/dashboard', [PayrollVacationController::class, 'dashboard']);
+    Route::get('payroll/vacations/reports', [PayrollVacationController::class, 'reports']);
     Route::get('payroll/vacations/candidates', [PayrollVacationController::class, 'candidates']);
     Route::get('payroll/vacations/launched', [PayrollVacationController::class, 'launched']);
     Route::get('payroll/vacations/collaborators/{colaborador}', [PayrollVacationController::class, 'collaboratorHistory']);
     Route::get('payroll/vacations', [PayrollVacationController::class, 'index']);
     Route::post('payroll/vacations', [PayrollVacationController::class, 'store'])
-        ->middleware('throttle:transport-heavy');
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
     Route::put('payroll/vacations/{feriasLancamento}', [PayrollVacationController::class, 'update'])
         ->middleware('throttle:transport-heavy');
+    Route::delete('payroll/vacations/{feriasLancamento}', [PayrollVacationController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
     Route::get('freight/dashboard', [FreightController::class, 'dashboard']);
+    Route::get('freight/dashboard-page', [FreightController::class, 'dashboardPage'])
+        ->middleware('throttle:transport-heavy');
     Route::get('freight/monthly-unit-report', [FreightController::class, 'monthlyUnitReport'])
         ->middleware('throttle:transport-heavy');
     Route::get('freight/timeline', [FreightController::class, 'timeline'])
@@ -89,9 +139,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-heavy');
     Route::get('freight/spot-entries', [FreightController::class, 'spotIndex']);
     Route::post('freight/spot-entries', [FreightController::class, 'storeSpot'])
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-uploads']);
+    Route::put('freight/spot-entries/{entry}', [FreightController::class, 'updateSpot'])
+        ->middleware('throttle:transport-uploads');
+    Route::delete('freight/spot-entries/{entry}', [FreightController::class, 'destroySpot'])
         ->middleware('throttle:transport-uploads');
     Route::get('freight/canceled-loads', [FreightCanceledLoadController::class, 'index']);
     Route::delete('freight/canceled-loads/{canceledLoad}', [FreightCanceledLoadController::class, 'destroy'])
+        ->middleware('throttle:transport-uploads');
+    Route::put('freight/canceled-loads/{canceledLoad}', [FreightCanceledLoadController::class, 'update'])
         ->middleware('throttle:transport-uploads');
     Route::put('freight/canceled-loads/{canceledLoad}/trip-number', [FreightCanceledLoadController::class, 'updateTripNumber'])
         ->middleware('throttle:transport-uploads');
@@ -105,16 +161,44 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:transport-uploads');
     Route::apiResource('freight/entries', FreightController::class)
         ->only(['index', 'store', 'update', 'destroy'])
-        ->middleware('throttle:transport-heavy');
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
     Route::get('freight/entries/export-xlsx', [FreightController::class, 'exportXlsx'])
         ->middleware('throttle:transport-heavy');
     Route::post('freight/entries/import-spreadsheet-preview', [FreightController::class, 'previewSpreadsheet'])
         ->middleware('throttle:transport-import');
     Route::post('freight/entries/import-spreadsheet', [FreightController::class, 'importSpreadsheet'])
         ->middleware('throttle:transport-import');
+    Route::get('programming/dashboard', [ProgrammingController::class, 'dashboard']);
+    Route::post('programming/import-base-preview', [ProgrammingController::class, 'previewImport'])
+        ->middleware('throttle:transport-import');
+    Route::post('programming/import-base', [ProgrammingController::class, 'importBase'])
+        ->middleware('throttle:transport-import');
+    Route::post('programming/clear-day-table', [ProgrammingController::class, 'clearDayTable'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('programming/assignments', [ProgrammingController::class, 'assign'])
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
+    Route::get('fines/dashboard', [FineController::class, 'dashboard']);
+    Route::get('fines/reference', [FineController::class, 'reference']);
+    Route::post('fines/orgaos', [FineController::class, 'storeOrgao'])
+        ->middleware('throttle:transport-heavy');
+    Route::apiResource('fines', FineController::class)
+        ->parameters(['fines' => 'multa'])
+        ->middleware('throttle:transport-heavy')
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::get('driver-interviews/{driverInterview}/pdf', [DriverInterviewController::class, 'pdf'])
         ->middleware('throttle:transport-heavy');
+    Route::post('driver-interviews/{driverInterview}/attachments', [DriverInterviewController::class, 'updateAttachments'])
+        ->middleware('throttle:transport-uploads');
     Route::patch('driver-interviews/{driverInterview}/statuses', [DriverInterviewController::class, 'updateStatuses'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('interview-curriculums', [InterviewCurriculumController::class, 'index']);
+    Route::post('interview-curriculums', [InterviewCurriculumController::class, 'store'])
+        ->middleware('throttle:transport-uploads');
+    Route::put('interview-curriculums/{interviewCurriculum}', [InterviewCurriculumController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('interview-curriculums/{interviewCurriculum}', [InterviewCurriculumController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::patch('interview-curriculums/{interviewCurriculum}/refuse', [InterviewCurriculumController::class, 'refuse'])
         ->middleware('throttle:transport-heavy');
     Route::get('next-steps/candidates', [NextStepController::class, 'index'])
         ->name('api.next-steps.index');
@@ -160,6 +244,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('unidades', [UnidadeController::class, 'index']);
         Route::apiResource('funcoes', FuncaoController::class)
             ->middleware('throttle:transport-heavy');
+        Route::apiResource('infracoes-multa', MultaInfracaoController::class)
+            ->parameters(['infracoes-multa' => 'infracaoMulta'])
+            ->middleware('throttle:transport-heavy');
         Route::get('colaboradores/export-csv', [ColaboradorController::class, 'exportCsv']);
         Route::post('placas-frota/bulk', [PlacaFrotaController::class, 'bulkStore'])
             ->middleware('throttle:transport-heavy');
@@ -181,7 +268,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
             ->middleware('throttle:transport-heavy');
         Route::post('colaboradores/import-spreadsheet', [ColaboradorController::class, 'importSpreadsheet'])
             ->middleware('throttle:transport-import');
+        Route::get('colaboradores/birthdays', [ColaboradorController::class, 'birthdays']);
         Route::post('colaboradores/{colaborador}/foto-3x4', [ColaboradorController::class, 'uploadPhoto'])
+            ->middleware('throttle:transport-uploads');
+        Route::post('colaboradores/{colaborador}/attachments', [ColaboradorController::class, 'updateAttachments'])
             ->middleware('throttle:transport-uploads');
         Route::apiResource('colaboradores', ColaboradorController::class)
             ->parameters(['colaboradores' => 'colaborador'])

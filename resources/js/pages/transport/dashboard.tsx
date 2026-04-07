@@ -23,21 +23,25 @@ function SummaryCard({
     title,
     value,
     icon,
+    tone,
 }: {
     title: string;
     value: number;
     icon: React.ReactNode;
+    tone?: 'danger' | 'warning' | 'success' | 'info';
 }) {
     return (
-        <Card className="transition-colors hover:bg-muted/20">
+        <Card
+            className={`transport-kpi-card transition-colors hover:bg-muted/20 ${tone ? `transport-kpi-soft-${tone}` : ''}`}
+        >
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                     {title}
                 </CardTitle>
-                <span className="rounded-md bg-muted p-2">{icon}</span>
+                <span className="transport-kpi-icon">{icon}</span>
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-semibold md:text-3xl">{value}</p>
+                <p className="transport-kpi-value md:text-3xl">{value}</p>
             </CardContent>
         </Card>
     );
@@ -58,6 +62,20 @@ function guepStatusLabel(status: string): string {
     if (status === 'aprovado') return 'Aprovado';
     if (status === 'reprovado') return 'Reprovado';
     return 'Aguardando';
+}
+
+function hrStatusBadgeClass(status: string): string {
+    if (status === 'aprovado') return 'transport-status-success';
+    if (status === 'reprovado') return 'transport-status-danger';
+    if (status === 'em_analise' || status === 'aguardando_vaga') return 'transport-status-warning';
+    return 'transport-status-info';
+}
+
+function guepStatusBadgeClass(status: string): string {
+    if (status === 'aprovado') return 'transport-status-success';
+    if (status === 'reprovado') return 'transport-status-danger';
+    if (status === 'a_fazer') return 'transport-status-warning';
+    return 'transport-status-info';
 }
 
 export default function TransportDashboardPage() {
@@ -109,6 +127,7 @@ export default function TransportDashboardPage() {
                             <SummaryCard
                                 title="Total aprovados"
                                 value={summary.total_approved}
+                                tone="success"
                                 icon={
                                     <CheckCircle2 className="size-4 text-muted-foreground" />
                                 }
@@ -116,6 +135,7 @@ export default function TransportDashboardPage() {
                             <SummaryCard
                                 title="Total reprovados"
                                 value={summary.total_reproved}
+                                tone="danger"
                                 icon={
                                     <XCircle className="size-4 text-muted-foreground" />
                                 }
@@ -123,6 +143,7 @@ export default function TransportDashboardPage() {
                             <SummaryCard
                                 title="Aguardando vaga"
                                 value={summary.total_waiting_vacancy}
+                                tone="warning"
                                 icon={
                                     <Clock3 className="size-4 text-muted-foreground" />
                                 }
@@ -137,6 +158,7 @@ export default function TransportDashboardPage() {
                             <SummaryCard
                                 title="GUEP pendente"
                                 value={summary.pending_actions.guep_to_do}
+                                tone="info"
                                 icon={
                                     <Clock3 className="size-4 text-muted-foreground" />
                                 }
@@ -202,12 +224,12 @@ export default function TransportDashboardPage() {
                                                                 </p>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <Badge variant="secondary">
+                                                                <Badge className={`transport-status-badge ${hrStatusBadgeClass(item.hr_status)}`}>
                                                                     {hrStatusLabel(
                                                                         item.hr_status,
                                                                     )}
                                                                 </Badge>
-                                                                <Badge variant="outline">
+                                                                <Badge className={`transport-status-badge ${guepStatusBadgeClass(item.guep_status)}`}>
                                                                     {guepStatusLabel(
                                                                         item.guep_status,
                                                                     )}

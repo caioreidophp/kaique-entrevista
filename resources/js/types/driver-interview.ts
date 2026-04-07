@@ -15,6 +15,13 @@ export type GuepStatus =
     | 'reprovado'
     | 'aguardando';
 
+export type InterviewCurriculumStatus =
+    | 'pendente'
+    | 'recusado'
+    | 'aguardando_entrevista'
+    | 'aprovado_entrevista'
+    | 'reprovado_entrevista';
+
 export interface InterviewAuthor {
     id: number;
     name: string;
@@ -25,6 +32,20 @@ export interface InterviewUnit {
     id: number;
     nome: string;
     slug: string | null;
+}
+
+export interface InterviewCurriculumSummary {
+    id: number;
+    full_name: string;
+    status: InterviewCurriculumStatus;
+    document_original_name?: string;
+    document_url?: string | null;
+    cnh_attachment_original_name?: string | null;
+    cnh_attachment_url?: string | null;
+    work_card_attachment_original_name?: string | null;
+    work_card_attachment_url?: string | null;
+    has_cnh_attachment?: boolean;
+    has_work_card_attachment?: boolean;
 }
 
 export interface DriverInterview {
@@ -40,7 +61,9 @@ export interface DriverInterview {
     city: string;
     cargo_pretendido: string | null;
     hiring_unidade_id: number | null;
+    curriculum_id: number | null;
     hiring_unidade: InterviewUnit | null;
+    curriculum: InterviewCurriculumSummary | null;
     marital_status: string;
     has_children: boolean;
     children_situation: string | null;
@@ -49,6 +72,15 @@ export interface DriverInterview {
     cnh_number: string;
     cnh_category: string;
     cnh_expiration_date: string;
+    candidate_photo_path: string | null;
+    candidate_photo_original_name: string | null;
+    candidate_photo_url: string | null;
+    cnh_attachment_path: string | null;
+    cnh_attachment_original_name: string | null;
+    cnh_attachment_url: string | null;
+    work_card_attachment_path: string | null;
+    work_card_attachment_original_name: string | null;
+    work_card_attachment_url: string | null;
     ear: boolean;
     last_company: string;
     last_role: string;
@@ -110,7 +142,40 @@ export interface DriverInterviewListItem {
     hr_status: HrStatus;
     hr_rejection_reason: string | null;
     guep_status: GuepStatus;
+    has_candidate_photo: boolean;
+    has_cnh_attachment: boolean;
+    has_work_card_attachment: boolean;
+    has_curriculum: boolean;
+    curriculum: InterviewCurriculumSummary | null;
     created_at: string;
+}
+
+export interface InterviewCurriculumListItem {
+    id: number;
+    author_id: number | null;
+    author: InterviewAuthor | null;
+    full_name: string;
+    phone: string | null;
+    role_name: string | null;
+    unit_name: string | null;
+    status: InterviewCurriculumStatus;
+    document_original_name: string;
+    document_url: string | null;
+    cnh_attachment_original_name: string | null;
+    cnh_attachment_url: string | null;
+    work_card_attachment_original_name: string | null;
+    work_card_attachment_url: string | null;
+    has_cnh_attachment: boolean;
+    has_work_card_attachment: boolean;
+    attachments_status: '-' | 'CNH' | 'CT' | 'CNH/CT';
+    linked_interview: {
+        id: number;
+        full_name: string;
+        hr_status: HrStatus;
+        foi_contratado: boolean;
+    } | null;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface NextStepDocumentLinks {
@@ -233,6 +298,7 @@ export interface DriverInterviewFormData {
     city: string;
     cargo_pretendido: string;
     hiring_unidade_id: string;
+    curriculum_id: string;
     marital_status: string;
     has_children: boolean;
     children_situation: string;

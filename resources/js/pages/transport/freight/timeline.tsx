@@ -1,5 +1,5 @@
 import { LoaderCircle } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR, formatIntegerBR } from '@/lib/transport-format';
 import type {
+    FreightExecutionMetrics,
     FreightMonthlyResponse,
     FreightOperationalReportResponse,
     FreightTimelineResponse,
@@ -28,6 +29,7 @@ interface WrappedResponse<T> {
 type FreightAnalyticsView = 'timeline' | 'operational' | 'monthly';
 
 type TrendMode = 'daily' | 'monthly';
+type KaiqueViewMode = 'integracao' | 'spot';
 
 type RangePresetKey = '1w' | '1m' | '1a' | '3a' | '5a';
 
@@ -142,6 +144,8 @@ export default function TransportFreightTimelinePage() {
 
     const [opMonth, setOpMonth] = useState(String(currentMonth + 1));
     const [opYear, setOpYear] = useState(String(currentYear));
+    const [opUnidadeId, setOpUnidadeId] = useState('all');
+    const [kaiqueViewMode, setKaiqueViewMode] = useState<KaiqueViewMode>('integracao');
     const [operationalReport, setOperationalReport] = useState<FreightOperationalReportResponse | null>(null);
 
     const [monthlyMonth, setMonthlyMonth] = useState(String(currentMonth + 1));
@@ -214,9 +218,18 @@ export default function TransportFreightTimelinePage() {
     async function loadOperationalReport(): Promise<void> {
         setLoadingOperational(true);
 
+        const params = new URLSearchParams({
+            competencia_mes: opMonth,
+            competencia_ano: opYear,
+        });
+
+        if (opUnidadeId !== 'all') {
+            params.set('unidade_id', opUnidadeId);
+        }
+
         try {
             const response = await apiGet<FreightOperationalReportResponse>(
-                `/freight/operational-report?competencia_mes=${opMonth}&competencia_ano=${opYear}`,
+                `/freight/operational-report?${params.toString()}`,
             );
             setOperationalReport(response);
         } catch {
@@ -262,7 +275,7 @@ export default function TransportFreightTimelinePage() {
             void loadOperationalReport();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeView, opMonth, opYear]);
+    }, [activeView, opMonth, opYear, opUnidadeId]);
 
     useEffect(() => {
         if (activeView === 'monthly') {
@@ -398,6 +411,84 @@ export default function TransportFreightTimelinePage() {
         } else {
             setEndDate(value);
         }
+    }
+
+    function renderExecutionMetricsCard(title: string, metrics: FreightExecutionMetrics) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">{title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Dias de abate</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.dias_abate)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Frete total</p>
+                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.total_frete)}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.frete)}% do programado</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">KM rodado</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.km_rodado)}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.km)}% do programado</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Aves abatidas</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_abatidas)}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.aves)}% do programado</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Cargas</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.cargas)}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.cargas)}% do programado</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Frete/KM</p>
+                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_por_km)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Aves por carga</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_por_carga)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Frete médio por carga</p>
+                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_medio_carga)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Raio médio</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.raio_medio)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Participação terceiros</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.participacao_terceiros_percent)}%</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Frete terceiros</p>
+                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_terceiros)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Cargas terceiros</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.cargas_terceiros)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">KM terceiros</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.km_terceiros)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">Aves terceiros</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_terceiros)}</p>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <p className="text-xs text-muted-foreground">% Spot</p>
+                            <p className="text-base font-semibold">{formatIntegerBR(metrics.percentual_spot)}%</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
     }
 
     return (
@@ -750,7 +841,7 @@ export default function TransportFreightTimelinePage() {
                             <CardHeader>
                                 <CardTitle>Competência</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid gap-3 md:grid-cols-2">
+                            <CardContent className="grid gap-3 md:grid-cols-3">
                                 <Select value={opMonth} onValueChange={setOpMonth}>
                                     <SelectTrigger>
                                         <SelectValue />
@@ -775,6 +866,19 @@ export default function TransportFreightTimelinePage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <Select value={opUnidadeId} onValueChange={setOpUnidadeId}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas as unidades</SelectItem>
+                                        {unidades.map((unidade) => (
+                                            <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                                {unidade.nome}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </CardContent>
                         </Card>
 
@@ -784,63 +888,36 @@ export default function TransportFreightTimelinePage() {
                                 Carregando relatório operacional...
                             </div>
                         ) : operationalReport ? (
-                            <>
-                                <div className="grid gap-3 md:grid-cols-4">
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm text-muted-foreground">Total Abatedouro</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-lg font-semibold">{formatCurrencyBR(operationalReport.geral_kaique.total_abatedouro)}</p>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm text-muted-foreground">Frota Dentro</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-lg font-semibold">{formatCurrencyBR(operationalReport.geral_kaique.frota_dentro)}</p>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm text-muted-foreground">Frota Fora</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-lg font-semibold">{formatCurrencyBR(operationalReport.geral_kaique.frota_fora)}</p>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm text-muted-foreground">Total Frota</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="text-lg font-semibold">{formatCurrencyBR(operationalReport.geral_kaique.total_frota)}</p>
-                                        </CardContent>
-                                    </Card>
-                                </div>
+                            <div className="space-y-4">
+                                {renderExecutionMetricsCard('Abatedouro consolidado', operationalReport.abatedouro.resumo)}
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Visão por Abatedouro</CardTitle>
+                                        <CardTitle>Abatedouro por unidade</CardTitle>
                                     </CardHeader>
                                     <CardContent className="overflow-x-auto">
-                                        <table className="w-full min-w-[760px] text-sm">
+                                        <table className="w-full min-w-[900px] text-sm">
                                             <thead>
                                                 <tr className="border-b text-left text-muted-foreground">
                                                     <th className="py-2 pr-3 font-medium">Unidade</th>
-                                                    <th className="py-2 pr-3 font-medium">Frota no abatedouro</th>
-                                                    <th className="py-2 pr-3 font-medium">Terceiros no abatedouro</th>
-                                                    <th className="py-2 pr-3 font-medium">Total abatedouro</th>
+                                                    <th className="py-2 pr-3 font-medium">Frete</th>
+                                                    <th className="py-2 pr-3 font-medium">KM</th>
+                                                    <th className="py-2 pr-3 font-medium">Aves</th>
+                                                    <th className="py-2 pr-3 font-medium">Cargas</th>
+                                                    <th className="py-2 pr-3 font-medium">Frete/KM</th>
+                                                    <th className="py-2 pr-3 font-medium">% terceiros</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {operationalReport.abatedouro.map((item) => (
+                                                {operationalReport.abatedouro.por_unidade.map((item) => (
                                                     <tr key={item.unidade_id} className="border-b last:border-b-0">
                                                         <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.frota_no_abatedouro)}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.terceiros_no_abatedouro)}</td>
-                                                        <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(item.total_abatedouro)}</td>
+                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.total_frete)}</td>
+                                                        <td className="py-2 pr-3">{formatIntegerBR(item.km_rodado)}</td>
+                                                        <td className="py-2 pr-3">{formatIntegerBR(item.aves_abatidas)}</td>
+                                                        <td className="py-2 pr-3">{formatIntegerBR(item.cargas)}</td>
+                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.frete_por_km)}</td>
+                                                        <td className="py-2 pr-3">{formatIntegerBR(item.participacao_terceiros_percent)}%</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -850,32 +927,66 @@ export default function TransportFreightTimelinePage() {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Visão Frota (Dentro/Fora)</CardTitle>
+                                        <CardTitle>Kaique consolidado</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="overflow-x-auto">
-                                        <table className="w-full min-w-[760px] text-sm">
-                                            <thead>
-                                                <tr className="border-b text-left text-muted-foreground">
-                                                    <th className="py-2 pr-3 font-medium">Frota</th>
-                                                    <th className="py-2 pr-3 font-medium">Dentro</th>
-                                                    <th className="py-2 pr-3 font-medium">Fora (Spot)</th>
-                                                    <th className="py-2 pr-3 font-medium">Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {operationalReport.frota.map((item) => (
-                                                    <tr key={item.unidade_id} className="border-b last:border-b-0">
-                                                        <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.dentro)}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.fora)}</td>
-                                                        <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(item.total_frota)}</td>
+                                    <CardContent className="space-y-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                type="button"
+                                                variant={kaiqueViewMode === 'integracao' ? 'default' : 'outline'}
+                                                onClick={() => setKaiqueViewMode('integracao')}
+                                            >
+                                                Integração
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant={kaiqueViewMode === 'spot' ? 'default' : 'outline'}
+                                                onClick={() => setKaiqueViewMode('spot')}
+                                            >
+                                                Spot
+                                            </Button>
+                                            <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
+                                                Spot no total Kaique: {formatIntegerBR(operationalReport.kaique.percentual_spot_total)}%
+                                            </div>
+                                        </div>
+
+                                        {kaiqueViewMode === 'integracao'
+                                            ? renderExecutionMetricsCard('Kaique Integração', operationalReport.kaique.integracao.resumo)
+                                            : renderExecutionMetricsCard('Kaique Spot', operationalReport.kaique.spot.resumo)}
+
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full min-w-[900px] text-sm">
+                                                <thead>
+                                                    <tr className="border-b text-left text-muted-foreground">
+                                                        <th className="py-2 pr-3 font-medium">Unidade</th>
+                                                        <th className="py-2 pr-3 font-medium">Frete</th>
+                                                        <th className="py-2 pr-3 font-medium">KM</th>
+                                                        <th className="py-2 pr-3 font-medium">Aves</th>
+                                                        <th className="py-2 pr-3 font-medium">Cargas</th>
+                                                        <th className="py-2 pr-3 font-medium">Frete/KM</th>
+                                                        <th className="py-2 pr-3 font-medium">% Spot</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {(kaiqueViewMode === 'integracao'
+                                                        ? operationalReport.kaique.integracao.por_unidade
+                                                        : operationalReport.kaique.spot.por_unidade).map((item) => (
+                                                        <tr key={item.unidade_id} className="border-b last:border-b-0">
+                                                            <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
+                                                            <td className="py-2 pr-3">{formatCurrencyBR(item.total_frete)}</td>
+                                                            <td className="py-2 pr-3">{formatIntegerBR(item.km_rodado)}</td>
+                                                            <td className="py-2 pr-3">{formatIntegerBR(item.aves_abatidas)}</td>
+                                                            <td className="py-2 pr-3">{formatIntegerBR(item.cargas)}</td>
+                                                            <td className="py-2 pr-3">{formatCurrencyBR(item.frete_por_km)}</td>
+                                                            <td className="py-2 pr-3">{formatIntegerBR(item.percentual_spot)}%</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </CardContent>
                                 </Card>
-                            </>
+                            </div>
                         ) : null}
                     </>
                 ) : null}
@@ -947,7 +1058,7 @@ export default function TransportFreightTimelinePage() {
                                                     <p className="text-xl font-semibold">{item.unidade_nome ?? 'Sem unidade'}</p>
                                                     <p className="text-sm text-muted-foreground">{formatIntegerBR(item.dias_trabalhados)} dia(s)</p>
                                                 </div>
-                                                <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                                     <div className="rounded-md border bg-muted/20 p-3">
                                                         <p className="text-xs text-muted-foreground">Frete total</p>
                                                         <p className="text-xl font-semibold">{formatCurrencyBR(item.total_frete)}</p>
@@ -980,6 +1091,65 @@ export default function TransportFreightTimelinePage() {
                                                         <p className="text-xs text-muted-foreground">Média frete/KM</p>
                                                         <p className="text-xl font-semibold">{formatCurrencyBR(item.media_frete_por_km)}</p>
                                                     </div>
+                                                    <div className="rounded-md border bg-muted/20 p-3">
+                                                        <p className="text-xs text-muted-foreground">Abatedouro - Frete</p>
+                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.abatedouro.total_frete)}</p>
+                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.frete)}% programado</p>
+                                                    </div>
+                                                    <div className="rounded-md border bg-muted/20 p-3">
+                                                        <p className="text-xs text-muted-foreground">Abatedouro - KM</p>
+                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.km_rodado)}</p>
+                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.km)}% programado</p>
+                                                    </div>
+                                                    <div className="rounded-md border bg-muted/20 p-3">
+                                                        <p className="text-xs text-muted-foreground">Abatedouro - Aves</p>
+                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.aves_abatidas)}</p>
+                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.aves)}% programado</p>
+                                                    </div>
+                                                    <div className="rounded-md border bg-muted/20 p-3">
+                                                        <p className="text-xs text-muted-foreground">Abatedouro - Cargas</p>
+                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.cargas)}</p>
+                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.cargas)}% programado</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant={kaiqueViewMode === 'integracao' ? 'default' : 'outline'}
+                                                        onClick={() => setKaiqueViewMode('integracao')}
+                                                    >
+                                                        Kaique Integração
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant={kaiqueViewMode === 'spot' ? 'default' : 'outline'}
+                                                        onClick={() => setKaiqueViewMode('spot')}
+                                                    >
+                                                        Kaique Spot
+                                                    </Button>
+                                                </div>
+
+                                                <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                                    {(kaiqueViewMode === 'integracao'
+                                                        ? [
+                                                            { label: 'Frete', value: formatCurrencyBR(item.kaique_integracao.total_frete), pct: item.kaique_integracao.percentual_realizado.frete },
+                                                            { label: 'KM', value: formatIntegerBR(item.kaique_integracao.km_rodado), pct: item.kaique_integracao.percentual_realizado.km },
+                                                            { label: 'Aves', value: formatIntegerBR(item.kaique_integracao.aves_abatidas), pct: item.kaique_integracao.percentual_realizado.aves },
+                                                            { label: 'Cargas', value: formatIntegerBR(item.kaique_integracao.cargas), pct: item.kaique_integracao.percentual_realizado.cargas },
+                                                        ]
+                                                        : [
+                                                            { label: 'Frete', value: formatCurrencyBR(item.kaique_spot.total_frete), pct: item.kaique_spot.percentual_realizado.frete },
+                                                            { label: 'KM', value: formatIntegerBR(item.kaique_spot.km_rodado), pct: item.kaique_spot.percentual_realizado.km },
+                                                            { label: 'Aves', value: formatIntegerBR(item.kaique_spot.aves_abatidas), pct: item.kaique_spot.percentual_realizado.aves },
+                                                            { label: 'Cargas', value: formatIntegerBR(item.kaique_spot.cargas), pct: item.kaique_spot.percentual_realizado.cargas },
+                                                        ]).map((metric) => (
+                                                        <div key={`${item.unidade_id}-${metric.label}`} className="rounded-md border bg-muted/20 p-3">
+                                                            <p className="text-xs text-muted-foreground">Kaique {kaiqueViewMode === 'integracao' ? 'Integração' : 'Spot'} - {metric.label}</p>
+                                                            <p className="text-xl font-semibold">{metric.value}</p>
+                                                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metric.pct)}% programado</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}

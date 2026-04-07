@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GeneratePayrollExportJob;
 use App\Http\Requests\StoreBatchPagamentosRequest;
 use App\Http\Requests\StorePagamentoRequest;
 use App\Http\Requests\UpdatePagamentoRequest;
+use App\Models\AsyncExport;
 use App\Models\Colaborador;
 use App\Models\DescontoColaborador;
 use App\Models\EmprestimoColaborador;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -29,8 +32,26 @@ class PayrollController extends Controller
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        $mesAtual = (int) now()->month;
-        $anoAtual = (int) now()->year;
+        $validated = $request->validate([
+            'competencia_mes' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'competencia_ano' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+        ]);
+
+        $mesAtual = (int) ($validated['competencia_mes'] ?? (int) now()->month);
+        $anoAtual = (int) ($validated['competencia_ano'] ?? (int) now()->year);
+
+        $cacheKey = sprintf(
+            'payroll:dashboard:%s:%02d:%04d:%d',
+            $request->user()?->isMasterAdmin() ? 'master' : 'user:'.(int) $request->user()->id,
+            $mesAtual,
+            $anoAtual,
+            $this->payrollCacheVersion(),
+        );
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return response()->json($cached);
+        }
 
         $pagamentosMesQuery = $this->basePaymentsQueryForUser($request)
             ->where('competencia_mes', $mesAtual)
@@ -62,27 +83,96 @@ class PayrollController extends Controller
             ])
             ->values();
 
+        $totaisPorTipo = (clone $pagamentosMesQuery)
+            ->selectRaw('tipo_pagamento_id, COUNT(*) as total_lancamentos, SUM(valor) as total_valor')
+            ->groupBy('tipo_pagamento_id')
+            ->with('tipoPagamento:id,nome')
+            ->get()
+            ->map(fn (Pagamento $pagamento): array => [
+                'tipo_pagamento_id' => $pagamento->tipo_pagamento_id,
+                'tipo_pagamento_nome' => $pagamento->tipoPagamento?->nome ?? 'Não informado',
+                'total_lancamentos' => (int) ($pagamento->total_lancamentos ?? 0),
+                'total_valor' => (float) ($pagamento->total_valor ?? 0),
+            ])
+            ->values();
+
         $pagamentosRecentes = $this->basePaymentsQueryForUser($request)
+            ->select([
+                'id',
+                'colaborador_id',
+                'unidade_id',
+                'competencia_mes',
+                'competencia_ano',
+                'valor',
+                'lancado_em',
+            ])
             ->with([
-                'colaborador:id,nome,cpf,unidade_id',
-                'unidade:id,nome,slug',
-                'autor:id,name,email',
+                'colaborador:id,nome',
+                'unidade:id,nome',
             ])
             ->latest('lancado_em')
             ->latest('id')
             ->limit(10)
             ->get();
 
-        return response()->json([
+        $payload = [
             'competencia_mes' => $mesAtual,
             'competencia_ano' => $anoAtual,
+            'colaboradores_pagos_mes' => $colaboradoresPagosMes,
             'total_pagamentos_a_fazer' => $pagamentosAFazer,
             'total_pagamentos_lancados' => $pagamentosLancados,
             'colaboradores_ativos' => $colaboradoresAtivos,
             'total_a_pagar_mes_atual' => $totalPagarMesAtual,
             'totais_por_unidade' => $totaisPorUnidade,
+            'totais_por_tipo' => $totaisPorTipo,
             'pagamentos_recentes' => $pagamentosRecentes,
+        ];
+
+        Cache::put($cacheKey, $payload, now()->addSeconds(60));
+
+        return response()->json($payload);
+    }
+
+    public function dashboardPage(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $mes = (int) $request->integer('competencia_mes', (int) now()->month);
+        $ano = (int) $request->integer('competencia_ano', (int) now()->year);
+
+        $cacheKey = sprintf(
+            'payroll:dashboard-page:%s:%02d:%04d:%d',
+            $request->user()?->isMasterAdmin() ? 'master' : 'user:'.(int) $request->user()->id,
+            $mes,
+            $ano,
+            $this->payrollCacheVersion(),
+        );
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return response()->json($cached);
+        }
+
+        $dashboardRequest = $request->duplicate([
+            'competencia_mes' => $mes,
+            'competencia_ano' => $ano,
         ]);
+        $dashboardRequest->setUserResolver(fn () => $request->user());
+
+        $summaryRequest = $request->duplicate([
+            'competencia_mes' => $mes,
+            'competencia_ano' => $ano,
+        ]);
+        $summaryRequest->setUserResolver(fn () => $request->user());
+
+        $payload = [
+            'dashboard' => $this->dashboard($dashboardRequest)->getData(true),
+            'summary' => $this->summary($summaryRequest)->getData(true),
+        ];
+
+        Cache::put($cacheKey, $payload, now()->addSeconds(60));
+
+        return response()->json($payload);
     }
 
     public function summary(Request $request): JsonResponse
@@ -91,6 +181,19 @@ class PayrollController extends Controller
 
         $mes = (int) $request->integer('competencia_mes', (int) now()->month);
         $ano = (int) $request->integer('competencia_ano', (int) now()->year);
+
+        $cacheKey = sprintf(
+            'payroll:summary:%s:%d:%d:%d',
+            $request->user()?->isMasterAdmin() ? 'master' : 'user:'.(int) $request->user()->id,
+            $mes,
+            $ano,
+            $this->payrollCacheVersion(),
+        );
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return response()->json($cached);
+        }
 
         $query = $this->basePaymentsQueryForUser($request)
             ->with(['unidade:id,nome'])
@@ -120,14 +223,18 @@ class PayrollController extends Controller
             ])
             ->values();
 
-        return response()->json([
+        $payload = [
             'competencia_mes' => $mes,
             'competencia_ano' => $ano,
             'total_lancamentos' => $totalLancamentos,
             'total_colaboradores' => $totalColaboradores,
             'total_valor' => $totalValor,
             'por_unidade' => $porUnidade,
-        ]);
+        ];
+
+        Cache::put($cacheKey, $payload, now()->addSeconds(60));
+
+        return response()->json($payload);
     }
 
     public function launchCandidates(Request $request): JsonResponse
@@ -254,6 +361,8 @@ class PayrollController extends Controller
                     ->values();
             });
 
+                    $this->bumpPayrollCacheVersion();
+
             return response()->json([
                 'message' => 'Pagamentos lançados com sucesso.',
                 'created_count' => $created->count(),
@@ -279,13 +388,6 @@ class PayrollController extends Controller
 
                     $diasUteis = max((int) ($item['dias_uteis'] ?? 0), 0);
                     $valoresPorTipo = (array) ($item['valores_por_tipo'] ?? []);
-                    $pagamentosExistentesPorTipo = collect((array) ($item['pagamentos_existentes_por_tipo'] ?? []))
-                        ->mapWithKeys(function ($entry, $tipoId): array {
-                            $typedEntry = is_array($entry) ? $entry : [];
-
-                            return [(int) $tipoId => (int) ($typedEntry['id'] ?? 0)];
-                        })
-                        ->all();
                     $valoresPensao = collect((array) ($item['valores_pensao'] ?? []))
                         ->mapWithKeys(fn ($valor, $pensaoId) => [(int) $pensaoId => (float) $valor])
                         ->filter(fn (float $valor, int $pensaoId) => $pensaoId > 0 && $valor > 0)
@@ -319,65 +421,59 @@ class PayrollController extends Controller
                         $observacao = count($observacaoPayload) > 0
                             ? json_encode($observacaoPayload)
                             : null;
+                        $dataPagamentoKey = $dataPagamentoDate->toDateString();
 
-                        $existingPaymentId = (int) ($pagamentosExistentesPorTipo[$tipoId] ?? 0);
-
-                        $existingPayment = $existingPaymentId > 0
-                            ? Pagamento::query()
-                                ->whereKey($existingPaymentId)
-                                ->where('colaborador_id', (int) $item['colaborador_id'])
-                                ->where('tipo_pagamento_id', $tipoId)
-                                ->whereDate('data_pagamento', $dataPagamento)
-                                ->first()
-                            : null;
-
-                        if (! $existingPayment) {
-                            $existingPayment = Pagamento::query()
-                                ->where('colaborador_id', (int) $item['colaborador_id'])
-                                ->where('tipo_pagamento_id', $tipoId)
-                                ->whereDate('data_pagamento', $dataPagamento)
-                                ->first();
-                        }
+                        $existingPayment = Pagamento::query()
+                            ->where('colaborador_id', (int) $item['colaborador_id'])
+                            ->where('tipo_pagamento_id', $tipoId)
+                            ->whereDate('data_pagamento', $dataPagamentoKey)
+                            ->first();
 
                         if ($existingPayment) {
                             $existingPayment->update([
                                 'unidade_id' => (int) $data['unidade_id'],
+                                'autor_id' => (int) $request->user()->id,
+                                'competencia_mes' => (int) $dataPagamentoDate->month,
+                                'competencia_ano' => (int) $dataPagamentoDate->year,
                                 'valor' => $valor,
                                 'descricao' => $descricao !== ''
                                     ? $descricao
                                     : ($tipoPagamento?->nome ?? 'Pagamento'),
                                 'data_pagamento' => $dataPagamento,
-                                'competencia_mes' => (int) $dataPagamentoDate->month,
-                                'competencia_ano' => (int) $dataPagamentoDate->year,
                                 'observacao' => $observacao,
+                                'lancado_em' => now(),
                             ]);
 
-                            $createdItems[] = $existingPayment->refresh();
-
-                            continue;
+                            $persisted = $existingPayment->refresh();
+                        } else {
+                            $persisted = Pagamento::query()->create([
+                                'colaborador_id' => (int) $item['colaborador_id'],
+                                'unidade_id' => (int) $data['unidade_id'],
+                                'autor_id' => (int) $request->user()->id,
+                                'tipo_pagamento_id' => $tipoId,
+                                'competencia_mes' => (int) $dataPagamentoDate->month,
+                                'competencia_ano' => (int) $dataPagamentoDate->year,
+                                'valor' => $valor,
+                                'descricao' => $descricao !== ''
+                                    ? $descricao
+                                    : ($tipoPagamento?->nome ?? 'Pagamento'),
+                                'data_pagamento' => $dataPagamento,
+                                'observacao' => $observacao,
+                                'lancado_em' => now(),
+                            ]);
                         }
 
-                        $createdItems[] = Pagamento::query()->create([
-                            'colaborador_id' => (int) $item['colaborador_id'],
-                            'unidade_id' => (int) $data['unidade_id'],
-                            'autor_id' => (int) $request->user()->id,
-                            'tipo_pagamento_id' => $tipoId,
-                            'competencia_mes' => (int) $dataPagamentoDate->month,
-                            'competencia_ano' => (int) $dataPagamentoDate->year,
-                            'valor' => $valor,
-                            'descricao' => $descricao !== ''
-                                ? $descricao
-                                : ($tipoPagamento?->nome ?? 'Pagamento'),
-                            'data_pagamento' => $dataPagamento,
-                            'observacao' => $observacao,
-                            'lancado_em' => now(),
-                        ]);
+                        if ($persisted) {
+                            $createdItems[] = $persisted;
+                        }
                     }
 
                     return $createdItems;
                 })
                 ->values();
         });
+
+        $this->bumpPayrollCacheVersion();
 
         return response()->json([
             'message' => 'Pagamentos lançados com sucesso.',
@@ -479,73 +575,63 @@ class PayrollController extends Controller
             ->orderBy('competencia_mes')
             ->get();
 
-        $totalAcumulado = (float) $historico->sum('valor');
+        $descontosPorMes = $this->buildReportDiscountsByMonth(
+            $colaboradorId,
+            $inicioKey,
+            $fimKey,
+        );
 
         $totaisPorMes = $historico
             ->groupBy(fn (Pagamento $pagamento): string => sprintf('%04d-%02d', (int) $pagamento->competencia_ano, (int) $pagamento->competencia_mes))
-            ->map(function ($items): array {
-                $pagamentos = $items instanceof \Illuminate\Support\Collection ? $items : collect($items);
+            ->map(function (Collection $pagamentos, string $monthKey) use ($descontosPorMes): array {
                 $first = $pagamentos->first();
+                $pagamentosMes = (float) $pagamentos->sum('valor');
+                $pensoesMes = (float) $pagamentos->sum(
+                    fn (Pagamento $pagamento): float => $this->extractPensaoTotalFromObservation($pagamento->observacao),
+                );
+                $descontosMes = (float) ($descontosPorMes[$monthKey] ?? 0);
+                $totalMes = round($pagamentosMes + $pensoesMes + $descontosMes, 2);
+                $lancadoEm = $pagamentos
+                    ->filter(fn (Pagamento $pagamento): bool => $pagamento->lancado_em !== null)
+                    ->max(fn (Pagamento $pagamento) => $pagamento->lancado_em?->timestamp ?? 0);
 
                 return [
                     'competencia_ano' => (int) ($first?->competencia_ano ?? 0),
                     'competencia_mes' => (int) ($first?->competencia_mes ?? 0),
-                    'total_valor' => (float) $pagamentos->sum('valor'),
+                    'total_pagamentos' => round($pagamentosMes, 2),
+                    'total_pensoes' => round($pensoesMes, 2),
+                    'total_descontos' => round($descontosMes, 2),
+                    'total_valor' => $totalMes,
                     'total_lancamentos' => (int) $pagamentos->count(),
+                    'lancado_em' => $lancadoEm !== null
+                        ? now()->setTimestamp((int) $lancadoEm)->toISOString()
+                        : null,
                 ];
             })
             ->keyBy(fn (array $item): string => sprintf('%04d-%02d', $item['competencia_ano'], $item['competencia_mes']));
 
         $serieMensal = $this->buildMonthlySeries($inicio, $fim, $totaisPorMes);
+        $timeline = collect($serieMensal)
+            ->map(fn (array $item): array => [
+                'competencia_mes' => (int) $item['competencia_mes'],
+                'competencia_ano' => (int) $item['competencia_ano'],
+                'competencia_label' => (string) $item['competencia_label'],
+                'total_pagamentos' => (float) ($item['total_pagamentos'] ?? 0),
+                'total_pensoes' => (float) ($item['total_pensoes'] ?? 0),
+                'total_descontos' => (float) ($item['total_descontos'] ?? 0),
+                'total_valor' => (float) ($item['total_valor'] ?? 0),
+                'lancado_em' => $item['lancado_em'] ?? null,
+                'total_lancamentos' => (int) ($item['total_lancamentos'] ?? 0),
+            ])
+            ->filter(fn (array $item): bool => (int) ($item['total_lancamentos'] ?? 0) > 0)
+            ->values();
+
+        $totalAcumulado = (float) $timeline->sum('total_valor');
+        $totalPensoes = (float) $timeline->sum('total_pensoes');
+        $totalDescontos = (float) $timeline->sum('total_descontos');
         $mediaSalarialMes = count($serieMensal) > 0
             ? $totalAcumulado / count($serieMensal)
             : 0.0;
-
-        $emprestimos = EmprestimoColaborador::query()
-            ->where('colaborador_id', $colaboradorId)
-            ->where('ativo', true)
-            ->get();
-
-        $timeline = $historico->map(function (Pagamento $pagamento) use ($emprestimos): array {
-            $parcelaEmprestimo = $emprestimos->sum(function (EmprestimoColaborador $emprestimo) use ($pagamento): float {
-                $inicio = $emprestimo->data_inicio?->copy()->startOfMonth();
-
-                if (! $inicio) {
-                    return 0.0;
-                }
-
-                $competencia = now()
-                    ->setDate((int) $pagamento->competencia_ano, (int) $pagamento->competencia_mes, 1)
-                    ->startOfMonth();
-
-                if ($competencia->lt($inicio)) {
-                    return 0.0;
-                }
-
-                $mesesDiff = (($competencia->year - $inicio->year) * 12) + ($competencia->month - $inicio->month);
-
-                if ($mesesDiff < 0 || $mesesDiff >= (int) $emprestimo->total_parcelas) {
-                    return 0.0;
-                }
-
-                return (float) $emprestimo->valor_parcela;
-            });
-
-            $valorPagamento = (float) $pagamento->valor;
-
-            return [
-                'id' => $pagamento->id,
-                'competencia_mes' => (int) $pagamento->competencia_mes,
-                'competencia_ano' => (int) $pagamento->competencia_ano,
-                'valor' => $valorPagamento,
-                'parcela_emprestimo' => $parcelaEmprestimo,
-                'ganho_total' => $valorPagamento + $parcelaEmprestimo,
-                'lancado_em' => $pagamento->lancado_em?->toISOString(),
-                'observacao' => $pagamento->observacao,
-            ];
-        })->values();
-
-        $totalAcumuladoComEmprestimo = (float) $timeline->sum('ganho_total');
 
         $variacao = collect($serieMensal)
             ->values()
@@ -587,7 +673,8 @@ class PayrollController extends Controller
             'timeline' => $timeline,
             'resumo_mensal' => $serieMensal,
             'total_acumulado' => $totalAcumulado,
-            'total_acumulado_com_emprestimo' => $totalAcumuladoComEmprestimo,
+            'total_pensoes' => $totalPensoes,
+            'total_descontos' => $totalDescontos,
             'media_salarial' => $mediaSalarialMes,
             'variacao_percentual' => $variacao,
             'datas_importantes' => [
@@ -785,10 +872,12 @@ class PayrollController extends Controller
             $startKey = $discount->data_referencia
                 ? (((int) $discount->data_referencia->year * 100) + (int) $discount->data_referencia->month)
                 : 0;
-            $historyMonthKeys = array_keys($availableByMonth);
+            $createdAtKey = $discount->created_at
+                ? (((int) $discount->created_at->year * 100) + (int) $discount->created_at->month)
+                : $currentKey;
             $effectiveStartKey = $startKey > 0
                 ? $startKey
-                : (count($historyMonthKeys) > 0 ? min($historyMonthKeys) : $currentKey);
+                : $createdAtKey;
             $dueByMonth = $this->buildDiscountDueScheduleUpToCurrent($discount, $discountTotal, $effectiveStartKey, $currentKey);
 
             $openBalance = 0.0;
@@ -943,6 +1032,126 @@ class PayrollController extends Controller
         return ['extras'];
     }
 
+    private function extractPensaoTotalFromObservation(?string $observacao): float
+    {
+        if (! is_string($observacao) || trim($observacao) === '') {
+            return 0.0;
+        }
+
+        $decoded = json_decode($observacao, true);
+
+        if (! is_array($decoded)) {
+            return 0.0;
+        }
+
+        $pensoes = $decoded['pensoes'] ?? null;
+
+        if (! is_array($pensoes)) {
+            return 0.0;
+        }
+
+        return round(
+            collect($pensoes)
+                ->sum(fn ($item): float => (float) (is_array($item) ? ($item['valor'] ?? 0) : 0)),
+            2,
+        );
+    }
+
+    private function buildReportDiscountsByMonth(int $colaboradorId, int $inicioKey, int $fimKey): array
+    {
+        $totals = [];
+
+        $discounts = DescontoColaborador::query()
+            ->select([
+                'id',
+                'valor',
+                'parcelado',
+                'total_parcelas',
+                'data_referencia',
+                'created_at',
+            ])
+            ->where('colaborador_id', $colaboradorId)
+            ->get();
+
+        foreach ($discounts as $discount) {
+            $startKey = $discount->data_referencia
+                ? (((int) $discount->data_referencia->year * 100) + (int) $discount->data_referencia->month)
+                : ($discount->created_at
+                    ? (((int) $discount->created_at->year * 100) + (int) $discount->created_at->month)
+                    : 0);
+
+            if ($startKey <= 0) {
+                continue;
+            }
+
+            $schedule = $this->buildDiscountDueScheduleUpToCurrent(
+                $discount,
+                (float) $discount->valor,
+                $startKey,
+                $fimKey,
+            );
+
+            foreach ($schedule as $monthKey => $amount) {
+                $intMonthKey = (int) $monthKey;
+
+                if ($intMonthKey < $inicioKey || $intMonthKey > $fimKey) {
+                    continue;
+                }
+
+                $label = sprintf('%04d-%02d', intdiv($intMonthKey, 100), $intMonthKey % 100);
+                $totals[$label] = round(((float) ($totals[$label] ?? 0)) + (float) $amount, 2);
+            }
+        }
+
+        $loans = EmprestimoColaborador::query()
+            ->select([
+                'valor_parcela',
+                'total_parcelas',
+                'parcelas_pagas',
+                'data_inicio',
+                'created_at',
+                'ativo',
+            ])
+            ->where('colaborador_id', $colaboradorId)
+            ->where('ativo', true)
+            ->get();
+
+        foreach ($loans as $loan) {
+            $baseDate = $loan->data_inicio ?? $loan->created_at;
+
+            if (! $baseDate) {
+                continue;
+            }
+
+            $startKey = ((int) $baseDate->year * 100) + (int) $baseDate->month;
+            $totalInstallments = max(1, (int) ($loan->total_parcelas ?? 1));
+            $paidInstallments = max(0, min((int) ($loan->parcelas_pagas ?? 0), $totalInstallments));
+            $remainingInstallments = max($totalInstallments - $paidInstallments, 0);
+            $installmentValue = (float) ($loan->valor_parcela ?? 0);
+
+            if ($installmentValue <= 0 || $remainingInstallments <= 0) {
+                continue;
+            }
+
+            for ($index = 0; $index < $remainingInstallments; $index++) {
+                $monthKey = $this->addMonthsToCompetenciaKey($startKey, $index);
+
+                if ($monthKey < $inicioKey) {
+                    continue;
+                }
+
+                if ($monthKey > $fimKey) {
+                    break;
+                }
+
+                $label = sprintf('%04d-%02d', intdiv($monthKey, 100), $monthKey % 100);
+                $totals[$label] = round(((float) ($totals[$label] ?? 0)) + $installmentValue, 2);
+            }
+        }
+
+        return $totals;
+    }
+
     private function buildMonthlySeries(CarbonImmutable $inicio, CarbonImmutable $fim, $totaisPorMes): array
     {
         $series = [];
@@ -960,12 +1169,32 @@ class PayrollController extends Controller
                 ? (int) ($raw['total_lancamentos'] ?? 0)
                 : (int) ($raw?->total_lancamentos ?? 0);
 
+            $totalPagamentos = is_array($raw)
+                ? (float) ($raw['total_pagamentos'] ?? 0)
+                : (float) ($raw?->total_pagamentos ?? 0);
+
+            $totalPensoes = is_array($raw)
+                ? (float) ($raw['total_pensoes'] ?? 0)
+                : (float) ($raw?->total_pensoes ?? 0);
+
+            $totalDescontos = is_array($raw)
+                ? (float) ($raw['total_descontos'] ?? 0)
+                : (float) ($raw?->total_descontos ?? 0);
+
+            $lancadoEm = is_array($raw)
+                ? ($raw['lancado_em'] ?? null)
+                : ($raw?->lancado_em ?? null);
+
             $series[] = [
                 'competencia_ano' => (int) $cursor->year,
                 'competencia_mes' => (int) $cursor->month,
                 'competencia_label' => $cursor->locale('pt_BR')->translatedFormat('M/y'),
                 'total_valor' => $totalValor,
                 'total_lancamentos' => $totalLancamentos,
+                'total_pagamentos' => $totalPagamentos,
+                'total_pensoes' => $totalPensoes,
+                'total_descontos' => $totalDescontos,
+                'lancado_em' => $lancadoEm,
             ];
 
             $cursor = $cursor->addMonth();
@@ -1033,12 +1262,32 @@ class PayrollController extends Controller
         return response()->json($query->paginate($perPage)->withQueryString());
     }
 
-    public function exportXlsx(Request $request): StreamedResponse
+    public function exportXlsx(Request $request): StreamedResponse|JsonResponse
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
         $mes = (int) $request->integer('competencia_mes', (int) now()->month);
         $ano = (int) $request->integer('competencia_ano', (int) now()->year);
+
+        if ($request->boolean('async')) {
+            $export = AsyncExport::query()->create([
+                'user_id' => (int) $request->user()->id,
+                'type' => 'payroll_xlsx',
+                'status' => 'queued',
+                'filters' => [
+                    'competencia_mes' => $mes,
+                    'competencia_ano' => $ano,
+                ],
+            ]);
+
+            GeneratePayrollExportJob::dispatch($export->id);
+
+            return response()->json([
+                'message' => 'Exportação enfileirada com sucesso.',
+                'export_id' => $export->id,
+                'status' => $export->status,
+            ], 202);
+        }
 
         $query = $this->basePaymentsQueryForUser($request)
             ->with([
@@ -1152,6 +1401,150 @@ class PayrollController extends Controller
         ]);
     }
 
+    public function exportBenefitsXlsx(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $validated = $request->validate([
+            'pagamento_ids' => ['required', 'string'],
+        ]);
+
+        $paymentIds = collect(explode(',', (string) $validated['pagamento_ids']))
+            ->map(fn ($value) => (int) trim($value))
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values();
+
+        abort_if($paymentIds->isEmpty(), 422, 'Informe pelo menos um pagamento para exportação.');
+
+        $rows = $this->basePaymentsQueryForUser($request)
+            ->with([
+                'colaborador:id,nome',
+                'tipoPagamento:id,nome',
+            ])
+            ->whereIn('id', $paymentIds->all())
+            ->orderBy('colaborador_id')
+            ->orderBy('id')
+            ->get();
+
+        abort_if($rows->isEmpty(), 404, 'Pagamentos não encontrados para exportação.');
+
+        $fallbackTypeNames = TipoPagamento::query()
+            ->withoutGlobalScopes()
+            ->whereIn(
+                'id',
+                $rows
+                    ->pluck('tipo_pagamento_id')
+                    ->filter(fn ($id) => $id !== null)
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all(),
+            )
+            ->pluck('nome', 'id');
+
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $colaboradorId = (int) ($row->colaborador_id ?? 0);
+            $name = trim((string) ($row->colaborador?->nome ?? 'Sem nome'));
+            $key = $colaboradorId > 0 ? (string) $colaboradorId : $name;
+
+            if (! isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'nome' => $name,
+                    'vr' => 0.0,
+                    'va' => 0.0,
+                ];
+            }
+
+            $typeName = (string) (
+                $row->tipoPagamento?->nome
+                ?? $fallbackTypeNames->get((int) ($row->tipo_pagamento_id ?? 0), '')
+            );
+
+            $normalizedType = $this->normalizePaymentName($typeName);
+            $value = (float) $row->valor;
+
+            if ($this->containsAny($normalizedType, ['vale refeicao', 'vr'])) {
+                $grouped[$key]['vr'] += $value;
+                continue;
+            }
+
+            if ($this->containsAny($normalizedType, ['vale transporte', 'vt'])) {
+                $grouped[$key]['va'] += $value;
+                continue;
+            }
+
+            if ($this->containsAny($normalizedType, ['cesta basica', 'cb'])) {
+                $grouped[$key]['va'] += $value;
+            }
+        }
+
+        $summaryRows = collect(array_values($grouped))
+            ->sortBy('nome', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $totalVr = (float) $summaryRows->sum('vr');
+        $totalVa = (float) $summaryRows->sum('va');
+        $firstPayment = $rows->first();
+        $periodLabel = sprintf(
+            '%02d/%04d',
+            (int) ($firstPayment?->competencia_mes ?? now()->month),
+            (int) ($firstPayment?->competencia_ano ?? now()->year),
+        );
+
+        $fileName = sprintf('beneficios_lancamento_%s.xlsx', now()->format('Ymd_His'));
+
+        return response()->streamDownload(function () use ($summaryRows, $totalVr, $totalVa, $periodLabel): void {
+            $spreadsheet = new Spreadsheet;
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Benefícios VR VA');
+
+            $sheet->setCellValue('A1', 'Benefícios por lançamento (VR/VA) - '.$periodLabel);
+            $sheet->mergeCells('A1:D1');
+
+            $sheet->fromArray(['Nome', 'VR', 'VA', 'Total Benefícios'], null, 'A3');
+
+            $line = 4;
+            foreach ($summaryRows as $row) {
+                $totalBenefits = (float) $row['vr'] + (float) $row['va'];
+
+                $sheet->fromArray([
+                    $row['nome'],
+                    (float) $row['vr'],
+                    (float) $row['va'],
+                    $totalBenefits,
+                ], null, 'A'.$line);
+
+                $line++;
+            }
+
+            $sheet->fromArray([
+                'TOTAL',
+                $totalVr,
+                $totalVa,
+                $totalVr + $totalVa,
+            ], null, 'A'.$line);
+
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+            $sheet->getStyle('A3:D3')->getFont()->setBold(true);
+            $sheet->getStyle('A'.$line.':D'.$line)->getFont()->setBold(true);
+            $sheet->getStyle('B4:D'.$line)->getNumberFormat()->setFormatCode('#,##0.00');
+
+            foreach (range('A', 'D') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     public function store(StorePagamentoRequest $request): JsonResponse
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
@@ -1179,6 +1572,8 @@ class PayrollController extends Controller
             'observacao' => $data['observacao'] ?? null,
             'lancado_em' => $data['lancado_em'] ?? now(),
         ]);
+
+        $this->bumpPayrollCacheVersion();
 
         return response()->json([
             'data' => $pagamento->load([
@@ -1236,6 +1631,8 @@ class PayrollController extends Controller
 
         $pagamento->update($data);
 
+        $this->bumpPayrollCacheVersion();
+
         return response()->json([
             'data' => $pagamento->refresh()->load([
                 'colaborador:id,nome,cpf,unidade_id',
@@ -1251,11 +1648,9 @@ class PayrollController extends Controller
     {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        if (! $request->user()?->isMasterAdmin() && $pagamento->autor_id !== $request->user()->id) {
-            abort(403);
-        }
-
         $pagamento->delete();
+
+        $this->bumpPayrollCacheVersion();
 
         return response()->json([], 204);
     }
@@ -1269,6 +1664,16 @@ class PayrollController extends Controller
         }
 
         return $query;
+    }
+
+    private function payrollCacheVersion(): int
+    {
+        return (int) Cache::get('payroll:cache:version', 1);
+    }
+
+    private function bumpPayrollCacheVersion(): void
+    {
+        Cache::forever('payroll:cache:version', $this->payrollCacheVersion() + 1);
     }
 
     private function normalizePaymentName(string $value): string

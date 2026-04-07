@@ -1,10 +1,10 @@
-import { LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -47,10 +47,26 @@ export default function TransportPayrollReportUnitPage() {
     const [competenciaFinal, setCompetenciaFinal] = useState(`${currentYear}-12`);
     const [report, setReport] = useState<UnitReport | null>(null);
     const [loading, setLoading] = useState(true);
+    const [hoveredPoint, setHoveredPoint] = useState<{
+        xPercent: number;
+        yPercent: number;
+        label: string;
+    } | null>(null);
     const [notification, setNotification] = useState<{
         message: string;
         variant: 'success' | 'error' | 'info';
     } | null>(null);
+
+    function applyRangePreset(days: 7 | 30 | 90): void {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - days + 1);
+
+        const toMonth = (value: Date): string => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+
+        setCompetenciaInicial(toMonth(start));
+        setCompetenciaFinal(toMonth(end));
+    }
 
     const chartData = useMemo(() => {
         if (!report || report.evolucao_mensal.length === 0) return null;
@@ -204,6 +220,11 @@ export default function TransportPayrollReportUnitPage() {
                             </div>
                         </div>
                         <div className="mt-4 flex justify-end">
+                            <div className="mr-auto flex gap-2">
+                                <Button type="button" variant="outline" onClick={() => applyRangePreset(7)}>7 dias</Button>
+                                <Button type="button" variant="outline" onClick={() => applyRangePreset(30)}>30 dias</Button>
+                                <Button type="button" variant="outline" onClick={() => applyRangePreset(90)}>90 dias</Button>
+                            </div>
                             <Button
                                 variant="outline"
                                 onClick={() => void loadReport()}
@@ -215,9 +236,33 @@ export default function TransportPayrollReportUnitPage() {
                 </Card>
 
                 {loading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <LoaderCircle className="size-4 animate-spin" />
-                        Carregando relatório...
+                    <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-3">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <Card key={`unit-report-skeleton-kpi-${index}`}>
+                                    <CardHeader>
+                                        <Skeleton className="h-4 w-2/3" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Skeleton className="h-8 w-1/2" />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            <Card>
+                                <CardContent className="space-y-3 pt-6">
+                                    <Skeleton className="h-5 w-40" />
+                                    <Skeleton className="h-24 w-full" />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardContent className="space-y-3 pt-6">
+                                    <Skeleton className="h-5 w-48" />
+                                    <Skeleton className="h-40 w-full" />
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
                 ) : report ? (
                     <>
@@ -292,7 +337,18 @@ export default function TransportPayrollReportUnitPage() {
                                             Sem histórico para exibir.
                                         </p>
                                     ) : (
-                                        <div className="overflow-x-auto">
+                                            <div className="relative overflow-x-auto">
+                                                {hoveredPoint ? (
+                                                    <div
+                                                        className="bg-popover text-popover-foreground pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
+                                                        style={{
+                                                            left: `${hoveredPoint.xPercent}%`,
+                                                            top: `${hoveredPoint.yPercent}%`,
+                                                        }}
+                                                    >
+                                                        {hoveredPoint.label}
+                                                    </div>
+                                                ) : null}
                                             <svg
                                                 width={chartData.width}
                                                 height={chartData.height}
@@ -313,6 +369,14 @@ export default function TransportPayrollReportUnitPage() {
                                                             cy={point.y}
                                                             r="4"
                                                             className="fill-primary"
+                                                            onMouseEnter={() =>
+                                                                setHoveredPoint({
+                                                                    xPercent: (point.x / chartData.width) * 100,
+                                                                    yPercent: (point.y / chartData.height) * 100,
+                                                                    label: `${point.label} • ${formatCurrencyBR(point.total_valor)}`,
+                                                                })
+                                                            }
+                                                            onMouseLeave={() => setHoveredPoint(null)}
                                                         >
                                                             <title>
                                                                 {point.label}: {formatCurrencyBR(point.total_valor)}

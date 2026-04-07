@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-03-24] - Refino visual corporativo dos dashboards e tabelas
+
+### Gestão de Fretes
+
+- Dashboards dos módulos de Férias, Pagamentos, Fretes e Entrevistas foram recalibrados para base preta/neutra, removendo excesso de cor em números e mantendo ênfase cromática apenas em status e criticidade.
+- Implementado padrão visual global com 3 níveis de hierarquia (destaque, médio e detalhe) por meio de classes compartilhadas para cards KPI, títulos, valores e detalhes operacionais.
+- Cards de dashboards passaram a exibir ícones consistentes e fundos leves (`bg-soft`) por contexto sem quebrar identidade clean/corporativa.
+- Tabelas de todos os módulos dentro do layout administrativo receberam zebra striping, hover padronizado e alinhamento vertical uniforme para leitura contínua.
+- Status em tabelas-chave foram convertidos para badges semânticas no padrão fixo: vermelho (problema), amarelo (atenção), verde (positivo) e azul (informativo), incluindo Férias, Entrevistas e Cadastro.
+- Dashboard de Fretes ganhou filtro opcional por intervalo de datas (`data inicial` + `data final`) que, quando preenchido, sobrepõe a competência mês/ano; botão `Limpar período` restaura o modo padrão por competência.
+- Lista diária de Fretes (no Dashboard) e Lista de Fretes principal receberam coluna de `Dia da semana` ao lado da data para facilitar orientação operacional.
+- Fluxo de exclusão na Lista de Fretes foi reforçado com recarga anti-stale (cache-busting + revalidação curta) para evitar reaparecimento visual de item recém-excluído.
+- Cabeçalho global do layout foi compactado (remoção de linha redundante) e botões `Modo foco`/`Navegação rápida` foram movidos para controle flutuante, recuperando altura útil das telas.
+- Exportação Excel mensal por filtro em Pagamentos foi removida da barra de filtros e substituída por botão por lançamento (somente quando houver VT/VR/Cesta Básica).
+- Relatórios de Pagamentos por Unidade e por Colaborador receberam tooltip por ponto no gráfico de variação mensal, replicando a interação de hover da tendência da Central Analítica de Fretes.
+
 ## [2026-03-20] - Correção de log diário e desconto parcelado da folha
 
 ### Plataforma

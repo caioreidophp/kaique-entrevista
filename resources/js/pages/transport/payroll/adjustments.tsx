@@ -1,5 +1,5 @@
 import { LoaderCircle, PencilLine, PlusSquare, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -187,6 +187,33 @@ export default function TransportPayrollAdjustmentsPage() {
     const [descontoCollaboratorSearch, setDescontoCollaboratorSearch] = useState('');
     const [emprestimoCollaboratorSearch, setEmprestimoCollaboratorSearch] = useState('');
     const [pensaoCollaboratorSearch, setPensaoCollaboratorSearch] = useState('');
+    const finePrefillAppliedRef = useRef(false);
+
+    const fineDiscountPrefill = useMemo(() => {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get('prefill_fine_discount') !== '1') {
+            return null;
+        }
+
+        const colaboradorId = params.get('colaborador_id')?.trim() ?? '';
+        const valor = params.get('valor')?.trim() ?? '';
+        const dataReferencia = params.get('data_referencia')?.trim() ?? '';
+
+        if (!colaboradorId || !valor) {
+            return null;
+        }
+
+        return {
+            colaboradorId,
+            valor,
+            dataReferencia: dataReferencia || new Date().toISOString().slice(0, 10),
+        };
+    }, []);
 
     const collaboratorMap = useMemo(() => {
         return new Map(colaboradores.map((item) => [String(item.id), item.nome]));
@@ -251,6 +278,42 @@ export default function TransportPayrollAdjustmentsPage() {
     useEffect(() => {
         void load();
     }, []);
+
+    useEffect(() => {
+        if (!fineDiscountPrefill || finePrefillAppliedRef.current) {
+            return;
+        }
+
+        const colaborador = colaboradores.find(
+            (item) => String(item.id) === fineDiscountPrefill.colaboradorId,
+        );
+
+        if (!colaborador) {
+            return;
+        }
+
+        setEditingDesconto(null);
+        setDescontoForm({
+            ...emptyDesconto,
+            colaborador_id: String(colaborador.id),
+            descricao: '',
+            valor: fineDiscountPrefill.valor,
+            data_referencia: fineDiscountPrefill.dataReferencia,
+            parcelado: false,
+        });
+        setDescontoCollaboratorSearch(colaborador.nome);
+        setDescontoOpen(true);
+        setNotification({
+            message: 'Desconto pré-preenchido a partir da multa. Revise os dados e preencha a descrição antes de salvar.',
+            variant: 'info',
+        });
+
+        finePrefillAppliedRef.current = true;
+
+        if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, [colaboradores, fineDiscountPrefill]);
 
     function openNewDesconto(): void {
         setEditingDesconto(null);

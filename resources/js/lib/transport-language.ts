@@ -5,9 +5,7 @@ export const TRANSPORT_LANGUAGE_EVENT = 'transport:language-changed';
 const DEFAULT_LANGUAGE: TransportLanguage = 'pt-BR';
 
 export function normalizeTransportLanguage(value: unknown): TransportLanguage {
-    if (value === 'en-US' || value === 'pt-BR') {
-        return value;
-    }
+    void value;
 
     return DEFAULT_LANGUAGE;
 }
@@ -27,14 +25,16 @@ export function setStoredTransportLanguage(language: TransportLanguage): void {
         return;
     }
 
-    window.localStorage.setItem(TRANSPORT_LANGUAGE_STORAGE_KEY, language);
-    document.documentElement.lang = language;
+    void language;
+
+    window.localStorage.setItem(TRANSPORT_LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE);
+    document.documentElement.lang = DEFAULT_LANGUAGE;
     window.dispatchEvent(
         new CustomEvent<{ language: TransportLanguage }>(
             TRANSPORT_LANGUAGE_EVENT,
             {
                 detail: {
-                    language,
+                    language: DEFAULT_LANGUAGE,
                 },
             },
         ),
@@ -42,5 +42,5 @@ export function setStoredTransportLanguage(language: TransportLanguage): void {
 }
 
 export function getTransportIntlLocale(): string {
-    return getStoredTransportLanguage();
+    return DEFAULT_LANGUAGE;
 }

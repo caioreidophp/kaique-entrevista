@@ -1,9 +1,17 @@
-import { ArrowDown, ArrowUp, LoaderCircle } from 'lucide-react';
+import { ArrowDown, ArrowUp, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -13,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { apiGet } from '@/lib/api-client';
+import { ApiError, apiDelete, apiGet, apiPut } from '@/lib/api-client';
 
 interface WrappedResponse<T> {
     data: T;
@@ -54,6 +62,7 @@ interface VacationLaunchedRow {
     periodo_aquisitivo_inicio: string | null;
     periodo_aquisitivo_fim: string | null;
     dias_ferias: number;
+    tipo: 'confirmado' | 'previsao' | 'passada';
     com_abono: boolean;
     autor: string | null;
 }
@@ -77,6 +86,18 @@ type LaunchedSortBy =
     | 'periodo_aquisitivo_inicio'
     | 'periodo_aquisitivo_fim'
     | 'dias_ferias';
+
+interface EditLaunchedForm {
+    id: number;
+    colaborador_id: number;
+    tipo: 'confirmado' | 'previsao' | 'passada';
+    com_abono: boolean;
+    dias_ferias: 20 | 30;
+    data_inicio: string;
+    data_fim: string;
+    periodo_aquisitivo_inicio: string;
+    periodo_aquisitivo_fim: string;
+}
 
 function formatDate(date: string | null): string {
     if (!date) return '-';
@@ -110,17 +131,17 @@ function vacationStatusLabel(status: VacationCandidateRow['status']): string {
 function vacationStatusClass(status: VacationCandidateRow['status']): string {
     switch (status) {
         case 'a_vencer':
-            return 'font-medium text-sky-700';
+            return 'transport-status-badge transport-status-info';
         case 'liberada':
-            return 'font-medium text-emerald-700';
+            return 'transport-status-badge transport-status-success';
         case 'atencao':
-            return 'font-medium text-amber-700';
+            return 'transport-status-badge transport-status-warning';
         case 'urgente':
-            return 'font-medium text-orange-700';
+            return 'transport-status-badge transport-status-warning';
         case 'vencida':
-            return 'font-medium text-destructive';
+            return 'transport-status-badge transport-status-danger';
         default:
-            return 'font-medium text-foreground';
+            return 'transport-status-badge transport-status-neutral';
     }
 }
 
@@ -170,6 +191,12 @@ export default function VacationsListPage() {
     const [candidateSortDirection, setCandidateSortDirection] = useState<SortDirection>('asc');
     const [launchedSortBy, setLaunchedSortBy] = useState<LaunchedSortBy>('data_inicio');
     const [launchedSortDirection, setLaunchedSortDirection] = useState<SortDirection>('desc');
+    const [savingEdit, setSavingEdit] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState<VacationLaunchedRow | null>(null);
+    const [editOpen, setEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState<EditLaunchedForm | null>(null);
     const [notification, setNotification] = useState<{
         message: string;
         variant: 'success' | 'error' | 'info';
@@ -192,47 +219,173 @@ export default function VacationsListPage() {
             });
     }, []);
 
-    useEffect(() => {
+    async function loadVacations(): Promise<void> {
+        setLoading(true);
+
         const params = new URLSearchParams();
 
         if (unidadeFilter !== 'all') params.set('unidade_id', unidadeFilter);
         if (funcaoFilter !== 'all') params.set('funcao_id', funcaoFilter);
         params.set('limite', limiteFilter);
 
-        Promise.all([
-            apiGet<WrappedResponse<VacationCandidateRow[]>>(
-                `/payroll/vacations?${params.toString()}`,
-            ),
-            apiGet<WrappedResponse<VacationLaunchedRow[]>>(
-                `/payroll/vacations/launched?${params.toString()}`,
-            ),
-        ])
-            .then(([candidateResponse, launchedResponse]) => {
-                setCandidates(candidateResponse.data);
-                setLaunched(launchedResponse.data);
-            })
-            .catch(() => {
-                setNotification({
-                    message: 'Não foi possível carregar a lista de férias.',
-                    variant: 'error',
-                });
-            })
-            .finally(() => setLoading(false));
+        try {
+            const [candidateResponse, launchedResponse] = await Promise.all([
+                apiGet<WrappedResponse<VacationCandidateRow[]>>(
+                    `/payroll/vacations?${params.toString()}`,
+                ),
+                apiGet<WrappedResponse<VacationLaunchedRow[]>>(
+                    `/payroll/vacations/launched?${params.toString()}`,
+                ),
+            ]);
+
+            setCandidates(candidateResponse.data);
+            setLaunched(launchedResponse.data);
+        } catch {
+            setNotification({
+                message: 'Não foi possível carregar a lista de férias.',
+                variant: 'error',
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        void loadVacations();
     }, [unidadeFilter, funcaoFilter, limiteFilter]);
 
     function handleUnidadeFilterChange(value: string): void {
-        setLoading(true);
         setUnidadeFilter(value);
     }
 
     function handleFuncaoFilterChange(value: string): void {
-        setLoading(true);
         setFuncaoFilter(value);
     }
 
     function handleLimiteFilterChange(value: string): void {
-        setLoading(true);
         setLimiteFilter(value);
+    }
+
+    function openEdit(item: VacationLaunchedRow): void {
+        if (
+            !item.data_inicio ||
+            !item.data_fim ||
+            !item.periodo_aquisitivo_inicio ||
+            !item.periodo_aquisitivo_fim
+        ) {
+            setNotification({
+                message: 'Registro incompleto para edição.',
+                variant: 'error',
+            });
+            return;
+        }
+
+        setEditForm({
+            id: item.id,
+            colaborador_id: item.colaborador_id,
+            tipo: item.tipo,
+            com_abono: item.com_abono,
+            dias_ferias: item.dias_ferias === 30 ? 30 : 20,
+            data_inicio: item.data_inicio,
+            data_fim: item.data_fim,
+            periodo_aquisitivo_inicio: item.periodo_aquisitivo_inicio,
+            periodo_aquisitivo_fim: item.periodo_aquisitivo_fim,
+        });
+        setEditOpen(true);
+    }
+
+    async function saveEdit(): Promise<void> {
+        if (!editForm) return;
+
+        if (
+            !editForm.data_inicio ||
+            !editForm.data_fim ||
+            !editForm.periodo_aquisitivo_inicio ||
+            !editForm.periodo_aquisitivo_fim
+        ) {
+            setNotification({
+                message: 'Preencha todos os campos obrigatórios da edição.',
+                variant: 'info',
+            });
+            return;
+        }
+
+        setSavingEdit(true);
+        setNotification(null);
+
+        try {
+            await apiPut(`/payroll/vacations/${editForm.id}`, {
+                colaborador_id: editForm.colaborador_id,
+                tipo: editForm.tipo,
+                com_abono: editForm.com_abono,
+                dias_ferias: editForm.dias_ferias,
+                data_inicio: editForm.data_inicio,
+                data_fim: editForm.data_fim,
+                periodo_aquisitivo_inicio: editForm.periodo_aquisitivo_inicio,
+                periodo_aquisitivo_fim: editForm.periodo_aquisitivo_fim,
+            });
+
+            setNotification({
+                message: 'Lançamento de férias atualizado com sucesso.',
+                variant: 'success',
+            });
+            setEditOpen(false);
+            setEditForm(null);
+            await loadVacations();
+        } catch (error) {
+            if (error instanceof ApiError) {
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+
+                setNotification({
+                    message: firstError ?? error.message ?? 'Não foi possível atualizar o lançamento.',
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível atualizar o lançamento.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setSavingEdit(false);
+        }
+    }
+
+    async function removeLaunched(item: VacationLaunchedRow): Promise<boolean> {
+        setDeletingId(item.id);
+        setNotification(null);
+
+        try {
+            await apiDelete(`/payroll/vacations/${item.id}`);
+            setNotification({
+                message: 'Lançamento de férias excluído com sucesso.',
+                variant: 'success',
+            });
+            await loadVacations();
+            return true;
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({
+                    message: error.message ?? 'Não foi possível excluir o lançamento.',
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível excluir o lançamento.',
+                    variant: 'error',
+                });
+            }
+            return false;
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
+    function requestDelete(item: VacationLaunchedRow): void {
+        setDeleteCandidate(item);
+        setDeleteOpen(true);
     }
 
     function toggleCandidateSort(next: CandidateSortBy): void {
@@ -513,7 +666,7 @@ export default function VacationsListPage() {
                             <p className="text-sm text-muted-foreground">Nenhum lançamento de férias encontrado.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1200px] text-sm">
+                                <table className="w-full min-w-[1280px] text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
                                             <th className="py-2 pr-3">
@@ -580,8 +733,10 @@ export default function VacationsListPage() {
                                                     onClick={() => toggleLaunchedSort('dias_ferias')}
                                                 />
                                             </th>
+                                                <th className="py-2 pr-3 font-medium">Tipo</th>
                                             <th className="py-2 pr-3 font-medium">Abono</th>
                                             <th className="py-2 pr-3 font-medium">Autor</th>
+                                                <th className="py-2 pr-3 font-medium">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -595,8 +750,36 @@ export default function VacationsListPage() {
                                                 <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_inicio)}</td>
                                                 <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_fim)}</td>
                                                 <td className="py-2 pr-3">{item.dias_ferias}</td>
+                                                <td className="py-2 pr-3">{item.tipo === 'previsao' ? 'Previsão' : item.tipo === 'passada' ? 'Passada' : 'Confirmado'}</td>
                                                 <td className="py-2 pr-3">{item.com_abono ? 'Com abono' : 'Sem abono'}</td>
                                                 <td className="py-2 pr-3">{item.autor ?? '-'}</td>
+                                                <td className="py-2 pr-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => openEdit(item)}
+                                                        >
+                                                            <Pencil className="size-3.5" />
+                                                            Editar
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => requestDelete(item)}
+                                                            disabled={deletingId === item.id}
+                                                        >
+                                                            {deletingId === item.id ? (
+                                                                <LoaderCircle className="size-3.5 animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="size-3.5" />
+                                                            )}
+                                                            Excluir
+                                                        </Button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -605,6 +788,274 @@ export default function VacationsListPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                <Dialog
+                    open={deleteOpen}
+                    onOpenChange={(open) => {
+                        if (!open && deletingId === null) {
+                            setDeleteOpen(false);
+                            setDeleteCandidate(null);
+                        }
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Excluir lançamento de férias</DialogTitle>
+                            <DialogDescription>
+                                {deleteCandidate
+                                    ? `Deseja excluir o lançamento de férias de ${deleteCandidate.nome ?? 'colaborador'}? Esta ação não pode ser desfeita.`
+                                    : 'Confirme a exclusão do lançamento de férias.'}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setDeleteOpen(false);
+                                    setDeleteCandidate(null);
+                                }}
+                                disabled={deletingId !== null}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={async () => {
+                                    if (deleteCandidate) {
+                                        const deleted = await removeLaunched(deleteCandidate);
+
+                                        if (deleted) {
+                                            setDeleteOpen(false);
+                                            setDeleteCandidate(null);
+                                        }
+                                    }
+                                }}
+                                disabled={deletingId !== null}
+                            >
+                                {deletingId !== null ? (
+                                    <>
+                                        <LoaderCircle className="size-4 animate-spin" />
+                                        Excluindo...
+                                    </>
+                                ) : (
+                                    'Confirmar exclusão'
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog
+                    open={editOpen}
+                    onOpenChange={(open) => {
+                        setEditOpen(open);
+                        if (!open) {
+                            setEditForm(null);
+                        }
+                    }}
+                >
+                    <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                            <DialogTitle>Editar lançamento de férias</DialogTitle>
+                            <DialogDescription>
+                                Atualize os dados do lançamento selecionado.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {editForm ? (
+                            <div className="space-y-4">
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="space-y-2">
+                                        <Label>Tipo</Label>
+                                        <Select
+                                            value={editForm.tipo}
+                                            onValueChange={(value: 'confirmado' | 'previsao' | 'passada') =>
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              tipo: value,
+                                                          }
+                                                        : previous,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="confirmado">Confirmado</SelectItem>
+                                                <SelectItem value="previsao">Previsão</SelectItem>
+                                                <SelectItem value="passada">Passada</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Dias</Label>
+                                        <Select
+                                            value={String(editForm.dias_ferias)}
+                                            onValueChange={(value) => {
+                                                const nextDays = value === '30' ? 30 : 20;
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              dias_ferias: nextDays,
+                                                              com_abono: nextDays === 20,
+                                                          }
+                                                        : previous,
+                                                );
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="20">20 dias</SelectItem>
+                                                <SelectItem value="30">30 dias</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Abono</Label>
+                                        <Select
+                                            value={editForm.com_abono ? 'sim' : 'nao'}
+                                            onValueChange={(value) => {
+                                                const nextAbono = value === 'sim';
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              com_abono: nextAbono,
+                                                              dias_ferias: nextAbono ? 20 : 30,
+                                                          }
+                                                        : previous,
+                                                );
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="sim">Com abono</SelectItem>
+                                                <SelectItem value="nao">Sem abono</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Data início</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.data_inicio}
+                                            onChange={(event) =>
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              data_inicio: event.target.value,
+                                                          }
+                                                        : previous,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Data fim</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.data_fim}
+                                            onChange={(event) =>
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              data_fim: event.target.value,
+                                                          }
+                                                        : previous,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Período aquisitivo início</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.periodo_aquisitivo_inicio}
+                                            onChange={(event) =>
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              periodo_aquisitivo_inicio:
+                                                                  event.target.value,
+                                                          }
+                                                        : previous,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Período aquisitivo fim</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.periodo_aquisitivo_fim}
+                                            onChange={(event) =>
+                                                setEditForm((previous) =>
+                                                    previous
+                                                        ? {
+                                                              ...previous,
+                                                              periodo_aquisitivo_fim:
+                                                                  event.target.value,
+                                                          }
+                                                        : previous,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setEditOpen(false);
+                                    setEditForm(null);
+                                }}
+                                disabled={savingEdit}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => void saveEdit()}
+                                disabled={savingEdit || !editForm}
+                            >
+                                {savingEdit ? (
+                                    <>
+                                        <LoaderCircle className="size-4 animate-spin" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    'Salvar alterações'
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AdminLayout>
     );

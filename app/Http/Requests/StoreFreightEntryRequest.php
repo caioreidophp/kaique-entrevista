@@ -98,40 +98,6 @@ class StoreFreightEntryRequest extends FormRequest
                 );
             }
 
-            $kmFields = [
-                'programado_km',
-                'kaique_geral_km',
-                'terceiros_km',
-                'abatedouro_km',
-                'canceladas_sem_escalar_km',
-                'canceladas_escaladas_km',
-                'km_rodado',
-                'km_terceiros',
-            ];
-
-            foreach ($kmFields as $field) {
-                $raw = $this->input($field);
-
-                if ($raw === null || $raw === '') {
-                    continue;
-                }
-
-                $value = (float) $raw;
-
-                if ($value > 0 && $value < 1000) {
-                    $validator->errors()->add(
-                        $field,
-                        'KM muito baixo para um lançamento diário. O mínimo aceito é 1000.',
-                    );
-                }
-
-                if ($value > 25000) {
-                    $validator->errors()->add(
-                        $field,
-                        'KM muito alto para um lançamento diário. O máximo aceito é 25000.',
-                    );
-                }
-            }
         });
     }
 }

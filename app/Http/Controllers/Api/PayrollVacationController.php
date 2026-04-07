@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFeriasLancamentoRequest;
 use App\Models\Colaborador;
 use App\Models\FeriasLancamento;
+use App\Models\Unidade;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 
 class PayrollVacationController extends Controller
 {
@@ -26,15 +29,21 @@ class PayrollVacationController extends Controller
         'periodo_aquisitivo_inicio',
         'periodo_aquisitivo_fim',
         'dias_ferias',
+        'tipo',
     ];
 
     public function dashboard(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.dashboard.view'), 403);
+
+        $this->syncFinishedVacationsToPast();
 
         $rows = $this->buildEligibilityRows($request);
+        $unidadeId = $request->filled('unidade_id')
+            ? (int) $request->integer('unidade_id')
+            : null;
 
         $today = CarbonImmutable::today();
         $plus30Days = $today->addDays(30);
@@ -58,17 +67,25 @@ class PayrollVacationController extends Controller
             ->filter(fn (array $row): bool => CarbonImmutable::parse($row['limite'])->betweenIncluded($today, $plus4Months))
             ->count();
 
-        $feriasProgramadasProximos30Dias = FeriasLancamento::query()
+        $lancamentosDashboardQuery = FeriasLancamento::query();
+
+        if ($unidadeId !== null) {
+            $lancamentosDashboardQuery->where('unidade_id', $unidadeId);
+        }
+
+        $feriasProgramadasProximos30Dias = (clone $lancamentosDashboardQuery)
             ->whereDate('data_inicio', '>=', $today->toDateString())
             ->whereDate('data_inicio', '<=', $plus30Days->toDateString())
             ->count();
 
-        $lancamentosAnoAtual = FeriasLancamento::query()
+        $lancamentosAnoAtual = (clone $lancamentosDashboardQuery)
             ->whereYear('data_inicio', (int) $today->year)
             ->count();
 
-        $totalLancamentos = FeriasLancamento::query()->count();
-        $totalComAbono = FeriasLancamento::query()->where('com_abono', true)->count();
+        $totalLancamentos = (clone $lancamentosDashboardQuery)->count();
+        $totalComAbono = (clone $lancamentosDashboardQuery)
+            ->where('com_abono', true)
+            ->count();
         $totalSemAbono = max($totalLancamentos - $totalComAbono, 0);
 
         $percentualComAbono = $totalLancamentos > 0
@@ -83,6 +100,84 @@ class PayrollVacationController extends Controller
             ? round(($feriasVencidas / $rows->count()) * 100, 2)
             : 0.0;
 
+        $taxaLiberadasSobreAtivos = $rows->count() > 0
+            ? round(($faixaLiberada / $rows->count()) * 100, 2)
+            : 0.0;
+
+        $feriasVigentesQuery = FeriasLancamento::query()
+            ->with([
+                'colaborador:id,nome',
+                'unidade:id,nome',
+                'funcao:id,nome',
+            ])
+            ->whereDate('data_inicio', '<=', $today->toDateString())
+            ->whereDate('data_fim', '>=', $today->toDateString())
+            ->orderBy('data_fim');
+
+        if ($request->filled('unidade_id')) {
+            $feriasVigentesQuery->where('unidade_id', (int) $request->integer('unidade_id'));
+        }
+
+        $feriasVigentes = $feriasVigentesQuery
+            ->get()
+            ->map(fn (FeriasLancamento $item): array => [
+                'id' => (int) $item->id,
+                'nome' => $item->colaborador?->nome,
+                'funcao' => $item->funcao?->nome,
+                'unidade' => $item->unidade?->nome,
+                'unidade_id' => $item->unidade_id !== null ? (int) $item->unidade_id : null,
+                'tipo' => $item->tipo,
+                'data_inicio' => $item->data_inicio?->toDateString(),
+                'data_fim' => $item->data_fim?->toDateString(),
+                'dias_restantes' => max($today->diffInDays($item->data_fim, false) + 1, 0),
+            ])
+            ->values();
+
+        $timelineQuery = FeriasLancamento::query()
+            ->with([
+                'colaborador:id,nome',
+                'unidade:id,nome',
+                'funcao:id,nome',
+            ])
+            ->whereDate('data_fim', '>=', $today->toDateString())
+            ->orderBy('data_inicio')
+            ->orderBy('data_fim');
+
+        if ($request->filled('unidade_id')) {
+            $timelineQuery->where('unidade_id', (int) $request->integer('unidade_id'));
+        }
+
+        $timeline = $timelineQuery
+            ->get()
+            ->map(function (FeriasLancamento $item) use ($today): array {
+                $dataInicio = $item->data_inicio;
+                $dataFim = $item->data_fim;
+
+                $statusTimeline = 'concluida';
+
+                if ($dataInicio && $dataFim && $today->betweenIncluded($dataInicio, $dataFim)) {
+                    $statusTimeline = 'vigente';
+                } elseif ($dataInicio && $dataInicio->isAfter($today)) {
+                    $statusTimeline = 'agendada';
+                }
+
+                return [
+                    'id' => (int) $item->id,
+                    'colaborador_id' => (int) $item->colaborador_id,
+                    'nome' => $item->colaborador?->nome,
+                    'funcao' => $item->funcao?->nome,
+                    'unidade' => $item->unidade?->nome,
+                    'unidade_id' => $item->unidade_id !== null ? (int) $item->unidade_id : null,
+                    'tipo' => $item->tipo,
+                    'com_abono' => (bool) $item->com_abono,
+                    'dias_ferias' => (int) $item->dias_ferias,
+                    'status_timeline' => $statusTimeline,
+                    'data_inicio' => $dataInicio?->toDateString(),
+                    'data_fim' => $dataFim?->toDateString(),
+                ];
+            })
+            ->values();
+
         return response()->json([
             'data' => [
                 'ferias_vencidas' => $feriasVencidas,
@@ -95,9 +190,102 @@ class PayrollVacationController extends Controller
                 'limite_proximos_2_meses' => $limiteProximos2Meses,
                 'ferias_programadas_30_dias' => $feriasProgramadasProximos30Dias,
                 'lancamentos_ano_atual' => $lancamentosAnoAtual,
+                'total_lancamentos_abono' => $totalLancamentos,
+                'total_com_abono' => $totalComAbono,
+                'total_sem_abono' => $totalSemAbono,
                 'percentual_com_abono' => $percentualComAbono,
                 'percentual_sem_abono' => $percentualSemAbono,
                 'taxa_vencidas_sobre_ativos' => $taxaVencidasSobreAtivos,
+                'taxa_liberadas_sobre_ativos' => $taxaLiberadasSobreAtivos,
+                'ferias_vigentes' => $feriasVigentes,
+                'timeline' => $timeline,
+            ],
+        ]);
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('vacations.dashboard.view'), 403);
+
+        $this->syncFinishedVacationsToPast();
+
+        $validated = $request->validate([
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        ]);
+
+        $startDate = CarbonImmutable::parse((string) $validated['start_date']);
+        $endDate = CarbonImmutable::parse((string) $validated['end_date']);
+
+        $feriasGozadas = FeriasLancamento::query()
+            ->with(['colaborador:id,nome', 'unidade:id,nome'])
+            ->whereDate('data_inicio', '<=', $endDate->toDateString())
+            ->whereDate('data_fim', '>=', $startDate->toDateString())
+            ->orderBy('data_inicio')
+            ->get()
+            ->map(fn (FeriasLancamento $item): array => [
+                'id' => (int) $item->id,
+                'nome' => $item->colaborador?->nome,
+                'unidade' => $item->unidade?->nome,
+                'tipo' => $item->tipo,
+                'data_inicio' => $item->data_inicio?->toDateString(),
+                'data_fim' => $item->data_fim?->toDateString(),
+                'dias_ferias' => (int) $item->dias_ferias,
+                'com_abono' => (bool) $item->com_abono,
+            ])
+            ->values();
+
+        $admissoes = Colaborador::query()
+            ->with(['unidade:id,nome', 'funcao:id,nome'])
+            ->whereNotNull('data_admissao')
+            ->whereDate('data_admissao', '>=', $startDate->toDateString())
+            ->whereDate('data_admissao', '<=', $endDate->toDateString())
+            ->orderBy('data_admissao')
+            ->get()
+            ->map(fn (Colaborador $item): array => [
+                'id' => (int) $item->id,
+                'nome' => $item->nome,
+                'unidade' => $item->unidade?->nome,
+                'funcao' => $item->funcao?->nome,
+                'data_admissao' => $item->data_admissao?->toDateString(),
+            ])
+            ->values();
+
+        $demissoes = Colaborador::query()
+            ->with(['unidade:id,nome', 'funcao:id,nome'])
+            ->whereNotNull('data_demissao')
+            ->whereDate('data_demissao', '>=', $startDate->toDateString())
+            ->whereDate('data_demissao', '<=', $endDate->toDateString())
+            ->orderBy('data_demissao')
+            ->get()
+            ->map(fn (Colaborador $item): array => [
+                'id' => (int) $item->id,
+                'nome' => $item->nome,
+                'unidade' => $item->unidade?->nome,
+                'funcao' => $item->funcao?->nome,
+                'data_demissao' => $item->data_demissao?->toDateString(),
+            ])
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'ferias_gozadas' => [
+                    'total' => $feriasGozadas->count(),
+                    'rows' => $feriasGozadas,
+                ],
+                'admissoes' => [
+                    'total' => $admissoes->count(),
+                    'rows' => $admissoes,
+                ],
+                'demissoes' => [
+                    'total' => $demissoes->count(),
+                    'rows' => $demissoes,
+                ],
+                'unidades' => Unidade::query()->orderBy('nome')->get(['id', 'nome']),
             ],
         ]);
     }
@@ -106,7 +294,9 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.dashboard.view'), 403);
+
+        $this->syncFinishedVacationsToPast();
 
         $limiteFilter = (string) $request->string('limite', 'todos');
         $today = CarbonImmutable::today();
@@ -137,7 +327,9 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.launch'), 403);
+
+        $this->syncFinishedVacationsToPast();
 
         return response()->json([
             'data' => $this->buildEligibilityRows($request)
@@ -150,7 +342,9 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.history.view'), 403);
+
+        $this->syncFinishedVacationsToPast();
 
         $sortBy = (string) $request->string('sort_by', 'data_inicio');
         $sortDirection = (string) $request->string('sort_direction', 'desc');
@@ -188,7 +382,9 @@ class PayrollVacationController extends Controller
                 'periodo_aquisitivo_inicio' => $item->periodo_aquisitivo_inicio?->toDateString(),
                 'periodo_aquisitivo_fim' => $item->periodo_aquisitivo_fim?->toDateString(),
                 'dias_ferias' => (int) $item->dias_ferias,
+                'tipo' => $item->tipo,
                 'com_abono' => (bool) $item->com_abono,
+                'observacoes' => $item->observacoes,
                 'autor' => $item->autor?->name,
             ])
             ->sortBy($sortBy, SORT_NATURAL | SORT_FLAG_CASE, $sortDirection === 'desc')
@@ -203,11 +399,13 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.launch'), 403);
 
         $validated = $request->validated();
-        $comAbono = (bool) $validated['com_abono'];
-        $diasFerias = $comAbono ? 20 : 30;
+        $tipo = (string) $validated['tipo'];
+        $requestedDiasFerias = isset($validated['dias_ferias'])
+            ? (int) $validated['dias_ferias']
+            : ((bool) $validated['com_abono'] ? 20 : 30);
 
         $colaborador = Colaborador::query()
             ->whereKey((int) $validated['colaborador_id'])
@@ -217,23 +415,46 @@ class PayrollVacationController extends Controller
         $dataInicio = CarbonImmutable::parse((string) $validated['data_inicio']);
         $dataFim = isset($validated['data_fim'])
             ? CarbonImmutable::parse((string) $validated['data_fim'])
-            : $dataInicio->addDays($diasFerias - 1);
+            : null;
+
+        if ($dataFim !== null) {
+            $diasPorIntervalo = (int) round($dataInicio->diffInDays($dataFim) + 1);
+
+            if (! in_array($diasPorIntervalo, [20, 30], true)) {
+                throw ValidationException::withMessages([
+                    'data_fim' => ['O período informado deve resultar em 20 ou 30 dias de férias.'],
+                ]);
+            }
+
+            $diasFerias = $diasPorIntervalo;
+            $comAbono = $diasFerias === 20;
+        } else {
+            $diasFerias = $requestedDiasFerias;
+            $comAbono = $diasFerias === 20;
+            $dataFim = $dataInicio->addDays($diasFerias - 1);
+        }
 
         $lancamento = FeriasLancamento::query()->create([
             'colaborador_id' => (int) $colaborador->id,
             'unidade_id' => (int) $colaborador->unidade_id,
             'funcao_id' => $colaborador->funcao_id,
             'autor_id' => (int) $request->user()->id,
+            'tipo' => $tipo,
             'com_abono' => $comAbono,
             'dias_ferias' => $diasFerias,
             'data_inicio' => $dataInicio->toDateString(),
             'data_fim' => $dataFim->toDateString(),
-            'periodo_aquisitivo_inicio' => (string) $validated['periodo_aquisitivo_inicio'],
-            'periodo_aquisitivo_fim' => (string) $validated['periodo_aquisitivo_fim'],
+            'periodo_aquisitivo_inicio' => $dataInicio->toDateString(),
+            'periodo_aquisitivo_fim' => $dataInicio->toDateString(),
+            'observacoes' => isset($validated['observacoes'])
+                ? trim((string) $validated['observacoes'])
+                : null,
         ]);
 
+        $this->rebalanceCollaboratorVacationPeriods((int) $colaborador->id);
+
         return response()->json([
-            'data' => $lancamento->load(['colaborador:id,nome', 'unidade:id,nome', 'funcao:id,nome', 'autor:id,name']),
+            'data' => $lancamento->refresh()->load(['colaborador:id,nome', 'unidade:id,nome', 'funcao:id,nome', 'autor:id,name']),
         ], 201);
     }
 
@@ -241,11 +462,14 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.edit'), 403);
 
         $validated = $request->validated();
-        $comAbono = (bool) $validated['com_abono'];
-        $diasFerias = $comAbono ? 20 : 30;
+        $oldCollaboratorId = (int) $feriasLancamento->colaborador_id;
+        $tipo = (string) $validated['tipo'];
+        $requestedDiasFerias = isset($validated['dias_ferias'])
+            ? (int) $validated['dias_ferias']
+            : ((bool) $validated['com_abono'] ? 20 : 30);
 
         $colaborador = Colaborador::query()
             ->whereKey((int) $validated['colaborador_id'])
@@ -255,23 +479,67 @@ class PayrollVacationController extends Controller
         $dataInicio = CarbonImmutable::parse((string) $validated['data_inicio']);
         $dataFim = isset($validated['data_fim'])
             ? CarbonImmutable::parse((string) $validated['data_fim'])
-            : $dataInicio->addDays($diasFerias - 1);
+            : null;
+
+        if ($dataFim !== null) {
+            $diasPorIntervalo = (int) round($dataInicio->diffInDays($dataFim) + 1);
+
+            if (! in_array($diasPorIntervalo, [20, 30], true)) {
+                throw ValidationException::withMessages([
+                    'data_fim' => ['O período informado deve resultar em 20 ou 30 dias de férias.'],
+                ]);
+            }
+
+            $diasFerias = $diasPorIntervalo;
+            $comAbono = $diasFerias === 20;
+        } else {
+            $diasFerias = $requestedDiasFerias;
+            $comAbono = $diasFerias === 20;
+            $dataFim = $dataInicio->addDays($diasFerias - 1);
+        }
 
         $feriasLancamento->update([
             'colaborador_id' => (int) $colaborador->id,
             'unidade_id' => (int) $colaborador->unidade_id,
             'funcao_id' => $colaborador->funcao_id,
             'autor_id' => (int) $request->user()->id,
+            'tipo' => $tipo,
             'com_abono' => $comAbono,
             'dias_ferias' => $diasFerias,
             'data_inicio' => $dataInicio->toDateString(),
             'data_fim' => $dataFim->toDateString(),
-            'periodo_aquisitivo_inicio' => (string) $validated['periodo_aquisitivo_inicio'],
-            'periodo_aquisitivo_fim' => (string) $validated['periodo_aquisitivo_fim'],
+            'periodo_aquisitivo_inicio' => $dataInicio->toDateString(),
+            'periodo_aquisitivo_fim' => $dataInicio->toDateString(),
+            'observacoes' => isset($validated['observacoes'])
+                ? trim((string) $validated['observacoes'])
+                : null,
         ]);
+
+        $this->rebalanceCollaboratorVacationPeriods((int) $colaborador->id);
+
+        if ($oldCollaboratorId !== (int) $colaborador->id) {
+            $this->rebalanceCollaboratorVacationPeriods($oldCollaboratorId);
+        }
 
         return response()->json([
             'data' => $feriasLancamento->refresh()->load(['colaborador:id,nome', 'unidade:id,nome', 'funcao:id,nome', 'autor:id,name']),
+        ]);
+    }
+
+    public function destroy(Request $request, FeriasLancamento $feriasLancamento): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('vacations.edit'), 403);
+
+        $colaboradorId = (int) $feriasLancamento->colaborador_id;
+
+        $feriasLancamento->delete();
+
+        $this->rebalanceCollaboratorVacationPeriods($colaboradorId);
+
+        return response()->json([
+            'message' => 'Lançamento de férias excluído com sucesso.',
         ]);
     }
 
@@ -279,7 +547,9 @@ class PayrollVacationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isAdmin() || $user?->isMasterAdmin(), 403);
+        abort_unless($user?->hasPermission('vacations.history.view'), 403);
+
+        $this->syncFinishedVacationsToPast();
 
         $rows = FeriasLancamento::query()
             ->where('colaborador_id', $colaborador->id)
@@ -292,9 +562,10 @@ class PayrollVacationController extends Controller
                 'data_termino' => $item->data_fim?->toDateString(),
                 'periodo_aquisitivo_inicio' => $item->periodo_aquisitivo_inicio?->toDateString(),
                 'periodo_aquisitivo_fim' => $item->periodo_aquisitivo_fim?->toDateString(),
+                'tipo' => $item->tipo,
                 'com_abono' => (bool) $item->com_abono,
                 'dias_ferias' => (int) $item->dias_ferias,
-                'observacoes' => null,
+                'observacoes' => $item->observacoes,
             ])
             ->values();
 
@@ -328,8 +599,10 @@ class PayrollVacationController extends Controller
                     return null;
                 }
 
-                $baseDate = (string) ($latestPeriodEndByCollaborator->get($colaborador->id) ?? $admissao);
-                $base = CarbonImmutable::parse($baseDate);
+                $latestPeriodEnd = $latestPeriodEndByCollaborator->get($colaborador->id);
+                $base = $latestPeriodEnd
+                    ? CarbonImmutable::parse((string) $latestPeriodEnd)->addDay()
+                    : CarbonImmutable::parse($admissao);
                 $diasDesdeBase = max($base->diffInDays($today) + 1, 1);
                 $status = $this->resolveVacationStatusByDays($diasDesdeBase);
 
@@ -344,7 +617,7 @@ class PayrollVacationController extends Controller
                     'unidade' => $colaborador->unidade?->nome,
                     'unidade_id' => $colaborador->unidade_id,
                     'periodo_aquisitivo_inicio' => $base->toDateString(),
-                    'periodo_aquisitivo_fim' => $base->addDays(364)->toDateString(),
+                    'periodo_aquisitivo_fim' => $base->addYear()->subDay()->toDateString(),
                     'direito' => $direito->toDateString(),
                     'limite' => $limite->toDateString(),
                     'status' => $status,
@@ -390,5 +663,64 @@ class PayrollVacationController extends Controller
         }
 
         return $query;
+    }
+
+    private function rebalanceCollaboratorVacationPeriods(int $colaboradorId): void
+    {
+        $colaborador = Colaborador::query()
+            ->whereKey($colaboradorId)
+            ->first(['id', 'data_admissao']);
+
+        if (! $colaborador?->data_admissao) {
+            return;
+        }
+
+        $admissao = CarbonImmutable::parse($colaborador->data_admissao->toDateString());
+
+        $lancamentos = FeriasLancamento::query()
+            ->where('colaborador_id', $colaboradorId)
+            ->orderBy('data_inicio')
+            ->orderBy('id')
+            ->get(['id']);
+
+        foreach ($lancamentos as $index => $lancamento) {
+            $periodoInicio = $admissao->addYearsNoOverflow($index);
+            $periodoFim = $periodoInicio->addYear()->subDay();
+
+            FeriasLancamento::query()
+                ->whereKey((int) $lancamento->id)
+                ->update([
+                    'periodo_aquisitivo_inicio' => $periodoInicio->toDateString(),
+                    'periodo_aquisitivo_fim' => $periodoFim->toDateString(),
+                ]);
+        }
+    }
+
+    private function syncFinishedVacationsToPast(): void
+    {
+        $cacheKey = 'vacations:sync-finished-to-past';
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        $today = CarbonImmutable::today()->toDateString();
+
+        $hasPending = FeriasLancamento::query()
+            ->where('tipo', '!=', 'passada')
+            ->whereNotNull('data_fim')
+            ->whereDate('data_fim', '<', $today)
+            ->exists();
+
+        if ($hasPending) {
+            FeriasLancamento::query()
+                ->where('tipo', '!=', 'passada')
+                ->whereNotNull('data_fim')
+                ->whereDate('data_fim', '<', $today)
+                ->update([
+                    'tipo' => 'passada',
+                ]);
+        }
+
+        Cache::put($cacheKey, true, now()->addMinutes(2));
     }
 }

@@ -181,7 +181,7 @@ class FreightApiTest extends TestCase
             'cargas' => 12,
             'aves' => 1000,
             'veiculos' => 3,
-            'km_rodado' => 11000,
+            'km_rodado' => 26000,
             'frete_liquido' => 2500,
             'cargas_liq' => 12,
             'aves_liq' => 1000,
@@ -364,6 +364,86 @@ class FreightApiTest extends TestCase
         $this->assertDatabaseMissing('freight_canceled_loads', ['id' => $loadB->id]);
     }
 
+    public function test_admin_can_edit_canceled_load(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $entry = FreightEntry::query()->create([
+            'data' => '2026-03-10',
+            'unidade_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'frete_total' => 100,
+            'cargas' => 1,
+            'aves' => 50,
+            'veiculos' => 1,
+            'km_rodado' => 20,
+            'frete_liquido' => 100,
+            'cargas_liq' => 1,
+            'aves_liq' => 50,
+        ]);
+
+        $load = FreightCanceledLoad::query()->create([
+            'freight_entry_id' => $entry->id,
+            'unidade_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'data' => '2026-03-10',
+            'placa' => 'AAA0001',
+            'aviario' => 'AVI-A',
+            'valor' => 120,
+            'status' => 'a_receber',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/freight/canceled-loads/{$load->id}", [
+            'data' => '2026-03-11',
+            'placa' => 'abc1234',
+            'aviario' => 'AVI-EDIT',
+            'valor' => 250.75,
+            'n_viagem' => 'NV-22',
+            'obs' => 'Ajuste manual',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.placa', 'ABC1234')
+            ->assertJsonPath('data.aviario', 'AVI-EDIT')
+            ->assertJsonPath('data.n_viagem', 'NV-22');
+
+        $this->assertDatabaseHas('freight_canceled_loads', [
+            'id' => $load->id,
+            'placa' => 'ABC1234',
+            'aviario' => 'AVI-EDIT',
+            'n_viagem' => 'NV-22',
+            'obs' => 'Ajuste manual',
+            'valor' => 250.75,
+        ]);
+    }
+
+    public function test_spot_store_parses_localized_numeric_strings(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Jarinu', 'slug' => 'jarinu']);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/freight/spot-entries', [
+            'data' => '2026-03-14',
+            'unidade_origem_id' => $unidade->id,
+            'frete_spot' => '5.240,90',
+            'cargas' => '2.560',
+            'aves' => '33.064',
+            'km_rodado' => '1.240,5',
+            'obs' => 'Teste de locale',
+        ])->assertCreated();
+
+        $entry = \App\Models\FreightSpotEntry::query()->first();
+
+        $this->assertNotNull($entry);
+        $this->assertSame(2560, (int) $entry?->cargas);
+        $this->assertSame(33064, (int) $entry?->aves);
+        $this->assertSame('5240.90', (string) $entry?->frete_spot);
+        $this->assertSame('1240.50', (string) $entry?->km_rodado);
+    }
+
     public function test_main_freight_endpoints_return_success_for_admin(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -374,6 +454,35 @@ class FreightApiTest extends TestCase
         $this->getJson('/api/freight/spot-entries')->assertOk();
         $this->getJson('/api/freight/canceled-loads')->assertOk();
         $this->getJson('/api/freight/timeline?start_date=2026-01-01&end_date=2026-12-31')->assertOk();
+    }
+
+    public function test_admin_can_delete_freight_entry_and_it_disappears_from_database(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        $entry = FreightEntry::query()->create([
+            'data' => '2026-03-01',
+            'unidade_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'frete_total' => 1000,
+            'cargas' => 2,
+            'aves' => 100,
+            'veiculos' => 1,
+            'km_rodado' => 1200,
+            'frete_liquido' => 1000,
+            'cargas_liq' => 2,
+            'aves_liq' => 100,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson("/api/freight/entries/{$entry->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('freight_entries', [
+            'id' => $entry->id,
+        ]);
     }
 
     private function buildKaiqueSpreadsheetBinary(string $unitName): string

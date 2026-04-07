@@ -12,6 +12,7 @@ import type {
     DriverInterview,
     GuepStatus,
     HrStatus,
+    InterviewCurriculumStatus,
 } from '@/types/driver-interview';
 
 interface ShowPageProps {
@@ -35,6 +36,14 @@ function guepLabel(status: GuepStatus): string {
     return 'Aguardando';
 }
 
+function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
+    if (status === 'recusado') return 'Recusado';
+    if (status === 'aguardando_entrevista') return 'Aguardando - Entrevista';
+    if (status === 'aprovado_entrevista') return 'Aprovado - Entrevista';
+    if (status === 'reprovado_entrevista') return 'Reprovado - Entrevista';
+    return 'Pendente';
+}
+
 function Item({
     label,
     value,
@@ -53,6 +62,35 @@ function Item({
             <p className="text-sm print:text-[12px] print:leading-tight">
                 {displayValue}
             </p>
+        </div>
+    );
+}
+
+function AttachmentLink({
+    label,
+    url,
+    fileName,
+}: {
+    label: string;
+    url: string | null;
+    fileName: string | null;
+}) {
+    return (
+        <div className="space-y-1">
+            <p className="text-xs text-muted-foreground uppercase">{label}</p>
+            {url ? (
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                    <Download className="size-3.5" />
+                    {fileName?.trim() || 'Abrir arquivo'}
+                </a>
+            ) : (
+                <p className="text-sm">-</p>
+            )}
         </div>
     );
 }
@@ -230,6 +268,36 @@ export default function TransportInterviewsShowPage({
                                     value={item.cnh_expiration_date}
                                 />
                                 <Item label="EAR" value={item.ear} />
+                                <AttachmentLink
+                                    label="Foto do candidato"
+                                    url={item.candidate_photo_url}
+                                    fileName={item.candidate_photo_original_name}
+                                />
+                                <AttachmentLink
+                                    label="Anexo CNH"
+                                    url={item.cnh_attachment_url}
+                                    fileName={item.cnh_attachment_original_name}
+                                />
+                                <AttachmentLink
+                                    label="Carteira de Trabalho"
+                                    url={item.work_card_attachment_url}
+                                    fileName={item.work_card_attachment_original_name}
+                                />
+                                <AttachmentLink
+                                    label="Currículo"
+                                    url={item.curriculum?.document_url ?? null}
+                                    fileName={item.curriculum?.document_original_name ?? null}
+                                />
+                                <Item
+                                    label="Status currículo"
+                                    value={
+                                        item.curriculum
+                                            ? curriculumStatusLabel(
+                                                  item.curriculum.status,
+                                              )
+                                            : 'Sem vínculo'
+                                    }
+                                />
                             </CardContent>
                         </Card>
 

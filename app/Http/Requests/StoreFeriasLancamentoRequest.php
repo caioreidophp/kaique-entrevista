@@ -18,11 +18,14 @@ class StoreFeriasLancamentoRequest extends FormRequest
     {
         return [
             'colaborador_id' => ['required', 'integer', 'exists:colaboradores,id'],
+            'tipo' => ['required', 'string', 'in:confirmado,previsao,passada'],
             'com_abono' => ['required', 'boolean'],
+            'dias_ferias' => ['nullable', 'integer', 'in:20,30'],
             'data_inicio' => ['required', 'date'],
             'data_fim' => ['nullable', 'date', 'after_or_equal:data_inicio'],
-            'periodo_aquisitivo_inicio' => ['required', 'date'],
-            'periodo_aquisitivo_fim' => ['required', 'date', 'after_or_equal:periodo_aquisitivo_inicio'],
+            'periodo_aquisitivo_inicio' => ['nullable', 'date'],
+            'periodo_aquisitivo_fim' => ['nullable', 'date', 'after_or_equal:periodo_aquisitivo_inicio'],
+            'observacoes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

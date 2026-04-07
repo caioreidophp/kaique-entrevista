@@ -45,7 +45,7 @@ class AviarioController extends Controller
 
     public function store(StoreAviarioRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $aviario = Aviario::query()->create($request->validated());
 
@@ -56,7 +56,7 @@ class AviarioController extends Controller
 
     public function bulkStore(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $validated = Validator::make($request->all(), [
             'cidade' => ['required', 'string', 'max:255'],
@@ -108,7 +108,7 @@ class AviarioController extends Controller
 
     public function importSpreadsheet(ImportAviariosSpreadsheetRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $uploaded = $request->file('file');
 
@@ -283,7 +283,7 @@ class AviarioController extends Controller
 
     public function exportCsv(Request $request): StreamedResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
         abort_unless((bool) config('transport_features.csv_exports', true), 404);
 
         $fileName = 'aviarios-'.now()->format('Ymd-His').'.csv';
@@ -321,7 +321,7 @@ class AviarioController extends Controller
 
     public function update(UpdateAviarioRequest $request, Aviario $aviario): JsonResponse
     {
-        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $aviario->update($request->validated());
 
@@ -332,7 +332,7 @@ class AviarioController extends Controller
 
     public function destroy(Request $request, Aviario $aviario): JsonResponse
     {
-        abort_unless($request->user()?->isMasterAdmin(), 403);
+        abort_unless($request->user()?->hasPermission('registry.plates-aviaries.manage'), 403);
 
         $aviario->delete();
 

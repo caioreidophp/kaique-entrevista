@@ -2,14 +2,17 @@
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ApiRequestTelemetry;
 use App\Http\Middleware\LogSensitiveApiActions;
 use App\Http\Middleware\MonitorSuspiciousApiActivity;
+use App\Http\Middleware\ResponseCompression;
 use App\Http\Middleware\SetRequestContext;
 use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Support\Facades\Cache;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);
+
+        if ((bool) env('TRANSPORT_FEATURE_RESPONSE_COMPRESSION', true)) {
+            $middleware->append(ResponseCompression::class);
+        }
 
         if ((bool) env('TRANSPORT_FEATURE_SECURITY_HEADERS', true)) {
             $middleware->append(SetSecurityHeaders::class);
@@ -34,6 +41,12 @@ return Application::configure(basePath: dirname(__DIR__))
         if ((bool) env('TRANSPORT_FEATURE_API_GUARD', true)) {
             $middleware->api(append: [
                 MonitorSuspiciousApiActivity::class,
+            ]);
+        }
+
+        if ((bool) env('TRANSPORT_FEATURE_API_TELEMETRY', true)) {
+            $middleware->api(append: [
+                ApiRequestTelemetry::class,
             ]);
         }
 
@@ -53,5 +66,23 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->report(function (\Throwable $exception): void {
+            $rows = Cache::get('telemetry:exceptions:recent', []);
+
+            if (! is_array($rows)) {
+                $rows = [];
+            }
+
+            $rows[] = [
+                'timestamp' => now()->toIso8601String(),
+                'type' => $exception::class,
+                'message' => mb_substr($exception->getMessage(), 0, 1000),
+            ];
+
+            if (count($rows) > 100) {
+                $rows = array_slice($rows, -100);
+            }
+
+            Cache::put('telemetry:exceptions:recent', $rows, now()->addHours(6));
+        });
     })->create();

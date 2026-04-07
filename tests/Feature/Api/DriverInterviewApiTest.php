@@ -3,8 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\DriverInterview;
+use App\Models\InterviewCurriculum;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -358,6 +361,97 @@ class DriverInterviewApiTest extends TestCase
         $this->get("/api/driver-interviews/{$interview->id}/pdf")
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_author_can_upload_interview_attachments(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'user_id' => $user->id,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->post("/api/driver-interviews/{$interview->id}/attachments", [
+            'candidate_photo_file' => UploadedFile::fake()->image('foto.jpg', 480, 640),
+            'cnh_attachment_file' => UploadedFile::fake()->image('cnh.png', 800, 600),
+            'work_card_attachment_file' => UploadedFile::fake()->create('ctps.pdf', 256, 'application/pdf'),
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.candidate_photo_original_name', 'foto.jpg')
+            ->assertJsonPath('data.cnh_attachment_original_name', 'cnh.png')
+            ->assertJsonPath('data.work_card_attachment_original_name', 'ctps.pdf');
+
+        $interview->refresh();
+
+        $this->assertNotNull($interview->candidate_photo_path);
+        $this->assertNotNull($interview->cnh_attachment_path);
+        $this->assertNotNull($interview->work_card_attachment_path);
+
+        Storage::disk('public')->assertExists((string) $interview->candidate_photo_path);
+        Storage::disk('public')->assertExists((string) $interview->cnh_attachment_path);
+        Storage::disk('public')->assertExists((string) $interview->work_card_attachment_path);
+    }
+
+    public function test_linking_curriculum_on_interview_creation_updates_curriculum_status(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $curriculum = InterviewCurriculum::factory()->create([
+            'author_id' => $user->id,
+            'status' => 'pendente',
+        ]);
+
+        $payload = $this->validPayload();
+        $payload['hr_status'] = 'aguardando_vaga';
+        $payload['curriculum_id'] = $curriculum->id;
+
+        $response = $this->postJson('/api/driver-interviews', $payload);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.curriculum.id', $curriculum->id)
+            ->assertJsonPath('data.curriculum.status', 'aguardando_entrevista');
+
+        $this->assertDatabaseHas('interview_curriculums', [
+            'id' => $curriculum->id,
+            'status' => 'aguardando_entrevista',
+        ]);
+    }
+
+    public function test_updating_hr_status_to_reproved_updates_linked_curriculum_status(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $curriculum = InterviewCurriculum::factory()->create([
+            'author_id' => $user->id,
+            'status' => 'aguardando_entrevista',
+        ]);
+
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'user_id' => $user->id,
+            'curriculum_id' => $curriculum->id,
+            'hr_status' => 'aguardando_vaga',
+        ]);
+
+        $this->patchJson("/api/driver-interviews/{$interview->id}/statuses", [
+            'hr_status' => 'reprovado',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.curriculum.status', 'reprovado_entrevista');
+
+        $this->assertDatabaseHas('interview_curriculums', [
+            'id' => $curriculum->id,
+            'status' => 'reprovado_entrevista',
+        ]);
     }
 
     /**

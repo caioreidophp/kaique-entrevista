@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'demo' => [
+        'enabled' => env('TRANSPORT_DEMO_ENABLED', env('VITE_TRANSPORT_DEMO_ENABLED', true)),
+        'readonly' => env('TRANSPORT_DEMO_READONLY', true),
+        'email' => env('TRANSPORT_DEMO_EMAIL', env('VITE_TRANSPORT_DEMO_EMAIL')),
+    ],
+
+    'bob' => [
+        'enabled' => env('BOB_ENABLED', false),
+    ],
+
 ];

@@ -2,7 +2,9 @@ import { AlertTriangle, CalendarDays, LoaderCircle, Table2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -12,39 +14,34 @@ import {
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR, formatDecimalBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
-import type { FreightDashboardResponse, FreightEntry } from '@/types/freight';
+import type { FreightDashboardResponse, FreightEntry, FreightUnit } from '@/types/freight';
 
 interface FreightEntryPaginatedResponse {
     data: FreightEntry[];
+    current_page: number;
+    last_page: number;
+    total: number;
 }
 
-function monthRange(
-    month: string,
-    year: string,
-): { startDate: string; endDate: string } {
-    const numericMonth = Number(month);
-    const numericYear = Number(year);
-    const safeMonth = Number.isFinite(numericMonth)
-        ? Math.min(12, Math.max(1, numericMonth))
-        : 1;
-    const safeYear = Number.isFinite(numericYear)
-        ? numericYear
-        : new Date().getFullYear();
-    const lastDay = new Date(safeYear, safeMonth, 0).getDate();
-    const monthLabel = String(safeMonth).padStart(2, '0');
-
-    return {
-        startDate: `${safeYear}-${monthLabel}-01`,
-        endDate: `${safeYear}-${monthLabel}-${String(lastDay).padStart(2, '0')}`,
-    };
+interface FreightDashboardPageResponse {
+    units: FreightUnit[];
+    dashboard: FreightDashboardResponse;
+    entries: FreightEntryPaginatedResponse;
 }
 
 export default function TransportFreightDashboardPage() {
     const currentYear = new Date().getFullYear();
     const [month, setMonth] = useState(String(new Date().getMonth() + 1));
     const [year, setYear] = useState(String(currentYear));
+    const [units, setUnits] = useState<FreightUnit[]>([]);
+    const [selectedUnitId, setSelectedUnitId] = useState('all');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [data, setData] = useState<FreightDashboardResponse | null>(null);
     const [dailyEntries, setDailyEntries] = useState<FreightEntry[]>([]);
+    const [entriesPage, setEntriesPage] = useState(1);
+    const [entriesLastPage, setEntriesLastPage] = useState(1);
+    const [entriesTotal, setEntriesTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -75,31 +72,67 @@ export default function TransportFreightDashboardPage() {
         [currentYear],
     );
 
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoading(true);
-         
+    function applyDatePreset(days: 7 | 30 | 90): void {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - days + 1);
+
+        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
+
+        setStartDate(toIsoDate(start));
+        setEndDate(toIsoDate(end));
+    }
+
+    async function loadDashboard(page = 1): Promise<void> {
+        if (page === 1) {
+            setLoading(true);
+        }
+
         setError(null);
 
-        const { startDate, endDate } = monthRange(month, year);
+        const hasCustomRange = startDate !== '' && endDate !== '';
+        const params = new URLSearchParams({
+            competencia_mes: month,
+            competencia_ano: year,
+            page: String(page),
+            per_page: '120',
+        });
 
-        Promise.all([
-            apiGet<FreightDashboardResponse>(
-                `/freight/dashboard?competencia_mes=${month}&competencia_ano=${year}`,
-            ),
-            apiGet<FreightEntryPaginatedResponse>(
-                `/freight/entries?start_date=${startDate}&end_date=${endDate}&per_page=500`,
-            ),
-        ])
-            .then(([dashboardResponse, entriesResponse]) => {
-                setData(dashboardResponse);
-                setDailyEntries(entriesResponse.data);
-            })
-            .catch(() =>
-                setError('Não foi possível carregar o dashboard de fretes.'),
-            )
-            .finally(() => setLoading(false));
-    }, [month, year]);
+        if (hasCustomRange) {
+            params.set('start_date', startDate);
+            params.set('end_date', endDate);
+        }
+
+        if (selectedUnitId !== 'all') {
+            params.set('unidade_id', selectedUnitId);
+        }
+
+        try {
+            const response = await apiGet<FreightDashboardPageResponse>(
+                `/freight/dashboard-page?${params.toString()}`,
+            );
+
+            setUnits(response.units);
+            setData(response.dashboard);
+            setEntriesPage(response.entries.current_page);
+            setEntriesLastPage(response.entries.last_page);
+            setEntriesTotal(response.entries.total);
+
+            if (page === 1) {
+                setDailyEntries(response.entries.data);
+            } else {
+                setDailyEntries((previous) => [...previous, ...response.entries.data]);
+            }
+        } catch {
+            setError('Não foi possível carregar o dashboard de fretes.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        void loadDashboard(1);
+    }, [month, year, selectedUnitId, startDate, endDate]);
 
     const dailyEntriesSorted = useMemo(
         () =>
@@ -188,44 +221,126 @@ export default function TransportFreightDashboardPage() {
                     <CardHeader className="px-4 pt-3 pb-1">
                         <CardTitle className="text-sm">Competência</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-2 px-4 pb-3 md:grid-cols-2">
-                        <div>
-                            <p className="mb-2 text-sm text-muted-foreground">
-                                Mês
-                            </p>
-                            <Select value={month} onValueChange={setMonth}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {monthOptions.map((item) => (
-                                        <SelectItem
-                                            key={item.value}
-                                            value={item.value}
-                                        >
-                                            {item.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <CardContent className="space-y-3 px-4 pb-3">
+                        <div className="grid gap-2 md:grid-cols-2">
+                            <div>
+                                <p className="mb-2 text-sm text-muted-foreground">
+                                    Mês
+                                </p>
+                                <Select value={month} onValueChange={setMonth}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {monthOptions.map((item) => (
+                                            <SelectItem
+                                                key={item.value}
+                                                value={item.value}
+                                            >
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <p className="mb-2 text-sm text-muted-foreground">
+                                    Ano
+                                </p>
+                                <Select value={year} onValueChange={setYear}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {yearOptions.map((item) => (
+                                            <SelectItem key={item} value={item}>
+                                                {item}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <div>
-                            <p className="mb-2 text-sm text-muted-foreground">
-                                Ano
-                            </p>
-                            <Select value={year} onValueChange={setYear}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {yearOptions.map((item) => (
-                                        <SelectItem key={item} value={item}>
-                                            {item}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+
+                        <div className="grid gap-2 md:grid-cols-3">
+                            <div>
+                                <p className="mb-2 text-sm text-muted-foreground">Unidade</p>
+                                <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Todas as unidades" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas as unidades</SelectItem>
+                                        {units.map((unit) => (
+                                            <SelectItem key={unit.id} value={String(unit.id)}>
+                                                {unit.nome}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <p className="mb-2 text-sm text-muted-foreground">Data inicial (opcional)</p>
+                                <Input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(event) => setStartDate(event.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <p className="mb-2 text-sm text-muted-foreground">Data final (opcional)</p>
+                                <Input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(event) => setEndDate(event.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyDatePreset(7)}
+                                >
+                                    7 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyDatePreset(30)}
+                                >
+                                    30 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyDatePreset(90)}
+                                >
+                                    90 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setSelectedUnitId('all')}
+                                >
+                                    Todas unidades
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSelectedUnitId('all');
+                                        setStartDate('');
+                                        setEndDate('');
+                                    }}
+                                >
+                                    Limpar período
+                                </Button>
+                            </div>
                         </div>
+
+                        <p className="text-xs text-muted-foreground">
+                            Quando as duas datas são preenchidas, o intervalo personalizado substitui o filtro de competência.
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -237,15 +352,22 @@ export default function TransportFreightDashboardPage() {
                 ) : data ? (
                     <>
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                            {kpiMain.map((item) => (
-                                <Card key={item.title}>
-                                    <CardHeader className="px-3 pt-2 pb-0.5">
-                                        <CardTitle className="text-[11px] leading-tight font-medium text-muted-foreground">
+                            {kpiMain.map((item, index) => (
+                                <Card key={item.title} className="transport-kpi-card">
+                                    <CardHeader className="flex flex-row items-center justify-between px-3 pt-2 pb-0.5">
+                                        <CardTitle className="transport-kpi-title text-[11px] leading-tight">
                                             {item.title}
                                         </CardTitle>
+                                        <span className="transport-kpi-icon">
+                                            {(index === 0 || index === 5) ? (
+                                                <CalendarDays className="size-3.5" />
+                                            ) : (
+                                                <Table2 className="size-3.5" />
+                                            )}
+                                        </span>
                                     </CardHeader>
                                     <CardContent className="px-3 pb-2">
-                                        <p className="text-base font-semibold tracking-tight">
+                                        <p className="text-base font-semibold tracking-tight text-foreground">
                                             {item.value}
                                         </p>
                                     </CardContent>
@@ -254,15 +376,18 @@ export default function TransportFreightDashboardPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            {kpiDerived.map((item) => (
-                                <Card key={item.title}>
-                                    <CardHeader className="px-3 pt-2 pb-0.5">
-                                        <CardTitle className="text-[11px] leading-tight font-medium text-muted-foreground">
+                            {kpiDerived.map((item, index) => (
+                                <Card key={item.title} className={`transport-kpi-card ${index === 3 ? 'transport-kpi-soft-info' : ''}`}>
+                                    <CardHeader className="flex flex-row items-center justify-between px-3 pt-2 pb-0.5">
+                                        <CardTitle className="transport-kpi-title text-[11px] leading-tight">
                                             {item.title}
                                         </CardTitle>
+                                        <span className="transport-kpi-icon">
+                                            <Table2 className="size-3.5" />
+                                        </span>
                                     </CardHeader>
                                     <CardContent className="px-3 pb-2">
-                                        <p className="text-base font-semibold tracking-tight">
+                                        <p className="text-base font-semibold tracking-tight text-foreground">
                                             {item.value}
                                         </p>
                                     </CardContent>
@@ -417,7 +542,7 @@ export default function TransportFreightDashboardPage() {
                             <CardHeader>
                                 <CardTitle className="inline-flex items-center gap-2">
                                     <Table2 className="size-4" />
-                                    Tabela diária de fretes
+                                    Tabela diária de fretes ({formatIntegerBR(entriesTotal)})
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -433,6 +558,9 @@ export default function TransportFreightDashboardPage() {
                                                 <tr>
                                                     <th className="px-2.5 py-1.5 text-left font-medium">
                                                         Data
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">
+                                                        Dia
                                                     </th>
                                                     <th className="px-2.5 py-1.5 text-left font-medium">
                                                         Unidade
@@ -483,6 +611,9 @@ export default function TransportFreightDashboardPage() {
                                                                 {formatDateBR(
                                                                     entry.data,
                                                                 )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 capitalize">
+                                                                {entry.dia_semana ?? '-'}
                                                             </td>
                                                             <td className="px-2.5 py-1.5">
                                                                 {entry.unidade
@@ -543,6 +674,19 @@ export default function TransportFreightDashboardPage() {
                                         </table>
                                     </div>
                                 )}
+
+                                {entriesPage < entriesLastPage ? (
+                                    <div className="mt-3 flex justify-center">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => void loadDashboard(entriesPage + 1)}
+                                            disabled={loading}
+                                        >
+                                            Carregar mais lançamentos
+                                        </Button>
+                                    </div>
+                                ) : null}
                             </CardContent>
                         </Card>
                     </>

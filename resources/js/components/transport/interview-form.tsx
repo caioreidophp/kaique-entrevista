@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError } from '@/lib/api-client';
+import { compareTextPtBr, includesTextPtBr } from '@/lib/transport-text';
 import type {
     DriverInterview,
     DriverInterviewFormData,
@@ -28,6 +29,12 @@ interface InterviewFormProps {
     initialStep?: number;
     draftStorageKey?: string;
     hiringUnitOptions?: Array<{ id: number; nome: string }>;
+    curriculumOptions?: Array<{
+        id: number;
+        full_name: string;
+        has_cnh_attachment?: boolean;
+        has_work_card_attachment?: boolean;
+    }>;
     cityOptions?: Array<{ value: string; label: string }>;
     onProgressChange?: (progress: { fullName: string; step: number }) => void;
     onSubmit: (payload: Record<string, unknown>) => Promise<void>;
@@ -132,13 +139,6 @@ function hasText(value: string): boolean {
     return value.trim().length > 0;
 }
 
-function normalizeSearchText(value: string): string {
-    return value
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase();
-}
-
 function hasAnyProfessionalExperience(data: DriverInterviewFormData): boolean {
     return Boolean(
         data.last_company ||
@@ -195,6 +195,9 @@ function defaultFormData(
         cargo_pretendido: initialData?.cargo_pretendido ?? '',
         hiring_unidade_id: initialData?.hiring_unidade_id
             ? String(initialData.hiring_unidade_id)
+            : '',
+        curriculum_id: initialData?.curriculum_id
+            ? String(initialData.curriculum_id)
             : '',
         marital_status: initialData?.marital_status ?? '',
         has_children: initialData?.has_children ?? false,
@@ -319,6 +322,51 @@ function BooleanSelect({
     );
 }
 
+function AttachmentField({
+    label,
+    accept,
+    hint,
+    error,
+    currentName,
+    currentUrl,
+    onChange,
+}: {
+    label: string;
+    accept: string;
+    hint: string;
+    error?: string;
+    currentName?: string | null;
+    currentUrl?: string | null;
+    onChange: (file: File | null) => void;
+}) {
+    return (
+        <FormField label={label} error={error}>
+            <Input
+                type="file"
+                accept={accept}
+                onChange={(event) =>
+                    onChange(event.target.files?.[0] ?? null)
+                }
+            />
+            <p className="text-xs text-muted-foreground">{hint}</p>
+            {currentUrl ? (
+                <a
+                    href={currentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex text-xs font-medium text-primary hover:underline"
+                >
+                    {currentName?.trim() || 'Visualizar arquivo atual'}
+                </a>
+            ) : (
+                <p className="text-xs text-muted-foreground">
+                    Nenhum arquivo anexado.
+                </p>
+            )}
+        </FormField>
+    );
+}
+
 function CityAutocompleteField({
     label,
     error,
@@ -338,17 +386,22 @@ function CityAutocompleteField({
     const listRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
 
+    const sortedCityOptions = useMemo(
+        () => [...cityOptions].sort((first, second) => compareTextPtBr(first.label, second.label)),
+        [cityOptions],
+    );
+
     const filteredOptions = useMemo(() => {
-        const term = normalizeSearchText(value);
+        const term = value.trim();
 
         if (!term) {
-            return cityOptions;
+            return sortedCityOptions;
         }
 
-        return cityOptions.filter((option) =>
-            normalizeSearchText(option.label).includes(term),
+        return sortedCityOptions.filter((option) =>
+            includesTextPtBr(option.label, term),
         );
-    }, [cityOptions, value]);
+    }, [sortedCityOptions, value]);
 
     const visibleRange = useMemo(() => {
         const visibleCount = Math.ceil(CITY_VIEWPORT_HEIGHT / CITY_ROW_HEIGHT);
@@ -545,6 +598,7 @@ export function InterviewForm({
     initialStep,
     draftStorageKey,
     hiringUnitOptions = [],
+    curriculumOptions = [],
     cityOptions = [],
     onProgressChange,
     onSubmit,
@@ -594,6 +648,15 @@ export function InterviewForm({
     );
     const hasExistingInterview = mode === 'edit' && Boolean(initialData?.id);
     const isHrReproved = formData.hr_status === 'reprovado';
+    const [candidatePhotoFile, setCandidatePhotoFile] = useState<File | null>(
+        null,
+    );
+    const [cnhAttachmentFile, setCnhAttachmentFile] = useState<File | null>(
+        null,
+    );
+    const [workCardAttachmentFile, setWorkCardAttachmentFile] = useState<File | null>(
+        null,
+    );
     const startAvailabilitySelectValue =
         formData.start_availability_note === 'ira_retornar'
             ? 'ira_retornar'
@@ -637,6 +700,33 @@ export function InterviewForm({
             ),
         [],
     );
+
+    const selectedCurriculumOption = useMemo(() => {
+        if (!hasText(formData.curriculum_id)) {
+            return null;
+        }
+
+        return (
+            curriculumOptions.find(
+                (item) => String(item.id) === formData.curriculum_id,
+            ) ?? null
+        );
+    }, [curriculumOptions, formData.curriculum_id]);
+
+    const hasLinkedCurriculum = hasText(formData.curriculum_id);
+
+    const hasInheritedCurriculumCnh =
+        hasLinkedCurriculum
+            ? (selectedCurriculumOption?.has_cnh_attachment ??
+              initialData?.curriculum?.has_cnh_attachment ??
+              false)
+            : false;
+    const hasInheritedCurriculumWorkCard =
+        hasLinkedCurriculum
+            ? (selectedCurriculumOption?.has_work_card_attachment ??
+              initialData?.curriculum?.has_work_card_attachment ??
+              false)
+            : false;
 
     useEffect(() => {
         if (isHrReproved && formData.guep_status !== 'nao_fazer') {
@@ -744,7 +834,7 @@ export function InterviewForm({
         ];
 
         return completion;
-    }, [formData, isHrReproved]);
+    }, [formData, isHrReproved, mode]);
 
     const stepStates = useMemo(
         () =>
@@ -821,6 +911,10 @@ export function InterviewForm({
                 formData.hiring_unidade_id === ''
                     ? null
                     : Number(formData.hiring_unidade_id),
+            curriculum_id:
+                formData.curriculum_id === ''
+                    ? null
+                    : Number(formData.curriculum_id),
             last_company: hasProfessionalExperience
                 ? formData.last_company.trim() || null
                 : null,
@@ -935,6 +1029,9 @@ export function InterviewForm({
                 formData.posture_communication.trim() || null,
             perceived_experience: formData.perceived_experience.trim() || null,
             general_observations: formData.general_observations.trim() || null,
+            candidate_photo_file: candidatePhotoFile,
+            cnh_attachment_file: cnhAttachmentFile,
+            work_card_attachment_file: workCardAttachmentFile,
         };
 
         const payload: Record<string, unknown> = hasExistingInterview
@@ -1035,6 +1132,45 @@ export function InterviewForm({
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </FormField>
+
+                        <FormField
+                            label="Vincular ao currículo"
+                            error={errors.curriculum_id}
+                        >
+                            <Select
+                                value={formData.curriculum_id || '__none'}
+                                onValueChange={(value) => {
+                                    if (value === '__none') {
+                                        updateField('curriculum_id', '');
+                                        return;
+                                    }
+
+                                    updateField('curriculum_id', value);
+                                }}
+                            >
+                                <SelectTrigger className="h-12 text-base">
+                                    <SelectValue placeholder="Selecione um currículo pendente" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__none">
+                                        Sem vínculo
+                                    </SelectItem>
+                                    {curriculumOptions.map((curriculum) => (
+                                        <SelectItem
+                                            key={curriculum.id}
+                                            value={String(curriculum.id)}
+                                        >
+                                            {curriculum.full_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                {curriculumOptions.length > 0
+                                    ? 'Selecione um currículo pendente para importar anexos já cadastrados (CNH/CT), se desejar.'
+                                    : 'Nenhum currículo pendente disponível no momento.'}
+                            </p>
                         </FormField>
                     </CardContent>
                 </Card>
@@ -1265,6 +1401,65 @@ export function InterviewForm({
                                 onChange={(value) => updateField('ear', value)}
                             />
                         </FormField>
+                        <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+                            <div className="md:col-span-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                <p>
+                                    Anexos herdados do currículo vinculado:{' '}
+                                    <span className="font-medium text-foreground">
+                                        CNH {hasInheritedCurriculumCnh ? 'OK' : '-'}
+                                    </span>{' '}
+                                    |{' '}
+                                    <span className="font-medium text-foreground">
+                                        CT {hasInheritedCurriculumWorkCard ? 'OK' : '-'}
+                                    </span>
+                                </p>
+                            </div>
+                            <AttachmentField
+                                label="Foto do candidato"
+                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                hint="JPG, PNG ou WEBP (max. 5 MB)."
+                                error={errors.candidate_photo_file}
+                                currentName={initialData?.candidate_photo_original_name}
+                                currentUrl={initialData?.candidate_photo_url}
+                                onChange={(file) => {
+                                    setCandidatePhotoFile(file);
+                                    setErrors((prev) => ({
+                                        ...prev,
+                                        candidate_photo_file: '',
+                                    }));
+                                }}
+                            />
+                            <AttachmentField
+                                label="Arquivo da CNH"
+                                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                hint="JPG, PNG, WEBP ou PDF (max. 8 MB)."
+                                error={errors.cnh_attachment_file}
+                                currentName={initialData?.cnh_attachment_original_name}
+                                currentUrl={initialData?.cnh_attachment_url}
+                                onChange={(file) => {
+                                    setCnhAttachmentFile(file);
+                                    setErrors((prev) => ({
+                                        ...prev,
+                                        cnh_attachment_file: '',
+                                    }));
+                                }}
+                            />
+                            <AttachmentField
+                                label="Carteira de Trabalho"
+                                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                hint="JPG, PNG, WEBP ou PDF (max. 8 MB)."
+                                error={errors.work_card_attachment_file}
+                                currentName={initialData?.work_card_attachment_original_name}
+                                currentUrl={initialData?.work_card_attachment_url}
+                                onChange={(file) => {
+                                    setWorkCardAttachmentFile(file);
+                                    setErrors((prev) => ({
+                                        ...prev,
+                                        work_card_attachment_file: '',
+                                    }));
+                                }}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
             ) : null}

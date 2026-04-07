@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AsyncExport;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class AsyncExportController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $rows = AsyncExport::query()
+            ->where('user_id', (int) $request->user()->id)
+            ->latest('created_at')
+            ->limit(30)
+            ->get(['id', 'type', 'status', 'file_name', 'error_message', 'created_at', 'completed_at']);
+
+        return response()->json([
+            'data' => $rows,
+        ]);
+    }
+
+    public function show(Request $request, string $id): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $export = AsyncExport::query()
+            ->where('id', $id)
+            ->where('user_id', (int) $request->user()->id)
+            ->firstOrFail();
+
+        return response()->json([
+            'data' => $export,
+        ]);
+    }
+
+    public function download(Request $request, string $id): StreamedResponse
+    {
+        abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
+
+        $export = AsyncExport::query()
+            ->where('id', $id)
+            ->where('user_id', (int) $request->user()->id)
+            ->firstOrFail();
+
+        abort_if($export->status !== 'completed' || ! $export->file_path, 422, 'Arquivo ainda não está pronto para download.');
+        abort_if(! Storage::disk('local')->exists((string) $export->file_path), 404, 'Arquivo não encontrado no storage.');
+
+        return Storage::disk('local')->download((string) $export->file_path, (string) ($export->file_name ?? 'export.xlsx'));
+    }
+}

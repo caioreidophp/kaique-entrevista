@@ -20,12 +20,14 @@ class FeriasLancamento extends Model
         'unidade_id',
         'funcao_id',
         'autor_id',
+        'tipo',
         'com_abono',
         'dias_ferias',
         'data_inicio',
         'data_fim',
         'periodo_aquisitivo_inicio',
         'periodo_aquisitivo_fim',
+        'observacoes',
     ];
 
     /**
@@ -34,12 +36,14 @@ class FeriasLancamento extends Model
     protected function casts(): array
     {
         return [
+            'tipo' => 'string',
             'com_abono' => 'boolean',
             'dias_ferias' => 'integer',
             'data_inicio' => 'date',
             'data_fim' => 'date',
             'periodo_aquisitivo_inicio' => 'date',
             'periodo_aquisitivo_fim' => 'date',
+            'observacoes' => 'string',
         ];
     }
 

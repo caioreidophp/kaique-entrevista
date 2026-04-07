@@ -35,6 +35,7 @@ import type {
     DriverInterviewListItem,
     GuepStatus,
     HrStatus,
+    InterviewCurriculumStatus,
 } from '@/types/driver-interview';
 
 function hrStatusLabel(status: HrStatus): string {
@@ -52,6 +53,51 @@ function guepStatusLabel(status: GuepStatus): string {
     if (status === 'aprovado') return 'Aprovado';
     if (status === 'reprovado') return 'Reprovado';
     return 'Aguardando';
+}
+
+function hrStatusBadgeClass(status: HrStatus): string {
+    if (status === 'aprovado') return 'transport-status-success';
+    if (status === 'reprovado') return 'transport-status-danger';
+    if (status === 'em_analise' || status === 'aguardando_vaga') return 'transport-status-warning';
+    return 'transport-status-info';
+}
+
+function guepStatusBadgeClass(status: GuepStatus): string {
+    if (status === 'aprovado') return 'transport-status-success';
+    if (status === 'reprovado' || status === 'nao_fazer') return 'transport-status-danger';
+    if (status === 'a_fazer') return 'transport-status-warning';
+    return 'transport-status-info';
+}
+
+function guepStatusSelectClass(status: GuepStatus): string {
+    if (status === 'aprovado') return 'border-green-300 bg-green-50 text-green-700';
+    if (status === 'reprovado' || status === 'nao_fazer') return 'border-red-300 bg-red-50 text-red-700';
+    if (status === 'a_fazer') return 'border-yellow-300 bg-yellow-50 text-yellow-700';
+    return 'border-blue-300 bg-blue-50 text-blue-700';
+}
+
+function hrStatusSelectClass(status: HrStatus): string {
+    if (status === 'aprovado') return 'border-green-300 bg-green-50 text-green-700';
+    if (status === 'reprovado') return 'border-red-300 bg-red-50 text-red-700';
+    if (status === 'em_analise' || status === 'aguardando_vaga') return 'border-yellow-300 bg-yellow-50 text-yellow-700';
+    return 'border-blue-300 bg-blue-50 text-blue-700';
+}
+
+function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
+    if (status === 'recusado') return 'Recusado';
+    if (status === 'aguardando_entrevista') return 'Aguardando - Entrevista';
+    if (status === 'aprovado_entrevista') return 'Aprovado - Entrevista';
+    if (status === 'reprovado_entrevista') return 'Reprovado - Entrevista';
+    return 'Pendente';
+}
+
+function curriculumStatusBadgeClass(status: InterviewCurriculumStatus): string {
+    if (status === 'aprovado_entrevista') return 'transport-status-success';
+    if (status === 'reprovado_entrevista' || status === 'recusado') {
+        return 'transport-status-danger';
+    }
+    if (status === 'aguardando_entrevista') return 'transport-status-info';
+    return 'transport-status-warning';
 }
 
 const hrStatusOptions: { value: HrStatus; label: string }[] = [
@@ -106,6 +152,17 @@ export default function TransportInterviewsListPage() {
     } | null>(null);
 
     const isMasterAdmin = viewerRole === 'master_admin';
+
+    function applyDatePreset(days: 7 | 30 | 90): void {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - days + 1);
+
+        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
+
+        setDateFromFilter(toIsoDate(start));
+        setDateToFilter(toIsoDate(end));
+    }
 
     function buildQuery(page: number): string {
         const query = new URLSearchParams();
@@ -338,6 +395,17 @@ export default function TransportInterviewsListPage() {
                         }
                     />
                     <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => applyDatePreset(7)}>
+                            7 dias
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => applyDatePreset(30)}>
+                            30 dias
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => applyDatePreset(90)}>
+                            90 dias
+                        </Button>
+                    </div>
+                    <div className="flex gap-2">
                         <Button type="button" onClick={() => load(1)}>
                             Buscar
                         </Button>
@@ -352,7 +420,7 @@ export default function TransportInterviewsListPage() {
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[980px] table-fixed text-sm">
+                    <table className="w-full min-w-[1220px] table-fixed text-sm">
                         <thead className="bg-muted/40">
                             <tr>
                                 <th className="w-[220px] px-4 py-3 text-left font-medium">
@@ -373,6 +441,9 @@ export default function TransportInterviewsListPage() {
                                 <th className="w-[90px] px-4 py-3 text-left font-medium">
                                     Data
                                 </th>
+                                <th className="w-[220px] px-2 py-3 text-left font-medium">
+                                    Currículo
+                                </th>
                                 <th className="w-[210px] px-4 py-3 text-right font-medium">
                                     Ações
                                 </th>
@@ -382,7 +453,7 @@ export default function TransportInterviewsListPage() {
                             {loading ? (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
                                         <span className="inline-flex items-center gap-2">
@@ -394,7 +465,7 @@ export default function TransportInterviewsListPage() {
                             ) : items.length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
                                         Nenhuma entrevista encontrada.
@@ -446,7 +517,9 @@ export default function TransportInterviewsListPage() {
                                                                     )
                                                                 }
                                                             >
-                                                                <SelectTrigger className="h-8 w-full rounded-full px-2.5">
+                                                                <SelectTrigger
+                                                                    className={`h-8 w-full rounded-full px-2.5 ${guepStatusSelectClass(item.guep_status)}`}
+                                                                >
                                                                     {updatingKey ===
                                                                     `${item.id}:guep_status` ? (
                                                                         <span className="inline-flex items-center gap-2 text-xs">
@@ -479,7 +552,7 @@ export default function TransportInterviewsListPage() {
                                                                 </SelectContent>
                                                             </Select>
                                                         ) : (
-                                                            <Badge variant="outline">
+                                                            <Badge className={`transport-status-badge ${guepStatusBadgeClass(item.guep_status)}`}>
                                                                 {guepStatusLabel(
                                                                     item.guep_status,
                                                                 )}
@@ -542,7 +615,7 @@ export default function TransportInterviewsListPage() {
                                                                             asChild
                                                                         >
                                                                             <SelectTrigger
-                                                                                className="h-8 w-full rounded-full px-2.5"
+                                                                                className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
                                                                                 title={
                                                                                     item.hr_rejection_reason
                                                                                 }
@@ -565,7 +638,9 @@ export default function TransportInterviewsListPage() {
                                                                         </TooltipContent>
                                                                     </Tooltip>
                                                                 ) : (
-                                                                    <SelectTrigger className="h-8 w-full rounded-full px-2.5">
+                                                                    <SelectTrigger
+                                                                        className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
+                                                                    >
                                                                         {updatingKey ===
                                                                         `${item.id}:hr_status` ? (
                                                                             <span className="inline-flex items-center gap-2 text-xs">
@@ -607,7 +682,7 @@ export default function TransportInterviewsListPage() {
                                                                         asChild
                                                                     >
                                                                         <Badge
-                                                                            variant="secondary"
+                                                                            className={`transport-status-badge ${hrStatusBadgeClass(item.hr_status)}`}
                                                                             title={
                                                                                 item.hr_rejection_reason
                                                                             }
@@ -624,7 +699,7 @@ export default function TransportInterviewsListPage() {
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             ) : (
-                                                                <Badge variant="secondary">
+                                                                <Badge className={`transport-status-badge ${hrStatusBadgeClass(item.hr_status)}`}>
                                                                     {hrStatusLabel(
                                                                         item.hr_status,
                                                                     )}
@@ -634,6 +709,26 @@ export default function TransportInterviewsListPage() {
                                                     </td>
                                                     <td className="px-4 py-3 whitespace-nowrap">
                                                         {formatDateBR(item.created_at)}
+                                                    </td>
+                                                    <td className="px-2 py-3">
+                                                        {item.curriculum ? (
+                                                            <div className="space-y-1">
+                                                                <p className="truncate text-xs font-medium">
+                                                                    {item.curriculum.full_name}
+                                                                </p>
+                                                                <Badge
+                                                                    className={`transport-status-badge ${curriculumStatusBadgeClass(item.curriculum.status)}`}
+                                                                >
+                                                                    {curriculumStatusLabel(
+                                                                        item.curriculum.status,
+                                                                    )}
+                                                                </Badge>
+                                                            </div>
+                                                        ) : (
+                                                            <Badge className="transport-status-badge transport-status-warning">
+                                                                Sem vínculo
+                                                            </Badge>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center justify-end gap-1.5">

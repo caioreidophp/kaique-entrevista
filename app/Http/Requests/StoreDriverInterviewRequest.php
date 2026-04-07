@@ -105,6 +105,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'city' => ['required', 'string', 'max:255'],
             'cargo_pretendido' => ['nullable', 'string', 'max:255'],
             'hiring_unidade_id' => ['nullable', 'integer', 'exists:unidades,id'],
+            'curriculum_id' => ['nullable', 'integer', 'exists:interview_curriculums,id'],
             'marital_status' => ['required', 'string', 'max:100'],
             'has_children' => ['required', 'boolean'],
             'children_situation' => ['nullable', 'string'],
@@ -241,6 +242,7 @@ class StoreDriverInterviewRequest extends FormRequest
             'hr_status' => 'status RH',
             'hr_rejection_reason' => 'motivo da reprovação',
             'hiring_unidade_id' => 'unidade de contratação',
+            'curriculum_id' => 'currículo',
         ];
     }
 }

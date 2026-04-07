@@ -56,6 +56,15 @@ export default function TransportLoginPage() {
         document.body.style.pointerEvents = 'auto';
         document.body.style.overflow = 'auto';
 
+        if (demoEnabled) {
+            const alreadySeen =
+                window.localStorage.getItem(DEMO_CTA_SEEN_KEY) === '1';
+
+            if (!alreadySeen) {
+                setShowDemoCta(true);
+            }
+        }
+
         const token = getAuthToken();
 
         if (!token) {
@@ -77,17 +86,6 @@ export default function TransportLoginPage() {
                 clearAuthToken();
                 clearStoredUser();
             });
-
-        if (!demoEnabled) {
-            return;
-        }
-
-        const alreadySeen =
-            window.localStorage.getItem(DEMO_CTA_SEEN_KEY) === '1';
-
-        if (!alreadySeen) {
-            setShowDemoCta(true);
-        }
     }, []);
 
     function handleUseDemo(): void {
@@ -118,7 +116,10 @@ export default function TransportLoginPage() {
             router.visit('/transport/home');
         } catch (error) {
             if (error instanceof ApiError) {
-                setMessage(error.message || 'E-mail ou senha inválidos.');
+                setMessage(
+                    error.message
+                    || 'E-mail ou senha inválidos.',
+                );
             } else {
                 setMessage('Não foi possível realizar login.');
             }

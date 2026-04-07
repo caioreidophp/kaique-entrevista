@@ -50,6 +50,12 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
+      - name: Clear Optimized Caches
+        run: php artisan optimize:clear
+
+      - name: Run Migrations
+        run: php artisan migrate --graceful --ansi
+
       - name: Build Assets
         run: npm run build
 
@@ -67,6 +73,12 @@ jobs:
 
       - name: NPM Audit (prod)
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Contract Tests Gate
+        run: php artisan test --group=contract --stop-on-failure
+
+      - name: Critical E2E Gate
+        run: php artisan test --group=e2e --stop-on-failure
 
       - name: Tests
         run: ./vendor/bin/phpunit

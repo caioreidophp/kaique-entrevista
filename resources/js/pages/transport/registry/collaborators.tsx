@@ -108,6 +108,12 @@ interface Colaborador {
     cartao_beneficio: string | null;
     foto_3x4_path: string | null;
     foto_3x4_url: string | null;
+    cnh_attachment_path: string | null;
+    cnh_attachment_original_name: string | null;
+    cnh_attachment_url: string | null;
+    work_card_attachment_path: string | null;
+    work_card_attachment_original_name: string | null;
+    work_card_attachment_url: string | null;
     unidade?: Unidade;
     funcao?: Funcao;
     user?: RegistryUser | null;
@@ -125,6 +131,20 @@ interface PaginatedResponse<T> {
 
 interface WrappedResponse<T> {
     data: T;
+}
+
+interface BirthdayCollaborator {
+    id: number;
+    nome: string;
+    data_nascimento: string | null;
+    unidade?: Unidade | null;
+    funcao?: Funcao | null;
+}
+
+interface BirthdaysResponse {
+    today: string;
+    today_birthdays: BirthdayCollaborator[];
+    month_birthdays: BirthdayCollaborator[];
 }
 
 interface ColaboradorFormData {
@@ -192,12 +212,9 @@ interface FeriasRegistro {
     observacoes: string | null;
 }
 
-interface VacationCandidateRow {
-    colaborador_id: number;
-    periodo_aquisitivo_inicio?: string;
-    periodo_aquisitivo_fim?: string;
-    direito: string;
-    limite: string;
+interface FeriasDraftRow {
+    data_inicio: string;
+    data_termino: string;
 }
 
 type ColaboradorSortBy = 'nome' | 'funcao' | 'unidade' | 'cpf' | 'ativo';
@@ -213,7 +230,12 @@ interface AfastamentoRegistro {
 
 type QuickEditInputType = 'text' | 'date' | 'select';
 
-type DetailsTab = 'contato' | 'ferias' | 'afastamentos' | 'dados_bancarios';
+type DetailsTab =
+    | 'contato'
+    | 'documentos'
+    | 'ferias'
+    | 'afastamentos'
+    | 'dados_bancarios';
 
 const maskedInputClassName =
     'border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive';
@@ -223,7 +245,7 @@ const emptyForm: ColaboradorFormData = {
     funcao_id: '',
     nome: '',
     apelido: '',
-    sexo: '',
+    sexo: 'M',
     ativo: true,
     adiantamento_salarial: false,
     cpf: '',
@@ -265,7 +287,7 @@ function collaboratorToFormData(item: Colaborador): ColaboradorFormData {
         funcao_id: String(item.funcao_id),
         nome: item.nome,
         apelido: item.apelido ?? '',
-        sexo: item.sexo ?? '',
+        sexo: 'M',
         ativo: item.ativo,
         adiantamento_salarial: item.adiantamento_salarial,
         cpf: formatCpf(item.cpf),
@@ -329,6 +351,73 @@ function dateToView(value: string | null): string {
     if (!year || !month || !day) return value;
 
     return `${day}/${month}/${year}`;
+}
+
+function parseInputDateToUtc(value: string): Date | null {
+    const [yearString, monthString, dayString] = value.split('-');
+    const year = Number(yearString);
+    const month = Number(monthString);
+    const day = Number(dayString);
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return null;
+    }
+
+    if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
+        return null;
+    }
+
+    return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatUtcDateToInput(value: Date): string {
+    return value.toISOString().slice(0, 10);
+}
+
+function resolveProfileVacationRule(
+    startDate: string,
+    endDate: string,
+): {
+    ok: boolean;
+    message?: string;
+    comAbono?: boolean;
+    diasFerias?: 20 | 30;
+    dataFimNormalizada?: string;
+} {
+    const parsedStart = parseInputDateToUtc(startDate);
+    const parsedEnd = parseInputDateToUtc(endDate);
+
+    if (!parsedStart || !parsedEnd) {
+        return {
+            ok: false,
+            message: 'Datas inválidas. Verifique início e término.',
+        };
+    }
+
+    const rangeDays = Math.floor(
+        (parsedEnd.getTime() - parsedStart.getTime()) / (24 * 60 * 60 * 1000),
+    ) + 1;
+
+    if (rangeDays < 17) {
+        return {
+            ok: false,
+            message:
+                'Para férias passadas do perfil, informe intervalo mínimo de 17 dias.',
+        };
+    }
+
+    const diasFerias: 20 | 30 = rangeDays >= 28 ? 30 : 20;
+    const comAbono = diasFerias === 20;
+
+    const normalizedEnd = new Date(parsedStart);
+    normalizedEnd.setUTCDate(normalizedEnd.getUTCDate() + diasFerias - 1);
+
+    return {
+        ok: true,
+        comAbono,
+        diasFerias,
+        dataFimNormalizada: formatUtcDateToInput(normalizedEnd),
+    };
 }
 
 function sanitizeCpf(value: string): string {
@@ -437,6 +526,9 @@ export default function TransportRegistryCollaboratorsPage() {
         message: string;
         variant: 'success' | 'error' | 'info';
     } | null>(null);
+    const [birthdaysLoading, setBirthdaysLoading] = useState(true);
+    const [todayBirthdays, setTodayBirthdays] = useState<BirthdayCollaborator[]>([]);
+    const [monthBirthdays, setMonthBirthdays] = useState<BirthdayCollaborator[]>([]);
 
     const [formOpen, setFormOpen] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -457,6 +549,12 @@ export default function TransportRegistryCollaboratorsPage() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [fotoFile, setFotoFile] = useState<File | null>(null);
     const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | null>(null);
+    const [detailsCnhAttachmentFile, setDetailsCnhAttachmentFile] =
+        useState<File | null>(null);
+    const [detailsWorkCardAttachmentFile, setDetailsWorkCardAttachmentFile] =
+        useState<File | null>(null);
+    const [detailsAttachmentSaving, setDetailsAttachmentSaving] =
+        useState(false);
     const [feriasByColaborador, setFeriasByColaborador] = useState<
         Record<number, FeriasRegistro[]>
     >({});
@@ -473,6 +571,9 @@ export default function TransportRegistryCollaboratorsPage() {
         data_termino: '',
         observacoes: '',
     });
+    const [feriasDraftRows, setFeriasDraftRows] = useState<FeriasDraftRow[]>([
+        { data_inicio: '', data_termino: '' },
+    ]);
     const [afastamentoDraft, setAfastamentoDraft] = useState({
         data_inicio: '',
         data_termino: '',
@@ -522,6 +623,26 @@ export default function TransportRegistryCollaboratorsPage() {
         }
     }
 
+    async function loadBirthdays(): Promise<void> {
+        setBirthdaysLoading(true);
+
+        try {
+            const response = await apiGet<BirthdaysResponse>(
+                '/registry/colaboradores/birthdays',
+            );
+
+            setTodayBirthdays(response.today_birthdays ?? []);
+            setMonthBirthdays(response.month_birthdays ?? []);
+        } catch {
+            setNotification({
+                message: 'Não foi possível carregar os aniversariantes.',
+                variant: 'error',
+            });
+        } finally {
+            setBirthdaysLoading(false);
+        }
+    }
+
     function buildQuery(page: number): string {
         const params = new URLSearchParams();
         params.set('page', String(page));
@@ -560,6 +681,7 @@ export default function TransportRegistryCollaboratorsPage() {
 
     useEffect(() => {
         loadOptions();
+        void loadBirthdays();
         loadColaboradores(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -613,6 +735,8 @@ export default function TransportRegistryCollaboratorsPage() {
         setDetailsItem(item);
         setFormData(collaboratorToFormData(item));
         setDetailsTab('contato');
+        setDetailsCnhAttachmentFile(null);
+        setDetailsWorkCardAttachmentFile(null);
         setDetailsOpen(true);
         void loadFeriasForCollaborator(item.id);
     }
@@ -638,6 +762,7 @@ export default function TransportRegistryCollaboratorsPage() {
     function openFeriasCreateModal(): void {
         setEditingFeriasId(null);
         setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+        setFeriasDraftRows([{ data_inicio: '', data_termino: '' }]);
         setFeriasModalOpen(true);
     }
 
@@ -653,65 +778,131 @@ export default function TransportRegistryCollaboratorsPage() {
 
     async function saveFeriasDraft(): Promise<void> {
         if (!detailsItem) return;
-        if (!feriasDraft.data_inicio || !feriasDraft.data_termino) {
-            setNotification({
-                message: 'Informe data início e data término para lançar férias.',
-                variant: 'error',
-            });
-            return;
-        }
-
-        setFeriasSaving(true);
-
-        try {
-            const candidates = await apiGet<WrappedResponse<VacationCandidateRow[]>>(
-                '/payroll/vacations/candidates',
-            );
-
-            const candidate = candidates.data.find(
-                (item) => item.colaborador_id === detailsItem.id,
-            );
-
-            if (!candidate) {
+        if (editingFeriasId) {
+            if (!feriasDraft.data_inicio || !feriasDraft.data_termino) {
                 setNotification({
-                    message:
-                        'Não foi possível calcular período aquisitivo deste colaborador para lançar férias.',
+                    message: 'Informe data início e data término para lançar férias.',
                     variant: 'error',
                 });
                 return;
             }
 
+            if (feriasDraft.data_termino < feriasDraft.data_inicio) {
+                setNotification({
+                    message: 'A data término não pode ser menor que a data início.',
+                    variant: 'error',
+                });
+                return;
+            }
+        } else {
+            const rowsWithAnyDate = feriasDraftRows.filter(
+                (row) => row.data_inicio || row.data_termino,
+            );
+
+            if (rowsWithAnyDate.length === 0) {
+                setNotification({
+                    message: 'Adicione pelo menos um período de férias passada para lançar.',
+                    variant: 'error',
+                });
+                return;
+            }
+
+            const hasIncompleteRow = rowsWithAnyDate.some(
+                (row) => !row.data_inicio || !row.data_termino,
+            );
+
+            if (hasIncompleteRow) {
+                setNotification({
+                    message: 'Preencha data início e data término em todos os períodos adicionados.',
+                    variant: 'error',
+                });
+                return;
+            }
+
+            const hasInvalidOrder = rowsWithAnyDate.some(
+                (row) => row.data_termino < row.data_inicio,
+            );
+
+            if (hasInvalidOrder) {
+                setNotification({
+                    message: 'Existe período com término menor que início. Ajuste as datas para continuar.',
+                    variant: 'error',
+                });
+                return;
+            }
+        }
+
+        setFeriasSaving(true);
+
+        try {
             if (editingFeriasId) {
+                const rule = resolveProfileVacationRule(
+                    feriasDraft.data_inicio,
+                    feriasDraft.data_termino,
+                );
+
+                if (!rule.ok) {
+                    setNotification({
+                        message:
+                            rule.message ??
+                            'Não foi possível aplicar a regra automática de férias.',
+                        variant: 'error',
+                    });
+                    return;
+                }
+
                 await apiPut(`/payroll/vacations/${editingFeriasId}`, {
                     colaborador_id: detailsItem.id,
-                    com_abono: false,
+                    tipo: 'passada',
+                    com_abono: rule.comAbono,
+                    dias_ferias: rule.diasFerias,
                     data_inicio: feriasDraft.data_inicio,
-                    data_fim: feriasDraft.data_termino,
-                    periodo_aquisitivo_inicio: candidate.periodo_aquisitivo_inicio ?? candidate.direito,
-                    periodo_aquisitivo_fim: candidate.periodo_aquisitivo_fim ?? candidate.limite,
+                    data_fim: rule.dataFimNormalizada,
                     observacoes: feriasDraft.observacoes,
                 });
             } else {
-                await apiPost('/payroll/vacations', {
-                    colaborador_id: detailsItem.id,
-                    com_abono: false,
-                    data_inicio: feriasDraft.data_inicio,
-                    data_fim: feriasDraft.data_termino,
-                    periodo_aquisitivo_inicio: candidate.periodo_aquisitivo_inicio ?? candidate.direito,
-                    periodo_aquisitivo_fim: candidate.periodo_aquisitivo_fim ?? candidate.limite,
-                    observacoes: feriasDraft.observacoes,
-                });
+                const rowsToSave = feriasDraftRows.filter(
+                    (row) => row.data_inicio && row.data_termino,
+                );
+
+                for (const row of rowsToSave) {
+                    const rule = resolveProfileVacationRule(
+                        row.data_inicio,
+                        row.data_termino,
+                    );
+
+                    if (!rule.ok) {
+                        setNotification({
+                            message:
+                                rule.message ??
+                                'Não foi possível aplicar a regra automática de férias.',
+                            variant: 'error',
+                        });
+                        return;
+                    }
+
+                    await apiPost('/payroll/vacations', {
+                        colaborador_id: detailsItem.id,
+                        tipo: 'passada',
+                        com_abono: rule.comAbono,
+                        dias_ferias: rule.diasFerias,
+                        data_inicio: row.data_inicio,
+                        data_fim: rule.dataFimNormalizada,
+                        observacoes: feriasDraft.observacoes,
+                    });
+                }
             }
 
             await loadFeriasForCollaborator(detailsItem.id);
 
             setEditingFeriasId(null);
             setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+            setFeriasDraftRows([{ data_inicio: '', data_termino: '' }]);
             setFeriasModalOpen(false);
             setNotification({
                 message: editingFeriasId
                     ? 'Férias atualizadas com sucesso.'
-                    : 'Férias lançadas com sucesso e sincronizadas com o Controle de Férias.',
+                    : `${feriasDraftRows.filter((row) => row.data_inicio && row.data_termino).length} férias passadas lançadas com sucesso e sincronizadas com o Controle de Férias.`,
                 variant: 'success',
             });
         } catch (error) {
@@ -733,6 +924,44 @@ export default function TransportRegistryCollaboratorsPage() {
         } finally {
             setFeriasSaving(false);
         }
+    }
+
+    function addFeriasDraftRow(): void {
+        setFeriasDraftRows((previous) => [
+            ...previous,
+            { data_inicio: '', data_termino: '' },
+        ]);
+    }
+
+    function updateFeriasDraftRow(
+        index: number,
+        field: keyof FeriasDraftRow,
+        value: string,
+    ): void {
+        setFeriasDraftRows((previous) =>
+            previous.map((row, rowIndex) =>
+                rowIndex === index
+                    ? {
+                          ...row,
+                          [field]: value,
+                      }
+                    : row,
+            ),
+        );
+    }
+
+    function removeFeriasDraftRow(index: number): void {
+        setFeriasDraftRows((previous) => {
+            if (previous.length <= 1) {
+                return [{ data_inicio: '', data_termino: '' }];
+            }
+
+            const next = previous.filter((_, rowIndex) => rowIndex !== index);
+
+            return next.length > 0
+                ? next
+                : [{ data_inicio: '', data_termino: '' }];
+        });
     }
 
     function openAfastamentoCreateModal(): void {
@@ -832,7 +1061,7 @@ export default function TransportRegistryCollaboratorsPage() {
             funcao_id: Number(source.funcao_id),
             nome: source.nome.trim(),
             apelido: normalizeNullable(source.apelido),
-            sexo: normalizeNullable(source.sexo),
+            sexo: 'M',
             ativo: source.ativo,
             adiantamento_salarial: source.adiantamento_salarial,
             cpf: sanitizedCpf,
@@ -914,13 +1143,7 @@ export default function TransportRegistryCollaboratorsPage() {
 
             const refreshed = response.data;
 
-            setDetailsItem(refreshed);
-            setFormData(collaboratorToFormData(refreshed));
-            setItems((previous) =>
-                previous.map((item) =>
-                    item.id === refreshed.id ? refreshed : item,
-                ),
-            );
+            syncCollaboratorInState(refreshed);
 
             setQuickEditOpen(false);
             setNotification({
@@ -945,6 +1168,120 @@ export default function TransportRegistryCollaboratorsPage() {
             }
         } finally {
             setQuickEditSaving(false);
+        }
+    }
+
+    function syncCollaboratorInState(refreshed: Colaborador): void {
+        setDetailsItem(refreshed);
+        setFormData(collaboratorToFormData(refreshed));
+        setItems((previous) =>
+            previous.map((item) => (item.id === refreshed.id ? refreshed : item)),
+        );
+    }
+
+    async function uploadDetailsAttachments(): Promise<void> {
+        if (!detailsItem) return;
+
+        if (!detailsCnhAttachmentFile && !detailsWorkCardAttachmentFile) {
+            setNotification({
+                message: 'Selecione ao menos um arquivo para enviar.',
+                variant: 'info',
+            });
+
+            return;
+        }
+
+        const payload = new FormData();
+
+        if (detailsCnhAttachmentFile) {
+            payload.append('cnh_attachment_file', detailsCnhAttachmentFile);
+        }
+
+        if (detailsWorkCardAttachmentFile) {
+            payload.append('work_card_attachment_file', detailsWorkCardAttachmentFile);
+        }
+
+        setDetailsAttachmentSaving(true);
+
+        try {
+            const response = await apiPost<WrappedResponse<Colaborador>>(
+                `/registry/colaboradores/${detailsItem.id}/attachments`,
+                payload,
+            );
+
+            syncCollaboratorInState(response.data);
+            setDetailsCnhAttachmentFile(null);
+            setDetailsWorkCardAttachmentFile(null);
+            setNotification({
+                message: 'Anexos do colaborador atualizados com sucesso.',
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível enviar os anexos.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setDetailsAttachmentSaving(false);
+        }
+    }
+
+    async function removeDetailsAttachment(type: 'cnh' | 'work_card'): Promise<void> {
+        if (!detailsItem) return;
+
+        const payload = new FormData();
+        payload.append(
+            type === 'cnh' ? 'remove_cnh_attachment' : 'remove_work_card_attachment',
+            '1',
+        );
+
+        setDetailsAttachmentSaving(true);
+
+        try {
+            const response = await apiPost<WrappedResponse<Colaborador>>(
+                `/registry/colaboradores/${detailsItem.id}/attachments`,
+                payload,
+            );
+
+            syncCollaboratorInState(response.data);
+            if (type === 'cnh') {
+                setDetailsCnhAttachmentFile(null);
+            } else {
+                setDetailsWorkCardAttachmentFile(null);
+            }
+
+            setNotification({
+                message:
+                    type === 'cnh'
+                        ? 'Anexo de CNH removido com sucesso.'
+                        : 'Anexo de carteira de trabalho removido com sucesso.',
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({
+                    message: error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível remover o anexo.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setDetailsAttachmentSaving(false);
         }
     }
 
@@ -1369,6 +1706,67 @@ export default function TransportRegistryCollaboratorsPage() {
 
                 <Card>
                     <CardHeader>
+                        <CardTitle>Aniversariantes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {birthdaysLoading ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <LoaderCircle className="size-4 animate-spin" />
+                                Carregando aniversariantes...
+                            </div>
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="rounded-md border p-3">
+                                    <p className="mb-2 text-sm font-medium">Aniversariantes de hoje</p>
+                                    {todayBirthdays.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">
+                                            Ninguém faz aniversário hoje.
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {todayBirthdays.map((item) => (
+                                                <div key={`birthday-today-${item.id}`} className="rounded-md border px-2 py-1.5 text-sm">
+                                                    <p className="font-medium">{item.nome}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="rounded-md border p-3">
+                                    <p className="mb-2 text-sm font-medium">Aniversariantes do mês</p>
+                                    {monthBirthdays.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">
+                                            Não há aniversariantes cadastrados neste mês.
+                                        </p>
+                                    ) : (
+                                        <div className="max-h-56 space-y-2 overflow-auto pr-1">
+                                            {monthBirthdays.map((item) => (
+                                                <div key={`birthday-month-${item.id}`} className="rounded-md border px-2 py-1.5 text-sm">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="font-medium">{item.nome}</p>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {dateToView(item.data_nascimento)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
                         <CardTitle>Filtros</CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1540,9 +1938,13 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     {item.cpf}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {item.ativo
-                                                        ? 'Ativo'
-                                                        : 'Inativo'}
+                                                    <span
+                                                        className={`transport-status-badge ${item.ativo ? 'transport-status-success' : 'transport-status-danger'}`}
+                                                    >
+                                                        {item.ativo
+                                                            ? 'Ativo'
+                                                            : 'Inativo'}
+                                                    </span>
                                                 </td>
                                                 <td className="py-2">
                                                     <div className="flex justify-end gap-2">
@@ -1968,20 +2370,6 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 }
                                             />
                                             M
-                                        </label>
-                                        <label className="inline-flex items-center gap-2 text-sm">
-                                            <input
-                                                type="radio"
-                                                name="sexo"
-                                                checked={formData.sexo === 'F'}
-                                                onChange={() =>
-                                                    setFormData((previous) => ({
-                                                        ...previous,
-                                                        sexo: 'F',
-                                                    }))
-                                                }
-                                            />
-                                            F
                                         </label>
                                     </div>
                                 </div>
@@ -2508,6 +2896,8 @@ export default function TransportRegistryCollaboratorsPage() {
                         setFeriasModalOpen(false);
                         setAfastamentoModalOpen(false);
                         setEditingAfastamentoId(null);
+                        setDetailsCnhAttachmentFile(null);
+                        setDetailsWorkCardAttachmentFile(null);
                     }
                 }}
             >
@@ -2516,8 +2906,9 @@ export default function TransportRegistryCollaboratorsPage() {
                         <DialogTitle>Perfil do colaborador</DialogTitle>
                         <DialogDescription>
                             Visão principal sempre disponível no topo e páginas
-                            internas para contato, férias, afastamentos e dados
-                            bancários. Dê dois cliques em um campo para editar.
+                            internas para contato, documentos, férias,
+                            afastamentos e dados bancários. Dê dois cliques em
+                            um campo para editar.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -2898,6 +3289,18 @@ export default function TransportRegistryCollaboratorsPage() {
                                 <Button
                                     type="button"
                                     variant={
+                                        detailsTab === 'documentos'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() => setDetailsTab('documentos')}
+                                >
+                                    Documentos
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={
                                         detailsTab === 'ferias'
                                             ? 'default'
                                             : 'outline'
@@ -3082,6 +3485,131 @@ export default function TransportRegistryCollaboratorsPage() {
                                         <p className="text-sm font-medium">
                                             {detailsItem.endereco_completo ?? '-'}
                                         </p>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {detailsTab === 'documentos' ? (
+                                <div className="space-y-4">
+                                    <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                        Envie aqui os documentos do colaborador. Os links abaixo sempre mostram o arquivo atualmente salvo.
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-2 rounded-lg border p-3">
+                                            <Label htmlFor="details-cnh-attachment">
+                                                Anexo CNH
+                                            </Label>
+                                            <Input
+                                                id="details-cnh-attachment"
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                                onChange={(event) =>
+                                                    setDetailsCnhAttachmentFile(
+                                                        event.target.files?.[0] ?? null,
+                                                    )
+                                                }
+                                                disabled={detailsAttachmentSaving}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                JPG, PNG, WEBP ou PDF (max. 8 MB).
+                                            </p>
+                                            {detailsItem.cnh_attachment_url ? (
+                                                <a
+                                                    href={detailsItem.cnh_attachment_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex text-xs font-medium text-primary hover:underline"
+                                                >
+                                                    {detailsItem.cnh_attachment_original_name?.trim() ||
+                                                        'Visualizar anexo atual'}
+                                                </a>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Nenhum anexo salvo.
+                                                </p>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    void removeDetailsAttachment('cnh')
+                                                }
+                                                disabled={
+                                                    detailsAttachmentSaving ||
+                                                    !detailsItem.cnh_attachment_url
+                                                }
+                                            >
+                                                Remover anexo CNH
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-2 rounded-lg border p-3">
+                                            <Label htmlFor="details-work-card-attachment">
+                                                Carteira de Trabalho
+                                            </Label>
+                                            <Input
+                                                id="details-work-card-attachment"
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                                onChange={(event) =>
+                                                    setDetailsWorkCardAttachmentFile(
+                                                        event.target.files?.[0] ?? null,
+                                                    )
+                                                }
+                                                disabled={detailsAttachmentSaving}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                JPG, PNG, WEBP ou PDF (max. 8 MB).
+                                            </p>
+                                            {detailsItem.work_card_attachment_url ? (
+                                                <a
+                                                    href={detailsItem.work_card_attachment_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex text-xs font-medium text-primary hover:underline"
+                                                >
+                                                    {detailsItem.work_card_attachment_original_name?.trim() ||
+                                                        'Visualizar anexo atual'}
+                                                </a>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Nenhum anexo salvo.
+                                                </p>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    void removeDetailsAttachment('work_card')
+                                                }
+                                                disabled={
+                                                    detailsAttachmentSaving ||
+                                                    !detailsItem.work_card_attachment_url
+                                                }
+                                            >
+                                                Remover carteira de trabalho
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="button"
+                                            onClick={() => void uploadDetailsAttachments()}
+                                            disabled={detailsAttachmentSaving}
+                                        >
+                                            {detailsAttachmentSaving ? (
+                                                <>
+                                                    <LoaderCircle className="size-4 animate-spin" />
+                                                    Salvando anexos...
+                                                </>
+                                            ) : (
+                                                'Salvar anexos'
+                                            )}
+                                        </Button>
                                     </div>
                                 </div>
                             ) : null}
@@ -3660,6 +4188,9 @@ export default function TransportRegistryCollaboratorsPage() {
                     setFeriasModalOpen(open);
                     if (!open) {
                         setEditingFeriasId(null);
+                        setFeriasDraftRows([
+                            { data_inicio: '', data_termino: '' },
+                        ]);
                     }
                 }}
             >
@@ -3681,50 +4212,163 @@ export default function TransportRegistryCollaboratorsPage() {
                     </DialogHeader>
 
                     <div className="space-y-3">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="ferias-inicio">Data início</Label>
-                                <Input
-                                    id="ferias-inicio"
-                                    type="date"
-                                    value={feriasDraft.data_inicio}
-                                    onChange={(event) =>
-                                        setFeriasDraft((previous) => ({
-                                            ...previous,
-                                            data_inicio: event.target.value,
-                                        }))
-                                    }
-                                />
+                        {editingFeriasId ? (
+                            <div className="space-y-3">
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="ferias-inicio">Data início</Label>
+                                        <Input
+                                            id="ferias-inicio"
+                                            type="date"
+                                            value={feriasDraft.data_inicio}
+                                            onChange={(event) =>
+                                                setFeriasDraft((previous) => ({
+                                                    ...previous,
+                                                    data_inicio: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="ferias-fim">Data término</Label>
+                                        <Input
+                                            id="ferias-fim"
+                                            type="date"
+                                            value={feriasDraft.data_termino}
+                                            onChange={(event) =>
+                                                setFeriasDraft((previous) => ({
+                                                    ...previous,
+                                                    data_termino: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ferias-obs">Observações</Label>
+                                    <textarea
+                                        id="ferias-obs"
+                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        value={feriasDraft.observacoes}
+                                        onChange={(event) =>
+                                            setFeriasDraft((previous) => ({
+                                                ...previous,
+                                                observacoes: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="ferias-fim">Data término</Label>
-                                <Input
-                                    id="ferias-fim"
-                                    type="date"
-                                    value={feriasDraft.data_termino}
-                                    onChange={(event) =>
-                                        setFeriasDraft((previous) => ({
-                                            ...previous,
-                                            data_termino: event.target.value,
-                                        }))
-                                    }
-                                />
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label>Períodos de férias passadas</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addFeriasDraftRow}
+                                        disabled={feriasSaving}
+                                    >
+                                        <PlusCircle className="size-4" />
+                                        Adicionar período
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {feriasDraftRows.map((row, index) => (
+                                        <div
+                                            key={`ferias-row-${index}`}
+                                            className="rounded-md border p-3"
+                                        >
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <p className="text-sm font-medium">
+                                                    Período {index + 1}
+                                                </p>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        removeFeriasDraftRow(
+                                                            index,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        feriasSaving ||
+                                                        feriasDraftRows.length ===
+                                                            1
+                                                    }
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`ferias-inicio-${index}`}>
+                                                        Data início
+                                                    </Label>
+                                                    <Input
+                                                        id={`ferias-inicio-${index}`}
+                                                        type="date"
+                                                        value={row.data_inicio}
+                                                        onChange={(event) =>
+                                                            updateFeriasDraftRow(
+                                                                index,
+                                                                'data_inicio',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`ferias-fim-${index}`}>
+                                                        Data término
+                                                    </Label>
+                                                    <Input
+                                                        id={`ferias-fim-${index}`}
+                                                        type="date"
+                                                        value={row.data_termino}
+                                                        onChange={(event) =>
+                                                            updateFeriasDraftRow(
+                                                                index,
+                                                                'data_termino',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="ferias-obs">
+                                        Observações (opcional para todos os períodos)
+                                    </Label>
+                                    <textarea
+                                        id="ferias-obs"
+                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        value={feriasDraft.observacoes}
+                                        onChange={(event) =>
+                                            setFeriasDraft((previous) => ({
+                                                ...previous,
+                                                observacoes: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <p className="text-xs text-muted-foreground">
+                                    Regra automática: intervalo entre 17 e 27 dias vira
+                                    férias de 20 dias com abono. Intervalo de 28+
+                                    dias vira férias de 30 dias sem abono.
+                                </p>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="ferias-obs">Observações</Label>
-                            <textarea
-                                id="ferias-obs"
-                                className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                                value={feriasDraft.observacoes}
-                                onChange={(event) =>
-                                    setFeriasDraft((previous) => ({
-                                        ...previous,
-                                        observacoes: event.target.value,
-                                    }))
-                                }
-                            />
-                        </div>
+                        )}
                     </div>
 
                     <DialogFooter>

@@ -19,9 +19,11 @@ import {
     Wallet,
     Workflow,
     Truck,
+    CalendarDays,
     Menu,
     TrendingUp,
     CircleX,
+    CircleAlert,
 } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '@/components/logo';
@@ -42,14 +44,6 @@ import {
     redirectToLogin,
 } from '@/lib/transport-auth';
 import { transportFeatures } from '@/lib/transport-features';
-import {
-    getStoredTransportLanguage,
-    normalizeTransportLanguage,
-    setStoredTransportLanguage,
-    TRANSPORT_LANGUAGE_EVENT,
-    TRANSPORT_LANGUAGE_STORAGE_KEY,
-    type TransportLanguage,
-} from '@/lib/transport-language';
 import {
     clearStoredUser,
     fetchCurrentUser,
@@ -78,6 +72,7 @@ interface AdminLayoutProps {
         | 'operations-hub'
         | 'executive-dashboard'
         | 'interviews'
+        | 'curriculums'
         | 'create'
         | 'next-steps'
         | 'onboarding'
@@ -98,14 +93,20 @@ interface AdminLayoutProps {
         | 'freight-operational-report'
         | 'freight-monthly'
         | 'freight-timeline'
+        | 'programming-dashboard'
         | 'settings'
         | 'registry-collaborators'
+        | 'registry-birthdays'
         | 'registry-users'
         | 'registry-functions'
         | 'registry-payment-types'
         | 'registry-plates-aviaries'
+        | 'registry-infractions'
+        | 'fines-dashboard'
+        | 'fines-launch'
+        | 'fines-list'
         | 'activity-log';
-    module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight' | 'vacations';
+    module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight' | 'vacations' | 'programming' | 'fines';
     showBobChat?: boolean;
     children: React.ReactNode;
 }
@@ -128,7 +129,7 @@ const adminLayoutCopy = {
         pendingChanges: ' • alterações pendentes',
         quickNavigationTitle: 'Navegação rápida',
         quickNavigationDescription: 'Digite um número para navegar:',
-        quickNavigationPlaceholder: 'Digite 1-5',
+        quickNavigationPlaceholder: 'Digite 1-7',
         shortcutsLegend:
             'Atalhos globais: Ctrl+S (salvar), Alt+Shift+1..3 (salvar perfil), Alt+1..3 (aplicar perfil), ESC (fechar).',
         panelHome: 'Painel Principal',
@@ -136,22 +137,29 @@ const adminLayoutCopy = {
         panelPayroll: 'Painel de Pagamentos',
         panelVacations: 'Painel Controle de Férias',
         panelFreight: 'Central de Fretes',
+        panelProgramming: 'Painel de Programação',
+        panelFines: 'Painel de Gestão de Multas',
         panelInterviews: 'Painel de Entrevistas',
         quickInterviews: 'Entrevistas',
         quickPayroll: 'Pagamentos',
         quickVacations: 'Férias',
         quickRegistry: 'Cadastro',
         quickFreight: 'Gestão de Fretes',
+        quickProgramming: 'Programação',
+        quickFines: 'Gestão de Multas',
         linkDashboard: 'Dashboard',
         linkInterviews: 'Entrevistas',
+        linkCurriculums: 'Currículos',
         linkNewInterview: 'Nova entrevista',
         linkNextSteps: 'Próximos Passos',
         linkOnboarding: 'Onboarding',
+        linkProgrammingDashboard: 'Programação de Viagens',
         linkCollaborators: 'Colaboradores',
         linkUsers: 'Usuários',
         linkFunctions: 'Funções',
         linkPaymentTypes: 'Tipo de Pagamentos',
         linkPlatesAviaries: 'Placas e Aviários',
+        linkInfractions: 'Infrações',
         linkLaunchPayments: 'Lançar Pagamentos',
         linkPaymentList: 'Lista de Pagamentos',
         linkDiscounts: 'Descontos',
@@ -164,6 +172,9 @@ const adminLayoutCopy = {
         linkSpotFreight: 'Lançar Fretes Spot',
         linkCanceledLoads: 'Cargas Canceladas',
         linkAnalyticsHub: 'Central Analítica',
+        linkFinesDashboard: 'Dashboard de Multas',
+        linkFinesLaunch: 'Lançar Multas',
+        linkFinesList: 'Lista de Multas',
         linkPending: 'Pendências',
         linkSettings: 'Configurações',
         linkLog: 'Log',
@@ -185,7 +196,7 @@ const adminLayoutCopy = {
         pendingChanges: ' • pending changes',
         quickNavigationTitle: 'Quick navigation',
         quickNavigationDescription: 'Type a number to navigate:',
-        quickNavigationPlaceholder: 'Type 1-5',
+        quickNavigationPlaceholder: 'Type 1-7',
         shortcutsLegend:
             'Global shortcuts: Ctrl+S (save), Alt+Shift+1..3 (save profile), Alt+1..3 (apply profile), ESC (close).',
         panelHome: 'Main panel',
@@ -193,22 +204,29 @@ const adminLayoutCopy = {
         panelPayroll: 'Payroll panel',
         panelVacations: 'Vacation control panel',
         panelFreight: 'Freight hub',
+        panelProgramming: 'Programming panel',
+        panelFines: 'Fines management panel',
         panelInterviews: 'Interviews panel',
         quickInterviews: 'Interviews',
         quickPayroll: 'Payroll',
         quickVacations: 'Vacations',
         quickRegistry: 'Registry',
         quickFreight: 'Freight management',
+        quickProgramming: 'Programming',
+        quickFines: 'Fines management',
         linkDashboard: 'Dashboard',
         linkInterviews: 'Interviews',
+        linkCurriculums: 'Resumes',
         linkNewInterview: 'New interview',
         linkNextSteps: 'Next steps',
         linkOnboarding: 'Onboarding',
+        linkProgrammingDashboard: 'Trip scheduling',
         linkCollaborators: 'Collaborators',
         linkUsers: 'Users',
         linkFunctions: 'Functions',
         linkPaymentTypes: 'Payment types',
         linkPlatesAviaries: 'Plates and aviaries',
+        linkInfractions: 'Infractions',
         linkLaunchPayments: 'Launch payroll',
         linkPaymentList: 'Payroll list',
         linkDiscounts: 'Deductions',
@@ -221,6 +239,9 @@ const adminLayoutCopy = {
         linkSpotFreight: 'Launch spot freight',
         linkCanceledLoads: 'Canceled loads',
         linkAnalyticsHub: 'Analytics hub',
+        linkFinesDashboard: 'Fines dashboard',
+        linkFinesLaunch: 'Launch fines',
+        linkFinesList: 'Fines list',
         linkPending: 'Pending items',
         linkSettings: 'Settings',
         linkLog: 'Log',
@@ -235,9 +256,6 @@ export function AdminLayout({
     children,
 }: AdminLayoutProps) {
     const bobEnabled = import.meta.env.VITE_BOB_ENABLED === 'true';
-    const [language, setLanguage] = useState<TransportLanguage>(() =>
-        getStoredTransportLanguage(),
-    );
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [navigationInput, setNavigationInput] = useState('');
@@ -256,46 +274,7 @@ export function AdminLayout({
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
-    const copy = useMemo(() => adminLayoutCopy[language], [language]);
-
-    useEffect(() => {
-        setStoredTransportLanguage(language);
-    }, [language]);
-
-    useEffect(() => {
-        function handleTransportLanguageChanged(event: Event): void {
-            const customEvent = event as CustomEvent<{
-                language?: TransportLanguage;
-            }>;
-            const nextLanguage = normalizeTransportLanguage(
-                customEvent.detail?.language,
-            );
-
-            setLanguage(nextLanguage);
-        }
-
-        function handleStorage(event: StorageEvent): void {
-            if (event.key !== TRANSPORT_LANGUAGE_STORAGE_KEY) {
-                return;
-            }
-
-            setLanguage(getStoredTransportLanguage());
-        }
-
-        window.addEventListener(
-            TRANSPORT_LANGUAGE_EVENT,
-            handleTransportLanguageChanged as EventListener,
-        );
-        window.addEventListener('storage', handleStorage);
-
-        return () => {
-            window.removeEventListener(
-                TRANSPORT_LANGUAGE_EVENT,
-                handleTransportLanguageChanged as EventListener,
-            );
-            window.removeEventListener('storage', handleStorage);
-        };
-    }, []);
+    const copy = adminLayoutCopy['pt-BR'];
 
     const clearFocusSidebarCloseTimeout = useCallback((): void => {
         if (focusSidebarCloseTimeoutRef.current !== null) {
@@ -920,6 +899,14 @@ export function AdminLayout({
             label: copy.quickFreight,
             href: '/transport/freight/dashboard',
         },
+        '6': {
+            label: copy.quickProgramming,
+            href: '/transport/programming/dashboard',
+        },
+        '7': {
+            label: copy.quickFines,
+            href: '/transport/fines/dashboard',
+        },
     };
 
     function handleNavigationInput(
@@ -952,6 +939,8 @@ export function AdminLayout({
         if (active.startsWith('payroll-')) return 'payroll';
         if (active.startsWith('vacations-')) return 'vacations';
         if (active.startsWith('freight-')) return 'freight';
+        if (active.startsWith('programming-')) return 'programming';
+        if (active.startsWith('fines-')) return 'fines';
         return 'interviews';
     }, [active, module]);
 
@@ -969,6 +958,7 @@ export function AdminLayout({
     const sidebarPermissionByLinkKey = useMemo<Record<string, string>>(() => ({
         dashboard: 'sidebar.dashboard.view',
         interviews: 'sidebar.interviews.view',
+        curriculums: 'sidebar.curriculums.view',
         create: 'sidebar.interviews.create',
         'next-steps': 'sidebar.next-steps.view',
         onboarding: 'sidebar.onboarding.view',
@@ -977,6 +967,7 @@ export function AdminLayout({
         'registry-functions': 'sidebar.registry.functions.view',
         'registry-payment-types': 'sidebar.registry.payment-types.view',
         'registry-plates-aviaries': 'sidebar.registry.plates-aviaries.view',
+        'registry-infractions': 'sidebar.registry.infractions.view',
         'payroll-dashboard': 'sidebar.payroll.dashboard.view',
         'payroll-launch': 'sidebar.payroll.launch.view',
         'payroll-list': 'sidebar.payroll.list.view',
@@ -992,6 +983,10 @@ export function AdminLayout({
         'freight-spot': 'sidebar.freight.spot.view',
         'freight-canceled-loads': 'sidebar.freight.canceled-loads.view',
         'freight-timeline': 'sidebar.freight.timeline.view',
+        'programming-dashboard': 'sidebar.programming.dashboard.view',
+        'fines-dashboard': 'sidebar.fines.dashboard.view',
+        'fines-launch': 'sidebar.fines.launch.view',
+        'fines-list': 'sidebar.fines.list.view',
         'operations-hub': 'sidebar.operations-hub.view',
         settings: 'sidebar.settings.view',
         'activity-log': 'sidebar.activity-log.view',
@@ -1000,7 +995,50 @@ export function AdminLayout({
     const links = useMemo(
         () => [
             ...(currentModule === 'home'
-                ? []
+                ? [
+                    {
+                        key: 'interviews',
+                        label: copy.linkInterviews,
+                        href: '/transport/interviews',
+                        icon: ListChecks,
+                    },
+                    {
+                        key: 'payroll-dashboard',
+                        label: copy.quickPayroll,
+                        href: '/transport/payroll/dashboard',
+                        icon: Wallet,
+                    },
+                    {
+                        key: 'vacations-dashboard',
+                        label: copy.quickVacations,
+                        href: '/transport/vacations/dashboard',
+                        icon: ClipboardCheck,
+                    },
+                    {
+                        key: 'registry-collaborators',
+                        label: copy.quickRegistry,
+                        href: '/transport/registry/collaborators',
+                        icon: Users,
+                    },
+                    {
+                        key: 'freight-dashboard',
+                        label: copy.quickFreight,
+                        href: '/transport/freight/dashboard',
+                        icon: Truck,
+                    },
+                    {
+                        key: 'programming-dashboard',
+                        label: copy.quickProgramming,
+                        href: '/transport/programming/dashboard',
+                        icon: CalendarDays,
+                    },
+                    {
+                        key: 'fines-dashboard',
+                        label: copy.quickFines,
+                        href: '/transport/fines/dashboard',
+                        icon: LayoutDashboard,
+                    },
+                ]
                 : currentModule === 'registry'
                     ? [
                         {
@@ -1032,6 +1070,12 @@ export function AdminLayout({
                             label: copy.linkPlatesAviaries,
                             href: '/transport/registry/plates-aviaries',
                             icon: Truck,
+                        },
+                        {
+                            key: 'registry-infractions',
+                            label: copy.linkInfractions,
+                            href: '/transport/registry/infractions',
+                            icon: CircleAlert,
                         },
                     ]
                   : currentModule === 'payroll'
@@ -1133,6 +1177,36 @@ export function AdminLayout({
                                 icon: TrendingUp,
                             },
                         ]
+                    : currentModule === 'programming'
+                      ? [
+                            {
+                                key: 'programming-dashboard',
+                                label: copy.linkProgrammingDashboard,
+                                href: '/transport/programming/dashboard',
+                                icon: CalendarDays,
+                            },
+                        ]
+                    : currentModule === 'fines'
+                      ? [
+                            {
+                                key: 'fines-dashboard',
+                                label: copy.linkFinesDashboard,
+                                href: '/transport/fines/dashboard',
+                                icon: LayoutDashboard,
+                            },
+                            {
+                                key: 'fines-launch',
+                                label: copy.linkFinesLaunch,
+                                href: '/transport/fines/launch',
+                                icon: PlusSquare,
+                            },
+                            {
+                                key: 'fines-list',
+                                label: copy.linkFinesList,
+                                href: '/transport/fines/list',
+                                icon: List,
+                            },
+                        ]
                       : [
                             {
                                 key: 'dashboard',
@@ -1145,6 +1219,12 @@ export function AdminLayout({
                                 label: copy.linkInterviews,
                                 href: '/transport/interviews',
                                 icon: ListChecks,
+                            },
+                            {
+                                key: 'curriculums',
+                                label: copy.linkCurriculums,
+                                href: '/transport/interviews/curriculums',
+                                icon: ScrollText,
                             },
                             {
                                 key: 'create',
@@ -1227,6 +1307,8 @@ export function AdminLayout({
         if (currentModule === 'payroll') return copy.panelPayroll;
         if (currentModule === 'vacations') return copy.panelVacations;
         if (currentModule === 'freight') return copy.panelFreight;
+        if (currentModule === 'programming') return copy.panelProgramming;
+        if (currentModule === 'fines') return copy.panelFines;
         return copy.panelInterviews;
     }, [copy, currentModule]);
 
@@ -1244,7 +1326,10 @@ export function AdminLayout({
         <>
             <Head title={title} />
 
-            <div className="min-h-screen bg-muted/20 print:min-h-0 print:bg-white">
+            <div
+                data-transport-i18n-root="transport-app"
+                className="min-h-screen bg-muted/20 print:min-h-0 print:bg-white"
+            >
                 {globalNotice ? (
                     <Notification
                         message={globalNotice.message}
@@ -1366,7 +1451,10 @@ export function AdminLayout({
                                             <ChevronLeft className="size-4" />
                                         </Button>
                                     </div>
-                                    <p className="mt-2 text-sm text-muted-foreground">
+                                    <p
+                                        data-transport-translate="off"
+                                        className="mt-2 text-sm text-muted-foreground"
+                                    >
                                         {user?.name} ({user?.email})
                                     </p>
                                     <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
@@ -1453,34 +1541,6 @@ export function AdminLayout({
                             </div>
                         </div>
 
-                        <div className={`mt-3 ${sidebarCollapsed ? 'flex flex-col items-center gap-1' : 'rounded-md border bg-muted/20 p-2'}`}>
-                            {!sidebarCollapsed ? (
-                                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                                    {copy.languageLabel}
-                                </p>
-                            ) : null}
-                            <div className={sidebarCollapsed ? 'flex flex-col gap-1' : 'mt-2 grid grid-cols-2 gap-1'}>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={language === 'pt-BR' ? 'default' : 'outline'}
-                                    className={sidebarCollapsed ? 'px-2 text-xs' : 'w-full'}
-                                    onClick={() => setLanguage('pt-BR')}
-                                >
-                                    {sidebarCollapsed ? 'PT' : copy.languagePortuguese}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant={language === 'en-US' ? 'default' : 'outline'}
-                                    className={sidebarCollapsed ? 'px-2 text-xs' : 'w-full'}
-                                    onClick={() => setLanguage('en-US')}
-                                >
-                                    {sidebarCollapsed ? 'EN' : copy.languageEnglish}
-                                </Button>
-                            </div>
-                        </div>
-
                         <Button
                             type="button"
                             variant="outline"
@@ -1518,7 +1578,10 @@ export function AdminLayout({
                                     {panelTitle}
                                     {hasUnsavedChanges ? copy.pendingChanges : ''}
                                 </h1>
-                                <p className="mt-2 text-sm text-muted-foreground">
+                                <p
+                                    data-transport-translate="off"
+                                    className="mt-2 text-sm text-muted-foreground"
+                                >
                                     {user?.name} ({user?.email})
                                 </p>
                             </div>
@@ -1581,32 +1644,6 @@ export function AdminLayout({
                                 </div>
                             </div>
 
-                            <div className="mt-3 rounded-md border bg-muted/20 p-2">
-                                <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                                    {copy.languageLabel}
-                                </p>
-                                <div className="mt-2 grid grid-cols-2 gap-1">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant={language === 'pt-BR' ? 'default' : 'outline'}
-                                        className="w-full"
-                                        onClick={() => setLanguage('pt-BR')}
-                                    >
-                                        {copy.languagePortuguese}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant={language === 'en-US' ? 'default' : 'outline'}
-                                        className="w-full"
-                                        onClick={() => setLanguage('en-US')}
-                                    >
-                                        {copy.languageEnglish}
-                                    </Button>
-                                </div>
-                            </div>
-
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1646,7 +1683,10 @@ export function AdminLayout({
                                     <h1 className="mt-1 text-lg font-semibold">
                                         {panelTitle}
                                     </h1>
-                                    <p className="mt-2 text-sm text-muted-foreground">
+                                    <p
+                                        data-transport-translate="off"
+                                        className="mt-2 text-sm text-muted-foreground"
+                                    >
                                         {user?.name} ({user?.email})
                                     </p>
                                     <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
@@ -1717,32 +1757,6 @@ export function AdminLayout({
                                             </Link>
                                         );
                                     })}
-                                </div>
-
-                                <div className="mt-3 rounded-md border bg-muted/20 p-2">
-                                    <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        {copy.languageLabel}
-                                    </p>
-                                    <div className="mt-2 grid grid-cols-2 gap-1">
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant={language === 'pt-BR' ? 'default' : 'outline'}
-                                            className="w-full"
-                                            onClick={() => setLanguage('pt-BR')}
-                                        >
-                                            {copy.languagePortuguese}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant={language === 'en-US' ? 'default' : 'outline'}
-                                            className="w-full"
-                                            onClick={() => setLanguage('en-US')}
-                                        >
-                                            {copy.languageEnglish}
-                                        </Button>
-                                    </div>
                                 </div>
 
                                 <Button
@@ -1828,6 +1842,22 @@ export function AdminLayout({
                                 </span>
                                 <span className="font-medium">
                                     {copy.quickFreight}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                    6
+                                </span>
+                                <span className="font-medium">
+                                    {copy.quickProgramming}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">
+                                    7
+                                </span>
+                                <span className="font-medium">
+                                    {copy.quickFines}
                                 </span>
                             </div>
                         </div>

@@ -165,7 +165,7 @@ function onboardingDisplayName(item: OnboardingRecord): string {
 
 export default function TransportOnboardingPage() {
     const [search, setSearch] = useState('');
-    const debouncedSearch = useDebouncedValue(search, 300);
+    const debouncedSearch = useDebouncedValue(search, 450);
     const [pendingItems, setPendingItems] = useState<OnboardingRecord[]>([]);
     const [historyItems, setHistoryItems] = useState<OnboardingRecord[]>([]);
     const [showHistory, setShowHistory] = useState(false);

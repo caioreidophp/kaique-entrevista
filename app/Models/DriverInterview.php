@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -21,6 +22,19 @@ class DriverInterview extends Model
     {
         static::deleting(function (DriverInterview $interview): void {
             $interview->onboarding()?->delete();
+
+            foreach ([
+                'candidate_photo_path',
+                'cnh_attachment_path',
+                'work_card_attachment_path',
+                'curriculum_path',
+            ] as $pathField) {
+                $path = (string) ($interview->{$pathField} ?? '');
+
+                if ($path !== '') {
+                    Storage::disk('public')->delete($path);
+                }
+            }
         });
     }
 
@@ -38,6 +52,7 @@ class DriverInterview extends Model
         'city',
         'cargo_pretendido',
         'hiring_unidade_id',
+        'curriculum_id',
         'marital_status',
         'has_children',
         'children_situation',
@@ -46,6 +61,14 @@ class DriverInterview extends Model
         'cnh_number',
         'cnh_category',
         'cnh_expiration_date',
+        'candidate_photo_path',
+        'candidate_photo_original_name',
+        'cnh_attachment_path',
+        'cnh_attachment_original_name',
+        'work_card_attachment_path',
+        'work_card_attachment_original_name',
+        'curriculum_path',
+        'curriculum_original_name',
         'ear',
         'last_company',
         'last_role',
@@ -147,6 +170,11 @@ class DriverInterview extends Model
     public function hiringUnidade(): BelongsTo
     {
         return $this->belongsTo(Unidade::class, 'hiring_unidade_id');
+    }
+
+    public function curriculum(): BelongsTo
+    {
+        return $this->belongsTo(InterviewCurriculum::class, 'curriculum_id');
     }
 
     public function onboarding(): HasOne

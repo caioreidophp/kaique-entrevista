@@ -109,6 +109,34 @@ Route::prefix('transport')->group(function (): void {
         })->name('transport.freight.canceled-loads');
     });
 
+    Route::prefix('programming')->group(function (): void {
+        Route::get('/', function () {
+            return redirect()->route('transport.programming.dashboard');
+        })->name('transport.programming.index');
+
+        Route::get('dashboard', function () {
+            return Inertia::render('transport/programming/dashboard');
+        })->name('transport.programming.dashboard');
+    });
+
+    Route::prefix('fines')->group(function (): void {
+        Route::get('/', function () {
+            return redirect()->route('transport.fines.dashboard');
+        })->name('transport.fines.index');
+
+        Route::get('dashboard', function () {
+            return Inertia::render('transport/fines/dashboard');
+        })->name('transport.fines.dashboard');
+
+        Route::get('launch', function () {
+            return Inertia::render('transport/fines/launch');
+        })->name('transport.fines.launch');
+
+        Route::get('list', function () {
+            return Inertia::render('transport/fines/list');
+        })->name('transport.fines.list');
+    });
+
     Route::prefix('vacations')->group(function (): void {
         Route::get('dashboard', function () {
             return Inertia::render('transport/vacations/dashboard');
@@ -130,6 +158,10 @@ Route::prefix('transport')->group(function (): void {
     Route::get('interviews/create', function () {
         return Inertia::render('transport/interviews/create');
     })->name('transport.interviews.create');
+
+    Route::get('interviews/curriculums', function () {
+        return Inertia::render('transport/interviews/curriculums');
+    })->name('transport.interviews.curriculums');
 
     Route::get('next-steps', function () {
         return Inertia::render('transport/next-steps');
@@ -175,6 +207,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('plates-aviaries', function () {
             return Inertia::render('transport/registry/plates-aviaries');
         })->name('transport.registry.plates-aviaries');
+
+        Route::get('infractions', function () {
+            return Inertia::render('transport/registry/infractions');
+        })->name('transport.registry.infractions');
     });
 
     Route::get('activity-log', function () {

@@ -24,7 +24,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
-import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
+import {
+    formatCurrencyBR,
+    formatDateBR,
+    moneyMaskBR,
+    toNumberSafe,
+} from '@/lib/transport-format';
 
 interface Unidade {
     id: number;
@@ -76,6 +81,16 @@ interface ConfirmDialogState {
     description: string;
 }
 
+interface EditCanceledLoadDraft {
+    id: number;
+    data: string;
+    placa: string;
+    aviario: string;
+    valor: string;
+    n_viagem: string;
+    obs: string;
+}
+
 const current = new Date();
 
 function monthOptions(): Array<{ value: string; label: string }> {
@@ -104,7 +119,7 @@ export default function TransportFreightCanceledLoadsPage() {
     const [recebidas, setRecebidas] = useState<FreightCanceledLoad[]>([]);
 
     const [placaFilter, setPlacaFilter] = useState('');
-    const debouncedPlacaFilter = useDebouncedValue(placaFilter, 300);
+    const debouncedPlacaFilter = useDebouncedValue(placaFilter, 450);
     const [mesFilter, setMesFilter] = useState('all');
     const [unidadeFilter, setUnidadeFilter] = useState('all');
 
@@ -129,6 +144,9 @@ export default function TransportFreightCanceledLoadsPage() {
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+    const [editLoadDraft, setEditLoadDraft] =
+        useState<EditCanceledLoadDraft | null>(null);
+    const [savingEditedLoad, setSavingEditedLoad] = useState(false);
 
     const aReceberRef = useRef<FreightCanceledLoad[]>([]);
 
@@ -159,6 +177,16 @@ export default function TransportFreightCanceledLoadsPage() {
                 .reduce((acc, item) => acc + Number(item.valor ?? 0), 0),
         [aReceber, selectedIds],
     );
+
+    const aReceberTotal = useMemo(
+        () => aReceber.reduce((acc, item) => acc + Number(item.valor ?? 0), 0),
+        [aReceber],
+    );
+
+    const allBillingRowsSelected =
+        aReceber.length > 0 && selectedIds.length === aReceber.length;
+    const someBillingRowsSelected =
+        selectedIds.length > 0 && !allBillingRowsSelected;
 
     const receivedGroups = useMemo<ReceivedGroup[]>(() => {
         const map = new Map<string, ReceivedGroup>();
@@ -250,6 +278,78 @@ export default function TransportFreightCanceledLoadsPage() {
     function startTripEdit(item: FreightCanceledLoad): void {
         setEditingTripId(item.id);
         setTripDraft(item.n_viagem ?? '');
+    }
+
+    function startLoadEdit(item: FreightCanceledLoad): void {
+        setEditLoadDraft({
+            id: item.id,
+            data: item.data?.slice(0, 10) ?? '',
+            placa: item.placa ?? '',
+            aviario: item.aviario ?? '',
+            valor: moneyMaskBR(String(item.valor ?? '')),
+            n_viagem: item.n_viagem ?? '',
+            obs: item.obs ?? '',
+        });
+    }
+
+    function toggleAllBillingSelection(nextChecked: boolean): void {
+        if (!nextChecked) {
+            setBillingSelection({});
+            return;
+        }
+
+        const next: Record<number, boolean> = {};
+
+        aReceber.forEach((item) => {
+            next[item.id] = true;
+        });
+
+        setBillingSelection(next);
+    }
+
+    async function saveEditedLoad(): Promise<void> {
+        if (!editLoadDraft) {
+            return;
+        }
+
+        if (!editLoadDraft.data || !editLoadDraft.placa.trim()) {
+            setNotification({
+                message: 'Data e placa são obrigatórias para editar a carga.',
+                variant: 'info',
+            });
+            return;
+        }
+
+        setSavingEditedLoad(true);
+
+        try {
+            await apiPut(`/freight/canceled-loads/${editLoadDraft.id}`, {
+                data: editLoadDraft.data,
+                placa: editLoadDraft.placa.trim().toUpperCase(),
+                aviario: editLoadDraft.aviario.trim() || null,
+                valor: toNumberSafe(editLoadDraft.valor),
+                n_viagem: editLoadDraft.n_viagem.trim() || null,
+                obs: editLoadDraft.obs.trim() || null,
+            });
+
+            setEditLoadDraft(null);
+            setNotification({
+                message: 'Carga cancelada atualizada com sucesso.',
+                variant: 'success',
+            });
+            await loadAll();
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({ message: error.message, variant: 'error' });
+            } else {
+                setNotification({
+                    message: 'Não foi possível atualizar a carga cancelada.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setSavingEditedLoad(false);
+        }
     }
 
     function toggleGroup(groupKey: string): void {
@@ -530,6 +630,32 @@ export default function TransportFreightCanceledLoadsPage() {
                             <p className="text-sm text-muted-foreground">Nenhuma carga a receber.</p>
                         ) : (
                             <div className="space-y-3">
+                                {billingMode ? (
+                                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                checked={
+                                                    allBillingRowsSelected
+                                                        ? true
+                                                        : someBillingRowsSelected
+                                                          ? 'indeterminate'
+                                                          : false
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    toggleAllBillingSelection(
+                                                        Boolean(checked),
+                                                    )
+                                                }
+                                            />
+                                            <span className="text-sm font-medium">
+                                                Selecionar todas as cargas
+                                            </span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">
+                                            {selectedIds.length}/{aReceber.length} selecionadas
+                                        </span>
+                                    </div>
+                                ) : null}
                                 <div className="space-y-2 md:hidden">
                                     {aReceber.map((item) => (
                                         <div key={`mobile-a-${item.id}`} className="space-y-2 rounded-md border p-3">
@@ -611,21 +737,32 @@ export default function TransportFreightCanceledLoadsPage() {
                                                         <span className="text-xs text-muted-foreground">Selecionar</span>
                                                     </div>
                                                 ) : <span />}
-                                                <Button
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    onClick={() =>
-                                                        setConfirmDialog({
-                                                            kind: 'delete-a',
-                                                            id: item.id,
-                                                            title: 'Excluir carga cancelada',
-                                                            description: `Deseja excluir a carga de placa ${item.placa}? Esta ação não pode ser desfeita.`,
-                                                        })
-                                                    }
-                                                    disabled={processingId === `delete-a:${item.id}`}
-                                                >
-                                                    Excluir
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            startLoadEdit(item)
+                                                        }
+                                                    >
+                                                        Editar
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            setConfirmDialog({
+                                                                kind: 'delete-a',
+                                                                id: item.id,
+                                                                title: 'Excluir carga cancelada',
+                                                                description: `Deseja excluir a carga de placa ${item.placa}? Esta ação não pode ser desfeita.`,
+                                                            })
+                                                        }
+                                                        disabled={processingId === `delete-a:${item.id}`}
+                                                    >
+                                                        Excluir
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -639,7 +776,14 @@ export default function TransportFreightCanceledLoadsPage() {
                                             <th className="py-2 pr-3 font-medium">Data</th>
                                             <th className="py-2 pr-3 font-medium">Placa</th>
                                             <th className="py-2 pr-3 font-medium">Aviário</th>
-                                            <th className="py-2 pr-3 font-medium">Frete</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                <div className="flex flex-col leading-tight">
+                                                    <span>Frete</span>
+                                                    <span className="text-[10px] normal-case tracking-normal text-muted-foreground">
+                                                        Σ {formatCurrencyBR(aReceberTotal)}
+                                                    </span>
+                                                </div>
+                                            </th>
                                             <th className="py-2 pr-3 font-medium">nº Viagem</th>
                                             <th className="py-2 pr-3 font-medium">Obs.</th>
                                             <th className="py-2 pr-3 font-medium">Unidade</th>
@@ -725,21 +869,34 @@ export default function TransportFreightCanceledLoadsPage() {
                                                 <td className="py-2 pr-3">{item.obs ?? '-'}</td>
                                                 <td className="py-2 pr-3">{item.unidade?.nome ?? '-'}</td>
                                                 <td className="py-2 pr-3 text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            setConfirmDialog({
-                                                                kind: 'delete-a',
-                                                                id: item.id,
-                                                                title: 'Excluir carga cancelada',
-                                                                description: `Deseja excluir a carga de placa ${item.placa}? Esta ação não pode ser desfeita.`,
-                                                            })
-                                                        }
-                                                        disabled={processingId === `delete-a:${item.id}`}
-                                                    >
-                                                        Excluir
-                                                    </Button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                startLoadEdit(
+                                                                    item,
+                                                                )
+                                                            }
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={() =>
+                                                                setConfirmDialog({
+                                                                    kind: 'delete-a',
+                                                                    id: item.id,
+                                                                    title: 'Excluir carga cancelada',
+                                                                    description: `Deseja excluir a carga de placa ${item.placa}? Esta ação não pode ser desfeita.`,
+                                                                })
+                                                            }
+                                                            disabled={processingId === `delete-a:${item.id}`}
+                                                        >
+                                                            Excluir
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -918,6 +1075,15 @@ export default function TransportFreightCanceledLoadsPage() {
                                                                                         <Button
                                                                                             size="sm"
                                                                                             variant="outline"
+                                                                                            onClick={() =>
+                                                                                                startLoadEdit(item)
+                                                                                            }
+                                                                                        >
+                                                                                            Editar
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                            size="sm"
+                                                                                            variant="outline"
                                                                                             onClick={() => void unbillOne(item.id)}
                                                                                             disabled={processingId === `unbill-i:${item.id}`}
                                                                                         >
@@ -978,6 +1144,158 @@ export default function TransportFreightCanceledLoadsPage() {
                         </Button>
                         <Button type="button" variant="destructive" onClick={() => void executeConfirmedAction()}>
                             Confirmar exclusão
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(editLoadDraft)}
+                onOpenChange={(open) => {
+                    if (!open && !savingEditedLoad) {
+                        setEditLoadDraft(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar carga cancelada</DialogTitle>
+                        <DialogDescription>
+                            Atualize os dados da carga selecionada.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {editLoadDraft ? (
+                        <div className="space-y-3">
+                            <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-data">Data</Label>
+                                    <Input
+                                        id="edit-canceled-data"
+                                        type="date"
+                                        value={editLoadDraft.data}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          data: event.target.value,
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-placa">Placa</Label>
+                                    <Input
+                                        id="edit-canceled-placa"
+                                        value={editLoadDraft.placa}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          placa: event.target.value.toUpperCase(),
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-aviario">Aviário</Label>
+                                    <Input
+                                        id="edit-canceled-aviario"
+                                        value={editLoadDraft.aviario}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          aviario: event.target.value,
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-valor">Frete</Label>
+                                    <Input
+                                        id="edit-canceled-valor"
+                                        value={editLoadDraft.valor}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          valor: moneyMaskBR(event.target.value),
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-viagem">nº Viagem</Label>
+                                    <Input
+                                        id="edit-canceled-viagem"
+                                        value={editLoadDraft.n_viagem}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          n_viagem: event.target.value,
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-canceled-obs">Obs.</Label>
+                                    <Input
+                                        id="edit-canceled-obs"
+                                        value={editLoadDraft.obs}
+                                        onChange={(event) =>
+                                            setEditLoadDraft((previous) =>
+                                                previous
+                                                    ? {
+                                                          ...previous,
+                                                          obs: event.target.value,
+                                                      }
+                                                    : previous,
+                                            )
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setEditLoadDraft(null)}
+                            disabled={savingEditedLoad}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => void saveEditedLoad()}
+                            disabled={savingEditedLoad}
+                        >
+                            {savingEditedLoad ? 'Salvando...' : 'Salvar alterações'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

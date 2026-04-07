@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowRight,
+    CalendarDays,
+    CircleAlert,
     ClipboardCheck,
     ListChecks,
     LoaderCircle,
@@ -30,6 +32,8 @@ interface HomeModule {
         | 'registry'
         | 'freight'
         | 'vacations'
+        | 'fines'
+        | 'programming'
         | 'operations';
     title: string;
     description: string;
@@ -59,6 +63,12 @@ const metricLabels: Record<string, string> = {
     vacations_expired_rate: 'Taxa de férias vencidas',
     operations_pending_total: 'Pendências totais',
     executive_approval_rate: 'Taxa de aprovação',
+    programming_trips_today: 'Viagens previstas hoje',
+    programming_unassigned_today: 'Viagens sem escala hoje',
+    programming_available_drivers: 'Motoristas disponíveis hoje',
+    programming_available_trucks: 'Caminhões disponíveis hoje',
+    fines_count_current_month: 'Multas no mês atual',
+    fines_total_current_month: 'Valor total em multas',
 };
 
 function formatMetric(label: string, value: number): string {
@@ -73,7 +83,8 @@ function formatMetric(label: string, value: number): string {
     if (
         label.includes('total_current_month') ||
         label.includes('freight_total_current_month') ||
-        label.includes('avg_km_current_month')
+        label.includes('avg_km_current_month') ||
+        label.includes('fines_total_current_month')
     ) {
         return formatCurrencyBR(value);
     }
@@ -102,6 +113,8 @@ function moduleIcon(key: HomeModule['key']) {
     if (key === 'payroll') return <Wallet className="size-5" />;
     if (key === 'vacations') return <ClipboardCheck className="size-5" />;
     if (key === 'freight') return <Truck className="size-5" />;
+    if (key === 'fines') return <CircleAlert className="size-5" />;
+    if (key === 'programming') return <CalendarDays className="size-5" />;
     if (key === 'operations') return <ClipboardCheck className="size-5" />;
     return <Users className="size-5" />;
 }
@@ -142,7 +155,7 @@ export default function TransportHomePage() {
                         Carregando painéis...
                     </div>
                 ) : (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {visibleModules.map((module) => (
                             <Card
                                 key={module.key}

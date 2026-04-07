@@ -16,9 +16,17 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { apiGet, apiPost } from '@/lib/api-client';
+import {
+    splitInterviewPayload,
+    syncInterviewAttachments,
+} from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
 import { formatDateTimeBR } from '@/lib/transport-format';
-import type { DriverInterviewFormData } from '@/types/driver-interview';
+import type {
+    ApiPaginatedResponse,
+    DriverInterviewFormData,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 
 const INTERVIEW_DRAFT_STORAGE_KEY = 'transport:interview:create-draft:v1';
 
@@ -79,6 +87,14 @@ export default function TransportInterviewsCreatePage() {
     const [hiringUnitOptions, setHiringUnitOptions] = useState<UnitOption[]>(
         [],
     );
+    const [curriculumOptions, setCurriculumOptions] = useState<
+        Array<{
+            id: number;
+            full_name: string;
+            has_cnh_attachment?: boolean;
+            has_work_card_attachment?: boolean;
+        }>
+    >([]);
     const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
 
     const dynamicTitle =
@@ -133,6 +149,24 @@ export default function TransportInterviewsCreatePage() {
     }, []);
 
     useEffect(() => {
+        apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
+            '/interview-curriculums?tab=pendentes&per_page=200',
+        )
+            .then((response) => {
+                setCurriculumOptions(
+                    response.data.map((curriculum) => ({
+                        id: curriculum.id,
+                        full_name: curriculum.full_name,
+                        has_cnh_attachment: curriculum.has_cnh_attachment,
+                        has_work_card_attachment:
+                            curriculum.has_work_card_attachment,
+                    })),
+                );
+            })
+            .catch(() => setCurriculumOptions([]));
+    }, []);
+
+    useEffect(() => {
         loadReferenceCitiesCached()
             .then((cities) => setCityOptions(cities))
             .catch(() => setCityOptions([]));
@@ -166,7 +200,14 @@ export default function TransportInterviewsCreatePage() {
     async function handleSubmit(
         payload: Record<string, unknown>,
     ): Promise<void> {
-        await apiPost('/driver-interviews', payload);
+        const { data, attachments } = splitInterviewPayload(payload);
+        const response = await apiPost<{ data: { id: number } }>(
+            '/driver-interviews',
+            data,
+        );
+
+        await syncInterviewAttachments(response.data.id, attachments);
+
         setSuccess('Entrevista cadastrada com sucesso.');
         window.setTimeout(() => {
             router.visit('/transport/interviews');
@@ -174,7 +215,7 @@ export default function TransportInterviewsCreatePage() {
     }
 
     return (
-        <AdminLayout title="Nova entrevista" active="create">
+        <AdminLayout title="Nova entrevista" active="create" showBobChat={false}>
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">{dynamicTitle}</h2>
@@ -240,6 +281,7 @@ export default function TransportInterviewsCreatePage() {
                         initialStep={initialStep}
                         draftStorageKey={INTERVIEW_DRAFT_STORAGE_KEY}
                         hiringUnitOptions={hiringUnitOptions}
+                        curriculumOptions={curriculumOptions}
                         cityOptions={cityOptions}
                         onProgressChange={({ fullName, step }) => {
                             setCurrentCandidateName(fullName);
