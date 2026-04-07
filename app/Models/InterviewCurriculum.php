@@ -26,6 +26,7 @@ class InterviewCurriculum extends Model
         'phone',
         'role_name',
         'unit_name',
+        'observacao',
         'document_path',
         'document_original_name',
         'cnh_attachment_path',

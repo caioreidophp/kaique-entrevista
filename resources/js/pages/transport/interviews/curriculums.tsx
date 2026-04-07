@@ -136,6 +136,9 @@ export default function TransportInterviewCurriculumsPage() {
     const [deleteTarget, setDeleteTarget] =
         useState<InterviewCurriculumListItem | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [editingObservationId, setEditingObservationId] = useState<number | null>(null);
+    const [editingObservationValue, setEditingObservationValue] = useState('');
+    const [savingObservationId, setSavingObservationId] = useState<number | null>(null);
 
     const tabTitle = useMemo(() => {
         return activeTab === 'pendentes' ? 'Pendentes' : 'Passados';
@@ -441,6 +444,69 @@ export default function TransportInterviewCurriculumsPage() {
         }
     }
 
+    function startObservationEdit(item: InterviewCurriculumListItem): void {
+        setEditingObservationId(item.id);
+        setEditingObservationValue(item.observacao ?? '');
+    }
+
+    function cancelObservationEdit(): void {
+        setEditingObservationId(null);
+        setEditingObservationValue('');
+    }
+
+    async function saveObservation(item: InterviewCurriculumListItem): Promise<void> {
+        const nextObservation = editingObservationValue.trim();
+        const currentObservation = (item.observacao ?? '').trim();
+
+        if (nextObservation === currentObservation) {
+            cancelObservationEdit();
+            return;
+        }
+
+        setSavingObservationId(item.id);
+
+        try {
+            await apiPut(`/interview-curriculums/${item.id}`, {
+                full_name: item.full_name,
+                phone: item.phone ?? '',
+                role_name: item.role_name ?? '',
+                unit_name: item.unit_name ?? '',
+                observacao: nextObservation !== '' ? nextObservation : null,
+            });
+
+            setItems((previous) =>
+                previous.map((row) => {
+                    if (row.id !== item.id) return row;
+
+                    return {
+                        ...row,
+                        observacao: nextObservation !== '' ? nextObservation : null,
+                    };
+                }),
+            );
+
+            cancelObservationEdit();
+            setNotification({
+                message: 'Observação atualizada com sucesso.',
+                variant: 'success',
+            });
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setNotification({
+                    message: error.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Não foi possível atualizar a observação.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setSavingObservationId(null);
+        }
+    }
+
     return (
         <AdminLayout title="Currículos" active="curriculums">
             <div className="space-y-6">
@@ -503,14 +569,14 @@ export default function TransportInterviewCurriculumsPage() {
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[1300px] text-sm">
+                    <table className="w-full min-w-[1380px] text-sm">
                         <thead className="bg-muted/40">
                             <tr>
                                 <th className="px-4 py-3 text-left font-medium">Nome</th>
                                 <th className="px-4 py-3 text-left font-medium">Telefone</th>
                                 <th className="px-4 py-3 text-left font-medium">Função</th>
                                 <th className="px-4 py-3 text-left font-medium">Unidade</th>
-                                <th className="px-4 py-3 text-left font-medium">Arquivo</th>
+                                <th className="px-4 py-3 text-left font-medium">Observação</th>
                                 <th className="px-4 py-3 text-left font-medium">Status</th>
                                 <th className="px-4 py-3 text-left font-medium">Anexos</th>
                                 <th className="px-4 py-3 text-left font-medium">Entrevista</th>
@@ -547,18 +613,33 @@ export default function TransportInterviewCurriculumsPage() {
                                         <td className="px-4 py-3 whitespace-nowrap">{item.phone ?? '-'}</td>
                                         <td className="px-4 py-3">{item.role_name ?? '-'}</td>
                                         <td className="px-4 py-3">{item.unit_name ?? '-'}</td>
-                                        <td className="px-4 py-3">
-                                            {item.document_url ? (
-                                                <a
-                                                    href={item.document_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="inline-flex max-w-[260px] truncate text-primary hover:underline"
-                                                >
-                                                    {item.document_original_name}
-                                                </a>
+                                        <td
+                                            className="px-4 py-3"
+                                            onDoubleClick={() => startObservationEdit(item)}
+                                        >
+                                            {editingObservationId === item.id ? (
+                                                <Input
+                                                    autoFocus
+                                                    value={editingObservationValue}
+                                                    onChange={(event) => setEditingObservationValue(event.target.value)}
+                                                    onBlur={() => void saveObservation(item)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') {
+                                                            event.preventDefault();
+                                                            void saveObservation(item);
+                                                        }
+
+                                                        if (event.key === 'Escape') {
+                                                            event.preventDefault();
+                                                            cancelObservationEdit();
+                                                        }
+                                                    }}
+                                                    placeholder="Digite uma observação"
+                                                />
                                             ) : (
-                                                <span className="text-muted-foreground">-</span>
+                                                <span className="inline-flex min-h-9 items-center text-sm text-muted-foreground">
+                                                    {item.observacao?.trim() || (savingObservationId === item.id ? 'Salvando...' : 'Duplo clique para observar')}
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -569,7 +650,50 @@ export default function TransportInterviewCurriculumsPage() {
                                             </Badge>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap">
-                                            <Badge variant="outline">{item.attachments_status}</Badge>
+                                            <div className="flex flex-wrap items-center gap-1">
+                                                {item.document_url ? (
+                                                    <a
+                                                        href={item.document_url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-primary hover:underline"
+                                                        title={item.document_original_name}
+                                                    >
+                                                        C
+                                                    </a>
+                                                ) : null}
+                                                {item.cnh_attachment_url ? (
+                                                    <>
+                                                        {item.document_url ? <span className="text-muted-foreground">/</span> : null}
+                                                        <a
+                                                            href={item.cnh_attachment_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-primary hover:underline"
+                                                            title={item.cnh_attachment_original_name ?? 'CNH'}
+                                                        >
+                                                            CNH
+                                                        </a>
+                                                    </>
+                                                ) : null}
+                                                {item.work_card_attachment_url ? (
+                                                    <>
+                                                        {item.document_url || item.cnh_attachment_url ? <span className="text-muted-foreground">/</span> : null}
+                                                        <a
+                                                            href={item.work_card_attachment_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-primary hover:underline"
+                                                            title={item.work_card_attachment_original_name ?? 'Carteira de Trabalho'}
+                                                        >
+                                                            CT
+                                                        </a>
+                                                    </>
+                                                ) : null}
+                                                {!item.document_url && !item.cnh_attachment_url && !item.work_card_attachment_url ? (
+                                                    <span className="text-muted-foreground">-</span>
+                                                ) : null}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             {item.linked_interview ? (

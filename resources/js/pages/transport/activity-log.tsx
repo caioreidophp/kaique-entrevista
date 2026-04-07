@@ -109,6 +109,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Ação `Transformar em multa` abre a tela de Lançar Multa já pré-preenchida com dados da notificação e permite completar os campos extras de multa (valor, vencimento, culpa, motorista etc.) antes de salvar.',
                         ],
                     },
+                    {
+                        title: 'Entrevistas/Pagamentos v4.0: anexos com links C/CNH/CT, observação por duplo clique e impressão com mãe na pensão',
+                        details: [
+                            'Na lista de `Entrevistas > Currículos`, a coluna de arquivo foi substituída por `Observação` com edição rápida por duplo clique direto na célula.',
+                            'A coluna `Anexos` passou a exibir links operacionais por sigla: `C` (currículo), `CNH` e `CT`, permitindo abrir cada arquivo individualmente com um clique.',
+                            'Quando existir mais de um anexo, o sistema mostra no formato `C/CNH/CT`, mantendo leitura compacta e abertura direta de cada documento.',
+                            'Favicon público do domínio foi alinhado com a identidade da Kaique para evitar exibição do ícone padrão do Laravel ao abrir links diretos de arquivos.',
+                            'Na impressão de pagamentos salariais, linhas de pensão agora mostram a coluna `Mãe / Beneficiária`, facilitando conferência de pagamento para a pessoa correta.',
+                        ],
+                    },
                 ],
             },
         ],

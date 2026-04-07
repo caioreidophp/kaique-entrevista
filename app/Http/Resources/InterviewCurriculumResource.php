@@ -43,6 +43,7 @@ class InterviewCurriculumResource extends JsonResource
             'phone' => $this->phone,
             'role_name' => $this->role_name,
             'unit_name' => $this->unit_name,
+            'observacao' => $this->observacao,
             'status' => $this->status?->value,
             'document_original_name' => $this->document_original_name,
             'document_url' => $this->document_path

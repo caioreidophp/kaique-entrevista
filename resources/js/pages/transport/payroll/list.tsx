@@ -945,6 +945,7 @@ export default function TransportPayrollListPage() {
                             pensionRowsForCollaborator.push(`
                                 <tr>
                                     <td>${escapeHtml(`${collaborator.nome} - Pensão`)}</td>
+                                    <td>${escapeHtml(pensao.nome_beneficiaria ?? '-')}</td>
                                     <td>${escapeHtml(formatCurrencyBR(applied))}</td>
                                     <td>${escapeHtml(pensao.nome_banco ?? '-')}</td>
                                     <td>${escapeHtml(pensao.numero_agencia ?? '-')}</td>
@@ -978,6 +979,7 @@ export default function TransportPayrollListPage() {
                     targetRows.push(`
                         <tr>
                             <td>${escapeHtml(collaborator.nome)}</td>
+                            <td>-</td>
                             <td>${escapeHtml(formatCurrencyBR(collaboratorPay))}</td>
                             <td>${escapeHtml(bankName)}</td>
                             <td>${escapeHtml(agency)}</td>
@@ -1034,6 +1036,7 @@ export default function TransportPayrollListPage() {
                                 <thead>
                                     <tr>
                                         <th>Nome</th>
+                                        <th>Mãe / Beneficiária</th>
                                         <th>Valor</th>
                                         <th>Banco</th>
                                         <th>Agência</th>
@@ -1044,7 +1047,7 @@ export default function TransportPayrollListPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${specialRows.length > 0 ? specialRows.join('') : '<tr><td colspan="8">Sem pagamentos neste bloco.</td></tr>'}
+                                    ${specialRows.length > 0 ? specialRows.join('') : '<tr><td colspan="9">Sem pagamentos neste bloco.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -1055,6 +1058,7 @@ export default function TransportPayrollListPage() {
                                 <thead>
                                     <tr>
                                         <th>Nome</th>
+                                        <th>Mãe / Beneficiária</th>
                                         <th>Valor</th>
                                         <th>Banco</th>
                                         <th>Agência</th>
@@ -1065,7 +1069,7 @@ export default function TransportPayrollListPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${salaryRows.length > 0 ? salaryRows.join('') : '<tr><td colspan="8">Sem pagamentos neste bloco.</td></tr>'}
+                                    ${salaryRows.length > 0 ? salaryRows.join('') : '<tr><td colspan="9">Sem pagamentos neste bloco.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>

@@ -21,6 +21,7 @@ class UpdateInterviewCurriculumRequest extends FormRequest
             'phone' => ['required', 'string', 'max:40'],
             'role_name' => ['required', 'string', 'max:120'],
             'unit_name' => ['required', 'string', 'max:120'],
+            'observacao' => ['nullable', 'string', 'max:500'],
         ];
     }
 

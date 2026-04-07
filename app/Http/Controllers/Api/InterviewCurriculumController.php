@@ -37,6 +37,7 @@ class InterviewCurriculumController extends Controller
                 'phone',
                 'role_name',
                 'unit_name',
+                'observacao',
                 'status',
                 'document_path',
                 'document_original_name',
@@ -106,6 +107,7 @@ class InterviewCurriculumController extends Controller
                 'phone' => trim((string) $validated['phone']),
                 'role_name' => trim((string) $validated['role_name']),
                 'unit_name' => trim((string) $validated['unit_name']),
+                'observacao' => null,
                 'document_path' => '',
                 'document_original_name' => $file->getClientOriginalName(),
                 'cnh_attachment_path' => null,
@@ -186,6 +188,9 @@ class InterviewCurriculumController extends Controller
             'phone' => trim((string) $validated['phone']),
             'role_name' => trim((string) $validated['role_name']),
             'unit_name' => trim((string) $validated['unit_name']),
+            'observacao' => array_key_exists('observacao', $validated)
+                ? ($validated['observacao'] !== null ? trim((string) $validated['observacao']) : null)
+                : $interviewCurriculum->observacao,
         ]);
 
         return new InterviewCurriculumResource(

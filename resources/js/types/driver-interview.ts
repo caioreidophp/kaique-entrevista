@@ -158,6 +158,7 @@ export interface InterviewCurriculumListItem {
     phone: string | null;
     role_name: string | null;
     unit_name: string | null;
+    observacao: string | null;
     status: InterviewCurriculumStatus;
     document_original_name: string;
     document_url: string | null;
