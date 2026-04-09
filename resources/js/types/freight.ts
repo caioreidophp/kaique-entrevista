@@ -171,11 +171,23 @@ export interface FreightDashboardResponse {
         total_frete_liquido: number;
         total_km: number;
         total_aves: number;
+        total_viagens_kaique: number;
+        total_frete_terceiros: number;
+        total_frete_programado: number;
+        total_frota_unidade: number;
         dias_trabalhados: number;
         frete_por_caminhao: number;
         frete_por_dia_trabalhado: number;
         frete_por_km: number;
         frete_liquido_por_km: number;
+        frete_kaique_por_km: number;
+        frete_kaique_por_caminhao: number;
+        frete_kaique_por_dia: number;
+        aves_por_carga: number;
+        frete_kaique_por_carga: number;
+        percentual_frete_terceiros_sobre_programado: number;
+        box_divisor: number;
+        aves_media_por_caixa: number;
     }>;
     lancamentos_recentes: FreightEntry[];
 }

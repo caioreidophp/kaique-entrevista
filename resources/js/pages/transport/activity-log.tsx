@@ -109,6 +109,30 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Validação final concluída com build, migrations, cache rebuild e suíte completa verde (`157 passed`).',
                         ],
                     },
+                    {
+                        title: 'Navegação principal v4.3: sidebar com submenu por hover mantendo acesso direto ao item pai',
+                        details: [
+                            'Sidebar da tela principal passou a abrir submenus no hover/foco em desktop, mantendo navegação rápida para ações internas de cada módulo.',
+                            'Itens principais continuam clicáveis para entrada direta no painel pai (ex.: `Gestão de Fretes`), sem bloquear o fluxo antigo de acesso.',
+                            'Versão mobile ganhou exibição hierárquica inline dos filhos no próprio menu para reduzir troca de contexto e acelerar acesso por toque.',
+                            'Filtro de permissões foi aplicado também nos links filhos para manter consistência de visibilidade por perfil/cargo.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Dashboard de Fretes v4.3: filtros compactos, 12 gráficos por unidade e limpeza de cards redundantes',
+                        details: [
+                            'Linha de filtros foi condensada para operação rápida em uma única faixa, unindo competência mês/ano, unidade e intervalo de datas com ação de limpar período.',
+                            'Duas fileiras de cards KPI e o bloco `Destaques rápidos` foram removidos para liberar altura útil e focar no que orienta decisão diária.',
+                            'Adicionados 12 gráficos de colunas por unidade em grade responsiva (3x4 em telas largas), cobrindo métricas de frete, produtividade e eficiência operacional.',
+                            'Resumo mensal por unidade foi preservado com retirada apenas do card `Frete líquido`, conforme regra operacional solicitada.',
+                            'Tabela diária de fretes foi mantida com paginação incremental (`Carregar mais lançamentos`) para suportar períodos longos.',
+                        ],
+                    },
                 ],
             },
         ],

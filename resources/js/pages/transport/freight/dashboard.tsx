@@ -13,7 +13,13 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
-import { formatCurrencyBR, formatDateBR, formatDecimalBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
+import {
+    formatCurrencyBR,
+    formatDateBR,
+    formatDecimalBR,
+    formatIntegerBR,
+    formatPercentBR,
+} from '@/lib/transport-format';
 import type { FreightDashboardResponse, FreightEntry, FreightUnit } from '@/types/freight';
 
 interface FreightEntryPaginatedResponse {
@@ -28,6 +34,171 @@ interface FreightDashboardPageResponse {
     dashboard: FreightDashboardResponse;
     entries: FreightEntryPaginatedResponse;
 }
+
+type UnitMetricRow = FreightDashboardResponse['por_unidade'][number];
+
+interface UnitMetricDefinition {
+    key: string;
+    title: string;
+    value: (row: UnitMetricRow) => number;
+    format: (value: number) => string;
+}
+
+interface UnitMetricChartCardProps {
+    title: string;
+    rows: Array<{ label: string; value: number }>;
+    formatValue: (value: number) => string;
+}
+
+function UnitMetricChartCard({
+    title,
+    rows,
+    formatValue,
+}: UnitMetricChartCardProps) {
+    const maxValue = useMemo(
+        () => Math.max(0, ...rows.map((item) => item.value)),
+        [rows],
+    );
+
+    return (
+        <Card className="h-full">
+            <CardHeader className="px-3 pt-2.5 pb-1">
+                <CardTitle className="text-sm leading-tight">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 px-3 pb-3">
+                {rows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem dados.</p>
+                ) : (
+                    <>
+                        <div className="h-36 rounded-md border bg-muted/20 px-2 pt-2 pb-1">
+                            <div className="flex h-full items-end gap-1.5">
+                                {rows.map((item) => {
+                                    const rawHeight =
+                                        maxValue > 0
+                                            ? (item.value / maxValue) * 100
+                                            : 0;
+                                    const height =
+                                        item.value <= 0
+                                            ? 3
+                                            : Math.max(8, rawHeight);
+
+                                    return (
+                                        <div
+                                            key={`${title}-${item.label}`}
+                                            className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                                        >
+                                            <div
+                                                className="w-full rounded-t-sm bg-primary/85"
+                                                style={{ height: `${height}%` }}
+                                            />
+                                            <p
+                                                className="w-full truncate text-center text-[10px] font-medium text-muted-foreground"
+                                                title={item.label}
+                                            >
+                                                {item.label}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            {rows.map((item) => (
+                                <div
+                                    key={`${title}-${item.label}-legend`}
+                                    className="flex items-center justify-between gap-2 text-[11px]"
+                                >
+                                    <span className="truncate text-muted-foreground">
+                                        {item.label}
+                                    </span>
+                                    <span className="font-semibold text-foreground">
+                                        {formatValue(item.value)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+const unitMetricDefinitions: UnitMetricDefinition[] = [
+    {
+        key: 'frete-kaique',
+        title: 'Frete Kaique',
+        value: (row) => Number(row.total_frete_liquido ?? 0),
+        format: (value) => formatCurrencyBR(value),
+    },
+    {
+        key: 'viagens-kaique',
+        title: 'Viagens Kaique',
+        value: (row) => Number(row.total_viagens_kaique ?? 0),
+        format: (value) => formatIntegerBR(value),
+    },
+    {
+        key: 'km-kaique',
+        title: 'Km Kaique',
+        value: (row) => Number(row.total_km ?? 0),
+        format: (value) => formatIntegerBR(value),
+    },
+    {
+        key: 'aves-transportadas',
+        title: 'Aves Transportadas',
+        value: (row) => Number(row.total_aves ?? 0),
+        format: (value) => formatIntegerBR(value),
+    },
+    {
+        key: 'frete-kaique-por-km',
+        title: 'Frete Kaique / Km Rodado',
+        value: (row) => Number(row.frete_kaique_por_km ?? 0),
+        format: (value) => formatCurrencyBR(value),
+    },
+    {
+        key: 'frete-kaique-por-caminhao',
+        title: 'Frete Kaique / Caminhão',
+        value: (row) => Number(row.frete_kaique_por_caminhao ?? 0),
+        format: (value) => formatCurrencyBR(value),
+    },
+    {
+        key: 'frete-kaique-por-dia',
+        title: 'Frete Kaique por Dia',
+        value: (row) => Number(row.frete_kaique_por_dia ?? 0),
+        format: (value) => formatCurrencyBR(value),
+    },
+    {
+        key: 'percentual-terceiros-programado',
+        title: '% Frete Terceiros / Frete Programado',
+        value: (row) => Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
+        format: (value) => formatPercentBR(value),
+    },
+    {
+        key: 'aves-por-carga',
+        title: 'Aves por Carga',
+        value: (row) => Number(row.aves_por_carga ?? 0),
+        format: (value) => formatDecimalBR(value, 2),
+    },
+    {
+        key: 'frete-kaique-por-carga',
+        title: 'Frete Kaique / Carga',
+        value: (row) => Number(row.frete_kaique_por_carga ?? 0),
+        format: (value) => formatCurrencyBR(value),
+    },
+    {
+        key: 'dias-trabalhados',
+        title: 'Dias Trabalhados',
+        value: (row) => Number(row.dias_trabalhados ?? 0),
+        format: (value) => formatIntegerBR(value),
+    },
+    {
+        key: 'aves-media-caixa',
+        title: 'Aves Média por Caixa',
+        value: (row) => Number(row.aves_media_por_caixa ?? 0),
+        format: (value) => formatDecimalBR(value, 3),
+    },
+];
 
 export default function TransportFreightDashboardPage() {
     const currentYear = new Date().getFullYear();
@@ -72,17 +243,6 @@ export default function TransportFreightDashboardPage() {
         [currentYear],
     );
 
-    function applyDatePreset(days: 7 | 30 | 90): void {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(end.getDate() - days + 1);
-
-        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
-
-        setStartDate(toIsoDate(start));
-        setEndDate(toIsoDate(end));
-    }
-
     async function loadDashboard(page = 1): Promise<void> {
         if (page === 1) {
             setLoading(true);
@@ -121,7 +281,10 @@ export default function TransportFreightDashboardPage() {
             if (page === 1) {
                 setDailyEntries(response.entries.data);
             } else {
-                setDailyEntries((previous) => [...previous, ...response.entries.data]);
+                setDailyEntries((previous) => [
+                    ...previous,
+                    ...response.entries.data,
+                ]);
             }
         } catch {
             setError('Não foi possível carregar o dashboard de fretes.');
@@ -143,58 +306,16 @@ export default function TransportFreightDashboardPage() {
         [dailyEntries],
     );
 
-    const kpis = data?.kpis;
-
-    const kpiMain = [
-        { title: 'Lançamentos no período', value: formatIntegerBR(kpis?.total_lancamentos ?? 0) },
-        { title: 'Total frete', value: formatCurrencyBR(kpis?.total_frete ?? 0) },
-        {
-            title: 'Frete líquido',
-            value: formatCurrencyBR(kpis?.total_frete_liquido ?? 0),
-        },
-        { title: 'KM rodado', value: formatIntegerBR(kpis?.total_km ?? 0) },
-        {
-            title: 'Aves transportadas',
-            value: formatIntegerBR(kpis?.total_aves ?? 0),
-        },
-        {
-            title: 'Dias trabalhados',
-            value: formatIntegerBR(kpis?.dias_trabalhados ?? 0),
-        },
-    ];
-
-    const kpiDerived = [
-        {
-            title: 'Frete/KM',
-            value: formatCurrencyBR(kpis?.frete_por_km ?? 0),
-        },
-        {
-            title: 'Aves por carga',
-            value: formatDecimalBR(kpis?.aves_por_carga ?? 0, 2),
-        },
-        {
-            title: 'Frete médio',
-            value: formatCurrencyBR(kpis?.frete_medio ?? 0),
-        },
-        {
-            title: 'Participação de terceiros',
-            value: formatPercentBR(kpis?.participacao_terceiros ?? 0),
-        },
-        {
-            title: 'Frete terceiros',
-            value: formatCurrencyBR(kpis?.total_frete_terceiros ?? 0),
-        },
-        {
-            title: 'Viagens terceiros',
-            value: formatIntegerBR(kpis?.total_viagens_terceiros ?? 0),
-        },
-    ];
-
-    const topUnit = useMemo(() => {
-        if (!data || data.por_unidade.length === 0) return null;
-
-        return [...data.por_unidade].sort((a, b) => b.total_frete_liquido - a.total_frete_liquido)[0] ?? null;
-    }, [data]);
+    const unitRows = useMemo(
+        () =>
+            [...(data?.por_unidade ?? [])].sort((a, b) =>
+                (a.unidade_nome ?? 'Sem unidade').localeCompare(
+                    b.unidade_nome ?? 'Sem unidade',
+                    'pt-BR',
+                ),
+            ),
+        [data],
+    );
 
     return (
         <AdminLayout
@@ -202,69 +323,52 @@ export default function TransportFreightDashboardPage() {
             active="freight-dashboard"
             module="freight"
         >
-            <div className="space-y-6">
+            <div className="space-y-5">
                 <div>
-                    <h2 className="text-2xl font-semibold">
-                        Dashboard de Fretes
-                    </h2>
+                    <h2 className="text-2xl font-semibold">Dashboard de Fretes</h2>
                     <p className="text-xs text-muted-foreground">
-                        Visão consolidada do período com indicadores de
-                        desempenho por unidade.
+                        Visão consolidada do período com indicadores por unidade.
                     </p>
                 </div>
 
-                {error ? (
-                    <Notification message={error} variant="error" />
-                ) : null}
+                {error ? <Notification message={error} variant="error" /> : null}
 
                 <Card>
-                    <CardHeader className="px-4 pt-3 pb-1">
-                        <CardTitle className="text-sm">Competência</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 px-4 pb-3">
-                        <div className="grid gap-2 md:grid-cols-2">
-                            <div>
-                                <p className="mb-2 text-sm text-muted-foreground">
-                                    Mês
-                                </p>
-                                <Select value={month} onValueChange={setMonth}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {monthOptions.map((item) => (
-                                            <SelectItem
-                                                key={item.value}
-                                                value={item.value}
-                                            >
-                                                {item.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <p className="mb-2 text-sm text-muted-foreground">
-                                    Ano
-                                </p>
-                                <Select value={year} onValueChange={setYear}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {yearOptions.map((item) => (
-                                            <SelectItem key={item} value={item}>
-                                                {item}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+                    <CardContent className="px-3 py-3">
+                        <div className="flex flex-wrap items-end gap-2">
+                            <div className="min-w-[220px] flex-1">
+                                <p className="mb-1 text-xs text-muted-foreground">Competência</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Select value={month} onValueChange={setMonth}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {monthOptions.map((item) => (
+                                                <SelectItem key={item.value} value={item.value}>
+                                                    {item.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
 
-                        <div className="grid gap-2 md:grid-cols-3">
-                            <div>
-                                <p className="mb-2 text-sm text-muted-foreground">Unidade</p>
+                                    <Select value={year} onValueChange={setYear}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {yearOptions.map((item) => (
+                                                <SelectItem key={item} value={item}>
+                                                    {item}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="min-w-[180px]">
+                                <p className="mb-1 text-xs text-muted-foreground">Unidade</p>
                                 <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Todas as unidades" />
@@ -279,68 +383,36 @@ export default function TransportFreightDashboardPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <p className="mb-2 text-sm text-muted-foreground">Data inicial (opcional)</p>
+
+                            <div className="min-w-[170px]">
+                                <p className="mb-1 text-xs text-muted-foreground">Data inicial</p>
                                 <Input
                                     type="date"
                                     value={startDate}
                                     onChange={(event) => setStartDate(event.target.value)}
                                 />
                             </div>
-                            <div>
-                                <p className="mb-2 text-sm text-muted-foreground">Data final (opcional)</p>
+
+                            <div className="min-w-[170px]">
+                                <p className="mb-1 text-xs text-muted-foreground">Data final</p>
                                 <Input
                                     type="date"
                                     value={endDate}
                                     onChange={(event) => setEndDate(event.target.value)}
                                 />
                             </div>
-                            <div className="flex items-end gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => applyDatePreset(7)}
-                                >
-                                    7 dias
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => applyDatePreset(30)}
-                                >
-                                    30 dias
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => applyDatePreset(90)}
-                                >
-                                    90 dias
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setSelectedUnitId('all')}
-                                >
-                                    Todas unidades
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setSelectedUnitId('all');
-                                        setStartDate('');
-                                        setEndDate('');
-                                    }}
-                                >
-                                    Limpar período
-                                </Button>
-                            </div>
-                        </div>
 
-                        <p className="text-xs text-muted-foreground">
-                            Quando as duas datas são preenchidas, o intervalo personalizado substitui o filtro de competência.
-                        </p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setStartDate('');
+                                    setEndDate('');
+                                }}
+                            >
+                                Limpar período
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -351,75 +423,22 @@ export default function TransportFreightDashboardPage() {
                     </div>
                 ) : data ? (
                     <>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                            {kpiMain.map((item, index) => (
-                                <Card key={item.title} className="transport-kpi-card">
-                                    <CardHeader className="flex flex-row items-center justify-between px-3 pt-2 pb-0.5">
-                                        <CardTitle className="transport-kpi-title text-[11px] leading-tight">
-                                            {item.title}
-                                        </CardTitle>
-                                        <span className="transport-kpi-icon">
-                                            {(index === 0 || index === 5) ? (
-                                                <CalendarDays className="size-3.5" />
-                                            ) : (
-                                                <Table2 className="size-3.5" />
-                                            )}
-                                        </span>
-                                    </CardHeader>
-                                    <CardContent className="px-3 pb-2">
-                                        <p className="text-base font-semibold tracking-tight text-foreground">
-                                            {item.value}
-                                        </p>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                        <div className="space-y-2">
+                            <h3 className="text-sm font-semibold">Gráficos por unidade</h3>
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                {unitMetricDefinitions.map((metric) => (
+                                    <UnitMetricChartCard
+                                        key={metric.key}
+                                        title={metric.title}
+                                        rows={unitRows.map((row) => ({
+                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            value: metric.value(row),
+                                        }))}
+                                        formatValue={metric.format}
+                                    />
+                                ))}
+                            </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            {kpiDerived.map((item, index) => (
-                                <Card key={item.title} className={`transport-kpi-card ${index === 3 ? 'transport-kpi-soft-info' : ''}`}>
-                                    <CardHeader className="flex flex-row items-center justify-between px-3 pt-2 pb-0.5">
-                                        <CardTitle className="transport-kpi-title text-[11px] leading-tight">
-                                            {item.title}
-                                        </CardTitle>
-                                        <span className="transport-kpi-icon">
-                                            <Table2 className="size-3.5" />
-                                        </span>
-                                    </CardHeader>
-                                    <CardContent className="px-3 pb-2">
-                                        <p className="text-base font-semibold tracking-tight text-foreground">
-                                            {item.value}
-                                        </p>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Destaques rápidos</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid gap-3 md:grid-cols-3">
-                                <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Unidade líder (frete líquido)</p>
-                                    <p className="mt-1 text-base font-semibold">{topUnit?.unidade_nome ?? '-'}</p>
-                                </div>
-                                <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Dias trabalhados no período</p>
-                                    <p className="mt-1 text-base font-semibold">{formatIntegerBR(kpis?.dias_trabalhados ?? 0)}</p>
-                                </div>
-                                <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Média diária de frete líquido</p>
-                                    <p className="mt-1 text-base font-semibold">
-                                        {formatCurrencyBR(
-                                            (kpis?.dias_trabalhados ?? 0) > 0
-                                                ? (kpis?.total_frete_liquido ?? 0) / (kpis?.dias_trabalhados ?? 1)
-                                                : 0,
-                                        )}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
 
                         {data.alerts && data.alerts.length > 0 ? (
                             <Card>
@@ -433,7 +452,9 @@ export default function TransportFreightDashboardPage() {
                                                 <AlertTriangle className="size-4 text-amber-600" />
                                                 {alert.level === 'warning' ? 'Atenção' : 'Informação'}
                                             </p>
-                                            <p className="mt-1 text-sm text-muted-foreground">{alert.message}</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {alert.message}
+                                            </p>
                                         </div>
                                     ))}
                                 </CardContent>
@@ -449,74 +470,47 @@ export default function TransportFreightDashboardPage() {
                             </CardHeader>
                             <CardContent className="space-y-2 px-4 pb-3">
                                 {data.por_unidade.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Sem dados para o período.
-                                    </p>
+                                    <p className="text-sm text-muted-foreground">Sem dados para o período.</p>
                                 ) : (
                                     data.por_unidade.map((item) => (
-                                        <div
-                                            key={item.unidade_id}
-                                            className="rounded-lg border p-2"
-                                        >
+                                        <div key={item.unidade_id} className="rounded-lg border p-2">
                                             <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
                                                 <p className="text-sm font-semibold">
-                                                    {item.unidade_nome ??
-                                                        'Sem unidade'}
+                                                    {item.unidade_nome ?? 'Sem unidade'}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {item.total_lancamentos}{' '}
-                                                    lançamento(s)
+                                                    {item.total_lancamentos} lançamento(s)
                                                 </p>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-4 xl:grid-cols-8">
+                                            <div className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-4 xl:grid-cols-7">
                                                 {[
                                                     {
                                                         label: 'Dias trabalhados',
-                                                        value: formatIntegerBR(
-                                                            item.dias_trabalhados,
-                                                        ),
+                                                        value: formatIntegerBR(item.dias_trabalhados),
                                                     },
                                                     {
                                                         label: 'Frete total',
-                                                        value: formatCurrencyBR(
-                                                            item.total_frete,
-                                                        ),
+                                                        value: formatCurrencyBR(item.total_frete),
                                                     },
                                                     {
                                                         label: 'Frete p/ caminhão',
-                                                        value: formatCurrencyBR(
-                                                            item.frete_por_caminhao,
-                                                        ),
+                                                        value: formatCurrencyBR(item.frete_por_caminhao),
                                                     },
                                                     {
                                                         label: 'Frete p/ dia',
-                                                        value: formatCurrencyBR(
-                                                            item.frete_por_dia_trabalhado,
-                                                        ),
+                                                        value: formatCurrencyBR(item.frete_por_dia_trabalhado),
                                                     },
                                                     {
                                                         label: 'Total KM',
-                                                        value: formatIntegerBR(
-                                                            item.total_km,
-                                                        ),
+                                                        value: formatIntegerBR(item.total_km),
                                                     },
                                                     {
                                                         label: 'Aves transp.',
-                                                        value: formatIntegerBR(
-                                                            item.total_aves,
-                                                        ),
+                                                        value: formatIntegerBR(item.total_aves),
                                                     },
                                                     {
                                                         label: 'Média R$/KM',
-                                                        value: formatCurrencyBR(
-                                                            item.frete_por_km,
-                                                        ),
-                                                    },
-                                                    {
-                                                        label: 'Frete líquido',
-                                                        value: formatCurrencyBR(
-                                                            item.total_frete_liquido,
-                                                        ),
+                                                        value: formatCurrencyBR(item.frete_por_km),
                                                     },
                                                 ].map(({ label, value }) => (
                                                     <div
@@ -526,9 +520,7 @@ export default function TransportFreightDashboardPage() {
                                                         <p className="text-[10px] leading-tight text-muted-foreground">
                                                             {label}
                                                         </p>
-                                                        <p className="mt-0.5 text-xs font-semibold">
-                                                            {value}
-                                                        </p>
+                                                        <p className="mt-0.5 text-xs font-semibold">{value}</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -548,128 +540,51 @@ export default function TransportFreightDashboardPage() {
                             <CardContent>
                                 {dailyEntriesSorted.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
-                                        Sem lançamentos diários para a
-                                        competência selecionada.
+                                        Sem lançamentos diários para a competência selecionada.
                                     </p>
                                 ) : (
                                     <div className="overflow-x-auto rounded-md border">
                                         <table className="w-full min-w-[1200px] text-xs tabular-nums">
                                             <thead className="bg-muted/40 text-muted-foreground">
                                                 <tr>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">
-                                                        Data
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">
-                                                        Dia
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">
-                                                        Unidade
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Frete
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Cargas
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Aves
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Veículos
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        KM rodado
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Frete 3º
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Viagens 3º
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Aves 3º
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Frete Líq.
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Cargas Líq.
-                                                    </th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">
-                                                        Aves Líq.
-                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">Data</th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">Dia</th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">Unidade</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Cargas</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Veículos</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">KM rodado</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete 3º</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Viagens 3º</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves 3º</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete Líq.</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Cargas Líq.</th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves Líq.</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {dailyEntriesSorted.map(
-                                                    (entry) => (
-                                                        <tr
-                                                            key={entry.id}
-                                                            className="border-t transition-colors hover:bg-muted/20"
-                                                        >
-                                                            <td className="px-2.5 py-1.5">
-                                                                {formatDateBR(
-                                                                    entry.data,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 capitalize">
-                                                                {entry.dia_semana ?? '-'}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5">
-                                                                {entry.unidade
-                                                                    ?.nome ??
-                                                                    '-'}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrencyBR(entry.frete_total)}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.cargas,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.aves,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.veiculos,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(entry.km_rodado)}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrencyBR(entry.frete_terceiros)}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.viagens_terceiros,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.aves_terceiros,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatCurrencyBR(entry.frete_liquido)}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.cargas_liq,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-2.5 py-1.5 text-right">
-                                                                {formatIntegerBR(
-                                                                    entry.aves_liq,
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ),
-                                                )}
+                                                {dailyEntriesSorted.map((entry) => (
+                                                    <tr
+                                                        key={entry.id}
+                                                        className="border-t transition-colors hover:bg-muted/20"
+                                                    >
+                                                        <td className="px-2.5 py-1.5">{formatDateBR(entry.data)}</td>
+                                                        <td className="px-2.5 py-1.5 capitalize">{entry.dia_semana ?? '-'}</td>
+                                                        <td className="px-2.5 py-1.5">{entry.unidade?.nome ?? '-'}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_total)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.cargas)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.veiculos)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.km_rodado)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_terceiros)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.viagens_terceiros)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves_terceiros)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_liquido)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.cargas_liq)}</td>
+                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves_liq)}</td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>

@@ -112,6 +112,22 @@ interface AdminLayoutProps {
     children: React.ReactNode;
 }
 
+type SidebarLinkKey = AdminLayoutProps['active'];
+
+interface SidebarChildLink {
+    key: SidebarLinkKey;
+    label: string;
+    href: string;
+}
+
+interface SidebarLink {
+    key: SidebarLinkKey;
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    children?: SidebarChildLink[];
+}
+
 const adminLayoutCopy = {
     'pt-BR': {
         languageLabel: 'Idioma',
@@ -996,268 +1012,155 @@ export function AdminLayout({
         'activity-log': 'sidebar.activity-log.view',
     }), []);
 
-    const links = useMemo(
-        () => [
-            ...(currentModule === 'home'
-                ? [
-                    {
-                        key: 'interviews',
-                        label: copy.linkInterviews,
-                        href: '/transport/interviews',
-                        icon: ListChecks,
-                    },
-                    {
-                        key: 'payroll-dashboard',
-                        label: copy.quickPayroll,
-                        href: '/transport/payroll/dashboard',
-                        icon: Wallet,
-                    },
-                    {
-                        key: 'vacations-dashboard',
-                        label: copy.quickVacations,
-                        href: '/transport/vacations/dashboard',
-                        icon: ClipboardCheck,
-                    },
-                    {
-                        key: 'registry-collaborators',
-                        label: copy.quickRegistry,
-                        href: '/transport/registry/collaborators',
-                        icon: Users,
-                    },
-                    {
-                        key: 'freight-dashboard',
-                        label: copy.quickFreight,
-                        href: '/transport/freight/dashboard',
-                        icon: Truck,
-                    },
-                    {
-                        key: 'programming-dashboard',
-                        label: copy.quickProgramming,
-                        href: '/transport/programming/dashboard',
-                        icon: CalendarDays,
-                    },
-                    {
-                        key: 'fines-dashboard',
-                        label: copy.quickFines,
-                        href: '/transport/fines/dashboard',
-                        icon: LayoutDashboard,
-                    },
-                ]
-                : currentModule === 'registry'
-                    ? [
-                        {
-                            key: 'registry-collaborators',
-                            label: copy.linkCollaborators,
-                            href: '/transport/registry/collaborators',
-                            icon: Users,
-                        },
-                        {
-                            key: 'registry-users',
-                            label: copy.linkUsers,
-                            href: '/transport/registry/users',
-                            icon: UserPlus,
-                        },
-                        {
-                            key: 'registry-functions',
-                            label: copy.linkFunctions,
-                            href: '/transport/registry/functions',
-                            icon: Briefcase,
-                        },
-                        {
-                            key: 'registry-payment-types',
-                            label: copy.linkPaymentTypes,
-                            href: '/transport/registry/payment-types',
-                            icon: ReceiptText,
-                        },
-                        {
-                            key: 'registry-plates-aviaries',
-                            label: copy.linkPlatesAviaries,
-                            href: '/transport/registry/plates-aviaries',
-                            icon: Truck,
-                        },
-                        {
-                            key: 'registry-infractions',
-                            label: copy.linkInfractions,
-                            href: '/transport/registry/infractions',
-                            icon: CircleAlert,
-                        },
-                    ]
-                  : currentModule === 'payroll'
-                    ? [
-                          {
-                              key: 'payroll-dashboard',
-                              label: copy.linkDashboard,
-                              href: '/transport/payroll/dashboard',
-                              icon: Wallet,
-                          },
-                          {
-                              key: 'payroll-launch',
-                              label: copy.linkLaunchPayments,
-                              href: '/transport/payroll/launch',
-                              icon: ReceiptText,
-                          },
-                          {
-                              key: 'payroll-list',
-                              label: copy.linkPaymentList,
-                              href: '/transport/payroll/list',
-                              icon: List,
-                          },
-                          {
-                              key: 'payroll-adjustments',
-                              label: copy.linkDiscounts,
-                              href: '/transport/payroll/adjustments',
-                              icon: ReceiptText,
-                          },
-                          {
-                              key: 'payroll-report-unit',
-                              label: copy.linkUnitReport,
-                              href: '/transport/payroll/reports/unit',
-                              icon: BarChart3,
-                          },
-                          {
-                              key: 'payroll-report-collaborator',
-                              label: copy.linkCollaboratorReport,
-                              href: '/transport/payroll/reports/collaborator',
-                              icon: ChartColumn,
-                          },
-                      ]
-                    : currentModule === 'vacations'
-                      ? [
-                            {
-                                key: 'vacations-dashboard',
-                                label: copy.linkDashboard,
-                                href: '/transport/vacations/dashboard',
-                                icon: ClipboardCheck,
-                            },
-                            {
-                                key: 'vacations-list',
-                                label: copy.linkVacationList,
-                                href: '/transport/vacations/list',
-                                icon: List,
-                            },
-                            {
-                                key: 'vacations-launch',
-                                label: copy.linkLaunchVacation,
-                                href: '/transport/vacations/launch',
-                                icon: PlusSquare,
-                            },
-                        ]
-                    : currentModule === 'freight'
-                      ? [
-                            {
-                                key: 'freight-dashboard',
-                                label: copy.linkDashboard,
-                                href: '/transport/freight/dashboard',
-                                icon: LayoutDashboard,
-                            },
-                            {
-                                key: 'freight-launch',
-                                label: copy.linkLaunchFreight,
-                                href: '/transport/freight/launch',
-                                icon: PlusSquare,
-                            },
-                            {
-                                key: 'freight-list',
-                                label: copy.linkFreightList,
-                                href: '/transport/freight/list',
-                                icon: List,
-                            },
-                            {
-                                key: 'freight-spot',
-                                label: copy.linkSpotFreight,
-                                href: '/transport/freight/spot',
-                                icon: Truck,
-                            },
-                            {
-                                key: 'freight-canceled-loads',
-                                label: copy.linkCanceledLoads,
-                                href: '/transport/freight/canceled-loads',
-                                icon: CircleX,
-                            },
-                            {
-                                key: 'freight-timeline',
-                                label: copy.linkAnalyticsHub,
-                                href: '/transport/freight/timeline',
-                                icon: TrendingUp,
-                            },
-                        ]
-                    : currentModule === 'programming'
-                      ? [
-                            {
-                                key: 'programming-dashboard',
-                                label: copy.linkProgrammingDashboard,
-                                href: '/transport/programming/dashboard',
-                                icon: CalendarDays,
-                            },
-                        ]
-                    : currentModule === 'fines'
-                      ? [
-                            {
-                                key: 'fines-dashboard',
-                                label: copy.linkFinesDashboard,
-                                href: '/transport/fines/dashboard',
-                                icon: LayoutDashboard,
-                            },
-                            {
-                                key: 'fines-launch',
-                                label: copy.linkFinesLaunch,
-                                href: '/transport/fines/launch',
-                                icon: PlusSquare,
-                            },
-                            {
-                                key: 'fines-launch-notification',
-                                label: copy.linkFinesLaunchNotification,
-                                href: '/transport/fines/launch-notification',
-                                icon: PlusSquare,
-                            },
-                            {
-                                key: 'fines-list',
-                                label: copy.linkFinesList,
-                                href: '/transport/fines/list',
-                                icon: List,
-                            },
-                        ]
-                      : [
-                            {
-                                key: 'dashboard',
-                                label: copy.linkDashboard,
-                                href: '/transport/dashboard',
-                                icon: LayoutDashboard,
-                            },
-                            {
-                                key: 'interviews',
-                                label: copy.linkInterviews,
-                                href: '/transport/interviews',
-                                icon: ListChecks,
-                            },
-                            {
-                                key: 'curriculums',
-                                label: copy.linkCurriculums,
-                                href: '/transport/interviews/curriculums',
-                                icon: ScrollText,
-                            },
-                            {
-                                key: 'create',
-                                label: copy.linkNewInterview,
-                                href: '/transport/interviews/create',
-                                icon: PlusSquare,
-                            },
-                            {
-                                key: 'next-steps',
-                                label: copy.linkNextSteps,
-                                href: '/transport/next-steps',
-                                icon: Workflow,
-                            },
-                            {
-                                key: 'onboarding',
-                                label: copy.linkOnboarding,
-                                href: '/transport/onboarding',
-                                icon: ClipboardCheck,
-                            },
-                        ]),
-        ],
-        [copy, currentModule],
-    );
+    const links = useMemo<SidebarLink[]>(() => {
+        if (currentModule === 'home') {
+            return [
+                {
+                    key: 'interviews',
+                    label: copy.linkInterviews,
+                    href: '/transport/interviews',
+                    icon: ListChecks,
+                    children: [
+                        { key: 'curriculums', label: copy.linkCurriculums, href: '/transport/interviews/curriculums' },
+                        { key: 'create', label: copy.linkNewInterview, href: '/transport/interviews/create' },
+                        { key: 'next-steps', label: copy.linkNextSteps, href: '/transport/next-steps' },
+                        { key: 'onboarding', label: copy.linkOnboarding, href: '/transport/onboarding' },
+                    ],
+                },
+                {
+                    key: 'payroll-dashboard',
+                    label: copy.quickPayroll,
+                    href: '/transport/payroll/dashboard',
+                    icon: Wallet,
+                    children: [
+                        { key: 'payroll-launch', label: copy.linkLaunchPayments, href: '/transport/payroll/launch' },
+                        { key: 'payroll-list', label: copy.linkPaymentList, href: '/transport/payroll/list' },
+                        { key: 'payroll-adjustments', label: copy.linkDiscounts, href: '/transport/payroll/adjustments' },
+                        { key: 'payroll-report-unit', label: copy.linkUnitReport, href: '/transport/payroll/reports/unit' },
+                        { key: 'payroll-report-collaborator', label: copy.linkCollaboratorReport, href: '/transport/payroll/reports/collaborator' },
+                    ],
+                },
+                {
+                    key: 'vacations-dashboard',
+                    label: copy.quickVacations,
+                    href: '/transport/vacations/dashboard',
+                    icon: ClipboardCheck,
+                    children: [
+                        { key: 'vacations-list', label: copy.linkVacationList, href: '/transport/vacations/list' },
+                        { key: 'vacations-launch', label: copy.linkLaunchVacation, href: '/transport/vacations/launch' },
+                    ],
+                },
+                {
+                    key: 'registry-collaborators',
+                    label: copy.quickRegistry,
+                    href: '/transport/registry/collaborators',
+                    icon: Users,
+                    children: [
+                        { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users' },
+                        { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions' },
+                        { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types' },
+                        { key: 'registry-plates-aviaries', label: copy.linkPlatesAviaries, href: '/transport/registry/plates-aviaries' },
+                        { key: 'registry-infractions', label: copy.linkInfractions, href: '/transport/registry/infractions' },
+                    ],
+                },
+                {
+                    key: 'freight-dashboard',
+                    label: copy.quickFreight,
+                    href: '/transport/freight/dashboard',
+                    icon: Truck,
+                    children: [
+                        { key: 'freight-launch', label: copy.linkLaunchFreight, href: '/transport/freight/launch' },
+                        { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list' },
+                        { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot' },
+                        { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads' },
+                        { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline' },
+                    ],
+                },
+                {
+                    key: 'programming-dashboard',
+                    label: copy.quickProgramming,
+                    href: '/transport/programming/dashboard',
+                    icon: CalendarDays,
+                },
+                {
+                    key: 'fines-dashboard',
+                    label: copy.quickFines,
+                    href: '/transport/fines/dashboard',
+                    icon: LayoutDashboard,
+                    children: [
+                        { key: 'fines-launch', label: copy.linkFinesLaunch, href: '/transport/fines/launch' },
+                        { key: 'fines-launch-notification', label: copy.linkFinesLaunchNotification, href: '/transport/fines/launch-notification' },
+                        { key: 'fines-list', label: copy.linkFinesList, href: '/transport/fines/list' },
+                    ],
+                },
+            ];
+        }
+
+        if (currentModule === 'registry') {
+            return [
+                { key: 'registry-collaborators', label: copy.linkCollaborators, href: '/transport/registry/collaborators', icon: Users },
+                { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users', icon: UserPlus },
+                { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions', icon: Briefcase },
+                { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types', icon: ReceiptText },
+                { key: 'registry-plates-aviaries', label: copy.linkPlatesAviaries, href: '/transport/registry/plates-aviaries', icon: Truck },
+                { key: 'registry-infractions', label: copy.linkInfractions, href: '/transport/registry/infractions', icon: CircleAlert },
+            ];
+        }
+
+        if (currentModule === 'payroll') {
+            return [
+                { key: 'payroll-dashboard', label: copy.linkDashboard, href: '/transport/payroll/dashboard', icon: Wallet },
+                { key: 'payroll-launch', label: copy.linkLaunchPayments, href: '/transport/payroll/launch', icon: ReceiptText },
+                { key: 'payroll-list', label: copy.linkPaymentList, href: '/transport/payroll/list', icon: List },
+                { key: 'payroll-adjustments', label: copy.linkDiscounts, href: '/transport/payroll/adjustments', icon: ReceiptText },
+                { key: 'payroll-report-unit', label: copy.linkUnitReport, href: '/transport/payroll/reports/unit', icon: BarChart3 },
+                { key: 'payroll-report-collaborator', label: copy.linkCollaboratorReport, href: '/transport/payroll/reports/collaborator', icon: ChartColumn },
+            ];
+        }
+
+        if (currentModule === 'vacations') {
+            return [
+                { key: 'vacations-dashboard', label: copy.linkDashboard, href: '/transport/vacations/dashboard', icon: ClipboardCheck },
+                { key: 'vacations-list', label: copy.linkVacationList, href: '/transport/vacations/list', icon: List },
+                { key: 'vacations-launch', label: copy.linkLaunchVacation, href: '/transport/vacations/launch', icon: PlusSquare },
+            ];
+        }
+
+        if (currentModule === 'freight') {
+            return [
+                { key: 'freight-dashboard', label: copy.linkDashboard, href: '/transport/freight/dashboard', icon: LayoutDashboard },
+                { key: 'freight-launch', label: copy.linkLaunchFreight, href: '/transport/freight/launch', icon: PlusSquare },
+                { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list', icon: List },
+                { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot', icon: Truck },
+                { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads', icon: CircleX },
+                { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline', icon: TrendingUp },
+            ];
+        }
+
+        if (currentModule === 'programming') {
+            return [
+                { key: 'programming-dashboard', label: copy.linkProgrammingDashboard, href: '/transport/programming/dashboard', icon: CalendarDays },
+            ];
+        }
+
+        if (currentModule === 'fines') {
+            return [
+                { key: 'fines-dashboard', label: copy.linkFinesDashboard, href: '/transport/fines/dashboard', icon: LayoutDashboard },
+                { key: 'fines-launch', label: copy.linkFinesLaunch, href: '/transport/fines/launch', icon: PlusSquare },
+                { key: 'fines-launch-notification', label: copy.linkFinesLaunchNotification, href: '/transport/fines/launch-notification', icon: PlusSquare },
+                { key: 'fines-list', label: copy.linkFinesList, href: '/transport/fines/list', icon: List },
+            ];
+        }
+
+        return [
+            { key: 'dashboard', label: copy.linkDashboard, href: '/transport/dashboard', icon: LayoutDashboard },
+            { key: 'interviews', label: copy.linkInterviews, href: '/transport/interviews', icon: ListChecks },
+            { key: 'curriculums', label: copy.linkCurriculums, href: '/transport/interviews/curriculums', icon: ScrollText },
+            { key: 'create', label: copy.linkNewInterview, href: '/transport/interviews/create', icon: PlusSquare },
+            { key: 'next-steps', label: copy.linkNextSteps, href: '/transport/next-steps', icon: Workflow },
+            { key: 'onboarding', label: copy.linkOnboarding, href: '/transport/onboarding', icon: ClipboardCheck },
+        ];
+    }, [copy, currentModule]);
 
     const settingsLink = useMemo(
         () => ({
@@ -1302,7 +1205,15 @@ export function AdminLayout({
     );
 
     const visibleLinks = useMemo(
-        () => links.filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? '')),
+        () =>
+            links
+                .filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? ''))
+                .map((link) => ({
+                    ...link,
+                    children: (link.children ?? []).filter((child) =>
+                        hasPermission(sidebarPermissionByLinkKey[child.key] ?? ''),
+                    ),
+                })),
         [hasPermission, links, sidebarPermissionByLinkKey],
     );
 
@@ -1489,28 +1400,66 @@ export function AdminLayout({
                                 <nav className="space-y-2">
                                     {visibleLinks.map((link) => {
                                         const Icon = link.icon;
-                                        const isActive = link.key === active;
+                                        const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                        const isActive =
+                                            link.key === active ||
+                                            (link.children ?? []).some((child) => child.key === active);
 
                                         return (
-                                            <Link
+                                            <div
                                                 key={link.key}
-                                                href={link.href}
-                                                prefetch
-                                                onClick={() => setMobileMenuOpen(false)}
-                                                title={link.label}
-                                                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                                                    isActive
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'hover:bg-muted'
-                                                } ${
-                                                    sidebarCollapsed
-                                                        ? 'justify-center px-2'
-                                                        : ''
-                                                }`}
+                                                className={`relative ${hasChildren ? 'group/navitem' : ''}`}
                                             >
-                                                <Icon className="size-4" />
-                                                {!sidebarCollapsed ? <span>{link.label}</span> : null}
-                                            </Link>
+                                                <Link
+                                                    href={link.href}
+                                                    prefetch
+                                                    onClick={() => setMobileMenuOpen(false)}
+                                                    title={link.label}
+                                                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                        isActive
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : 'hover:bg-muted'
+                                                    } ${
+                                                        sidebarCollapsed
+                                                            ? 'justify-center px-2'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <Icon className="size-4" />
+                                                    {!sidebarCollapsed ? (
+                                                        <span className="truncate">{link.label}</span>
+                                                    ) : null}
+                                                    {hasChildren && !sidebarCollapsed ? (
+                                                        <ChevronRight className="ml-auto size-3.5 opacity-70" />
+                                                    ) : null}
+                                                </Link>
+
+                                                {hasChildren ? (
+                                                    <div
+                                                        className="pointer-events-none absolute top-0 left-full z-50 ml-2 min-w-[230px] rounded-md border bg-card p-1.5 opacity-0 shadow-lg transition-opacity duration-150 group-hover/navitem:pointer-events-auto group-hover/navitem:opacity-100"
+                                                    >
+                                                        {(link.children ?? []).map((child) => {
+                                                            const isChildActive = child.key === active;
+
+                                                            return (
+                                                                <Link
+                                                                    key={child.key}
+                                                                    href={child.href}
+                                                                    prefetch
+                                                                    title={child.label}
+                                                                    className={`mb-1 block rounded-md px-2.5 py-1.5 text-xs transition last:mb-0 ${
+                                                                        isChildActive
+                                                                            ? 'bg-primary text-primary-foreground'
+                                                                            : 'hover:bg-muted'
+                                                                    }`}
+                                                                >
+                                                                    {child.label}
+                                                                </Link>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : null}
+                                            </div>
                                         );
                                     })}
                                 </nav>
@@ -1604,23 +1553,59 @@ export function AdminLayout({
                                     <nav className="space-y-2">
                                         {visibleLinks.map((link) => {
                                             const Icon = link.icon;
-                                            const isActive = link.key === active;
+                                            const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const isActive =
+                                                link.key === active ||
+                                                (link.children ?? []).some((child) => child.key === active);
 
                                             return (
-                                                <Link
+                                                <div
                                                     key={link.key}
-                                                    href={link.href}
-                                                    prefetch
-                                                    title={link.label}
-                                                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                                                        isActive
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : 'hover:bg-muted'
-                                                    }`}
+                                                    className={`relative ${hasChildren ? 'group/navitem' : ''}`}
                                                 >
-                                                    <Icon className="size-4" />
-                                                    <span>{link.label}</span>
-                                                </Link>
+                                                    <Link
+                                                        href={link.href}
+                                                        prefetch
+                                                        title={link.label}
+                                                        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                            isActive
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'hover:bg-muted'
+                                                        }`}
+                                                    >
+                                                        <Icon className="size-4" />
+                                                        <span className="truncate">{link.label}</span>
+                                                        {hasChildren ? (
+                                                            <ChevronRight className="ml-auto size-3.5 opacity-70" />
+                                                        ) : null}
+                                                    </Link>
+
+                                                    {hasChildren ? (
+                                                        <div
+                                                            className="pointer-events-none absolute top-0 left-full z-50 ml-2 min-w-[230px] rounded-md border bg-card p-1.5 opacity-0 shadow-lg transition-opacity duration-150 group-hover/navitem:pointer-events-auto group-hover/navitem:opacity-100"
+                                                        >
+                                                            {(link.children ?? []).map((child) => {
+                                                                const isChildActive = child.key === active;
+
+                                                                return (
+                                                                    <Link
+                                                                        key={child.key}
+                                                                        href={child.href}
+                                                                        prefetch
+                                                                        title={child.label}
+                                                                        className={`mb-1 block rounded-md px-2.5 py-1.5 text-xs transition last:mb-0 ${
+                                                                            isChildActive
+                                                                                ? 'bg-primary text-primary-foreground'
+                                                                                : 'hover:bg-muted'
+                                                                        }`}
+                                                                    >
+                                                                        {child.label}
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             );
                                         })}
                                     </nav>
@@ -1716,25 +1701,55 @@ export function AdminLayout({
                                     <nav className="space-y-2">
                                         {visibleLinks.map((link) => {
                                             const Icon = link.icon;
-                                            const isActive = link.key === active;
+                                            const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const isActive =
+                                                link.key === active ||
+                                                (link.children ?? []).some((child) => child.key === active);
 
                                             return (
-                                                <Link
-                                                    key={link.key}
-                                                    href={link.href}
-                                                    prefetch
-                                                    onClick={() =>
-                                                        setMobileMenuOpen(false)
-                                                    }
-                                                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                                                        isActive
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : 'hover:bg-muted'
-                                                    }`}
-                                                >
-                                                    <Icon className="size-4" />
-                                                    <span>{link.label}</span>
-                                                </Link>
+                                                <div key={link.key} className="space-y-1">
+                                                    <Link
+                                                        href={link.href}
+                                                        prefetch
+                                                        onClick={() =>
+                                                            setMobileMenuOpen(false)
+                                                        }
+                                                        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                            isActive
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'hover:bg-muted'
+                                                        }`}
+                                                    >
+                                                        <Icon className="size-4" />
+                                                        <span>{link.label}</span>
+                                                    </Link>
+
+                                                    {hasChildren ? (
+                                                        <div className="ml-6 space-y-1">
+                                                            {(link.children ?? []).map((child) => {
+                                                                const isChildActive = child.key === active;
+
+                                                                return (
+                                                                    <Link
+                                                                        key={child.key}
+                                                                        href={child.href}
+                                                                        prefetch
+                                                                        onClick={() =>
+                                                                            setMobileMenuOpen(false)
+                                                                        }
+                                                                        className={`block rounded-md px-2 py-1.5 text-xs transition ${
+                                                                            isChildActive
+                                                                                ? 'bg-primary text-primary-foreground'
+                                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                                        }`}
+                                                                    >
+                                                                        {child.label}
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             );
                                         })}
                                     </nav>

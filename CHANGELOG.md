@@ -15,6 +15,15 @@
 - Criada migração de saneamento (`2026_04_09_101700_encrypt_existing_sensitive_transport_fields`) para criptografar dados legados e recomputar `cpf_hash` com segurança.
 - `TestCase` base foi ajustado para limpar cache de rotas em setup, eliminando instabilidade por 404 falso quando há `optimize` prévio.
 - Validação completa executada: `npm run build`, `php artisan migrate --force`, `php artisan optimize:clear`, `php artisan optimize` e suíte `php artisan test` concluída com `157 passed`.
+- Sidebar principal recebeu navegação hierárquica com submenu por hover/foco no desktop, preservando clique direto no item pai e acesso inline aos filhos no mobile.
+
+### Gestão de Fretes
+
+- Dashboard de Fretes foi remodelado para uma leitura mais compacta, com filtros de competência/unidade/período organizados em uma única linha operacional.
+- Removidas duas fileiras de KPIs e o bloco `Destaques rápidos`, priorizando espaço vertical para visão analítica por unidade.
+- Adicionados 12 gráficos de colunas por unidade (grade 3x4 em telas largas), com suporte backend para métricas de frete, cargas, aves e indicadores de eficiência.
+- `Resumo mensal por unidade` foi mantido com remoção exclusiva do card `Frete líquido`, mantendo os demais indicadores comparativos.
+- `Tabela diária de fretes` foi preservada com carregamento incremental para períodos extensos.
 
 ## [2026-03-24] - Refino visual corporativo dos dashboards e tabelas
 
