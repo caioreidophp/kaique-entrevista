@@ -31,6 +31,7 @@ class Colaborador extends Model
         'ativo',
         'adiantamento_salarial',
         'cpf',
+        'cpf_hash',
         'rg',
         'cnh',
         'validade_cnh',
@@ -85,6 +86,9 @@ class Colaborador extends Model
         return [
             'ativo' => 'boolean',
             'adiantamento_salarial' => 'boolean',
+            'cpf' => 'encrypted',
+            'rg' => 'encrypted',
+            'cnh' => 'encrypted',
             'validade_cnh' => 'date',
             'validade_exame_toxicologico' => 'date',
             'data_nascimento' => 'date',
@@ -97,6 +101,15 @@ class Colaborador extends Model
     {
         static::saving(function (self $colaborador): void {
             $colaborador->sexo = 'M';
+
+            $currentCpf = $colaborador->cpf;
+            $normalizedCpf = preg_replace('/\D+/', '', (string) ($currentCpf ?? '')) ?: null;
+
+            if ($currentCpf !== $normalizedCpf) {
+                $colaborador->cpf = $normalizedCpf;
+            }
+
+            $colaborador->cpf_hash = $normalizedCpf ? hash('sha256', $normalizedCpf) : null;
         });
 
         static::deleting(function (self $colaborador): void {

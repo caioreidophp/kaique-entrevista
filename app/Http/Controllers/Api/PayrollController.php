@@ -14,6 +14,8 @@ use App\Models\EmprestimoColaborador;
 use App\Models\Pagamento;
 use App\Models\PensaoColaborador;
 use App\Models\TipoPagamento;
+use App\Support\FinancialApprovalService;
+use App\Support\OutboundWebhookService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -338,7 +340,44 @@ class PayrollController extends Controller
 
         $data = $request->validated();
 
+        /** @var FinancialApprovalService $approvalService */
+        $approvalService = app(FinancialApprovalService::class);
+        $requestHash = $approvalService->buildRequestHash($data);
+
+        if ($approvalService->requiresPayrollLaunchApproval($request->user(), $data)) {
+            $summary = $approvalService->buildPayrollLaunchSummary($data);
+            $approvalToken = trim((string) ($request->header('X-Financial-Approval-Token') ?: $request->input('financial_approval_token', '')));
+
+            if ($approvalToken === '') {
+                $approval = $approvalService->requestOrReusePendingApproval(
+                    requester: $request->user(),
+                    actionKey: 'payroll.launch-batch',
+                    requestHash: $requestHash,
+                    summary: $summary,
+                );
+
+                return response()->json([
+                    'message' => 'Esta operação exige aprovação adicional por volume/valor.',
+                    'approval_required' => true,
+                    'approval_id' => (int) $approval->id,
+                    'approval_uuid' => (string) $approval->request_uuid,
+                    'summary' => $summary,
+                ], 202);
+            }
+
+            $consumedApproval = $approvalService->consumeExecutionToken(
+                requester: $request->user(),
+                token: $approvalToken,
+                requestHash: $requestHash,
+            );
+
+            abort_unless($consumedApproval, 422, 'Token de aprovação inválido, expirado ou incompatível com esta solicitação.');
+        }
+
         $legacyMode = ! isset($data['data_pagamento']) || ! isset($data['tipo_pagamento_ids']);
+
+        /** @var OutboundWebhookService $webhookService */
+        $webhookService = app(OutboundWebhookService::class);
 
         if ($legacyMode) {
             $created = DB::transaction(function () use ($data, $request) {
@@ -362,6 +401,20 @@ class PayrollController extends Controller
             });
 
                     $this->bumpPayrollCacheVersion();
+
+            $webhookService->dispatch('payroll.batch.launched', [
+                'mode' => 'legacy',
+                'created_count' => $created->count(),
+                'requested_by' => [
+                    'id' => (int) $request->user()->id,
+                    'name' => (string) $request->user()->name,
+                    'email' => (string) $request->user()->email,
+                ],
+                'unidade_id' => (int) ($data['unidade_id'] ?? 0),
+                'competencia_mes' => (int) ($data['competencia_mes'] ?? 0),
+                'competencia_ano' => (int) ($data['competencia_ano'] ?? 0),
+                'generated_at' => now()->toISOString(),
+            ]);
 
             return response()->json([
                 'message' => 'Pagamentos lançados com sucesso.',
@@ -474,6 +527,20 @@ class PayrollController extends Controller
         });
 
         $this->bumpPayrollCacheVersion();
+
+        $webhookService->dispatch('payroll.batch.launched', [
+            'mode' => 'typed',
+            'created_count' => $created->count(),
+            'requested_by' => [
+                'id' => (int) $request->user()->id,
+                'name' => (string) $request->user()->name,
+                'email' => (string) $request->user()->email,
+            ],
+            'unidade_id' => (int) ($data['unidade_id'] ?? 0),
+            'data_pagamento' => (string) ($data['data_pagamento'] ?? ''),
+            'tipo_pagamento_ids' => array_values(array_map('intval', (array) ($data['tipo_pagamento_ids'] ?? []))),
+            'generated_at' => now()->toISOString(),
+        ]);
 
         return response()->json([
             'message' => 'Pagamentos lançados com sucesso.',

@@ -16,6 +16,7 @@ class StoreColaboradorRequest extends FormRequest
 
         $this->merge([
             'cpf' => $cpf,
+            'cpf_hash' => $cpf !== '' ? hash('sha256', $cpf) : null,
             'rg' => $rg !== '' ? $rg : null,
             'cnh' => $cnh !== '' ? $cnh : null,
             'telefone' => $telefone !== '' ? $telefone : null,
@@ -41,7 +42,7 @@ class StoreColaboradorRequest extends FormRequest
             'sexo' => ['nullable', Rule::in(['M', 'F'])],
             'ativo' => ['required', 'boolean'],
             'adiantamento_salarial' => ['nullable', 'boolean'],
-            'cpf' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/', 'unique:colaboradores,cpf'],
+            'cpf' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/', Rule::unique('colaboradores', 'cpf_hash')],
             'rg' => ['nullable', 'string', 'max:30', 'regex:/^[0-9A-Z]+$/'],
             'cnh' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'validade_cnh' => ['nullable', 'date'],

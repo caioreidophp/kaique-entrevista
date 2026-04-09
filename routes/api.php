@@ -4,16 +4,21 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\ApiTelemetryController;
 use App\Http\Controllers\Api\AsyncExportController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupRestoreController;
 use App\Http\Controllers\Api\BobAssistantController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DriverInterviewController;
+use App\Http\Controllers\Api\FinancialApprovalController;
 use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InterviewCurriculumController;
+use App\Http\Controllers\Api\IntegrationGatewayController;
 use App\Http\Controllers\Api\NextStepController;
+use App\Http\Controllers\Api\OpenApiController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\OutboundWebhookController;
 use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\PayrollDescontoController;
 use App\Http\Controllers\Api\PayrollEmprestimoController;
@@ -22,6 +27,9 @@ use App\Http\Controllers\Api\PayrollVacationController;
 use App\Http\Controllers\Api\ProgrammingController;
 use App\Http\Controllers\Api\QueueMonitorController;
 use App\Http\Controllers\Api\ReferenceCityController;
+use App\Http\Controllers\Api\SecurityIncidentController;
+use App\Http\Controllers\Api\ServiceAccountController;
+use App\Http\Controllers\Api\SessionManagementController;
 use App\Http\Controllers\Api\SystemObservabilityController;
 use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
@@ -34,6 +42,7 @@ use App\Http\Controllers\Api\Registry\TipoPagamentoController;
 use App\Http\Controllers\Api\Registry\UnidadeController;
 use App\Http\Controllers\Api\TransportInsightsController;
 use App\Http\Controllers\Api\TransportSettingsController;
+use App\Http\Middleware\AuthenticateServiceAccount;
 use App\Http\Middleware\IdempotencyKeyMiddleware;
 use App\Http\Middleware\ReadOnlyDemoAccountMiddleware;
 use Illuminate\Support\Facades\Route;
@@ -44,15 +53,55 @@ Route::post('login', [AuthController::class, 'login'])
 Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group(function (): void {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('settings/sessions', [SessionManagementController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('settings/sessions/{tokenId}', [SessionManagementController::class, 'revoke'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('settings/sessions/revoke-others', [SessionManagementController::class, 'revokeOthers'])
+        ->middleware('throttle:transport-heavy');
     Route::put('settings/password', [TransportSettingsController::class, 'updatePassword'])
         ->middleware('throttle:transport-heavy');
     Route::get('settings/backup', [TransportSettingsController::class, 'downloadBackup'])
         ->middleware('throttle:transport-backup');
+    Route::post('settings/backup/restore-preview', [BackupRestoreController::class, 'preview'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('settings/backup/restore', [BackupRestoreController::class, 'restore'])
+        ->middleware('throttle:transport-heavy');
     Route::post('users', [TransportSettingsController::class, 'storeUser'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/openapi.json', [OpenApiController::class, 'json'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/openapi', [OpenApiController::class, 'view'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/telemetry/latency', [ApiTelemetryController::class, 'latency'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/observability', [SystemObservabilityController::class, 'overview'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/security-incidents', [SecurityIncidentController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/security-incidents/{securityIncident}/ack', [SecurityIncidentController::class, 'acknowledge'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/service-accounts', [ServiceAccountController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/service-accounts', [ServiceAccountController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::patch('system/service-accounts/{serviceAccount}', [ServiceAccountController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/service-accounts/{serviceAccount}/rotate', [ServiceAccountController::class, 'rotate'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('system/service-accounts/{serviceAccount}', [ServiceAccountController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/webhooks', [OutboundWebhookController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/webhooks', [OutboundWebhookController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::put('system/webhooks/{outboundWebhook}', [OutboundWebhookController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('system/webhooks/{outboundWebhook}', [OutboundWebhookController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/webhooks/{outboundWebhook}/deliveries', [OutboundWebhookController::class, 'deliveries'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/webhooks/{outboundWebhook}/test', [OutboundWebhookController::class, 'test'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/queue', [QueueMonitorController::class, 'overview'])
         ->middleware('throttle:transport-heavy');
@@ -92,6 +141,12 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::get('payroll/launch-candidates', [PayrollController::class, 'launchCandidates']);
     Route::post('payroll/launch-batch', [PayrollController::class, 'launchBatch'])
         ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
+    Route::get('payroll/approvals', [FinancialApprovalController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('payroll/approvals/{financialApproval}/approve', [FinancialApprovalController::class, 'approve'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('payroll/approvals/{financialApproval}/reject', [FinancialApprovalController::class, 'reject'])
+        ->middleware('throttle:transport-heavy');
     Route::post('payroll/launch-discount-preview', [PayrollController::class, 'launchDiscountPreview'])
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/reports/unidade', [PayrollController::class, 'reportByUnit'])
@@ -290,4 +345,8 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         Route::put('role-permissions/{role}', [RolePermissionController::class, 'update'])
             ->middleware('throttle:transport-heavy');
     });
+});
+
+Route::prefix('integrations')->middleware(AuthenticateServiceAccount::class)->group(function (): void {
+    Route::get('me', [IntegrationGatewayController::class, 'me']);
 });

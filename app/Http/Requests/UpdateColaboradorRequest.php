@@ -21,7 +21,7 @@ class UpdateColaboradorRequest extends StoreColaboradorRequest
             'string',
             'size:11',
             'regex:/^\d{11}$/',
-            Rule::unique('colaboradores', 'cpf')->ignore($colaborador?->id),
+            Rule::unique('colaboradores', 'cpf_hash')->ignore($colaborador?->id),
         ];
 
         return $rules;

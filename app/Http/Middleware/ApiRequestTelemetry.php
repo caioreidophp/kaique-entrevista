@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SecurityIncidentService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -89,6 +90,31 @@ class ApiRequestTelemetry
             }
 
             Cache::put('telemetry:api:recent-errors', $recentErrors, now()->addHours(6));
+
+            $total5xxInBucket = 0;
+            foreach ($statusCounters as $bucketStatus => $bucketCount) {
+                if ((int) $bucketStatus >= 500) {
+                    $total5xxInBucket += (int) $bucketCount;
+                }
+            }
+
+            if ($total5xxInBucket >= 10) {
+                SecurityIncidentService::report(
+                    code: 'api_5xx_spike',
+                    message: 'Pico de erros 5xx detectado na janela de telemetria da API.',
+                    context: [
+                        'path' => trim((string) $request->path(), '/'),
+                        'method' => strtoupper((string) $request->method()),
+                        'route' => $routeIdentifier,
+                        'status' => $statusCode,
+                        'bucket_key' => $statusBucketKey,
+                        'bucket_5xx' => $total5xxInBucket,
+                    ],
+                    severity: 'warning',
+                    source: 'telemetry',
+                    dedupeMinutes: 10,
+                );
+            }
         }
 
         $response->headers->set('X-Response-Time-Ms', (string) $durationMs);

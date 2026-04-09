@@ -1,0 +1,160 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\FinancialApproval;
+use App\Models\User;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+
+class FinancialApprovalService
+{
+    public function enabled(): bool
+    {
+        return (bool) config('transport_features.financial_double_approval', true);
+    }
+
+    public function requiresPayrollLaunchApproval(User $requester, array $payload): bool
+    {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        if ($requester->isMasterAdmin()) {
+            return false;
+        }
+
+        $summary = $this->buildPayrollLaunchSummary($payload);
+        $thresholdValue = (float) config('transport_features.financial_double_approval_threshold', 15000);
+        $thresholdPeople = (int) config('transport_features.financial_double_approval_people_threshold', 25);
+
+        return $summary['total_valor'] >= $thresholdValue
+            || $summary['total_colaboradores'] >= $thresholdPeople;
+    }
+
+    public function buildPayrollLaunchSummary(array $payload): array
+    {
+        $rows = collect((array) ($payload['pagamentos'] ?? []));
+
+        $total = 0.0;
+        $selectedCount = 0;
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $selected = (bool) ($row['selected'] ?? false);
+            $legacyValue = (float) ($row['valor'] ?? 0);
+            $valuesByType = collect((array) ($row['valores_por_tipo'] ?? []))
+                ->sum(fn ($value): float => (float) $value);
+            $valuesPensao = collect((array) ($row['valores_pensao'] ?? []))
+                ->sum(fn ($value): float => (float) $value);
+
+            $rowTotal = max($legacyValue, 0) + max((float) $valuesByType, 0) + max((float) $valuesPensao, 0);
+
+            if ($selected || $rowTotal > 0) {
+                $selectedCount++;
+            }
+
+            $total += $rowTotal;
+        }
+
+        return [
+            'total_valor' => round($total, 2),
+            'total_colaboradores' => $selectedCount,
+            'unidade_id' => (int) ($payload['unidade_id'] ?? 0),
+            'data_pagamento' => (string) ($payload['data_pagamento'] ?? ''),
+            'competencia_mes' => (int) ($payload['competencia_mes'] ?? 0),
+            'competencia_ano' => (int) ($payload['competencia_ano'] ?? 0),
+        ];
+    }
+
+    public function buildRequestHash(array $payload): string
+    {
+        $normalized = Arr::sortRecursive($payload);
+
+        return hash('sha256', (string) json_encode($normalized));
+    }
+
+    public function requestOrReusePendingApproval(User $requester, string $actionKey, string $requestHash, array $summary): FinancialApproval
+    {
+        $existing = FinancialApproval::query()
+            ->where('status', 'pending')
+            ->where('requester_id', $requester->id)
+            ->where('action_key', $actionKey)
+            ->where('request_hash', $requestHash)
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return FinancialApproval::query()->create([
+            'request_uuid' => (string) Str::uuid(),
+            'action_key' => $actionKey,
+            'request_hash' => $requestHash,
+            'status' => 'pending',
+            'summary' => $summary,
+            'requester_id' => $requester->id,
+            'expires_at' => now()->addHours(8),
+        ]);
+    }
+
+    public function approve(FinancialApproval $approval, User $approver): FinancialApproval
+    {
+        $approval->update([
+            'status' => 'approved',
+            'approver_id' => $approver->id,
+            'reviewed_at' => now(),
+            'execution_token' => Str::random(64),
+            'token_expires_at' => now()->addMinutes((int) config('transport_features.financial_double_approval_token_ttl', 15)),
+            'reason' => null,
+        ]);
+
+        return $approval->refresh();
+    }
+
+    public function reject(FinancialApproval $approval, User $approver, ?string $reason = null): FinancialApproval
+    {
+        $approval->update([
+            'status' => 'rejected',
+            'approver_id' => $approver->id,
+            'reviewed_at' => now(),
+            'execution_token' => null,
+            'token_expires_at' => null,
+            'reason' => $reason,
+        ]);
+
+        return $approval->refresh();
+    }
+
+    public function consumeExecutionToken(User $requester, string $token, string $requestHash): ?FinancialApproval
+    {
+        $approval = FinancialApproval::query()
+            ->where('requester_id', $requester->id)
+            ->where('status', 'approved')
+            ->where('execution_token', $token)
+            ->where('request_hash', $requestHash)
+            ->where(function ($query): void {
+                $query->whereNull('token_expires_at')->orWhere('token_expires_at', '>', now());
+            })
+            ->latest('id')
+            ->first();
+
+        if (! $approval) {
+            return null;
+        }
+
+        $approval->update([
+            'status' => 'consumed',
+            'consumed_at' => now(),
+        ]);
+
+        return $approval->refresh();
+    }
+}

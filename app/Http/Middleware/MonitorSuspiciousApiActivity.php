@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SecurityIncidentService;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,6 +58,21 @@ class MonitorSuspiciousApiActivity
                     'user_id' => $request->user()?->id,
                     'user_agent' => (string) ($request->userAgent() ?? ''),
                 ]);
+
+                SecurityIncidentService::report(
+                    code: 'api_guard_lock',
+                    message: 'Bloqueio temporário aplicado por excesso de respostas 401/403/419.',
+                    context: [
+                        'ip' => $ip,
+                        'path' => $path,
+                        'status' => $status,
+                        'attempts' => $attempts,
+                        'user_id' => $request->user()?->id,
+                    ],
+                    severity: 'critical',
+                    source: 'api-guard',
+                    dedupeMinutes: 15,
+                );
             }
         } elseif ($status < 400) {
             Cache::forget($counterKey);

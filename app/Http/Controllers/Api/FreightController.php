@@ -13,6 +13,7 @@ use App\Models\FreightCanceledLoad;
 use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
 use App\Models\Unidade;
+use App\Support\OutboundWebhookService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -1638,10 +1639,13 @@ class FreightController extends Controller
         $canceledDetails = (array) ($validated['cargas_canceladas_detalhes'] ?? []);
         $data = $this->normalizePayload($validated);
 
-        $entry = FreightEntry::query()
+        $existingEntry = FreightEntry::query()
             ->whereDate('data', (string) $data['data'])
             ->where('unidade_id', (int) $data['unidade_id'])
             ->first();
+
+        $operation = $existingEntry ? 'updated' : 'created';
+        $entry = $existingEntry;
 
         if ($entry) {
             $entry->update([
@@ -1657,6 +1661,16 @@ class FreightController extends Controller
 
         $this->syncCanceledLoads($entry, $canceledDetails, (int) $request->user()->id);
         $this->bumpFreightCacheVersion();
+
+        app(OutboundWebhookService::class)->dispatch('freight.entry.upserted', [
+            'operation' => $operation,
+            'entry_id' => (int) $entry->id,
+            'data' => (string) $entry->data?->toDateString(),
+            'unidade_id' => (int) $entry->unidade_id,
+            'autor_id' => (int) $request->user()->id,
+            'frete_total' => (float) $entry->frete_total,
+            'generated_at' => now()->toISOString(),
+        ]);
 
         return response()->json([
             'data' => $entry->load(['unidade:id,nome', 'autor:id,name,email']),
@@ -1676,6 +1690,15 @@ class FreightController extends Controller
         $this->syncCanceledLoads($entry, $canceledDetails, (int) $request->user()->id);
         $this->bumpFreightCacheVersion();
 
+        app(OutboundWebhookService::class)->dispatch('freight.entry.updated', [
+            'entry_id' => (int) $entry->id,
+            'data' => (string) $entry->data?->toDateString(),
+            'unidade_id' => (int) $entry->unidade_id,
+            'autor_id' => (int) $request->user()->id,
+            'frete_total' => (float) $entry->frete_total,
+            'generated_at' => now()->toISOString(),
+        ]);
+
         return response()->json([
             'data' => $entry->refresh()->load(['unidade:id,nome', 'autor:id,name,email']),
         ]);
@@ -1685,12 +1708,23 @@ class FreightController extends Controller
     {
         abort_unless($request->user()?->hasPermission('freight.entries.delete'), 403);
 
+        $deletedSnapshot = [
+            'entry_id' => (int) $entry->id,
+            'data' => (string) $entry->data?->toDateString(),
+            'unidade_id' => (int) $entry->unidade_id,
+            'autor_id' => (int) ($request->user()->id ?? 0),
+        ];
+
         DB::transaction(function () use ($entry): void {
             $entry->canceledLoads()->delete();
             $entry->delete();
         });
 
         $this->bumpFreightCacheVersion();
+
+        app(OutboundWebhookService::class)->dispatch('freight.entry.deleted', $deletedSnapshot + [
+            'generated_at' => now()->toISOString(),
+        ]);
 
         return response()->json([], 204);
     }

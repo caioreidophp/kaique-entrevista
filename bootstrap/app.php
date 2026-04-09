@@ -8,6 +8,7 @@ use App\Http\Middleware\MonitorSuspiciousApiActivity;
 use App\Http\Middleware\ResponseCompression;
 use App\Http\Middleware\SetRequestContext;
 use App\Http\Middleware\SetSecurityHeaders;
+use App\Http\Middleware\TrackTokenActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -41,6 +42,12 @@ return Application::configure(basePath: dirname(__DIR__))
         if ((bool) env('TRANSPORT_FEATURE_API_GUARD', true)) {
             $middleware->api(append: [
                 MonitorSuspiciousApiActivity::class,
+            ]);
+        }
+
+        if ((bool) env('TRANSPORT_FEATURE_SESSION_MANAGEMENT', true)) {
+            $middleware->api(append: [
+                TrackTokenActivity::class,
             ]);
         }
 

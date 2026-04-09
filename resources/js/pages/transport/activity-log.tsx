@@ -84,6 +84,36 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Quinta-Feira, 09/04/2026',
+        sections: [
+            {
+                panel: 'Plataforma',
+                items: [
+                    {
+                        title: 'Segurança e Integrações v4.2: sessões por token, incidentes, service accounts, webhooks e aprovação dupla na folha',
+                        details: [
+                            'Sessões API evoluíram para rastreamento por token com metadados de IP/user-agent/última atividade, incluindo endpoint para gestão de sessões ativas.',
+                            'Monitoramento de segurança passou a registrar incidentes internos automaticamente em cenários de bloqueio por atividade suspeita e picos de erros 5xx.',
+                            'Gateway de integrações recebeu autenticação por `service accounts` e base de webhooks outbound com assinatura HMAC, retries em fila e trilha de entregas.',
+                            'Fluxo financeiro da folha ganhou aprovação dupla por token para lançamentos em lote de maior impacto, com retorno assíncrono e governança operacional.',
+                            'Publicada superfície técnica adicional para OpenAPI e assistente de restore de backup, ampliando observabilidade e operação em ambiente de produção.',
+                        ],
+                    },
+                    {
+                        title: 'Estabilização pós-entrega: criptografia de dados sensíveis e robustez de testes com cache de rotas limpo',
+                        details: [
+                            'Modelo de colaboradores foi corrigido para garantir criptografia consistente de CPF com `cpf_hash` normalizado, eliminando regressões de decrypt em leitura.',
+                            'Criada migração de saneamento para criptografar dados legados sensíveis em colaboradores/entrevistas sem dupla criptografia e com recomputação de hash de CPF.',
+                            'Middleware de atividade de token foi endurecido para ignorar tokens transitórios/mock e evitar erro 500 em cenários de teste e autenticação simulada.',
+                            'Base de testes agora remove cache de rotas no setup para impedir 404 falso-positivo após `optimize`, mantendo a suíte determinística em CI/local.',
+                            'Validação final concluída com build, migrations, cache rebuild e suíte completa verde (`157 passed`).',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Terça-Feira, 07/04/2026',
         sections: [
             {

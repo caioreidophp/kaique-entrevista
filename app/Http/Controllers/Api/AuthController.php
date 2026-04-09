@@ -40,7 +40,15 @@ class AuthController extends Controller
             ])->save();
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $newToken = $user->createToken('api-token');
+        $newToken->accessToken->forceFill([
+            'ip_address' => (string) ($request->ip() ?? ''),
+            'user_agent' => mb_substr((string) ($request->userAgent() ?? ''), 0, 1000),
+            'last_activity_at' => now(),
+            'last_used_at' => now(),
+        ])->save();
+
+        $token = $newToken->plainTextToken;
 
         return response()->json([
             'token' => $token,

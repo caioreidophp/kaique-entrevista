@@ -1,5 +1,21 @@
 # Changelog
 
+## [2026-04-09] - Segurança de API, integrações e governança financeira
+
+### Plataforma
+
+- Implementado rastreamento de sessão por token Sanctum com metadados de atividade (`last_activity_at`, `last_used_at`, IP e user-agent) e novos endpoints para gestão de sessões ativas.
+- Incluída base de incidentes de segurança com registro automático em bloqueios de atividade suspeita e picos de erro 5xx, ampliando telemetria operacional.
+- Adicionadas `service accounts` para autenticação máquina-a-máquina e gateway de integrações dedicado para consumo seguro de endpoints internos.
+- Entregue infraestrutura de webhooks outbound com configuração por evento, assinatura HMAC, tentativas em fila e histórico de entregas.
+- Fluxo de folha recebeu aprovação dupla para lançamentos em lote com token de aprovação e execução controlada para operações de maior impacto financeiro.
+- Publicados novos recursos de OpenAPI e assistente de restore de backup para suporte à operação e documentação de integração.
+- Colaboradores e entrevistas passaram a usar criptografia de campos sensíveis (CPF/RG/CNH) com hash de CPF para busca/unicidade sem expor documento em claro.
+- Corrigido middleware de atividade de token para ignorar tokens transitórios/mock e evitar falhas 500 em cenários de autenticação de teste.
+- Criada migração de saneamento (`2026_04_09_101700_encrypt_existing_sensitive_transport_fields`) para criptografar dados legados e recomputar `cpf_hash` com segurança.
+- `TestCase` base foi ajustado para limpar cache de rotas em setup, eliminando instabilidade por 404 falso quando há `optimize` prévio.
+- Validação completa executada: `npm run build`, `php artisan migrate --force`, `php artisan optimize:clear`, `php artisan optimize` e suíte `php artisan test` concluída com `157 passed`.
+
 ## [2026-03-24] - Refino visual corporativo dos dashboards e tabelas
 
 ### Gestão de Fretes

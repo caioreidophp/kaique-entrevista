@@ -254,7 +254,7 @@ class RegistryApiTest extends TestCase
         $this->assertDatabaseHas('colaboradores', [
             'nome' => 'João da Silva',
             'apelido' => 'João',
-            'cpf' => '12345678901',
+            'cpf_hash' => hash('sha256', '12345678901'),
             'telefone' => '11999998888',
             'email' => 'joao@example.com',
             'ativo' => true,

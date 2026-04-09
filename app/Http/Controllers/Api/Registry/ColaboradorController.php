@@ -86,7 +86,7 @@ class ColaboradorController extends Controller
 
         if ($request->filled('cpf')) {
             $cpf = preg_replace('/\D+/', '', (string) $request->string('cpf'));
-            $query->where('cpf', $cpf);
+            $query->where('cpf_hash', $cpf !== '' ? hash('sha256', $cpf) : null);
         }
 
         if ($request->filled('unidade_id')) {
@@ -112,7 +112,11 @@ class ColaboradorController extends Controller
                 ->orderBy('unidades.nome', $sortDirection)
                 ->orderBy('colaboradores.id', 'desc');
         } elseif (in_array($sortBy, ['nome', 'cpf', 'ativo', 'id'], true)) {
-            $column = $sortBy === 'id' ? 'colaboradores.id' : "colaboradores.{$sortBy}";
+            $column = match ($sortBy) {
+                'id' => 'colaboradores.id',
+                'cpf' => 'colaboradores.cpf_hash',
+                default => "colaboradores.{$sortBy}",
+            };
             $query->orderBy($column, $sortDirection);
 
             if ($sortBy !== 'id') {
@@ -418,7 +422,7 @@ class ColaboradorController extends Controller
                 continue;
             }
 
-            if (Colaborador::query()->where('cpf', $cpf)->exists()) {
+            if (Colaborador::query()->where('cpf_hash', hash('sha256', $cpf))->exists()) {
                 $skipped++;
                 $errors[] = [
                     'linha' => $line,
@@ -507,6 +511,7 @@ class ColaboradorController extends Controller
                 'apelido' => $apelido !== '' ? $apelido : null,
                 'ativo' => $ativo,
                 'cpf' => $cpf,
+                'cpf_hash' => hash('sha256', $cpf),
                 'rg' => $rg,
                 'cnh' => $cnh,
                 'validade_cnh' => $validadeCnh,

@@ -16,6 +16,15 @@ abstract class TestCase extends BaseTestCase
             unlink($configCache);
         }
 
+        $routeCaches = glob(dirname(__DIR__).'/bootstrap/cache/routes-*.php') ?: [];
+        $routeCaches[] = dirname(__DIR__).'/bootstrap/cache/routes.php';
+
+        foreach ($routeCaches as $routeCache) {
+            if (file_exists($routeCache)) {
+                unlink($routeCache);
+            }
+        }
+
         parent::setUp();
 
         config([
