@@ -9,8 +9,9 @@ Objetivo deste arquivo:
 Status geral da base no momento deste handoff:
 - Repositorio: kaique-entrevista
 - Branch ativa: main
-- Ultimo commit publicado no remoto: cbd7e4c
-- Estado local: possui alteracoes ainda nao commitadas (filtros curriculos/performance/log/index)
+- Ultimo commit publicado no remoto: ef2b461
+- Estado local no fechamento deste handoff: limpo (sem pendencias no git status)
+- Remoto oficial (origin): https://github.com/caioreidophp/kaique-entrevista.git
 
 Resumo executivo do que ja foi entregue e publicado anteriormente:
 1) Gestao de Multas (v3.9)
@@ -28,6 +29,11 @@ Resumo executivo do que ja foi entregue e publicado anteriormente:
 3) Commit publicado para o bloco acima:
 - hash: cbd7e4c
 - mensagem: feat: curriculos com anexos clicaveis e observacao inline
+
+4) Commit de estabilizacao final desta sessao:
+- hash: ef2b461
+- mensagem: feat: filtros de curriculos, performance e handoff completo
+- conteudo: filtros funcao/unidade, validacao backend, indices curriculos, dedupe do update log, handoff gigante
 
 ============================================================
 DETALHAMENTO DO CHAT ATUAL (ESTA SESSAO)
@@ -59,7 +65,7 @@ Acoes de estabilizacao executadas:
 - Nao foi feito rollback forçado de mudancas do usuario.
 
 ============================================================
-ARQUIVOS LOCAIS ALTERADOS (NAO COMMITADOS AINDA)
+ARQUIVOS ALTERADOS NESTA SESSAO (JA PUBLICADOS EM ef2b461)
 ============================================================
 1) app/Http/Controllers/Api/InterviewCurriculumController.php
 - Index com validacao de filtros e aplicacao de role_name/unit_name.
@@ -122,6 +128,50 @@ HISTORICO DE COMMITS RECENTES (REFERENCIA RAPIDA)
 - fa8e759 fix(payroll): persistir dias uteis no lancamento, edicao e impressao
 
 ============================================================
+GITHUB + HOSPEDAGEM + CLOUDFLARE (NAO CONFUNDIR)
+============================================================
+GitHub oficial:
+- origin: https://github.com/caioreidophp/kaique-entrevista.git
+
+Hospedagem de producao (persistente):
+- VPS Linux com dominio https://app.kaiquetransportes.com.br
+- Guia: documentos/deploy-vps.md
+- Deploy automatico ao fazer push em main via .github/workflows/deploy-production.yml
+- Workflow executa SSH e roda scripts/deploy/server-deploy.sh no servidor
+
+Hospedagem publica temporaria (local + tunnel):
+- Script: scripts/start-public-hosting.ps1
+- Comando: ./scripts/start-public-hosting.ps1
+- Opcional sem build: ./scripts/start-public-hosting.ps1 -NoBuild
+- Resultado: gera URL https://*.trycloudflare.com (temporaria)
+- Parar: ./scripts/stop-public-hosting.ps1
+
+Hospedagem por dominio fixo via Cloudflare Tunnel:
+- Script: scripts/start-fixed-domain-hosting.ps1
+- Tunnel name: kaique-entrevista
+- Dominio alvo: app.kaiquetransportes.com.br
+- Requer config existente em %USERPROFILE%\\.cloudflared\\config.yml
+
+============================================================
+REGRAS OBRIGATORIAS DO USUARIO (NAO ESQUECER)
+============================================================
+1) Validacao/publicacao apos mudancas
+- Sempre que houver alteracao de codigo, executar no minimo:
+  - npm run build
+  - php artisan migrate
+  - php artisan optimize:clear
+  - smoke check online/local
+- Fechar ciclo com php artisan optimize para manter cache quente (nao parar em optimize:clear).
+
+2) Update Log obrigatorio ao final de cada entrega
+- Sempre atualizar o Update Log in-app no mesmo dia com o que foi entregue.
+- Manter o mesmo painel (ex.: "Gestao de Fretes") e acrescentar subtopicos.
+- Nao duplicar painel/titulo principal no mesmo dia.
+
+3) Publicacao frequente
+- Preferencia do usuario: subir as mudancas para hospedagem com frequencia, evitando acumular grande volume local.
+
+============================================================
 WORKFLOW DE DEPLOY/OPERACAO (IMPORTANTE)
 ============================================================
 Ponto de deploy automatico:
@@ -137,9 +187,9 @@ Preferencia operacional registrada:
 ============================================================
 RISCO/ATENCAO PARA O PROXIMO CHAT
 ============================================================
-1) Mudancas ainda locais
-- Existem alteracoes locais prontas para commit (filtros + performance + indice + log).
-- Proximo chat deve decidir mensagem de commit e publicar.
+1) Mudancas locais
+- No fechamento deste handoff, nao havia pendencias locais (working tree limpo).
+- Se houver novas alteracoes apos este ponto, repetir checklist completo antes de push.
 
 2) Performance da lista de pagamentos
 - Alteracao para Promise.all acelera carregamento, mas pode aumentar burst de requests.
