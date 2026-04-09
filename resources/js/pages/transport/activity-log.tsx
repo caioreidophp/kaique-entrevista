@@ -119,6 +119,17 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Na impressão de pagamentos salariais, linhas de pensão agora mostram a coluna `Mãe / Beneficiária`, facilitando conferência de pagamento para a pessoa correta.',
                         ],
                     },
+                    {
+                        title: 'Entrevistas v4.1: filtros por função/unidade em Currículos e ajustes de desempenho geral',
+                        details: [
+                            'Tela de `Currículos` ganhou filtros operacionais por `Função` e `Unidade`, permitindo localizar candidatos mais rápido sem depender apenas da busca por nome.',
+                            'Filtro recebeu ação `Limpar` para reset imediato de busca/função/unidade sem recarregar manualmente a página.',
+                            'Carregamento de catálogos (unidades/funções) foi otimizado para ocorrer apenas uma vez ao abrir a tela, removendo chamadas repetidas a cada mudança de filtro.',
+                            'Backend da listagem de currículos passou a validar parâmetros de filtro e limite de entrada para evitar consultas custosas com payload inválido.',
+                            'Banco recebeu índices para combinações de `status + função` e `status + unidade`, acelerando listagens filtradas e reduzindo travamentos em bases maiores.',
+                            'Na lista de pagamentos, o carregamento de páginas adicionais foi otimizado de sequencial para paralelo, reduzindo tempo de espera e sensação de travamento em períodos com muitos lançamentos.',
+                        ],
+                    },
                 ],
             },
         ],

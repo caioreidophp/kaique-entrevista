@@ -26,8 +26,16 @@ class InterviewCurriculumController extends Controller
         );
 
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 200);
-        $tab = Str::of((string) $request->string('tab', 'pendentes'))->lower()->value();
-        $includeId = max((int) $request->integer('include_id', 0), 0);
+        $validated = $request->validate([
+            'tab' => ['nullable', 'string', 'in:pendentes,passados'],
+            'include_id' => ['nullable', 'integer', 'min:0'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'role_name' => ['nullable', 'string', 'max:120'],
+            'unit_name' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $tab = Str::of((string) ($validated['tab'] ?? 'pendentes'))->lower()->value();
+        $includeId = max((int) ($validated['include_id'] ?? 0), 0);
 
         $query = InterviewCurriculum::query()
             ->select([
@@ -58,11 +66,27 @@ class InterviewCurriculumController extends Controller
             $query->where('author_id', $request->user()->id);
         }
 
-        if ($request->filled('search')) {
-            $search = trim((string) $request->string('search'));
+        if (! empty($validated['search'])) {
+            $search = trim((string) $validated['search']);
 
             if ($search !== '') {
                 $query->where('full_name', 'like', "%{$search}%");
+            }
+        }
+
+        if (! empty($validated['role_name'])) {
+            $roleName = trim((string) $validated['role_name']);
+
+            if ($roleName !== '') {
+                $query->where('role_name', $roleName);
+            }
+        }
+
+        if (! empty($validated['unit_name'])) {
+            $unitName = trim((string) $validated['unit_name']);
+
+            if ($unitName !== '') {
+                $query->where('unit_name', $unitName);
             }
         }
 

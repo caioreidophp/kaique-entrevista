@@ -15,6 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
@@ -95,6 +102,8 @@ export default function TransportInterviewCurriculumsPage() {
     const [lastPage, setLastPage] = useState(1);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebouncedValue(search, 350);
+    const [functionFilter, setFunctionFilter] = useState('all');
+    const [unitFilter, setUnitFilter] = useState('all');
 
     const [notification, setNotification] = useState<{
         message: string;
@@ -187,6 +196,14 @@ export default function TransportInterviewCurriculumsPage() {
                 query.set('search', debouncedSearch.trim());
             }
 
+            if (functionFilter !== 'all') {
+                query.set('role_name', functionFilter);
+            }
+
+            if (unitFilter !== 'all') {
+                query.set('unit_name', unitFilter);
+            }
+
             const response = await apiGet<
                 ApiPaginatedResponse<InterviewCurriculumListItem>
             >(`/interview-curriculums?${query.toString()}`);
@@ -223,9 +240,12 @@ export default function TransportInterviewCurriculumsPage() {
 
     useEffect(() => {
         void loadOptions();
+    }, []);
+
+    useEffect(() => {
         void load(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, debouncedSearch]);
+    }, [activeTab, debouncedSearch, functionFilter, unitFilter]);
 
     function resetCreateForm(): void {
         setCreateName('');
@@ -536,7 +556,7 @@ export default function TransportInterviewCurriculumsPage() {
                     />
                 ) : null}
 
-                <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-[1fr_auto]">
+                <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-4">
                     <div className="relative">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -546,6 +566,32 @@ export default function TransportInterviewCurriculumsPage() {
                             className="pl-9"
                         />
                     </div>
+                    <Select value={functionFilter} onValueChange={setFunctionFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Todas as funções" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as funções</SelectItem>
+                            {roleNames.map((roleName) => (
+                                <SelectItem key={`filter-role-${roleName}`} value={roleName}>
+                                    {roleName}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={unitFilter} onValueChange={setUnitFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Todas as unidades" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as unidades</SelectItem>
+                            {unitNames.map((unitName) => (
+                                <SelectItem key={`filter-unit-${unitName}`} value={unitName}>
+                                    {unitName}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <div className="flex gap-2">
                         <Button
                             type="button"
@@ -564,6 +610,17 @@ export default function TransportInterviewCurriculumsPage() {
                             onClick={() => setActiveTab('passados')}
                         >
                             Passados
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setSearch('');
+                                setFunctionFilter('all');
+                                setUnitFilter('all');
+                            }}
+                        >
+                            Limpar
                         </Button>
                     </div>
                 </div>

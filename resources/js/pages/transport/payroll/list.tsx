@@ -489,10 +489,20 @@ export default function TransportPayrollListPage() {
             let mergedItems = [...firstPage.data];
 
             if (firstPage.last_page > firstPage.current_page) {
-                for (let nextPage = firstPage.current_page + 1; nextPage <= firstPage.last_page; nextPage += 1) {
-                    const nextResponse = await apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(nextPage)}`);
-                    mergedItems = mergedItems.concat(nextResponse.data);
-                }
+                const remainingPages = Array.from(
+                    { length: firstPage.last_page - firstPage.current_page },
+                    (_, index) => firstPage.current_page + index + 1,
+                );
+
+                const remainingResponses = await Promise.all(
+                    remainingPages.map((nextPage) =>
+                        apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(nextPage)}`),
+                    ),
+                );
+
+                remainingResponses.forEach((response) => {
+                    mergedItems = mergedItems.concat(response.data);
+                });
             }
 
             setItems(mergedItems);
