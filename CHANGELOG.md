@@ -16,6 +16,7 @@
 - Varredura de UX aplicada no módulo com foco em padrão corporativo: navegação lateral voltou ao modo sem hover automático e ganhou busca de itens no menu (desktop, modo foco e mobile).
 - Componentes globais (`Button`, `Input`, `Select`, `Card` e `Notification`) foram refinados para maior consistência visual, legibilidade e qualidade percebida.
 - CSS compartilhado do transporte recebeu ajustes de tipografia, densidade e leitura de tabelas/scroll para melhorar compreensão e reduzir aparência amadora em toda a aplicação.
+- Tipografia global de títulos foi revertida para o padrão original dos módulos após ajustes de UX, preservando a identidade já conhecida pelo time.
 
 ### Gestão de Fretes
 
@@ -23,6 +24,9 @@
 - Cards de gráficos receberam reforço visual (grade sutil de referência, legenda com marcador por unidade e estado explícito quando não há volume no período).
 - Topo do dashboard passou a mostrar contexto operacional ativo (período + unidade) para facilitar conferência durante análise.
 - Incluída faixa de KPIs executivos acima dos gráficos com leitura direta de frete líquido, frete total, média R$/KM, dias trabalhados e participação de terceiros.
+- Dashboard de Fretes passou por redesign completo com hierarquia visual de KPIs, seções temáticas e variedade de componentes (colunas, barras horizontais, indicadores de proporção e tendências).
+- Identidade de cor por unidade foi reforçada (Amparo como cor principal e Itapetininga como variação) para facilitar comparação rápida.
+- Diferença entre unidades ganhou destaque nos KPIs principais com indicação visual de liderança.
 
 ## [2026-04-09] - Segurança de API, integrações e governança financeira
 

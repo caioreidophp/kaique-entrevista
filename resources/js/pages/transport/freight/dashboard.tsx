@@ -1,4 +1,11 @@
-import { AlertTriangle, CalendarDays, LoaderCircle, Table2 } from 'lucide-react';
+import {
+    AlertTriangle,
+    ArrowDownRight,
+    ArrowUpRight,
+    CalendarDays,
+    LoaderCircle,
+    Table2,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -50,13 +57,88 @@ interface UnitMetricChartCardProps {
     formatValue: (value: number) => string;
 }
 
-const unitChartToneClasses = [
-    'bg-slate-900/85',
-    'bg-slate-700/85',
-    'bg-slate-500/85',
-    'bg-slate-400/85',
-    'bg-slate-300/95',
+type UnitTone = {
+    bar: string;
+    dot: string;
+    text: string;
+    soft: string;
+};
+
+const unitTonePalette: UnitTone[] = [
+    {
+        bar: 'bg-sky-600',
+        dot: 'bg-sky-600',
+        text: 'text-sky-700',
+        soft: 'bg-sky-50',
+    },
+    {
+        bar: 'bg-sky-300',
+        dot: 'bg-sky-300',
+        text: 'text-sky-600',
+        soft: 'bg-sky-50',
+    },
+    {
+        bar: 'bg-slate-500',
+        dot: 'bg-slate-500',
+        text: 'text-slate-700',
+        soft: 'bg-slate-50',
+    },
+    {
+        bar: 'bg-slate-400',
+        dot: 'bg-slate-400',
+        text: 'text-slate-600',
+        soft: 'bg-slate-50',
+    },
 ];
+
+function resolveUnitTone(label: string, index: number): UnitTone {
+    const normalized = label.toLocaleLowerCase('pt-BR');
+
+    if (normalized.includes('amparo')) {
+        return unitTonePalette[0];
+    }
+
+    if (normalized.includes('itapetininga')) {
+        return unitTonePalette[1];
+    }
+
+    return unitTonePalette[Math.min(index, unitTonePalette.length - 1)];
+}
+
+function Sparkline({ values }: { values: number[] }) {
+    const filtered = values.filter((value) => Number.isFinite(value));
+
+    if (filtered.length < 2) {
+        return <div className="h-8 w-[120px]" />;
+    }
+
+    const min = Math.min(...filtered);
+    const max = Math.max(...filtered);
+    const range = Math.max(1, max - min);
+    const points = filtered.map((value, index) => {
+        const x = (index / (filtered.length - 1)) * 120;
+        const y = 32 - ((value - min) / range) * 28 - 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    return (
+        <svg
+            viewBox="0 0 120 32"
+            className="h-8 w-[120px]"
+            aria-hidden="true"
+        >
+            <polyline
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-slate-400"
+                points={points.join(' ')}
+            />
+        </svg>
+    );
+}
 
 function UnitMetricChartCard({
     title,
@@ -103,7 +185,7 @@ function UnitMetricChartCard({
                                                     ? 5
                                                     : Math.min(100, Math.max(14, rawHeight));
                                             const toneClass =
-                                                unitChartToneClasses[index % unitChartToneClasses.length];
+                                                resolveUnitTone(item.label, index).bar;
 
                                             return (
                                                 <div
@@ -142,7 +224,7 @@ function UnitMetricChartCard({
                                 >
                                     <div className="flex min-w-0 items-center gap-2">
                                         <span
-                                            className={`size-2 rounded-full ${unitChartToneClasses[index % unitChartToneClasses.length]}`}
+                                            className={`size-2 rounded-full ${resolveUnitTone(item.label, index).dot}`}
                                         />
                                         <span className="truncate text-muted-foreground">
                                             {item.label}
@@ -161,10 +243,117 @@ function UnitMetricChartCard({
     );
 }
 
+interface UnitComparisonCardProps {
+    title: string;
+    rows: Array<{ label: string; value: number }>;
+    formatValue: (value: number) => string;
+}
+
+function UnitComparisonBarCard({ title, rows, formatValue }: UnitComparisonCardProps) {
+    const maxValue = useMemo(
+        () => Math.max(0, ...rows.map((item) => item.value)),
+        [rows],
+    );
+
+    return (
+        <Card className="h-full border-border/80">
+            <CardHeader className="px-3 pt-2.5 pb-1">
+                <CardTitle className="text-sm leading-tight">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 px-3 pb-3">
+                {rows.map((item, index) => {
+                    const tone = resolveUnitTone(item.label, index);
+                    const width = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+
+                    return (
+                        <div key={`${title}-${item.label}`} className="space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                                <span className={`truncate font-medium ${tone.text}`}>{item.label}</span>
+                                <span className="font-semibold text-foreground">
+                                    {formatValue(item.value)}
+                                </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted/40">
+                                <div
+                                    className={`h-2 rounded-full ${tone.bar}`}
+                                    style={{ width: `${Math.max(6, width)}%` }}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+            </CardContent>
+        </Card>
+    );
+}
+
+function UnitRatioCard({ title, rows }: { title: string; rows: Array<{ label: string; value: number }> }) {
+    return (
+        <Card className="h-full border-border/80">
+            <CardHeader className="px-3 pt-2.5 pb-1">
+                <CardTitle className="text-sm leading-tight">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 px-3 pb-3">
+                {rows.map((item, index) => {
+                    const tone = resolveUnitTone(item.label, index);
+                    const clamped = Math.max(0, Math.min(100, item.value));
+
+                    return (
+                        <div key={`${title}-${item.label}`} className="space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                                <span className={`truncate font-medium ${tone.text}`}>{item.label}</span>
+                                <span className="font-semibold text-foreground">
+                                    {formatPercentBR(item.value)}
+                                </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted/40">
+                                <div
+                                    className={`h-2 rounded-full ${tone.bar}`}
+                                    style={{ width: `${Math.max(6, clamped)}%` }}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+            </CardContent>
+        </Card>
+    );
+}
+
+function UnitMetricListCard({ title, rows, formatValue }: UnitComparisonCardProps) {
+    return (
+        <Card className="h-full border-border/80">
+            <CardHeader className="px-3 pt-2.5 pb-1">
+                <CardTitle className="text-sm leading-tight">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 px-3 pb-3">
+                {rows.map((item, index) => {
+                    const tone = resolveUnitTone(item.label, index);
+
+                    return (
+                        <div
+                            key={`${title}-${item.label}`}
+                            className="flex items-center justify-between text-[11px]"
+                        >
+                            <div className="flex min-w-0 items-center gap-2">
+                                <span className={`size-2 rounded-full ${tone.dot}`} />
+                                <span className="truncate text-muted-foreground">{item.label}</span>
+                            </div>
+                            <span className="font-semibold text-foreground">
+                                {formatValue(item.value)}
+                            </span>
+                        </div>
+                    );
+                })}
+            </CardContent>
+        </Card>
+    );
+}
+
 const unitMetricDefinitions: UnitMetricDefinition[] = [
     {
         key: 'frete-kaique',
-        title: 'Frete Kaique',
+        title: 'Frete Total',
         value: (row) => Number(row.total_frete_liquido ?? 0),
         format: (value) => formatCurrencyBR(value),
     },
@@ -364,6 +553,43 @@ export default function TransportFreightDashboardPage() {
         );
     }, [selectedUnitId, units]);
 
+    const dailySummary = useMemo(() => {
+        const map = new Map<
+            string,
+            { frete: number; km: number; aves: number; viagens: number }
+        >();
+
+        dailyEntries.forEach((entry) => {
+            const current = map.get(entry.data) ?? {
+                frete: 0,
+                km: 0,
+                aves: 0,
+                viagens: 0,
+            };
+
+            current.frete += Number(entry.frete_total ?? 0);
+            current.km += Number(entry.km_rodado ?? 0);
+            current.aves += Number(entry.aves ?? 0);
+            current.viagens += Number(entry.cargas_liq ?? 0);
+
+            map.set(entry.data, current);
+        });
+
+        return Array.from(map.entries())
+            .map(([date, values]) => ({ date, ...values }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }, [dailyEntries]);
+
+    const trendSeries = useMemo(() => {
+        const slice = dailySummary.slice(-14);
+        return {
+            frete: slice.map((item) => item.frete),
+            km: slice.map((item) => item.km),
+            aves: slice.map((item) => item.aves),
+            viagens: slice.map((item) => item.viagens),
+        };
+    }, [dailySummary]);
+
     const activePeriodLabel = useMemo(() => {
         if (startDate && endDate) {
             return `${formatDateBR(startDate)} a ${formatDateBR(endDate)}`;
@@ -380,39 +606,54 @@ export default function TransportFreightDashboardPage() {
             return [];
         }
 
+        const viagensTotal = unitRows.reduce(
+            (total, row) => total + Number(row.total_viagens_kaique ?? 0),
+            0,
+        );
+
         return [
             {
                 key: 'frete-liquido',
-                label: 'Frete líquido total',
-                value: formatCurrencyBR(data.kpis.total_frete_liquido),
-                detail: `${formatIntegerBR(data.kpis.total_lancamentos)} lançamento(s)`,
-            },
-            {
-                key: 'frete-total',
-                label: 'Frete total',
+                label: 'Frete Total',
                 value: formatCurrencyBR(data.kpis.total_frete),
-                detail: `${formatIntegerBR(data.kpis.total_aves)} aves transportadas`,
+                detail: `${formatIntegerBR(data.kpis.total_lancamentos)} lançamento(s)`,
+                series: trendSeries.frete,
+                rowValue: (row: UnitMetricRow) => Number(row.total_frete ?? 0),
+                formatRow: formatCurrencyBR,
             },
             {
-                key: 'media-km',
-                label: 'Média R$/KM',
-                value: formatCurrencyBR(data.kpis.media_reais_por_km),
-                detail: `${formatIntegerBR(data.kpis.total_km)} km rodados`,
+                key: 'viagens',
+                label: 'Viagens',
+                value: formatIntegerBR(viagensTotal),
+                detail: `${formatIntegerBR(data.kpis.dias_trabalhados)} dias trabalhados`,
+                series: trendSeries.viagens,
+                rowValue: (row: UnitMetricRow) => Number(row.total_viagens_kaique ?? 0),
+                formatRow: formatIntegerBR,
             },
             {
-                key: 'dias',
-                label: 'Dias trabalhados',
-                value: formatIntegerBR(data.kpis.dias_trabalhados),
-                detail: `${formatCurrencyBR(data.kpis.frete_por_dia_trabalhado)} por dia`,
+                key: 'km',
+                label: 'KM Rodado',
+                value: formatIntegerBR(data.kpis.total_km),
+                detail: `${formatCurrencyBR(data.kpis.media_reais_por_km)} por km`,
+                series: trendSeries.km,
+                rowValue: (row: UnitMetricRow) => Number(row.total_km ?? 0),
+                formatRow: formatIntegerBR,
             },
             {
-                key: 'terceiros',
-                label: 'Participação terceiros',
-                value: formatPercentBR(data.kpis.participacao_terceiros),
-                detail: `${formatCurrencyBR(data.kpis.total_frete_terceiros)} em frete 3º`,
+                key: 'aves',
+                label: 'Aves Transportadas',
+                value: formatIntegerBR(data.kpis.total_aves),
+                detail: `${formatIntegerBR(data.kpis.total_viagens_terceiros)} viagens 3º`,
+                series: trendSeries.aves,
+                rowValue: (row: UnitMetricRow) => Number(row.total_aves ?? 0),
+                formatRow: formatIntegerBR,
             },
         ];
-    }, [data]);
+    }, [data, trendSeries, unitRows]);
+
+    const volumeMetrics = unitMetricDefinitions.slice(0, 4);
+    const performanceMetrics = unitMetricDefinitions.slice(4, 8);
+    const efficiencyMetrics = unitMetricDefinitions.slice(8, 12);
 
     return (
         <AdminLayout
@@ -528,30 +769,147 @@ export default function TransportFreightDashboardPage() {
                     </div>
                 ) : data ? (
                     <>
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                            {dashboardKpiCards.map((kpi) => (
-                                <Card key={kpi.key} className="transport-kpi-card">
-                                    <CardContent className="px-3 py-3">
-                                        <p className="transport-kpi-title">{kpi.label}</p>
-                                        <p className="mt-1 text-lg font-semibold text-foreground">
-                                            {kpi.value}
-                                        </p>
-                                        <p className="transport-kpi-detail">{kpi.detail}</p>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                        <div className="grid gap-3 lg:grid-cols-4">
+                            {dashboardKpiCards.map((kpi) => {
+                                const diffMeta = (() => {
+                                    if (unitRows.length < 2) return null;
+
+                                    const sorted = [...unitRows].sort(
+                                        (a, b) => kpi.rowValue(b) - kpi.rowValue(a),
+                                    );
+                                    const leader = sorted[0];
+                                    const runner = sorted[1];
+                                    const diff = kpi.rowValue(leader) - kpi.rowValue(runner);
+                                    return {
+                                        leader: leader.unidade_nome ?? 'Unidade A',
+                                        runner: runner.unidade_nome ?? 'Unidade B',
+                                        diff,
+                                    };
+                                })();
+
+                                const diffIsPositive = (diffMeta?.diff ?? 0) >= 0;
+                                const diffIcon = diffIsPositive ? ArrowUpRight : ArrowDownRight;
+                                const DiffIcon = diffIcon;
+
+                                return (
+                                    <Card key={kpi.key} className="transport-kpi-card">
+                                        <CardContent className="flex h-full flex-col gap-3 px-4 py-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                        {kpi.label}
+                                                    </p>
+                                                    <p className="mt-1 text-2xl font-semibold text-foreground">
+                                                        {kpi.value}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {kpi.detail}
+                                                    </p>
+                                                </div>
+                                                <Sparkline values={kpi.series} />
+                                            </div>
+
+                                            <div className="space-y-1 text-[11px]">
+                                                {unitRows.map((row, index) => {
+                                                    const label = row.unidade_nome ?? 'Sem unidade';
+                                                    const tone = resolveUnitTone(label, index);
+                                                    return (
+                                                        <div
+                                                            key={`${kpi.key}-${label}`}
+                                                            className="flex items-center justify-between"
+                                                        >
+                                                            <div className="flex min-w-0 items-center gap-2">
+                                                                <span className={`size-2 rounded-full ${tone.dot}`} />
+                                                                <span className="truncate text-muted-foreground">
+                                                                    {label}
+                                                                </span>
+                                                            </div>
+                                                            <span className="font-semibold text-foreground">
+                                                                {kpi.formatRow(kpi.rowValue(row))}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {diffMeta ? (
+                                                <div
+                                                    className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+                                                        diffIsPositive ? 'text-emerald-700' : 'text-rose-700'
+                                                    }`}
+                                                >
+                                                    <DiffIcon className="size-3.5" />
+                                                    {diffMeta.leader} {diffIsPositive ? 'acima' : 'abaixo'} de{' '}
+                                                    {diffMeta.runner} ({kpi.formatRow(Math.abs(diffMeta.diff))})
+                                                </div>
+                                            ) : null}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
 
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-sm font-semibold">Gráficos por unidade</h3>
+                                <h3 className="text-sm font-semibold">Comparativo geral</h3>
                                 <p className="text-xs text-muted-foreground">
                                     {formatIntegerBR(unitRows.length)} unidade(s) comparadas
                                 </p>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                                {unitMetricDefinitions.map((metric) => (
+                                {volumeMetrics.map((metric) => (
                                     <UnitMetricChartCard
+                                        key={metric.key}
+                                        title={metric.title}
+                                        rows={unitRows.map((row) => ({
+                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            value: metric.value(row),
+                                        }))}
+                                        formatValue={metric.format}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-sm font-semibold">Desempenho operacional</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Comparação direta entre unidades
+                                </p>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                {performanceMetrics.map((metric) => (
+                                    <UnitComparisonBarCard
+                                        key={metric.key}
+                                        title={metric.title}
+                                        rows={unitRows.map((row) => ({
+                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            value: metric.value(row),
+                                        }))}
+                                        formatValue={metric.format}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-sm font-semibold">Proporções e eficiência</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Indicadores relativos do período
+                                </p>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                <UnitRatioCard
+                                    title="% Frete Terceiros / Frete Programado"
+                                    rows={unitRows.map((row) => ({
+                                        label: row.unidade_nome ?? 'Sem unidade',
+                                        value: Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
+                                    }))}
+                                />
+                                {efficiencyMetrics.map((metric) => (
+                                    <UnitMetricListCard
                                         key={metric.key}
                                         title={metric.title}
                                         rows={unitRows.map((row) => ({

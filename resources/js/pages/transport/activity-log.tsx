@@ -141,6 +141,16 @@ const updateLogTimeline: UpdateLogDay[] = [
                 panel: 'Gestão de Fretes',
                 items: [
                     {
+                        title: 'Dashboard de Fretes v4.5: redesign SaaS com hierarquia forte e variedade de visualizações',
+                        details: [
+                            'Topo do dashboard passou a destacar KPIs principais com números grandes, sparkline de tendência e comparação direta entre unidades.',
+                            'Cartões de comparação foram divididos em seções (geral, operacional, proporções e eficiência), reduzindo repetição de gráficos iguais.',
+                            'Barras horizontais e indicadores de proporção substituíram parte dos gráficos de colunas para leitura mais rápida.',
+                            'Cores por unidade foram padronizadas (Amparo como cor principal e Itapetininga como variação) para reforçar identidade visual.',
+                            'As diferenças entre unidades agora ficam explícitas nos KPIs principais, com indicação visual de liderança.',
+                        ],
+                    },
+                    {
                         title: 'Dashboard de Fretes v4.4: correção de barras dos gráficos e upgrade visual da leitura executiva',
                         details: [
                             'Componente de gráfico por unidade foi corrigido para renderizar barras com altura consistente (incluindo valores baixos), eliminando cartões com área vazia aparente.',
