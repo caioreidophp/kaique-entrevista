@@ -84,6 +84,25 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Segunda-Feira, 27/04/2026',
+        sections: [
+            {
+                panel: 'Plataforma',
+                items: [
+                    {
+                        title: 'Sidebar v4.4: submenus por hover agora expandem para baixo, sem painel lateral à direita',
+                        details: [
+                            'Navegação da sidebar foi ajustada para abrir páginas filhas abaixo do item pai quando houver hover/foco, em vez de abrir um painel flutuante à direita.',
+                            'Com a expansão inline, os itens seguintes passam a ser deslocados para baixo automaticamente enquanto o submenu estiver aberto, seguindo o fluxo visual esperado da operação.',
+                            'Comportamento foi aplicado no layout desktop padrão e no modo foco, reduzindo largura efetiva do menu e eliminando barra horizontal causada por flyout lateral.',
+                            'Ao sair do hover dos itens pai/filhos, o submenu recolhe e a ordem da lista retorna ao estado original.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Quinta-Feira, 09/04/2026',
         sections: [
             {

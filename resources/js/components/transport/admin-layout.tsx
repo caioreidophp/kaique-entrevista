@@ -1408,7 +1408,7 @@ export function AdminLayout({
                                         return (
                                             <div
                                                 key={link.key}
-                                                className={`relative ${hasChildren ? 'group/navitem' : ''}`}
+                                                className={hasChildren ? 'group/navitem' : ''}
                                             >
                                                 <Link
                                                     href={link.href}
@@ -1436,7 +1436,7 @@ export function AdminLayout({
 
                                                 {hasChildren ? (
                                                     <div
-                                                        className="pointer-events-none absolute top-0 left-full z-50 ml-2 min-w-[230px] rounded-md border bg-card p-1.5 opacity-0 shadow-lg transition-opacity duration-150 group-hover/navitem:pointer-events-auto group-hover/navitem:opacity-100"
+                                                        className="mt-1 hidden space-y-1 pl-5 group-hover/navitem:block group-focus-within/navitem:block"
                                                     >
                                                         {(link.children ?? []).map((child) => {
                                                             const isChildActive = child.key === active;
@@ -1447,7 +1447,7 @@ export function AdminLayout({
                                                                     href={child.href}
                                                                     prefetch
                                                                     title={child.label}
-                                                                    className={`mb-1 block rounded-md px-2.5 py-1.5 text-xs transition last:mb-0 ${
+                                                                    className={`block rounded-md px-2.5 py-1.5 text-xs transition ${
                                                                         isChildActive
                                                                             ? 'bg-primary text-primary-foreground'
                                                                             : 'hover:bg-muted'
@@ -1561,7 +1561,7 @@ export function AdminLayout({
                                             return (
                                                 <div
                                                     key={link.key}
-                                                    className={`relative ${hasChildren ? 'group/navitem' : ''}`}
+                                                    className={hasChildren ? 'group/navitem' : ''}
                                                 >
                                                     <Link
                                                         href={link.href}
@@ -1582,7 +1582,7 @@ export function AdminLayout({
 
                                                     {hasChildren ? (
                                                         <div
-                                                            className="pointer-events-none absolute top-0 left-full z-50 ml-2 min-w-[230px] rounded-md border bg-card p-1.5 opacity-0 shadow-lg transition-opacity duration-150 group-hover/navitem:pointer-events-auto group-hover/navitem:opacity-100"
+                                                            className="mt-1 hidden space-y-1 pl-5 group-hover/navitem:block group-focus-within/navitem:block"
                                                         >
                                                             {(link.children ?? []).map((child) => {
                                                                 const isChildActive = child.key === active;
@@ -1593,7 +1593,7 @@ export function AdminLayout({
                                                                         href={child.href}
                                                                         prefetch
                                                                         title={child.label}
-                                                                        className={`mb-1 block rounded-md px-2.5 py-1.5 text-xs transition last:mb-0 ${
+                                                                        className={`block rounded-md px-2.5 py-1.5 text-xs transition ${
                                                                             isChildActive
                                                                                 ? 'bg-primary text-primary-foreground'
                                                                                 : 'hover:bg-muted'
