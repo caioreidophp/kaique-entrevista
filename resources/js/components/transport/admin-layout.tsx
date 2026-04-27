@@ -292,6 +292,9 @@ export function AdminLayout({
     const [globalNotice, setGlobalNotice] = useState<GlobalNotice | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
+    const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
+        Partial<Record<SidebarLinkKey, boolean>>
+    >({});
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
     const copy = adminLayoutCopy['pt-BR'];
 
@@ -369,6 +372,13 @@ export function AdminLayout({
     useEffect(() => {
         setMobileMenuOpen(false);
     }, [active]);
+
+    const toggleSidebarGroup = useCallback((groupKey: SidebarLinkKey): void => {
+        setExpandedSidebarGroups((current) => ({
+            ...current,
+            [groupKey]: !current[groupKey],
+        }));
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1222,6 +1232,32 @@ export function AdminLayout({
         [fixedLinks, hasPermission, sidebarPermissionByLinkKey],
     );
 
+    useEffect(() => {
+        if (currentModule !== 'home') {
+            setExpandedSidebarGroups({});
+            return;
+        }
+
+        const parentWithActiveChild = visibleLinks.find((link) =>
+            (link.children ?? []).some((child) => child.key === active),
+        );
+
+        if (!parentWithActiveChild) {
+            return;
+        }
+
+        setExpandedSidebarGroups((current) => {
+            if (current[parentWithActiveChild.key]) {
+                return current;
+            }
+
+            return {
+                ...current,
+                [parentWithActiveChild.key]: true,
+            };
+        });
+    }, [active, currentModule, visibleLinks]);
+
     const panelTitle = useMemo(() => {
         if (currentModule === 'home') return copy.panelHome;
         if (currentModule === 'registry') return copy.panelRegistry;
@@ -1401,43 +1437,59 @@ export function AdminLayout({
                                     {visibleLinks.map((link) => {
                                         const Icon = link.icon;
                                         const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                        const isExpanded =
+                                            hasChildren &&
+                                            Boolean(
+                                                expandedSidebarGroups[link.key] ||
+                                                    (link.children ?? []).some((child) => child.key === active),
+                                            );
                                         const isActive =
                                             link.key === active ||
                                             (link.children ?? []).some((child) => child.key === active);
 
                                         return (
-                                            <div
-                                                key={link.key}
-                                                className={hasChildren ? 'group/navitem' : ''}
-                                            >
-                                                <Link
-                                                    href={link.href}
-                                                    prefetch
-                                                    onClick={() => setMobileMenuOpen(false)}
-                                                    title={link.label}
-                                                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
-                                                        isActive
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : 'text-foreground/90 hover:bg-muted/70'
-                                                    } ${
-                                                        sidebarCollapsed
-                                                            ? 'justify-center px-2'
-                                                            : ''
-                                                    }`}
-                                                >
-                                                    <Icon className="size-4" />
-                                                    {!sidebarCollapsed ? (
-                                                        <span className="truncate">{link.label}</span>
-                                                    ) : null}
-                                                    {hasChildren && !sidebarCollapsed ? (
-                                                        <ChevronRight className="ml-auto size-3.5 text-muted-foreground opacity-70 transition-transform duration-150 group-hover/navitem:translate-x-0.5 group-focus-within/navitem:translate-x-0.5" />
-                                                    ) : null}
-                                                </Link>
-
-                                                {hasChildren ? (
-                                                    <div
-                                                        className="mt-1 hidden space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5 group-hover/navitem:block group-focus-within/navitem:block"
+                                            <div key={link.key}>
+                                                <div className="flex items-center gap-1">
+                                                    <Link
+                                                        href={link.href}
+                                                        prefetch
+                                                        onClick={() => setMobileMenuOpen(false)}
+                                                        title={link.label}
+                                                        className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+                                                            isActive
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'text-foreground/90 hover:bg-muted/70'
+                                                        } ${
+                                                            sidebarCollapsed
+                                                                ? 'justify-center px-2'
+                                                                : ''
+                                                        }`}
                                                     >
+                                                        <Icon className="size-4" />
+                                                        {!sidebarCollapsed ? (
+                                                            <span className="truncate">{link.label}</span>
+                                                        ) : null}
+                                                    </Link>
+
+                                                    {hasChildren && !sidebarCollapsed ? (
+                                                        <button
+                                                            type="button"
+                                                            aria-label={`Expandir ${link.label}`}
+                                                            aria-expanded={isExpanded}
+                                                            onClick={() => toggleSidebarGroup(link.key)}
+                                                            className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+                                                        >
+                                                            <ChevronRight
+                                                                className={`size-4 transition-transform duration-150 ${
+                                                                    isExpanded ? 'rotate-90' : ''
+                                                                }`}
+                                                            />
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+
+                                                {hasChildren && isExpanded ? (
+                                                    <div className="mt-1 space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5">
                                                         {(link.children ?? []).map((child) => {
                                                             const isChildActive = child.key === active;
 
@@ -1561,36 +1613,52 @@ export function AdminLayout({
                                         {visibleLinks.map((link) => {
                                             const Icon = link.icon;
                                             const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const isExpanded =
+                                                hasChildren &&
+                                                Boolean(
+                                                    expandedSidebarGroups[link.key] ||
+                                                        (link.children ?? []).some((child) => child.key === active),
+                                                );
                                             const isActive =
                                                 link.key === active ||
                                                 (link.children ?? []).some((child) => child.key === active);
 
                                             return (
-                                                <div
-                                                    key={link.key}
-                                                    className={hasChildren ? 'group/navitem' : ''}
-                                                >
-                                                    <Link
-                                                        href={link.href}
-                                                        prefetch
-                                                        title={link.label}
-                                                        className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
-                                                            isActive
-                                                                ? 'bg-primary text-primary-foreground'
-                                                                : 'text-foreground/90 hover:bg-muted/70'
-                                                        }`}
-                                                    >
-                                                        <Icon className="size-4" />
-                                                        <span className="truncate">{link.label}</span>
-                                                        {hasChildren ? (
-                                                            <ChevronRight className="ml-auto size-3.5 text-muted-foreground opacity-70 transition-transform duration-150 group-hover/navitem:translate-x-0.5 group-focus-within/navitem:translate-x-0.5" />
-                                                        ) : null}
-                                                    </Link>
-
-                                                    {hasChildren ? (
-                                                        <div
-                                                            className="mt-1 hidden space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5 group-hover/navitem:block group-focus-within/navitem:block"
+                                                <div key={link.key}>
+                                                    <div className="flex items-center gap-1">
+                                                        <Link
+                                                            href={link.href}
+                                                            prefetch
+                                                            title={link.label}
+                                                            className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+                                                                isActive
+                                                                    ? 'bg-primary text-primary-foreground'
+                                                                    : 'text-foreground/90 hover:bg-muted/70'
+                                                            }`}
                                                         >
+                                                            <Icon className="size-4" />
+                                                            <span className="truncate">{link.label}</span>
+                                                        </Link>
+
+                                                        {hasChildren ? (
+                                                            <button
+                                                                type="button"
+                                                                aria-label={`Expandir ${link.label}`}
+                                                                aria-expanded={isExpanded}
+                                                                onClick={() => toggleSidebarGroup(link.key)}
+                                                                className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+                                                            >
+                                                                <ChevronRight
+                                                                    className={`size-4 transition-transform duration-150 ${
+                                                                        isExpanded ? 'rotate-90' : ''
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+
+                                                    {hasChildren && isExpanded ? (
+                                                        <div className="mt-1 space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5">
                                                             {(link.children ?? []).map((child) => {
                                                                 const isChildActive = child.key === active;
 
@@ -1716,29 +1784,53 @@ export function AdminLayout({
                                         {visibleLinks.map((link) => {
                                             const Icon = link.icon;
                                             const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const isExpanded =
+                                                hasChildren &&
+                                                Boolean(
+                                                    expandedSidebarGroups[link.key] ||
+                                                        (link.children ?? []).some((child) => child.key === active),
+                                                );
                                             const isActive =
                                                 link.key === active ||
                                                 (link.children ?? []).some((child) => child.key === active);
 
                                             return (
                                                 <div key={link.key} className="space-y-1">
-                                                    <Link
-                                                        href={link.href}
-                                                        prefetch
-                                                        onClick={() =>
-                                                            setMobileMenuOpen(false)
-                                                        }
-                                                        className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
-                                                            isActive
-                                                                ? 'bg-primary text-primary-foreground'
-                                                                : 'text-foreground/90 hover:bg-muted/70'
-                                                        }`}
-                                                    >
-                                                        <Icon className="size-4" />
-                                                        <span className="truncate">{link.label}</span>
-                                                    </Link>
+                                                    <div className="flex items-center gap-1">
+                                                        <Link
+                                                            href={link.href}
+                                                            prefetch
+                                                            onClick={() =>
+                                                                setMobileMenuOpen(false)
+                                                            }
+                                                            className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+                                                                isActive
+                                                                    ? 'bg-primary text-primary-foreground'
+                                                                    : 'text-foreground/90 hover:bg-muted/70'
+                                                            }`}
+                                                        >
+                                                            <Icon className="size-4" />
+                                                            <span className="truncate">{link.label}</span>
+                                                        </Link>
 
-                                                    {hasChildren ? (
+                                                        {hasChildren ? (
+                                                            <button
+                                                                type="button"
+                                                                aria-label={`Expandir ${link.label}`}
+                                                                aria-expanded={isExpanded}
+                                                                onClick={() => toggleSidebarGroup(link.key)}
+                                                                className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+                                                            >
+                                                                <ChevronRight
+                                                                    className={`size-4 transition-transform duration-150 ${
+                                                                        isExpanded ? 'rotate-90' : ''
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+
+                                                    {hasChildren && isExpanded ? (
                                                         <div className="ml-6 space-y-1 border-l border-border/70 pl-2">
                                                             {(link.children ?? []).map((child) => {
                                                                 const isChildActive = child.key === active;

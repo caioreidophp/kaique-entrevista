@@ -9,6 +9,8 @@
 - Ajuste aplicado no layout desktop padrão e no modo foco para reduzir largura efetiva da coluna lateral e evitar barra horizontal de rolagem no menu.
 - Refinamento visual aplicado no menu lateral com estética mais clean/corporativa: hierarquia pai-filho mais clara, submenus em bloco neutro com borda suave e espaçamentos padronizados.
 - Itens filhos da navegação receberam marcador discreto e melhor alinhamento tipográfico no desktop, modo foco e mobile, reduzindo aparência amadora e melhorando legibilidade.
+- Expansão de submenu evoluiu para padrão estável por botão dedicado (seta), substituindo abertura automática por hover para evitar deslocamento inesperado da lista e cliques acidentais em itens vizinhos.
+- Clique no item pai foi mantido para acesso direto ao painel principal, com expansão/recolhimento das páginas filhas controlado de forma independente e consistente em desktop, modo foco e mobile.
 
 ## [2026-04-09] - Segurança de API, integrações e governança financeira
 

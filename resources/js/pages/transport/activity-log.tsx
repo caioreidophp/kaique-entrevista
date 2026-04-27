@@ -90,6 +90,15 @@ const updateLogTimeline: UpdateLogDay[] = [
                 panel: 'Plataforma',
                 items: [
                     {
+                        title: 'Sidebar v4.6: expansão estável por botão para eliminar cliques errados durante navegação',
+                        details: [
+                            'Submenus da navegação principal deixaram de abrir automaticamente por hover e passaram a usar expansão explícita por botão de seta ao lado do item pai.',
+                            'Comportamento evita deslocamento inesperado da lista enquanto o operador move o mouse entre itens, eliminando clique acidental em painel incorreto.',
+                            'Clique no item pai foi preservado para acesso direto à página principal do módulo, com expansão independente para páginas filhas.',
+                            'Padrão foi aplicado no desktop, modo foco e mobile para manter consistência de UX em toda a aplicação.',
+                        ],
+                    },
+                    {
                         title: 'Sidebar v4.5: refinamento visual clean/corporativo com hierarquia de navegação mais elegante',
                         details: [
                             'Menu lateral recebeu ajuste fino de espaçamento, tipografia e contraste para reduzir ruído visual e aproximar o padrão de produto corporativo de grande porte.',
