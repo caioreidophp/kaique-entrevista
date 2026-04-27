@@ -7,6 +7,8 @@
 - Sidebar principal deixou de abrir submenus em painel lateral à direita e passou a expandir as páginas filhas para baixo do item pai no hover/foco.
 - Com expansão inline, os itens seguintes da navegação são deslocados dinamicamente enquanto o submenu está aberto e retornam à posição original ao sair do hover.
 - Ajuste aplicado no layout desktop padrão e no modo foco para reduzir largura efetiva da coluna lateral e evitar barra horizontal de rolagem no menu.
+- Refinamento visual aplicado no menu lateral com estética mais clean/corporativa: hierarquia pai-filho mais clara, submenus em bloco neutro com borda suave e espaçamentos padronizados.
+- Itens filhos da navegação receberam marcador discreto e melhor alinhamento tipográfico no desktop, modo foco e mobile, reduzindo aparência amadora e melhorando legibilidade.
 
 ## [2026-04-09] - Segurança de API, integrações e governança financeira
 

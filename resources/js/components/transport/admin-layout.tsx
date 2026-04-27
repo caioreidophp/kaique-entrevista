@@ -1415,10 +1415,10 @@ export function AdminLayout({
                                                     prefetch
                                                     onClick={() => setMobileMenuOpen(false)}
                                                     title={link.label}
-                                                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                                         isActive
                                                             ? 'bg-primary text-primary-foreground'
-                                                            : 'hover:bg-muted'
+                                                            : 'text-foreground/90 hover:bg-muted/70'
                                                     } ${
                                                         sidebarCollapsed
                                                             ? 'justify-center px-2'
@@ -1430,13 +1430,13 @@ export function AdminLayout({
                                                         <span className="truncate">{link.label}</span>
                                                     ) : null}
                                                     {hasChildren && !sidebarCollapsed ? (
-                                                        <ChevronRight className="ml-auto size-3.5 opacity-70" />
+                                                        <ChevronRight className="ml-auto size-3.5 text-muted-foreground opacity-70 transition-transform duration-150 group-hover/navitem:translate-x-0.5 group-focus-within/navitem:translate-x-0.5" />
                                                     ) : null}
                                                 </Link>
 
                                                 {hasChildren ? (
                                                     <div
-                                                        className="mt-1 hidden space-y-1 pl-5 group-hover/navitem:block group-focus-within/navitem:block"
+                                                        className="mt-1 hidden space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5 group-hover/navitem:block group-focus-within/navitem:block"
                                                     >
                                                         {(link.children ?? []).map((child) => {
                                                             const isChildActive = child.key === active;
@@ -1447,13 +1447,20 @@ export function AdminLayout({
                                                                     href={child.href}
                                                                     prefetch
                                                                     title={child.label}
-                                                                    className={`block rounded-md px-2.5 py-1.5 text-xs transition ${
+                                                                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                         isChildActive
-                                                                            ? 'bg-primary text-primary-foreground'
-                                                                            : 'hover:bg-muted'
+                                                                            ? 'bg-primary/90 text-primary-foreground shadow-sm'
+                                                                            : 'text-muted-foreground hover:bg-background hover:text-foreground'
                                                                     }`}
                                                                 >
-                                                                    {child.label}
+                                                                    <span
+                                                                        className={`size-1.5 rounded-full ${
+                                                                            isChildActive
+                                                                                ? 'bg-primary-foreground/90'
+                                                                                : 'bg-muted-foreground/60'
+                                                                        }`}
+                                                                    />
+                                                                    <span className="truncate">{child.label}</span>
                                                                 </Link>
                                                             );
                                                         })}
@@ -1567,22 +1574,22 @@ export function AdminLayout({
                                                         href={link.href}
                                                         prefetch
                                                         title={link.label}
-                                                        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                        className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                                             isActive
                                                                 ? 'bg-primary text-primary-foreground'
-                                                                : 'hover:bg-muted'
+                                                                : 'text-foreground/90 hover:bg-muted/70'
                                                         }`}
                                                     >
                                                         <Icon className="size-4" />
                                                         <span className="truncate">{link.label}</span>
                                                         {hasChildren ? (
-                                                            <ChevronRight className="ml-auto size-3.5 opacity-70" />
+                                                            <ChevronRight className="ml-auto size-3.5 text-muted-foreground opacity-70 transition-transform duration-150 group-hover/navitem:translate-x-0.5 group-focus-within/navitem:translate-x-0.5" />
                                                         ) : null}
                                                     </Link>
 
                                                     {hasChildren ? (
                                                         <div
-                                                            className="mt-1 hidden space-y-1 pl-5 group-hover/navitem:block group-focus-within/navitem:block"
+                                                            className="mt-1 hidden space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5 group-hover/navitem:block group-focus-within/navitem:block"
                                                         >
                                                             {(link.children ?? []).map((child) => {
                                                                 const isChildActive = child.key === active;
@@ -1593,13 +1600,20 @@ export function AdminLayout({
                                                                         href={child.href}
                                                                         prefetch
                                                                         title={child.label}
-                                                                        className={`block rounded-md px-2.5 py-1.5 text-xs transition ${
+                                                                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                             isChildActive
-                                                                                ? 'bg-primary text-primary-foreground'
-                                                                                : 'hover:bg-muted'
+                                                                                ? 'bg-primary/90 text-primary-foreground shadow-sm'
+                                                                                : 'text-muted-foreground hover:bg-background hover:text-foreground'
                                                                         }`}
                                                                     >
-                                                                        {child.label}
+                                                                        <span
+                                                                            className={`size-1.5 rounded-full ${
+                                                                                isChildActive
+                                                                                    ? 'bg-primary-foreground/90'
+                                                                                    : 'bg-muted-foreground/60'
+                                                                            }`}
+                                                                        />
+                                                                        <span className="truncate">{child.label}</span>
                                                                     </Link>
                                                                 );
                                                             })}
@@ -1714,18 +1728,18 @@ export function AdminLayout({
                                                         onClick={() =>
                                                             setMobileMenuOpen(false)
                                                         }
-                                                        className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                        className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                                             isActive
                                                                 ? 'bg-primary text-primary-foreground'
-                                                                : 'hover:bg-muted'
+                                                                : 'text-foreground/90 hover:bg-muted/70'
                                                         }`}
                                                     >
                                                         <Icon className="size-4" />
-                                                        <span>{link.label}</span>
+                                                        <span className="truncate">{link.label}</span>
                                                     </Link>
 
                                                     {hasChildren ? (
-                                                        <div className="ml-6 space-y-1">
+                                                        <div className="ml-6 space-y-1 border-l border-border/70 pl-2">
                                                             {(link.children ?? []).map((child) => {
                                                                 const isChildActive = child.key === active;
 
@@ -1737,13 +1751,20 @@ export function AdminLayout({
                                                                         onClick={() =>
                                                                             setMobileMenuOpen(false)
                                                                         }
-                                                                        className={`block rounded-md px-2 py-1.5 text-xs transition ${
+                                                                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                             isChildActive
-                                                                                ? 'bg-primary text-primary-foreground'
-                                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                                                ? 'bg-primary/90 text-primary-foreground shadow-sm'
+                                                                                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                                                                         }`}
                                                                     >
-                                                                        {child.label}
+                                                                        <span
+                                                                            className={`size-1.5 rounded-full ${
+                                                                                isChildActive
+                                                                                    ? 'bg-primary-foreground/90'
+                                                                                    : 'bg-muted-foreground/60'
+                                                                            }`}
+                                                                        />
+                                                                        <span className="truncate">{child.label}</span>
                                                                     </Link>
                                                                 );
                                                             })}

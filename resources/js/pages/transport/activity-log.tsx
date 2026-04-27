@@ -90,6 +90,15 @@ const updateLogTimeline: UpdateLogDay[] = [
                 panel: 'Plataforma',
                 items: [
                     {
+                        title: 'Sidebar v4.5: refinamento visual clean/corporativo com hierarquia de navegação mais elegante',
+                        details: [
+                            'Menu lateral recebeu ajuste fino de espaçamento, tipografia e contraste para reduzir ruído visual e aproximar o padrão de produto corporativo de grande porte.',
+                            'Submenus passaram a abrir em bloco discreto com borda suave e fundo neutro, mantendo leitura clara sem efeito de menu improvisado.',
+                            'Itens filhos ganharam marcador visual sutil e alinhamento mais consistente para reforçar hierarquia sem poluir a navegação.',
+                            'Refinamento foi aplicado de forma consistente no sidebar desktop, no modo foco e no menu mobile para manter experiência unificada.',
+                        ],
+                    },
+                    {
                         title: 'Sidebar v4.4: submenus por hover agora expandem para baixo, sem painel lateral à direita',
                         details: [
                             'Navegação da sidebar foi ajustada para abrir páginas filhas abaixo do item pai quando houver hover/foco, em vez de abrir um painel flutuante à direita.',
