@@ -17,6 +17,13 @@
 - Componentes globais (`Button`, `Input`, `Select`, `Card` e `Notification`) foram refinados para maior consistência visual, legibilidade e qualidade percebida.
 - CSS compartilhado do transporte recebeu ajustes de tipografia, densidade e leitura de tabelas/scroll para melhorar compreensão e reduzir aparência amadora em toda a aplicação.
 
+### Gestão de Fretes
+
+- Corrigida renderização dos gráficos por unidade no Dashboard de Fretes para garantir barras visíveis e proporcionais em todos os cartões de métricas.
+- Cards de gráficos receberam reforço visual (grade sutil de referência, legenda com marcador por unidade e estado explícito quando não há volume no período).
+- Topo do dashboard passou a mostrar contexto operacional ativo (período + unidade) para facilitar conferência durante análise.
+- Incluída faixa de KPIs executivos acima dos gráficos com leitura direta de frete líquido, frete total, média R$/KM, dias trabalhados e participação de terceiros.
+
 ## [2026-04-09] - Segurança de API, integrações e governança financeira
 
 ### Plataforma

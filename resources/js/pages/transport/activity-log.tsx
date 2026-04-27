@@ -137,6 +137,20 @@ const updateLogTimeline: UpdateLogDay[] = [
                     },
                 ],
             },
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Dashboard de Fretes v4.4: correção de barras dos gráficos e upgrade visual da leitura executiva',
+                        details: [
+                            'Componente de gráfico por unidade foi corrigido para renderizar barras com altura consistente (incluindo valores baixos), eliminando cartões com área vazia aparente.',
+                            'Cards de gráfico ganharam fundo com grade sutil, legenda com marcador por série e mensagem explícita de ausência de volume no período.',
+                            'Dashboard recebeu faixa de contexto com período e unidade ativa no topo para reduzir ambiguidade durante análise operacional.',
+                            'Foi adicionado bloco de KPIs executivos acima dos gráficos (frete líquido, frete total, média R$/KM, dias trabalhados e participação de terceiros) para leitura mais rápida.',
+                        ],
+                    },
+                ],
+            },
         ],
     },
     {

@@ -50,6 +50,14 @@ interface UnitMetricChartCardProps {
     formatValue: (value: number) => string;
 }
 
+const unitChartToneClasses = [
+    'bg-slate-900/85',
+    'bg-slate-700/85',
+    'bg-slate-500/85',
+    'bg-slate-400/85',
+    'bg-slate-300/95',
+];
+
 function UnitMetricChartCard({
     title,
     rows,
@@ -59,9 +67,13 @@ function UnitMetricChartCard({
         () => Math.max(0, ...rows.map((item) => item.value)),
         [rows],
     );
+    const hasPositiveValues = useMemo(
+        () => rows.some((item) => item.value > 0),
+        [rows],
+    );
 
     return (
-        <Card className="h-full">
+        <Card className="h-full border-border/80">
             <CardHeader className="px-3 pt-2.5 pb-1">
                 <CardTitle className="text-sm leading-tight">{title}</CardTitle>
             </CardHeader>
@@ -70,48 +82,72 @@ function UnitMetricChartCard({
                     <p className="text-xs text-muted-foreground">Sem dados.</p>
                 ) : (
                     <>
-                        <div className="h-36 rounded-md border bg-muted/20 px-2 pt-2 pb-1">
-                            <div className="flex h-full items-end gap-1.5">
-                                {rows.map((item) => {
-                                    const rawHeight =
-                                        maxValue > 0
-                                            ? (item.value / maxValue) * 100
-                                            : 0;
-                                    const height =
-                                        item.value <= 0
-                                            ? 3
-                                            : Math.max(8, rawHeight);
+                        <div className="h-40 rounded-lg border border-border/70 bg-gradient-to-b from-muted/30 to-muted/10 p-2">
+                            {hasPositiveValues ? (
+                                <div
+                                    className="h-full rounded-sm"
+                                    style={{
+                                        backgroundImage:
+                                            'linear-gradient(to top, rgba(100,116,139,0.2) 1px, transparent 1px)',
+                                        backgroundSize: '100% 25%',
+                                    }}
+                                >
+                                    <div className="flex h-full items-end gap-2">
+                                        {rows.map((item, index) => {
+                                            const rawHeight =
+                                                maxValue > 0
+                                                    ? (item.value / maxValue) * 100
+                                                    : 0;
+                                            const height =
+                                                item.value <= 0
+                                                    ? 5
+                                                    : Math.min(100, Math.max(14, rawHeight));
+                                            const toneClass =
+                                                unitChartToneClasses[index % unitChartToneClasses.length];
 
-                                    return (
-                                        <div
-                                            key={`${title}-${item.label}`}
-                                            className="flex min-w-0 flex-1 flex-col items-center gap-1"
-                                        >
-                                            <div
-                                                className="w-full rounded-t-sm bg-primary/85"
-                                                style={{ height: `${height}%` }}
-                                            />
-                                            <p
-                                                className="w-full truncate text-center text-[10px] font-medium text-muted-foreground"
-                                                title={item.label}
-                                            >
-                                                {item.label}
-                                            </p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                            return (
+                                                <div
+                                                    key={`${title}-${item.label}`}
+                                                    className="flex h-full min-w-0 flex-1 flex-col justify-end gap-1"
+                                                >
+                                                    <div className="flex flex-1 items-end">
+                                                        <div
+                                                            className={`w-full rounded-t-md ${toneClass} transition-[height] duration-300`}
+                                                            style={{ height: `${height}%` }}
+                                                        />
+                                                    </div>
+                                                    <p
+                                                        className="w-full truncate text-center text-[10px] font-medium text-muted-foreground"
+                                                        title={item.label}
+                                                    >
+                                                        {item.label}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                    Sem volume no período.
+                                </div>
+                            )}
                         </div>
 
-                        <div className="space-y-1">
-                            {rows.map((item) => (
+                        <div className="space-y-1.5">
+                            {rows.map((item, index) => (
                                 <div
                                     key={`${title}-${item.label}-legend`}
                                     className="flex items-center justify-between gap-2 text-[11px]"
                                 >
-                                    <span className="truncate text-muted-foreground">
-                                        {item.label}
-                                    </span>
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <span
+                                            className={`size-2 rounded-full ${unitChartToneClasses[index % unitChartToneClasses.length]}`}
+                                        />
+                                        <span className="truncate text-muted-foreground">
+                                            {item.label}
+                                        </span>
+                                    </div>
                                     <span className="font-semibold text-foreground">
                                         {formatValue(item.value)}
                                     </span>
@@ -317,6 +353,67 @@ export default function TransportFreightDashboardPage() {
         [data],
     );
 
+    const selectedUnitLabel = useMemo(() => {
+        if (selectedUnitId === 'all') {
+            return 'Todas as unidades';
+        }
+
+        return (
+            units.find((unit) => String(unit.id) === selectedUnitId)?.nome ??
+            'Unidade selecionada'
+        );
+    }, [selectedUnitId, units]);
+
+    const activePeriodLabel = useMemo(() => {
+        if (startDate && endDate) {
+            return `${formatDateBR(startDate)} a ${formatDateBR(endDate)}`;
+        }
+
+        const monthLabel =
+            monthOptions.find((item) => item.value === month)?.label ?? month;
+
+        return `${monthLabel}/${year}`;
+    }, [endDate, month, monthOptions, startDate, year]);
+
+    const dashboardKpiCards = useMemo(() => {
+        if (!data) {
+            return [];
+        }
+
+        return [
+            {
+                key: 'frete-liquido',
+                label: 'Frete líquido total',
+                value: formatCurrencyBR(data.kpis.total_frete_liquido),
+                detail: `${formatIntegerBR(data.kpis.total_lancamentos)} lançamento(s)`,
+            },
+            {
+                key: 'frete-total',
+                label: 'Frete total',
+                value: formatCurrencyBR(data.kpis.total_frete),
+                detail: `${formatIntegerBR(data.kpis.total_aves)} aves transportadas`,
+            },
+            {
+                key: 'media-km',
+                label: 'Média R$/KM',
+                value: formatCurrencyBR(data.kpis.media_reais_por_km),
+                detail: `${formatIntegerBR(data.kpis.total_km)} km rodados`,
+            },
+            {
+                key: 'dias',
+                label: 'Dias trabalhados',
+                value: formatIntegerBR(data.kpis.dias_trabalhados),
+                detail: `${formatCurrencyBR(data.kpis.frete_por_dia_trabalhado)} por dia`,
+            },
+            {
+                key: 'terceiros',
+                label: 'Participação terceiros',
+                value: formatPercentBR(data.kpis.participacao_terceiros),
+                detail: `${formatCurrencyBR(data.kpis.total_frete_terceiros)} em frete 3º`,
+            },
+        ];
+    }, [data]);
+
     return (
         <AdminLayout
             title="Gestão de Fretes - Dashboard"
@@ -329,6 +426,14 @@ export default function TransportFreightDashboardPage() {
                     <p className="text-xs text-muted-foreground">
                         Visão consolidada do período com indicadores por unidade.
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
+                            Período: {activePeriodLabel}
+                        </span>
+                        <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
+                            Unidade: {selectedUnitLabel}
+                        </span>
+                    </div>
                 </div>
 
                 {error ? <Notification message={error} variant="error" /> : null}
@@ -423,8 +528,27 @@ export default function TransportFreightDashboardPage() {
                     </div>
                 ) : data ? (
                     <>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-semibold">Gráficos por unidade</h3>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            {dashboardKpiCards.map((kpi) => (
+                                <Card key={kpi.key} className="transport-kpi-card">
+                                    <CardContent className="px-3 py-3">
+                                        <p className="transport-kpi-title">{kpi.label}</p>
+                                        <p className="mt-1 text-lg font-semibold text-foreground">
+                                            {kpi.value}
+                                        </p>
+                                        <p className="transport-kpi-detail">{kpi.detail}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-sm font-semibold">Gráficos por unidade</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    {formatIntegerBR(unitRows.length)} unidade(s) comparadas
+                                </p>
+                            </div>
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                 {unitMetricDefinitions.map((metric) => (
                                     <UnitMetricChartCard
