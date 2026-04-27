@@ -90,6 +90,25 @@ const updateLogTimeline: UpdateLogDay[] = [
                 panel: 'Plataforma',
                 items: [
                     {
+                        title: 'UX Suite v5.0: varredura global com navegação estável, busca no menu e refinamento dos componentes-base',
+                        details: [
+                            'Sidebar voltou ao padrão sem hover automático de submenu, mantendo expansão explícita por botão para eliminar deslocamento imprevisível durante navegação.',
+                            'Foi adicionado campo de busca no menu lateral (desktop, modo foco e mobile), filtrando painéis e páginas para acesso mais rápido em bases grandes.',
+                            'Componentes globais de interface (botão, input, select e card) receberam ajuste de densidade, contraste e estado de foco/hover para visual mais sóbrio e corporativo.',
+                            'Notificações foram refinadas com hierarquia visual mais limpa, cores de status mais legíveis e ação de fechar com ícone dedicado.',
+                            'CSS compartilhado do transporte foi ajustado para reforçar tipografia, leitura de tabelas e consistência geral de interação entre telas.',
+                        ],
+                    },
+                    {
+                        title: 'Sidebar v4.7: hover reabilitado com expansão híbrida e fechamento suavizado',
+                        details: [
+                            'Abertura de submenu por hover foi reativada para atender o fluxo de uso esperado da operação no desktop.',
+                            'Comportamento híbrido mantém também expansão por clique na seta, permitindo “fixar” o grupo aberto quando necessário.',
+                            'Fechamento por hover recebeu pequeno atraso técnico para reduzir flicker e evitar sensação de quebra durante deslocamento do cursor.',
+                            'Correção aplicada sem alterar a navegação do item pai, que continua abrindo o painel principal ao clique.',
+                        ],
+                    },
+                    {
                         title: 'Sidebar v4.6: expansão estável por botão para eliminar cliques errados durante navegação',
                         details: [
                             'Submenus da navegação principal deixaram de abrir automaticamente por hover e passaram a usar expansão explícita por botão de seta ao lado do item pai.',

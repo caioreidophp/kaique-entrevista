@@ -11,6 +11,11 @@
 - Itens filhos da navegação receberam marcador discreto e melhor alinhamento tipográfico no desktop, modo foco e mobile, reduzindo aparência amadora e melhorando legibilidade.
 - Expansão de submenu evoluiu para padrão estável por botão dedicado (seta), substituindo abertura automática por hover para evitar deslocamento inesperado da lista e cliques acidentais em itens vizinhos.
 - Clique no item pai foi mantido para acesso direto ao painel principal, com expansão/recolhimento das páginas filhas controlado de forma independente e consistente em desktop, modo foco e mobile.
+- Abertura por hover foi reabilitada no desktop em modo híbrido (hover + fixação por clique na seta), preservando fluidez de navegação sem perder controle explícito de expansão.
+- Fechamento por hover recebeu atraso curto para reduzir flicker ao mover o cursor entre item pai e páginas filhas.
+- Varredura de UX aplicada no módulo com foco em padrão corporativo: navegação lateral voltou ao modo sem hover automático e ganhou busca de itens no menu (desktop, modo foco e mobile).
+- Componentes globais (`Button`, `Input`, `Select`, `Card` e `Notification`) foram refinados para maior consistência visual, legibilidade e qualidade percebida.
+- CSS compartilhado do transporte recebeu ajustes de tipografia, densidade e leitura de tabelas/scroll para melhorar compreensão e reduzir aparência amadora em toda a aplicação.
 
 ## [2026-04-09] - Segurança de API, integrações e governança financeira
 

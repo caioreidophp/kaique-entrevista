@@ -196,6 +196,8 @@ const adminLayoutCopy = {
         linkPending: 'Pendências',
         linkSettings: 'Configurações',
         linkLog: 'Log',
+        menuSearchPlaceholder: 'Buscar no menu',
+        menuSearchNoResults: 'Nenhum item encontrado para este termo.',
     },
     'en-US': {
         languageLabel: 'Language',
@@ -264,6 +266,8 @@ const adminLayoutCopy = {
         linkPending: 'Pending items',
         linkSettings: 'Settings',
         linkLog: 'Log',
+        menuSearchPlaceholder: 'Search menu',
+        menuSearchNoResults: 'No navigation items found for this term.',
     },
 } as const;
 
@@ -292,6 +296,7 @@ export function AdminLayout({
     const [globalNotice, setGlobalNotice] = useState<GlobalNotice | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
+    const [menuSearch, setMenuSearch] = useState('');
     const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
         Partial<Record<SidebarLinkKey, boolean>>
     >({});
@@ -1232,6 +1237,38 @@ export function AdminLayout({
         [fixedLinks, hasPermission, sidebarPermissionByLinkKey],
     );
 
+    const filteredVisibleLinks = useMemo(() => {
+        const query = menuSearch.trim().toLocaleLowerCase();
+
+        if (!query) {
+            return visibleLinks;
+        }
+
+        return visibleLinks
+            .map((link) => {
+                const parentMatch = link.label.toLocaleLowerCase().includes(query);
+                const children = link.children ?? [];
+
+                if (parentMatch) {
+                    return link;
+                }
+
+                const matchedChildren = children.filter((child) =>
+                    child.label.toLocaleLowerCase().includes(query),
+                );
+
+                if (matchedChildren.length === 0) {
+                    return null;
+                }
+
+                return {
+                    ...link,
+                    children: matchedChildren,
+                };
+            })
+            .filter((link): link is SidebarLink => link !== null);
+    }, [menuSearch, visibleLinks]);
+
     useEffect(() => {
         if (currentModule !== 'home') {
             setExpandedSidebarGroups({});
@@ -1427,14 +1464,24 @@ export function AdminLayout({
                         </div>
 
                         <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="flex-1 overflow-y-auto">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden">
                                 {!sidebarCollapsed ? (
-                                    <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        {copy.moduleNavigation}
-                                    </p>
+                                    <>
+                                        <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                            {copy.moduleNavigation}
+                                        </p>
+                                        <div className="mb-2">
+                                            <Input
+                                                value={menuSearch}
+                                                onChange={(event) => setMenuSearch(event.target.value)}
+                                                placeholder={copy.menuSearchPlaceholder}
+                                                className="h-8 rounded-md bg-background/90 text-xs"
+                                            />
+                                        </div>
+                                    </>
                                 ) : null}
                                 <nav className="space-y-2">
-                                    {visibleLinks.map((link) => {
+                                    {filteredVisibleLinks.map((link) => {
                                         const Icon = link.icon;
                                         const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
                                         const isExpanded =
@@ -1522,6 +1569,11 @@ export function AdminLayout({
                                         );
                                     })}
                                 </nav>
+                                {!sidebarCollapsed && filteredVisibleLinks.length === 0 ? (
+                                    <p className="px-1 py-2 text-xs text-muted-foreground">
+                                        {copy.menuSearchNoResults}
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div className="mt-4 border-t pt-4">
@@ -1605,12 +1657,20 @@ export function AdminLayout({
                             </div>
 
                             <div className="flex min-h-0 flex-1 flex-col">
-                                <div className="flex-1 overflow-y-auto">
+                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
                                         {copy.moduleNavigation}
                                     </p>
+                                    <div className="mb-2">
+                                        <Input
+                                            value={menuSearch}
+                                            onChange={(event) => setMenuSearch(event.target.value)}
+                                            placeholder={copy.menuSearchPlaceholder}
+                                            className="h-8 rounded-md bg-background/90 text-xs"
+                                        />
+                                    </div>
                                     <nav className="space-y-2">
-                                        {visibleLinks.map((link) => {
+                                        {filteredVisibleLinks.map((link) => {
                                             const Icon = link.icon;
                                             const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
                                             const isExpanded =
@@ -1691,6 +1751,11 @@ export function AdminLayout({
                                             );
                                         })}
                                     </nav>
+                                    {filteredVisibleLinks.length === 0 ? (
+                                        <p className="px-1 py-2 text-xs text-muted-foreground">
+                                            {copy.menuSearchNoResults}
+                                        </p>
+                                    ) : null}
                                 </div>
 
                                 <div className="mt-4 border-t pt-4">
@@ -1776,12 +1841,20 @@ export function AdminLayout({
                                     </p>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto">
+                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
                                     <p className="mb-2 text-[11px] tracking-wide text-muted-foreground uppercase">
                                         {copy.moduleNavigation}
                                     </p>
+                                    <div className="mb-2">
+                                        <Input
+                                            value={menuSearch}
+                                            onChange={(event) => setMenuSearch(event.target.value)}
+                                            placeholder={copy.menuSearchPlaceholder}
+                                            className="h-8 rounded-md bg-background/90 text-xs"
+                                        />
+                                    </div>
                                     <nav className="space-y-2">
-                                        {visibleLinks.map((link) => {
+                                        {filteredVisibleLinks.map((link) => {
                                             const Icon = link.icon;
                                             const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
                                             const isExpanded =
@@ -1866,6 +1939,11 @@ export function AdminLayout({
                                             );
                                         })}
                                     </nav>
+                                    {filteredVisibleLinks.length === 0 ? (
+                                        <p className="py-2 text-xs text-muted-foreground">
+                                            {copy.menuSearchNoResults}
+                                        </p>
+                                    ) : null}
                                 </div>
 
                                 <div className="border-t pt-4">

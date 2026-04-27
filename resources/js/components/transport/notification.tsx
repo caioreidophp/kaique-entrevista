@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type NotificationVariant = 'success' | 'error' | 'info';
@@ -11,9 +11,9 @@ interface NotificationProps {
 }
 
 const variantClasses: Record<NotificationVariant, string> = {
-    success: 'border-primary/30 bg-primary/10 text-foreground',
-    error: 'border-destructive/30 bg-destructive/10 text-foreground',
-    info: 'border-border bg-muted/70 text-foreground',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-950',
+    error: 'border-red-200 bg-red-50 text-red-950',
+    info: 'border-slate-200 bg-slate-50 text-slate-900',
 };
 
 const IconByVariant = {
@@ -54,21 +54,21 @@ export function Notification({
         <div
             role="status"
             aria-live="polite"
-            className={`fixed top-4 right-4 z-[120] max-w-[min(92vw,420px)] rounded-md border px-3 py-2 text-sm shadow-sm backdrop-blur-sm ${variantClasses[variant]}`}
+            className={`fixed top-4 right-4 z-[120] max-w-[min(92vw,440px)] rounded-lg border px-3 py-2 text-sm shadow-md backdrop-blur-sm ${variantClasses[variant]}`}
         >
             <div className="flex items-start gap-2">
                 <Icon className="mt-0.5 size-4 shrink-0" />
-                <span className="whitespace-pre-line">{message}</span>
+                <span className="whitespace-pre-line leading-relaxed">{message}</span>
                 <button
                     type="button"
-                    className="ml-2 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="ml-2 inline-flex size-5 items-center justify-center rounded text-current/70 transition-colors hover:bg-black/5 hover:text-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     onClick={() => {
                         setDismissedKey(notificationKey);
                         onClose?.();
                     }}
                     aria-label="Fechar notificação"
                 >
-                    ×
+                    <X className="size-3.5" />
                 </button>
             </div>
         </div>
