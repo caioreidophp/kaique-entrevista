@@ -122,6 +122,24 @@ interface ExecutiveDashboardState {
     approvals: PayrollApprovalsResponse;
 }
 
+function alertToneClass(level: 'warning' | 'info' | 'critical'): string {
+    if (level === 'critical') return 'border-destructive/60 bg-destructive/5';
+    if (level === 'warning') return 'border-amber-500/40 bg-amber-500/5';
+    return 'border-blue-500/40 bg-blue-500/5';
+}
+
+function alertIconClass(level: 'warning' | 'info' | 'critical'): string {
+    if (level === 'critical') return 'text-destructive';
+    if (level === 'warning') return 'text-amber-600';
+    return 'text-blue-600';
+}
+
+function priorityLabel(priority: PayrollApprovalsResponse['data'][number]['priority']): string {
+    if (priority === 'high') return 'Alta';
+    if (priority === 'medium') return 'Média';
+    return 'Normal';
+}
+
 function InfoMetric({
     title,
     value,
@@ -132,12 +150,12 @@ function InfoMetric({
     detail: string;
 }) {
     return (
-        <Card>
+        <Card className="border-border/80">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-semibold">{value}</p>
+                <p className="text-3xl font-semibold tracking-tight">{value}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
             </CardContent>
         </Card>
@@ -169,7 +187,7 @@ export default function TransportExecutiveDashboardPage() {
                     approvals,
                 });
             })
-            .catch(() => setError('Nao foi possivel carregar o dashboard executivo.'))
+            .catch(() => setError('Não foi possível carregar o dashboard executivo.'))
             .finally(() => setLoading(false));
     }, []);
 
@@ -222,7 +240,7 @@ export default function TransportExecutiveDashboardPage() {
                 <div>
                     <h2 className="text-2xl font-semibold">Dashboard Executivo</h2>
                     <p className="text-sm text-muted-foreground">
-                        Visao consolidada da operacao com pendencias, qualidade de dados e saude do sistema.
+                        Visão consolidada da operação com pendências, qualidade de dados e saúde do sistema.
                     </p>
                 </div>
 
@@ -237,22 +255,22 @@ export default function TransportExecutiveDashboardPage() {
                     <>
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                             <InfoMetric
-                                title="Aprovacao em entrevistas"
+                                title="Aprovação em entrevistas"
                                 value={formatPercentBR(state.executive.interviews.approval_rate)}
                                 detail={`${formatIntegerBR(state.executive.interviews.approved)} aprovados de ${formatIntegerBR(state.executive.interviews.total)} entrevistas`}
                             />
                             <InfoMetric
                                 title="Cobertura da folha"
                                 value={formatPercentBR(state.executive.payroll.coverage_rate)}
-                                detail={`${formatCurrencyBR(state.executive.payroll.total)} em ${formatIntegerBR(state.executive.payroll.launches)} lancamentos`}
+                                detail={`${formatCurrencyBR(state.executive.payroll.total)} em ${formatIntegerBR(state.executive.payroll.launches)} lançamentos`}
                             />
                             <InfoMetric
-                                title="Frete total no mes"
+                                title="Frete total no mês"
                                 value={formatCurrencyBR(state.executive.freight.total)}
                                 detail={`Spot em ${formatPercentBR(state.executive.freight.spot_share)} do total monitorado`}
                             />
                             <InfoMetric
-                                title="Aprovacoes financeiras"
+                                title="Aprovações financeiras"
                                 value={formatIntegerBR(state.approvals.summary.pending)}
                                 detail={`${formatIntegerBR(state.approvals.summary.expires_soon)} vencendo em breve`}
                             />
@@ -261,16 +279,19 @@ export default function TransportExecutiveDashboardPage() {
                         <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Alertas prioritarios</CardTitle>
+                                    <CardTitle>Alertas prioritários</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {mergedAlerts.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">Sem alertas relevantes no momento.</p>
                                     ) : (
                                         mergedAlerts.map((alert, index) => (
-                                            <div key={`${alert.title}-${index}`} className="rounded-md border p-3">
+                                            <div
+                                                key={`${alert.title}-${index}`}
+                                                className={`rounded-md border p-3 ${alertToneClass(alert.level)}`}
+                                            >
                                                 <div className="flex items-start gap-2">
-                                                    <AlertTriangle className="mt-0.5 size-4 text-amber-600" />
+                                                    <AlertTriangle className={`mt-0.5 size-4 ${alertIconClass(alert.level)}`} />
                                                     <div>
                                                         <p className="text-sm font-medium">{alert.title}</p>
                                                         <p className="text-xs text-muted-foreground">{alert.detail}</p>
@@ -284,11 +305,11 @@ export default function TransportExecutiveDashboardPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Saude operacional</CardTitle>
+                                    <CardTitle>Saúde operacional</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
                                     <div className="rounded-md border p-3">
-                                        <p className="text-xs text-muted-foreground">Latencia mais lenta (p95)</p>
+                                        <p className="text-xs text-muted-foreground">Latência mais lenta (p95)</p>
                                         <p className="mt-1 text-xl font-semibold">
                                             {formatIntegerBR(Math.round(state.observability.latency.slowest_p95_ms ?? 0))} ms
                                         </p>
@@ -318,11 +339,11 @@ export default function TransportExecutiveDashboardPage() {
                         <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Pendencias por unidade</CardTitle>
+                                    <CardTitle>Pendências por unidade</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {topPendingUnits.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem pendencias consolidadas por unidade.</p>
+                                        <p className="text-sm text-muted-foreground">Sem pendências consolidadas por unidade.</p>
                                     ) : (
                                         topPendingUnits.map((unit) => (
                                             <div key={unit.unidade_id} className="rounded-md border p-3 text-sm">
@@ -361,7 +382,7 @@ export default function TransportExecutiveDashboardPage() {
                                             <p className="mt-1 text-lg font-semibold">{formatIntegerBR(state.quality.summary.missing_phone)}</p>
                                         </div>
                                         <div className="rounded-md border p-3">
-                                            <p className="text-xs text-muted-foreground">Sem email</p>
+                                            <p className="text-xs text-muted-foreground">Sem e-mail</p>
                                             <p className="mt-1 text-lg font-semibold">{formatIntegerBR(state.quality.summary.missing_email)}</p>
                                         </div>
                                         <div className="rounded-md border p-3">
@@ -390,17 +411,19 @@ export default function TransportExecutiveDashboardPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Aprovacoes pendentes</CardTitle>
+                                    <CardTitle>Aprovações pendentes</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {state.approvals.data.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem aprovacoes pendentes.</p>
+                                        <p className="text-sm text-muted-foreground">Sem aprovações pendentes.</p>
                                     ) : (
                                         state.approvals.data.map((approval) => (
                                             <div key={approval.id} className="rounded-md border p-3 text-sm">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <p className="font-medium">{approval.summary?.unidade_nome ?? 'Sem unidade'}</p>
-                                                    <span className="text-xs text-muted-foreground">{approval.priority}</span>
+                                                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                                        {priorityLabel(approval.priority)}
+                                                    </span>
                                                 </div>
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {approval.requester?.name ?? 'Sem solicitante'} • {formatIntegerBR(approval.summary?.total_colaboradores ?? 0)} colaboradores

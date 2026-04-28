@@ -96,12 +96,12 @@ export default function TransportDashboardPage() {
             : 0;
 
     return (
-        <AdminLayout title="Dashboard" active="dashboard">
+        <AdminLayout title="Entrevistas - Dashboard" active="dashboard">
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Dashboard</h2>
+                    <h2 className="text-2xl font-semibold">Dashboard de Entrevistas</h2>
                     <p className="text-sm text-muted-foreground">
-                        Resumo das entrevistas de motoristas.
+                        Visão executiva do funil de entrevistas e pendências do RH.
                     </p>
                 </div>
 
@@ -169,18 +169,35 @@ export default function TransportDashboardPage() {
                             <CardHeader>
                                 <CardTitle>Eficiência do funil</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid gap-3 md:grid-cols-3">
+                            <CardContent className="space-y-3">
                                 <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Taxa de aprovação</p>
-                                    <p className="mt-1 text-xl font-semibold">{formatPercentBR(approvalRate)}</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-muted-foreground">Taxa de aprovação</p>
+                                        <p className="text-xs font-semibold text-muted-foreground">
+                                            {formatPercentBR(approvalRate)}
+                                        </p>
+                                    </div>
+                                    <div className="mt-2 h-2 rounded-full bg-muted">
+                                        <div
+                                            className="h-full rounded-full bg-emerald-500"
+                                            style={{ width: `${Math.min(100, Math.max(0, approvalRate))}%` }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Pendências totais</p>
-                                    <p className="mt-1 text-xl font-semibold">{summary.pending_actions.total}</p>
-                                </div>
-                                <div className="rounded-md border p-3">
-                                    <p className="text-xs text-muted-foreground">Aguardando vaga</p>
-                                    <p className="mt-1 text-xl font-semibold">{summary.pending_actions.waiting_vacancy}</p>
+
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <div className="rounded-md border p-3">
+                                        <p className="text-xs text-muted-foreground">Pendências totais</p>
+                                        <p className="mt-1 text-xl font-semibold">{summary.pending_actions.total}</p>
+                                    </div>
+                                    <div className="rounded-md border p-3">
+                                        <p className="text-xs text-muted-foreground">Aguardando vaga</p>
+                                        <p className="mt-1 text-xl font-semibold">{summary.pending_actions.waiting_vacancy}</p>
+                                    </div>
+                                    <div className="rounded-md border p-3">
+                                        <p className="text-xs text-muted-foreground">Teste prático</p>
+                                        <p className="mt-1 text-xl font-semibold">{summary.pending_actions.practical_test}</p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -199,7 +216,7 @@ export default function TransportDashboardPage() {
                                 <CardContent>
                                     {summary.recent_interviews.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
-                                            Nenhuma entrevista recente.
+                                            Sem entrevistas recentes.
                                         </p>
                                     ) : (
                                         <div className="space-y-3">
@@ -333,7 +350,7 @@ export default function TransportDashboardPage() {
                                         {summary.recent_activity.length ===
                                         0 ? (
                                             <p className="text-sm text-muted-foreground">
-                                                Sem atividade recente.
+                                                Sem atividades recentes.
                                             </p>
                                         ) : (
                                             <div className="space-y-3">

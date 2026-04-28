@@ -1,4 +1,4 @@
-import { Filter, LoaderCircle, PieChart, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Filter, LoaderCircle, PieChart, TrendingUp } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -509,52 +509,53 @@ export default function TransportFinesDashboardPage() {
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="border-border/80">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Multas - Quantidade</CardTitle>
+                    <Card className="transport-kpi-card">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Multas (quantidade)</CardTitle>
+                            <PieChart className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center gap-3">
-                                <PieChart className="size-5 text-muted-foreground" />
-                                <p className="text-3xl font-semibold">
-                                    {formatIntegerBR(data?.totals.quantidade ?? 0)}
-                                </p>
-                            </div>
+                            <p className="transport-kpi-value">
+                                {formatIntegerBR(data?.totals.quantidade ?? 0)}
+                            </p>
+                            <p className="transport-kpi-detail">Total de registros no período.</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/80">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Multas - Valor</CardTitle>
+                    <Card className="transport-kpi-card">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Multas (valor)</CardTitle>
+                            <TrendingUp className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center gap-3">
-                                <TrendingUp className="size-5 text-muted-foreground" />
-                                <p className="text-3xl font-semibold">
-                                    {formatCurrencyBR(data?.totals.valor ?? 0)}
-                                </p>
-                            </div>
+                            <p className="transport-kpi-value">
+                                {formatCurrencyBR(data?.totals.valor ?? 0)}
+                            </p>
+                            <p className="transport-kpi-detail">Impacto financeiro consolidado.</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/80">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Ticket medio</CardTitle>
+                    <Card className="transport-kpi-card">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Ticket médio</CardTitle>
+                            <PieChart className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-semibold">
+                            <p className="transport-kpi-value">
                                 {formatCurrencyBR(data?.totals.valor_medio ?? 0)}
                             </p>
+                            <p className="transport-kpi-detail">Valor médio por multa.</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/80">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Vencidas em aberto</CardTitle>
+                    <Card className="transport-kpi-card transport-kpi-soft-warning">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Vencidas em aberto</CardTitle>
+                            <AlertTriangle className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="text-3xl font-semibold">
+                            <p className="transport-kpi-value">
                                 {formatIntegerBR(data?.totals.vencidas_em_aberto.quantidade ?? 0)}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                {formatCurrencyBR(data?.totals.vencidas_em_aberto.valor ?? 0)}
+                            <p className="transport-kpi-detail">
+                                {formatCurrencyBR(data?.totals.vencidas_em_aberto.valor ?? 0)} em risco.
                             </p>
                         </CardContent>
                     </Card>
@@ -570,7 +571,7 @@ export default function TransportFinesDashboardPage() {
                         <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr]">
                             <Card className="border-border/80">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Leituras rapidas</CardTitle>
+                                    <CardTitle className="text-base">Leituras rápidas</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {data?.alerts.length ? (
@@ -581,7 +582,7 @@ export default function TransportFinesDashboardPage() {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">Sem alertas criticos no periodo.</p>
+                                        <p className="text-sm text-muted-foreground">Sem alertas críticos no período.</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -605,7 +606,7 @@ export default function TransportFinesDashboardPage() {
 
                             <Card className="border-border/80">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Maior exposicao</CardTitle>
+                                    <CardTitle className="text-base">Maior exposição</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
                                     <div className="rounded-md border p-3">

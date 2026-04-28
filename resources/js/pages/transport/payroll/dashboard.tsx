@@ -258,14 +258,42 @@ export default function TransportPayrollDashboardPage() {
             module="payroll"
         >
             <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">
-                        Dashboard Pagamentos
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Visão geral dos pagamentos da competência atual{' '}
-                        {monthLabel ? `(${monthLabel})` : ''}.
-                    </p>
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h2 className="text-2xl font-semibold">
+                            Dashboard de Pagamentos
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Visão financeira-operacional da competência{' '}
+                            {monthLabel ? `(${monthLabel})` : 'atual'}.
+                        </p>
+                    </div>
+                    <div className="grid w-full gap-2 md:w-auto md:grid-cols-2">
+                        <Select value={competenciaMes} onValueChange={setCompetenciaMes}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {monthOptions.map((item) => (
+                                    <SelectItem key={item.value} value={item.value}>
+                                        {item.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={competenciaAno} onValueChange={setCompetenciaAno}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {yearOptions.map((item) => (
+                                    <SelectItem key={item} value={item}>
+                                        {item}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {error ? (
@@ -279,35 +307,89 @@ export default function TransportPayrollDashboardPage() {
                     </div>
                 ) : data ? (
                     <>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1fr]">
+                            <Card className="transport-kpi-card">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Total a pagar (mês)
+                                    </CardTitle>
+                                    <span className="transport-kpi-icon">
+                                        <Wallet className="size-4" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="transport-kpi-value">
+                                        {formatCurrencyBR(data.total_a_pagar_mes_atual)}
+                                    </p>
+                                    <p className="transport-kpi-detail">
+                                        {formatIntegerBR(data.total_pagamentos_lancados)} lançamentos • {formatIntegerBR(data.colaboradores_pagos_mes)} colaboradores pagos
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="transport-kpi-card">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Valor médio por colaborador pago
+                                    </CardTitle>
+                                    <span className="transport-kpi-icon">
+                                        <Wallet className="size-4" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="transport-kpi-value">
+                                        {formatCurrencyBR(averageByPaidCollaborator)}
+                                    </p>
+                                    <p className="transport-kpi-detail">
+                                        Média do mês por colaborador com pagamento.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="transport-kpi-card">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Cobertura da folha
+                                    </CardTitle>
+                                    <span className="transport-kpi-icon">
+                                        <Wallet className="size-4" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="transport-kpi-value">
+                                        {formatPercentBR(data.coverage_rate)}
+                                    </p>
+                                    <p className="transport-kpi-detail">
+                                        {formatIntegerBR(data.colaboradores_pagos_mes)} pagos de {formatIntegerBR(data.colaboradores_ativos)} ativos.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="transport-kpi-card">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Unidade com maior volume
+                                    </CardTitle>
+                                    <span className="transport-kpi-icon">
+                                        <AlertTriangle className="size-4" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-lg font-semibold">
+                                        {topUnit?.unidade_nome ?? '-'}
+                                    </p>
+                                    <p className="transport-kpi-detail">
+                                        {topUnit
+                                            ? `${formatCurrencyBR(topUnit.total_valor)} • ${formatPercentBR(concentrationTopUnit)} do total do mês`
+                                            : 'Sem dados no período.'}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         <Card>
-                            <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <CardHeader className="flex flex-col gap-1">
                                 <CardTitle>Distribuição por tipo de pagamento</CardTitle>
-                                <div className="grid w-full gap-2 md:w-auto md:grid-cols-2">
-                                    <Select value={competenciaMes} onValueChange={setCompetenciaMes}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {monthOptions.map((item) => (
-                                                <SelectItem key={item.value} value={item.value}>
-                                                    {item.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={competenciaAno} onValueChange={setCompetenciaAno}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {yearOptions.map((item) => (
-                                                <SelectItem key={item} value={item}>
-                                                    {item}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Participação de cada tipo no total do mês.
+                                </p>
                             </CardHeader>
                             <CardContent className="grid gap-4 lg:grid-cols-[340px_1fr]">
                                 {donutData.length === 0 ? (
@@ -374,79 +456,6 @@ export default function TransportPayrollDashboardPage() {
                             </CardContent>
                         </Card>
 
-                        <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-1">
-                            <Card className="transport-kpi-card">
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                    <CardTitle className="text-sm text-muted-foreground">
-                                        Total a pagar (mês)
-                                    </CardTitle>
-                                    <span className="transport-kpi-icon">
-                                        <Wallet className="size-4" />
-                                    </span>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="transport-kpi-value">
-                                        {formatCurrencyBR(
-                                            data.total_a_pagar_mes_atual,
-                                        )}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <Card className="transport-kpi-card">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-sm text-muted-foreground">
-                                        Valor médio por colaborador pago
-                                    </CardTitle>
-                                    <span className="transport-kpi-icon">
-                                        <Wallet className="size-4" />
-                                    </span>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="transport-kpi-value">{formatCurrencyBR(averageByPaidCollaborator)}</p>
-                                    <p className="transport-kpi-detail">
-                                        Total dos pagamentos no mês dividido pela quantidade de colaboradores que receberam pagamento.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="transport-kpi-card">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-sm text-muted-foreground">
-                                        Cobertura da folha
-                                    </CardTitle>
-                                    <span className="transport-kpi-icon">
-                                        <Wallet className="size-4" />
-                                    </span>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="transport-kpi-value">{formatPercentBR(data.coverage_rate)}</p>
-                                    <p className="transport-kpi-detail">
-                                        {formatIntegerBR(data.colaboradores_pagos_mes)} pagos de {formatIntegerBR(data.colaboradores_ativos)} ativos.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="transport-kpi-card">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-sm text-muted-foreground">
-                                        Unidade com maior volume
-                                    </CardTitle>
-                                    <span className="transport-kpi-icon">
-                                        <AlertTriangle className="size-4" />
-                                    </span>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-lg font-semibold">{topUnit?.unidade_nome ?? '-'}</p>
-                                    <p className="transport-kpi-detail">
-                                        {topUnit
-                                            ? `${formatCurrencyBR(topUnit.total_valor)} • ${formatPercentBR(concentrationTopUnit)} do total do mês`
-                                            : 'Sem dados no período.'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
                         <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
                             <Card>
                                 <CardHeader>
@@ -455,7 +464,7 @@ export default function TransportPayrollDashboardPage() {
                                 <CardContent className="space-y-3">
                                     {data.alerts.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
-                                            Sem alertas relevantes para a competencia.
+                                            Sem alertas relevantes para a competência.
                                         </p>
                                     ) : (
                                         data.alerts.map((alert, index) => (
@@ -472,7 +481,7 @@ export default function TransportPayrollDashboardPage() {
                                             <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.total_pagamentos_a_fazer)}</p>
                                         </div>
                                         <div className="rounded-md border p-3">
-                                            <p className="text-xs text-muted-foreground">Aprovacoes pendentes</p>
+                                            <p className="text-xs text-muted-foreground">Aprovações pendentes</p>
                                             <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.pending_financial_approvals)}</p>
                                         </div>
                                         <div className="rounded-md border p-3">
@@ -485,17 +494,17 @@ export default function TransportPayrollDashboardPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Evolucao mensal</CardTitle>
+                                    <CardTitle>Evolução mensal</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.evolucao_mensal.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem historico recente.</p>
+                                        <p className="text-sm text-muted-foreground">Sem histórico recente.</p>
                                     ) : (
                                         data.evolucao_mensal.map((item) => (
                                             <div key={item.competencia_label} className="flex items-center justify-between rounded-md border p-3 text-sm">
                                                 <div>
                                                     <p className="font-medium">{item.competencia_label}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatIntegerBR(item.total_lancamentos)} lancamentos</p>
+                                                    <p className="text-xs text-muted-foreground">{formatIntegerBR(item.total_lancamentos)} lançamentos</p>
                                                 </div>
                                                 <p className="font-semibold">{formatCurrencyBR(item.total_valor)}</p>
                                             </div>
@@ -583,12 +592,12 @@ export default function TransportPayrollDashboardPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Aprovacoes recentes</CardTitle>
+                                    <CardTitle>Aprovações recentes</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.recent_financial_approvals.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
-                                            Sem aprovacoes recentes.
+                                            Sem aprovações recentes.
                                         </p>
                                     ) : (
                                         data.recent_financial_approvals.map((item) => (

@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-04-28] - Redesign estratégico dos dashboards
+
+### Plataforma
+
+- Dashboard Executivo recebeu hierarquia mais forte de KPIs, alertas por severidade e microcopy revisada.
+
+### Entrevistas
+
+- Dashboard de Entrevistas ganhou KPIs destacados, barra de aprovação e pendências mais claras.
+- Listas de entrevistas e atividades foram refinadas para escaneabilidade rápida.
+
+### Gestão de Pagamentos
+
+- KPIs principais foram reposicionados no topo com leitura financeira imediata.
+- Distribuição por tipo passou a ter contexto e textos padronizados com acentuação correta.
+
+### Gestão de Férias
+
+- KPIs de vencimento refinados, legenda de timeline e prioridades com D-XX e badges semânticas.
+- Risco por unidade ganhou barra de intensidade para comparação direta.
+
+### Gestão de Multas
+
+- KPIs executivos com contexto e vencidas em aberto em destaque.
+- Leituras rápidas e textos revisados para consistência de linguagem.
+
+### Programação
+
+- Indicadores do dia receberam hierarquia visual e microcopy refinada.
+
 ## [2026-04-27] - Ajuste de navegação da sidebar
 
 ### Plataforma

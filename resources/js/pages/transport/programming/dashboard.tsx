@@ -1565,7 +1565,7 @@ export default function TransportProgrammingDashboardPage() {
                 <div>
                     <h2 className="text-2xl font-semibold">Programação de Viagens</h2>
                     <p className="text-sm text-muted-foreground">
-                        Tela operacional estilo planilha com autosave e navegação por teclado.
+                        Visão operacional em modo planilha com autosave e navegação por teclado.
                     </p>
                 </div>
 
@@ -1580,7 +1580,7 @@ export default function TransportProgrammingDashboardPage() {
 
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Filtros e Importação de Base XLSX</CardTitle>
+                        <CardTitle className="text-sm">Filtros e importação da base (XLSX)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <div className="grid gap-3 lg:grid-cols-3">
@@ -1680,15 +1680,20 @@ export default function TransportProgrammingDashboardPage() {
                 </Card>
 
                 {summaryCards.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-                        {summaryCards.map((item) => (
-                            <Card key={item.label}>
-                                <CardContent className="space-y-0.5 py-3">
-                                    <p className="text-[11px] text-muted-foreground">{item.label}</p>
-                                    <p className="text-xl font-semibold leading-tight">{item.value}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Indicadores do dia
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                            {summaryCards.map((item) => (
+                                <Card key={item.label} className="border-border/80">
+                                    <CardContent className="space-y-0.5 py-3">
+                                        <p className="text-[11px] text-muted-foreground">{item.label}</p>
+                                        <p className="text-xl font-semibold leading-tight">{item.value}</p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                 ) : null}
 
@@ -1714,7 +1719,7 @@ export default function TransportProgrammingDashboardPage() {
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {(data.driver_overload ?? []).length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Sem revisoes pendentes por jornada.</p>
+                                    <p className="text-sm text-muted-foreground">Sem revisões pendentes por jornada.</p>
                                 ) : (
                                     (data.driver_overload ?? []).map((driver) => (
                                         <div key={driver.id} className="rounded-md border p-3 text-sm">

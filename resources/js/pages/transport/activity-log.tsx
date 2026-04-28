@@ -84,6 +84,91 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Terça-Feira, 28/04/2026',
+        sections: [
+            {
+                panel: 'Entrevistas',
+                items: [
+                    {
+                        title: 'Dashboard de Entrevistas v4.2: hierarquia de KPIs e funil mais executivo',
+                        details: [
+                            'Topo do dashboard passou a destacar métricas principais do funil com leitura mais imediata e contexto por status.',
+                            'Eficiência do funil ganhou barra de progresso para taxa de aprovação e cartões de pendências mais claros.',
+                            'Listas de entrevistas recentes e atividades foram refinadas para escaneabilidade rápida e priorização visual.',
+                            'Microcopy revisado para padronização de termos e clareza do fluxo operacional.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Gestão de Pagamentos',
+                items: [
+                    {
+                        title: 'Dashboard de Pagamentos v4.6: visão financeira-operacional com KPIs no topo',
+                        details: [
+                            'KPIs principais (total do mês, valor médio, cobertura e unidade líder) foram reposicionados no topo para leitura imediata.',
+                            'Distribuição por tipo recebeu contexto e legenda mais limpa para comparação rápida.',
+                            'Leituras operacionais e evolução mensal foram ajustadas com textos revisados e acentuação correta.',
+                            'Blocos de totais, pagamentos recentes e aprovações ganharam microcopy padronizado.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Gestão de Férias',
+                items: [
+                    {
+                        title: 'Dashboard de Férias v4.3: prioridades e risco por unidade com leitura gerencial',
+                        details: [
+                            'KPIs de vencimento mantidos no topo com ajustes de rótulos e acentuação.',
+                            'Timeline ganhou legenda visual de status e melhor orientação de leitura.',
+                            'Prioridades de vencimento agora exibem D-XX e badges semânticas por criticidade.',
+                            'Risco por unidade recebeu barra de intensidade para comparação direta.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Gestão de Multas',
+                items: [
+                    {
+                        title: 'Dashboard de Multas v4.1: KPIs executivos e textos padronizados',
+                        details: [
+                            'Cards principais ganharam tipografia de KPI com destaque e contexto por indicador.',
+                            'Alertas rápidos, exposição e status financeiro foram padronizados em português correto.',
+                            'Estado de vencidas em aberto recebeu foco visual para facilitar priorização.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Programação',
+                items: [
+                    {
+                        title: 'Dashboard de Programação v3.7: hierarquia de indicadores do dia',
+                        details: [
+                            'Indicadores do dia passaram a ter rótulo de seção e cards com leitura mais limpa.',
+                            'Textos operacionais foram revisados para consistência de linguagem.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Plataforma',
+                items: [
+                    {
+                        title: 'Dashboard Executivo v2.2: KPIs maiores e alertas com prioridade',
+                        details: [
+                            'Cards principais receberam tipografia mais forte para leitura imediata.',
+                            'Alertas prioritários ganharam cores por severidade e prioridade de aprovação.',
+                            'Textos revisados com acentuação correta para manter padrão corporativo.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Segunda-Feira, 27/04/2026',
         sections: [
             {

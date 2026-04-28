@@ -157,9 +157,16 @@ function tipoLabel(tipo: 'confirmado' | 'previsao' | 'passada'): string {
 function priorityStatusLabel(status: string): string {
     if (status === 'vencida') return 'Vencida';
     if (status === 'urgente') return 'Urgente';
-    if (status === 'atencao') return 'Atencao';
+    if (status === 'atencao') return 'Atenção';
     if (status === 'liberada') return 'Liberada';
     return 'A vencer';
+}
+
+function priorityBadgeClass(status: string): string {
+    if (status === 'vencida' || status === 'urgente') return 'transport-status-danger';
+    if (status === 'atencao') return 'transport-status-warning';
+    if (status === 'liberada') return 'transport-status-success';
+    return 'transport-status-info';
 }
 
 function parseIsoDate(date: string): Date {
@@ -572,7 +579,7 @@ export default function VacationsDashboardPage() {
 
                             <Card className="transport-kpi-card transport-kpi-soft-info">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Faixa: À Vencer</CardTitle>
+                                    <CardTitle className="text-xs text-muted-foreground">Faixa: A vencer</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <CalendarDays className="size-4" />
                                     </span>
@@ -636,6 +643,20 @@ export default function VacationsDashboardPage() {
                                 <CardHeader>
                                     <CardTitle>Linha do tempo (vigentes e agendadas)</CardTitle>
                                     <p className="text-xs text-muted-foreground">Duplo clique em uma barra para editar o lançamento.</p>
+                                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            <span className="size-2 rounded-full bg-emerald-500" />
+                                            Vigentes
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <span className="size-2 rounded-full bg-blue-600" />
+                                            Agendadas
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <span className="size-2 rounded-full bg-amber-600" />
+                                            Passadas
+                                        </span>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     {timelineGraph ? (
@@ -710,7 +731,7 @@ export default function VacationsDashboardPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Abono x Sem Abono</CardTitle>
+                                    <CardTitle>Abono x sem abono</CardTitle>
                                     <p className="text-xs text-muted-foreground">
                                         Total lançado: {formatIntegerBR(data?.total_lancamentos_abono ?? 0)} férias
                                     </p>
@@ -785,20 +806,25 @@ export default function VacationsDashboardPage() {
                                             <div key={item.colaborador_id} className="rounded-md border p-3 text-sm">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <p className="font-medium">{item.nome}</p>
-                                                    <span className="transport-status-badge transport-status-warning">
-                                                        {priorityStatusLabel(item.status)}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                                            D-{formatIntegerBR(item.dias_para_limite)}
+                                                        </span>
+                                                        <span className={`transport-status-badge ${priorityBadgeClass(item.status)}`}>
+                                                            {priorityStatusLabel(item.status)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <p className="text-muted-foreground">
-                                                    {item.funcao ?? '-'} â€¢ {item.unidade ?? '-'}
+                                                    {item.funcao ?? '-'} • {item.unidade ?? '-'}
                                                 </p>
                                                 <p className="text-muted-foreground">
-                                                    Limite {formatDate(item.limite)} â€¢ {formatIntegerBR(item.dias_para_limite)} dia(s)
+                                                    Limite {formatDate(item.limite)} • {formatIntegerBR(item.dias_para_limite)} dia(s)
                                                 </p>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">Sem prioridades criticas no momento.</p>
+                                        <p className="text-sm text-muted-foreground">Sem prioridades críticas no momento.</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -815,6 +841,12 @@ export default function VacationsDashboardPage() {
                                                     <p className="font-medium">{item.unidade_nome}</p>
                                                     <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
                                                 </div>
+                                                <div className="mt-2 h-1.5 rounded-full bg-muted">
+                                                    <div
+                                                        className="h-full rounded-full bg-amber-500"
+                                                        style={{ width: `${Math.min(100, Math.max(0, item.risk_rate))}%` }}
+                                                    />
+                                                </div>
                                                 <div className="mt-2 grid gap-2 sm:grid-cols-4">
                                                     <div>
                                                         <p className="text-[11px] text-muted-foreground">Vencidas</p>
@@ -825,7 +857,7 @@ export default function VacationsDashboardPage() {
                                                         <p className="font-semibold">{formatIntegerBR(item.urgentes)}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[11px] text-muted-foreground">Atencao</p>
+                                                        <p className="text-[11px] text-muted-foreground">Atenção</p>
                                                         <p className="font-semibold">{formatIntegerBR(item.atencao)}</p>
                                                     </div>
                                                     <div>
@@ -836,7 +868,7 @@ export default function VacationsDashboardPage() {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">Sem consolidado por unidade.</p>
+                                        <p className="text-sm text-muted-foreground">Sem consolidado por unidade no período.</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -957,7 +989,7 @@ export default function VacationsDashboardPage() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-muted-foreground">Nenhuma férias vigente no momento.</p>
+                                        <p className="text-sm text-muted-foreground">Não há férias vigentes no momento.</p>
                                     )}
                                 </CardContent>
                             </Card>
