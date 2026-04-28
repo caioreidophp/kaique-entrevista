@@ -162,12 +162,115 @@
         @apply border border-border/80 bg-card;
     }
 
+    .transport-page .transport-dashboard-page {
+        @apply space-y-6;
+    }
+
+    .transport-page .transport-dashboard-header {
+        @apply flex flex-col gap-2 border-b border-border/70 pb-4;
+    }
+
+    .transport-page .transport-dashboard-eyebrow {
+        @apply text-[11px] font-semibold uppercase text-muted-foreground;
+        letter-spacing: 0;
+    }
+
+    .transport-page .transport-dashboard-title {
+        @apply text-2xl font-semibold text-foreground;
+    }
+
+    .transport-page .transport-dashboard-subtitle {
+        @apply max-w-3xl text-sm leading-6 text-muted-foreground;
+    }
+
+    .transport-page .transport-dashboard-grid-primary {
+        @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .transport-page .transport-dashboard-grid-secondary {
+        @apply grid gap-4 xl:grid-cols-[1.35fr_1fr];
+    }
+
+    .transport-page .transport-dashboard-section-title {
+        @apply text-base font-semibold text-foreground;
+    }
+
+    .transport-page .transport-dashboard-section-subtitle {
+        @apply mt-1 text-xs leading-5 text-muted-foreground;
+    }
+
+    .transport-page .transport-metric-card {
+        @apply relative overflow-hidden border border-border/80 bg-card shadow-sm;
+    }
+
+    .transport-page .transport-metric-card::before {
+        content: '';
+        @apply absolute inset-x-0 top-0 h-1 bg-slate-900;
+    }
+
+    .transport-page .transport-metric-card.transport-tone-success::before {
+        @apply bg-emerald-500;
+    }
+
+    .transport-page .transport-metric-card.transport-tone-warning::before {
+        @apply bg-amber-500;
+    }
+
+    .transport-page .transport-metric-card.transport-tone-danger::before {
+        @apply bg-red-500;
+    }
+
+    .transport-page .transport-metric-card.transport-tone-info::before {
+        @apply bg-sky-500;
+    }
+
+    .transport-page .transport-metric-card [data-slot='card-header'] {
+        @apply pb-2;
+    }
+
+    .transport-page .transport-metric-label {
+        @apply text-[11px] font-semibold uppercase text-muted-foreground;
+        letter-spacing: 0;
+    }
+
+    .transport-page .transport-metric-value {
+        @apply text-3xl font-semibold leading-none text-foreground;
+    }
+
+    .transport-page .transport-metric-context {
+        @apply mt-2 text-xs leading-5 text-muted-foreground;
+    }
+
+    .transport-page .transport-insight-card {
+        @apply border border-border/80 bg-card shadow-sm;
+    }
+
+    .transport-page .transport-insight-row {
+        @apply rounded-md border border-border/80 bg-muted/10 p-3 text-sm;
+    }
+
+    .transport-page .transport-progress-track {
+        @apply h-2 overflow-hidden rounded-full bg-muted;
+    }
+
+    .transport-page .transport-progress-fill {
+        @apply h-full rounded-full bg-sky-600;
+    }
+
+    .transport-page .transport-compare-row {
+        @apply rounded-md border border-border/80 bg-card px-3 py-2 text-sm;
+    }
+
+    .transport-page .transport-list-panel {
+        @apply rounded-md border border-border/80 bg-muted/10 p-3 text-sm;
+    }
+
     .transport-page .transport-kpi-icon {
         @apply rounded-md border border-border/70 bg-muted/45 p-1.5 text-foreground/70;
     }
 
     .transport-page .transport-kpi-title {
-        @apply text-xs font-medium tracking-wide text-muted-foreground;
+        @apply text-xs font-medium tracking-normal text-muted-foreground;
     }
 
     .transport-page .transport-kpi-value {
@@ -223,7 +326,7 @@
     }
 
     .transport-page table thead th {
-        @apply text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/80;
+        @apply text-[10px] font-semibold uppercase tracking-normal text-foreground/80;
     }
 
     .transport-page table tbody tr {

@@ -526,11 +526,12 @@ export default function VacationsDashboardPage() {
             active="vacations-dashboard"
             module="vacations"
         >
-            <div className="space-y-6">
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <h2 className="text-2xl font-semibold">Controle de Férias - Dashboard</h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="transport-dashboard-eyebrow">Gestão de férias</p>
+                        <h2 className="transport-dashboard-title">Controle de Férias - Dashboard</h2>
+                        <p className="transport-dashboard-subtitle">
                             Visão de vencimentos, timeline de férias e relatórios por período.
                         </p>
                     </div>
@@ -565,84 +566,84 @@ export default function VacationsDashboardPage() {
                 ) : (
                     <>
                         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                            <Card className="transport-kpi-card transport-kpi-soft-danger">
+                            <Card className="transport-metric-card transport-tone-danger">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Férias vencidas</CardTitle>
+                                    <CardTitle className="transport-metric-label">Férias vencidas</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <AlertTriangle className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatIntegerBR(data?.ferias_vencidas ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatIntegerBR(data?.ferias_vencidas ?? 0)}</p>
                                 </CardContent>
                             </Card>
 
-                            <Card className="transport-kpi-card transport-kpi-soft-info">
+                            <Card className="transport-metric-card transport-tone-info">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Faixa: A vencer</CardTitle>
+                                    <CardTitle className="transport-metric-label">A vencer</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <CalendarDays className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatIntegerBR(data?.faixa_a_vencer ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatIntegerBR(data?.faixa_a_vencer ?? 0)}</p>
                                 </CardContent>
                             </Card>
 
-                            <Card className="transport-kpi-card transport-kpi-soft-success">
+                            <Card className="transport-metric-card transport-tone-success">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Faixa: Liberada</CardTitle>
+                                    <CardTitle className="transport-metric-label">Liberadas</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <CheckCircle2 className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatIntegerBR(data?.faixa_liberada ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatIntegerBR(data?.faixa_liberada ?? 0)}</p>
                                 </CardContent>
                             </Card>
 
-                            <Card className="transport-kpi-card transport-kpi-soft-warning">
+                            <Card className="transport-metric-card transport-tone-warning">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Faixa: Atenção</CardTitle>
+                                    <CardTitle className="transport-metric-label">Atenção</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <AlertTriangle className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatIntegerBR(data?.faixa_atencao ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatIntegerBR(data?.faixa_atencao ?? 0)}</p>
                                 </CardContent>
                             </Card>
 
-                            <Card className="transport-kpi-card transport-kpi-soft-warning">
+                            <Card className="transport-metric-card transport-tone-warning">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Faixa: Urgente</CardTitle>
+                                    <CardTitle className="transport-metric-label">Urgentes</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <Clock3 className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatIntegerBR(data?.faixa_urgente ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatIntegerBR(data?.faixa_urgente ?? 0)}</p>
                                 </CardContent>
                             </Card>
 
-                            <Card className="transport-kpi-card transport-kpi-soft-success">
+                            <Card className="transport-metric-card transport-tone-success">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle className="text-xs text-muted-foreground">Taxa de liberadas</CardTitle>
+                                    <CardTitle className="transport-metric-label">Taxa de liberadas</CardTitle>
                                     <span className="transport-kpi-icon">
                                         <CheckCircle2 className="size-4" />
                                     </span>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="transport-kpi-value">{formatPercentBR(data?.taxa_liberadas_sobre_ativos ?? 0)}</p>
+                                    <p className="transport-metric-value">{formatPercentBR(data?.taxa_liberadas_sobre_ativos ?? 0)}</p>
                                 </CardContent>
                             </Card>
                         </div>
 
                         <div className="grid gap-4 xl:grid-cols-[2.3fr_1fr]">
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle>Linha do tempo (vigentes e agendadas)</CardTitle>
-                                    <p className="text-xs text-muted-foreground">Duplo clique em uma barra para editar o lançamento.</p>
+                                    <CardTitle className="transport-dashboard-section-title">Linha do tempo</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">Vigentes, agendadas e passadas com edição por duplo clique.</p>
                                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                                         <span className="flex items-center gap-1">
                                             <span className="size-2 rounded-full bg-emerald-500" />
@@ -729,10 +730,10 @@ export default function VacationsDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle>Abono x sem abono</CardTitle>
-                                    <p className="text-xs text-muted-foreground">
+                                    <CardTitle className="transport-dashboard-section-title">Abono x sem abono</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
                                         Total lançado: {formatIntegerBR(data?.total_lancamentos_abono ?? 0)} férias
                                     </p>
                                 </CardHeader>
@@ -775,7 +776,7 @@ export default function VacationsDashboardPage() {
                                                 {abonoDonutData.map((slice, index) => (
                                                     <div
                                                         key={`abono-legend-${slice.label}`}
-                                                        className="flex items-center justify-between rounded-md border px-3 py-2"
+                                                        className="transport-insight-row"
                                                         onMouseEnter={() => setHoveredAbonoSlice(index)}
                                                         onMouseLeave={() => setHoveredAbonoSlice(null)}
                                                     >
@@ -796,14 +797,14 @@ export default function VacationsDashboardPage() {
                         </div>
 
                         <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle>Prioridades de vencimento</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Prioridades de vencimento</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data?.top_prioridades.length ? (
                                         data.top_prioridades.map((item) => (
-                                            <div key={item.colaborador_id} className="rounded-md border p-3 text-sm">
+                                            <div key={item.colaborador_id} className="transport-list-panel">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <p className="font-medium">{item.nome}</p>
                                                     <div className="flex items-center gap-2">
@@ -829,21 +830,21 @@ export default function VacationsDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle>Risco por unidade</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Risco por unidade</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data?.riscos_por_unidade.length ? (
                                         data.riscos_por_unidade.slice(0, 6).map((item) => (
-                                            <div key={item.unidade_id} className="rounded-md border p-3 text-sm">
+                                            <div key={item.unidade_id} className="transport-list-panel">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <p className="font-medium">{item.unidade_nome}</p>
                                                     <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
                                                 </div>
-                                                <div className="mt-2 h-1.5 rounded-full bg-muted">
+                                                <div className="transport-progress-track mt-2">
                                                     <div
-                                                        className="h-full rounded-full bg-amber-500"
+                                                        className="transport-progress-fill bg-amber-500"
                                                         style={{ width: `${Math.min(100, Math.max(0, item.risk_rate))}%` }}
                                                     />
                                                 </div>
@@ -875,9 +876,9 @@ export default function VacationsDashboardPage() {
                         </div>
 
                         <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle>Relatórios por período</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Relatórios por período</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
@@ -895,26 +896,26 @@ export default function VacationsDashboardPage() {
                                     </div>
 
                                     <div className="grid gap-3 md:grid-cols-3">
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="text-xs text-muted-foreground">Férias gozadas</p>
                                             <p className="text-xl font-semibold">{formatIntegerBR(reports?.ferias_gozadas.total ?? 0)}</p>
                                         </div>
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="text-xs text-muted-foreground">Admissões</p>
                                             <p className="text-xl font-semibold">{formatIntegerBR(reports?.admissoes.total ?? 0)}</p>
                                         </div>
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="text-xs text-muted-foreground">Demissões</p>
                                             <p className="text-xl font-semibold">{formatIntegerBR(reports?.demissoes.total ?? 0)}</p>
                                         </div>
                                     </div>
 
                                     <div className="grid gap-3 lg:grid-cols-3">
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="mb-2 text-xs font-medium text-muted-foreground">Férias gozadas</p>
                                             <div className="max-h-[320px] space-y-2 overflow-auto pr-1 text-xs">
                                                 {(reports?.ferias_gozadas.rows ?? []).map((row) => (
-                                                    <div key={row.id} className="rounded border px-2 py-1.5">
+                                                    <div key={row.id} className="rounded border bg-card px-2 py-1.5">
                                                         <p className="font-medium">{row.nome ?? '-'}</p>
                                                         <p className="text-muted-foreground">
                                                             {row.unidade ?? '-'} • {formatDate(row.data_inicio)} até {formatDate(row.data_fim)}
@@ -927,11 +928,11 @@ export default function VacationsDashboardPage() {
                                             </div>
                                         </div>
 
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="mb-2 text-xs font-medium text-muted-foreground">Admissões</p>
                                             <div className="max-h-[320px] space-y-2 overflow-auto pr-1 text-xs">
                                                 {(reports?.admissoes.rows ?? []).map((row) => (
-                                                    <div key={row.id} className="rounded border px-2 py-1.5">
+                                                    <div key={row.id} className="rounded border bg-card px-2 py-1.5">
                                                         <p className="font-medium">{row.nome ?? '-'}</p>
                                                         <p className="text-muted-foreground">
                                                             {row.unidade ?? '-'} • {formatDate(row.data_admissao)}
@@ -944,11 +945,11 @@ export default function VacationsDashboardPage() {
                                             </div>
                                         </div>
 
-                                        <div className="rounded-md border p-3">
+                                        <div className="transport-list-panel">
                                             <p className="mb-2 text-xs font-medium text-muted-foreground">Demissões</p>
                                             <div className="max-h-[320px] space-y-2 overflow-auto pr-1 text-xs">
                                                 {(reports?.demissoes.rows ?? []).map((row) => (
-                                                    <div key={row.id} className="rounded border px-2 py-1.5">
+                                                    <div key={row.id} className="rounded border bg-card px-2 py-1.5">
                                                         <p className="font-medium">{row.nome ?? '-'}</p>
                                                         <p className="text-muted-foreground">
                                                             {row.unidade ?? '-'} • {formatDate(row.data_demissao)}
@@ -964,15 +965,15 @@ export default function VacationsDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Férias vigentes ({data?.ferias_vigentes.length ?? 0})</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Férias vigentes ({data?.ferias_vigentes.length ?? 0})</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {data?.ferias_vigentes.length ? (
                                         <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                                             {data.ferias_vigentes.map((item) => (
-                                                <div key={item.id} className="rounded-md border p-3 text-sm">
+                                                <div key={item.id} className="transport-list-panel">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <p className="font-medium">{item.nome ?? '-'}</p>
                                                         <span className="transport-status-badge transport-status-success">

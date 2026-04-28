@@ -166,9 +166,9 @@ const PieSummaryCard = memo(function PieSummaryCard({
     );
 
     return (
-        <Card className="h-full border-border/80">
+        <Card className="transport-insight-card h-full">
             <CardHeader>
-                <CardTitle className="text-base">{title}</CardTitle>
+                <CardTitle className="transport-dashboard-section-title">{title}</CardTitle>
             </CardHeader>
             <CardContent>
                 {rows.length === 0 || total <= 0 ? (
@@ -227,9 +227,9 @@ const ColumnComparisonCard = memo(function ColumnComparisonCard({
     const maxValue = Math.max(0, ...compactRows.map((row) => row.valor_total));
 
     return (
-        <Card className="h-full border-border/80">
+        <Card className="transport-insight-card h-full">
             <CardHeader>
-                <CardTitle className="text-base">{title}</CardTitle>
+                <CardTitle className="transport-dashboard-section-title">{title}</CardTitle>
             </CardHeader>
             <CardContent>
                 {compactRows.length === 0 ? (
@@ -325,7 +325,7 @@ const LazyChartSlot = memo(function LazyChartSlot({
             {isVisible ? (
                 children
             ) : (
-                <Card className="h-full border-border/80">
+                <Card className="transport-insight-card h-full">
                     <CardContent className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">
                         Carregando gráfico...
                     </CardContent>
@@ -436,19 +436,20 @@ export default function TransportFinesDashboardPage() {
 
     return (
         <AdminLayout title="Gestão de Multas - Dashboard" active="fines-dashboard" module="fines">
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Dashboard de Multas</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Gestão de multas</p>
+                    <h2 className="transport-dashboard-title">Dashboard de Multas</h2>
+                    <p className="transport-dashboard-subtitle">
                         Acompanhe quantidade e valor de multas por infração, culpa, status, placa e motorista.
                     </p>
                 </div>
 
                 {error ? <Notification message={error} variant="error" /> : null}
 
-                <Card className="border-border/80">
+                <Card className="transport-insight-card">
                     <CardHeader className="pb-4">
-                        <CardTitle className="text-base">Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -509,52 +510,52 @@ export default function TransportFinesDashboardPage() {
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="transport-kpi-card">
+                    <Card className="transport-metric-card transport-tone-info">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">Multas (quantidade)</CardTitle>
+                            <CardTitle className="transport-metric-label">Multas (quantidade)</CardTitle>
                             <PieChart className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="transport-kpi-value">
+                            <p className="transport-metric-value">
                                 {formatIntegerBR(data?.totals.quantidade ?? 0)}
                             </p>
-                            <p className="transport-kpi-detail">Total de registros no período.</p>
+                            <p className="transport-metric-context">Total de registros no período.</p>
                         </CardContent>
                     </Card>
-                    <Card className="transport-kpi-card">
+                    <Card className="transport-metric-card transport-tone-info">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">Multas (valor)</CardTitle>
+                            <CardTitle className="transport-metric-label">Multas (valor)</CardTitle>
                             <TrendingUp className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="transport-kpi-value">
+                            <p className="transport-metric-value">
                                 {formatCurrencyBR(data?.totals.valor ?? 0)}
                             </p>
-                            <p className="transport-kpi-detail">Impacto financeiro consolidado.</p>
+                            <p className="transport-metric-context">Impacto financeiro consolidado.</p>
                         </CardContent>
                     </Card>
-                    <Card className="transport-kpi-card">
+                    <Card className="transport-metric-card">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">Ticket médio</CardTitle>
+                            <CardTitle className="transport-metric-label">Ticket médio</CardTitle>
                             <PieChart className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="transport-kpi-value">
+                            <p className="transport-metric-value">
                                 {formatCurrencyBR(data?.totals.valor_medio ?? 0)}
                             </p>
-                            <p className="transport-kpi-detail">Valor médio por multa.</p>
+                            <p className="transport-metric-context">Valor médio por multa.</p>
                         </CardContent>
                     </Card>
-                    <Card className="transport-kpi-card transport-kpi-soft-warning">
+                    <Card className="transport-metric-card transport-tone-warning">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm text-muted-foreground">Vencidas em aberto</CardTitle>
+                            <CardTitle className="transport-metric-label">Vencidas em aberto</CardTitle>
                             <AlertTriangle className="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <p className="transport-kpi-value">
+                            <p className="transport-metric-value">
                                 {formatIntegerBR(data?.totals.vencidas_em_aberto.quantidade ?? 0)}
                             </p>
-                            <p className="transport-kpi-detail">
+                            <p className="transport-metric-context">
                                 {formatCurrencyBR(data?.totals.vencidas_em_aberto.valor ?? 0)} em risco.
                             </p>
                         </CardContent>
@@ -569,14 +570,14 @@ export default function TransportFinesDashboardPage() {
                 ) : (
                     <>
                         <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr]">
-                            <Card className="border-border/80">
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Leituras rápidas</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Leituras rápidas</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {data?.alerts.length ? (
                                         data.alerts.map((alert, index) => (
-                                            <div key={`${alert.title}-${index}`} className="rounded-md border p-3 text-sm">
+                                            <div key={`${alert.title}-${index}`} className="transport-list-panel">
                                                 <p className="font-medium">{alert.title}</p>
                                                 <p className="text-xs text-muted-foreground">{alert.detail}</p>
                                             </div>
@@ -587,13 +588,13 @@ export default function TransportFinesDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-border/80">
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Status financeiro</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Status financeiro</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2 text-sm">
                                     {Object.entries(data?.totals.status_summary ?? {}).map(([key, value]) => (
-                                        <div key={key} className="flex items-center justify-between rounded-md border px-3 py-2">
+                                        <div key={key} className="transport-compare-row">
                                             <div>
                                                 <p className="font-medium">{statusLabel(key)}</p>
                                                 <p className="text-xs text-muted-foreground">{formatIntegerBR(value.quantidade)} registros</p>
@@ -604,17 +605,17 @@ export default function TransportFinesDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-border/80">
+                            <Card className="transport-insight-card">
                                 <CardHeader>
-                                    <CardTitle className="text-base">Maior exposição</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Maior exposição</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
-                                    <div className="rounded-md border p-3">
+                                    <div className="transport-list-panel">
                                         <p className="text-xs text-muted-foreground">Placa</p>
                                         <p className="mt-1 font-semibold">{data?.totals.top_placa?.label ?? '-'}</p>
                                         <p className="text-xs text-muted-foreground">{formatCurrencyBR(data?.totals.top_placa?.valor_total ?? 0)}</p>
                                     </div>
-                                    <div className="rounded-md border p-3">
+                                    <div className="transport-list-panel">
                                         <p className="text-xs text-muted-foreground">Motorista</p>
                                         <p className="mt-1 font-semibold">{data?.totals.top_motorista?.label ?? '-'}</p>
                                         <p className="text-xs text-muted-foreground">{formatCurrencyBR(data?.totals.top_motorista?.valor_total ?? 0)}</p>
@@ -653,13 +654,13 @@ export default function TransportFinesDashboardPage() {
                             </LazyChartSlot>
                         </div>
 
-                        <Card className="border-border/80">
+                        <Card className="transport-insight-card">
                             <CardHeader>
-                                <CardTitle className="text-base">Top unidades por valor</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">Top unidades por valor</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                 {(data?.totals.top_unidades ?? []).map((item, index) => (
-                                    <div key={`${item.label}-${index}`} className="rounded-md border p-3 text-sm">
+                                    <div key={`${item.label}-${index}`} className="transport-list-panel">
                                         <p className="font-medium">{item.label}</p>
                                         <p className="text-xs text-muted-foreground">{formatIntegerBR(item.quantidade)} registro(s)</p>
                                         <p className="mt-1 font-semibold">{formatCurrencyBR(item.valor_total)}</p>

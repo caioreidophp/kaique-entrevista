@@ -720,7 +720,7 @@ export default function TransportProgrammingDashboardPage() {
                 value: formatIntegerBR(summary.interjornada_alerts ?? 0),
             },
             {
-                label: 'Saida no dia anterior',
+                label: 'Saída no dia anterior',
                 value: formatIntegerBR(summary.trips_previous_day_start ?? 0),
             },
             {
@@ -1561,10 +1561,11 @@ export default function TransportProgrammingDashboardPage() {
 
     return (
         <AdminLayout title="Programação - Dashboard" active="programming-dashboard" module="programming">
-            <div className="space-y-4">
-                <div>
-                    <h2 className="text-2xl font-semibold">Programação de Viagens</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Operação diária</p>
+                    <h2 className="transport-dashboard-title">Programação de Viagens</h2>
+                    <p className="transport-dashboard-subtitle">
                         Visão operacional em modo planilha com autosave e navegação por teclado.
                     </p>
                 </div>
@@ -1578,9 +1579,9 @@ export default function TransportProgrammingDashboardPage() {
                     />
                 ) : null}
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Filtros e importação da base (XLSX)</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros e importação da base (XLSX)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <div className="grid gap-3 lg:grid-cols-3">
@@ -1681,15 +1682,24 @@ export default function TransportProgrammingDashboardPage() {
 
                 {summaryCards.length > 0 ? (
                     <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <div className="transport-dashboard-eyebrow">
                             Indicadores do dia
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-                            {summaryCards.map((item) => (
-                                <Card key={item.label} className="border-border/80">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+                            {summaryCards.map((item, index) => (
+                                <Card
+                                    key={item.label}
+                                    className={`transport-metric-card ${
+                                        index === 2 || index === 4 || index === 6
+                                            ? 'transport-tone-warning'
+                                            : index === 3
+                                                ? 'transport-tone-success'
+                                                : 'transport-tone-info'
+                                    }`}
+                                >
                                     <CardContent className="space-y-0.5 py-3">
-                                        <p className="text-[11px] text-muted-foreground">{item.label}</p>
-                                        <p className="text-xl font-semibold leading-tight">{item.value}</p>
+                                        <p className="transport-metric-label">{item.label}</p>
+                                        <p className="transport-metric-value text-2xl">{item.value}</p>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -1699,13 +1709,13 @@ export default function TransportProgrammingDashboardPage() {
 
                 {data?.operation_alerts?.length ? (
                     <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-                        <Card>
+                        <Card className="transport-insight-card">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Leituras operacionais</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">Leituras operacionais</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {data.operation_alerts.map((alert, index) => (
-                                    <div key={`${alert.title}-${index}`} className="rounded-md border p-3 text-sm">
+                                    <div key={`${alert.title}-${index}`} className="transport-list-panel">
                                         <p className="font-medium">{alert.title}</p>
                                         <p className="text-xs text-muted-foreground">{alert.detail}</p>
                                     </div>
@@ -1713,16 +1723,16 @@ export default function TransportProgrammingDashboardPage() {
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="transport-insight-card">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Motoristas para revisar</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">Motoristas para revisar</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {(data.driver_overload ?? []).length === 0 ? (
                                     <p className="text-sm text-muted-foreground">Sem revisões pendentes por jornada.</p>
                                 ) : (
                                     (data.driver_overload ?? []).map((driver) => (
-                                        <div key={driver.id} className="rounded-md border p-3 text-sm">
+                                        <div key={driver.id} className="transport-list-panel">
                                             <div className="flex items-center justify-between gap-2">
                                                 <p className="font-medium">{driver.nome}</p>
                                                 <p className="text-xs text-muted-foreground">{formatDecimalBR(driver.horas_trabalhadas_dia)} h</p>
@@ -1742,7 +1752,7 @@ export default function TransportProgrammingDashboardPage() {
                     <div className={isDesktop ? 'pl-[360px]' : ''}>
                         {!isDesktop ? (
                             <div className="mb-4 space-y-4">
-                                <Card>
+                                <Card className="transport-insight-card">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="flex items-center gap-2 text-sm">
                                             <Users className="size-4" />
@@ -1752,7 +1762,7 @@ export default function TransportProgrammingDashboardPage() {
                                     <CardContent className="space-y-3">{driversPanelBody}</CardContent>
                                 </Card>
 
-                                <Card>
+                                <Card className="transport-insight-card">
                                     <CardHeader className="pb-2">
                                         <CardTitle className="flex items-center gap-2 text-sm">
                                             <Truck className="size-4" />
@@ -1764,9 +1774,9 @@ export default function TransportProgrammingDashboardPage() {
                             </div>
                         ) : null}
 
-                        <Card>
+                        <Card className="transport-insight-card">
                             <CardHeader className="pb-2">
-                                <CardTitle className="flex items-center gap-2 text-sm">
+                                <CardTitle className="transport-dashboard-section-title flex items-center gap-2">
                                     <CalendarDays className="size-4" />
                                     Tabela de Viagens (modo planilha)
                                 </CardTitle>

@@ -32,16 +32,16 @@ function SummaryCard({
 }) {
     return (
         <Card
-            className={`transport-kpi-card transition-colors hover:bg-muted/20 ${tone ? `transport-kpi-soft-${tone}` : ''}`}
+            className={`transport-metric-card ${tone ? `transport-tone-${tone}` : 'transport-tone-info'}`}
         >
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+                <CardTitle className="transport-metric-label">
                     {title}
                 </CardTitle>
                 <span className="transport-kpi-icon">{icon}</span>
             </CardHeader>
             <CardContent>
-                <p className="transport-kpi-value md:text-3xl">{value}</p>
+                <p className="transport-metric-value">{value}</p>
             </CardContent>
         </Card>
     );
@@ -97,11 +97,12 @@ export default function TransportDashboardPage() {
 
     return (
         <AdminLayout title="Entrevistas - Dashboard" active="dashboard">
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Dashboard de Entrevistas</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Visão executiva do funil de entrevistas e pendências do RH.
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Recrutamento</p>
+                    <h2 className="transport-dashboard-title">Dashboard de Entrevistas</h2>
+                    <p className="transport-dashboard-subtitle">
+                        Visão executiva do funil de entrevistas, gargalos e ações pendentes do RH.
                     </p>
                 </div>
 
@@ -115,7 +116,7 @@ export default function TransportDashboardPage() {
                         Carregando indicadores...
                     </div>
                 ) : summary ? (
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                             <SummaryCard
                                 title="Total de entrevistas"
@@ -165,36 +166,39 @@ export default function TransportDashboardPage() {
                             />
                         </div>
 
-                        <Card>
+                        <Card className="transport-insight-card">
                             <CardHeader>
-                                <CardTitle>Eficiência do funil</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">Eficiência do funil</CardTitle>
+                                <p className="transport-dashboard-section-subtitle">
+                                    Ritmo de aprovação e gargalos que pedem ação do time.
+                                </p>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <div className="rounded-md border p-3">
+                                <div className="transport-insight-row">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs text-muted-foreground">Taxa de aprovação</p>
                                         <p className="text-xs font-semibold text-muted-foreground">
                                             {formatPercentBR(approvalRate)}
                                         </p>
                                     </div>
-                                    <div className="mt-2 h-2 rounded-full bg-muted">
+                                    <div className="transport-progress-track mt-2">
                                         <div
-                                            className="h-full rounded-full bg-emerald-500"
+                                            className="transport-progress-fill bg-emerald-500"
                                             style={{ width: `${Math.min(100, Math.max(0, approvalRate))}%` }}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid gap-3 md:grid-cols-3">
-                                    <div className="rounded-md border p-3">
+                                    <div className="transport-list-panel">
                                         <p className="text-xs text-muted-foreground">Pendências totais</p>
                                         <p className="mt-1 text-xl font-semibold">{summary.pending_actions.total}</p>
                                     </div>
-                                    <div className="rounded-md border p-3">
+                                    <div className="transport-list-panel">
                                         <p className="text-xs text-muted-foreground">Aguardando vaga</p>
                                         <p className="mt-1 text-xl font-semibold">{summary.pending_actions.waiting_vacancy}</p>
                                     </div>
-                                    <div className="rounded-md border p-3">
+                                    <div className="transport-list-panel">
                                         <p className="text-xs text-muted-foreground">Teste prático</p>
                                         <p className="mt-1 text-xl font-semibold">{summary.pending_actions.practical_test}</p>
                                     </div>
@@ -203,9 +207,9 @@ export default function TransportDashboardPage() {
                         </Card>
 
                         <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-                            <Card>
+                            <Card className="transport-insight-card">
                                 <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle>Últimas entrevistas</CardTitle>
+                                    <CardTitle className="transport-dashboard-section-title">Últimas entrevistas</CardTitle>
                                     <Button variant="outline" size="sm" asChild>
                                         <Link href="/transport/interviews">
                                             Ver todas
@@ -224,7 +228,7 @@ export default function TransportDashboardPage() {
                                                 (item) => (
                                                     <div
                                                         key={item.id}
-                                                        className="rounded-md border p-3"
+                                                        className="transport-list-panel"
                                                     >
                                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                                             <div>
@@ -273,9 +277,9 @@ export default function TransportDashboardPage() {
                             </Card>
 
                             <div className="space-y-4">
-                                <Card>
+                                <Card className="transport-insight-card">
                                     <CardHeader>
-                                        <CardTitle>Atalhos operacionais</CardTitle>
+                                        <CardTitle className="transport-dashboard-section-title">Atalhos operacionais</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <Button variant="outline" className="w-full justify-start" asChild>
@@ -293,9 +297,9 @@ export default function TransportDashboardPage() {
                                     </CardContent>
                                 </Card>
 
-                                <Card>
+                                <Card className="transport-insight-card">
                                     <CardHeader>
-                                        <CardTitle>Ações pendentes</CardTitle>
+                                        <CardTitle className="transport-dashboard-section-title">Ações pendentes</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex items-center justify-between">
@@ -342,9 +346,9 @@ export default function TransportDashboardPage() {
                                     </CardContent>
                                 </Card>
 
-                                <Card>
+                                <Card className="transport-insight-card">
                                     <CardHeader>
-                                        <CardTitle>Atividade recente</CardTitle>
+                                        <CardTitle className="transport-dashboard-section-title">Atividade recente</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         {summary.recent_activity.length ===
