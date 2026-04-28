@@ -49,21 +49,29 @@ class ActivityLogController extends Controller
 
         $paginated = $query->paginate($perPage)->withQueryString();
 
-        $items = collect($paginated->items())->map(fn (Activity $activity) => [
-            'id' => $activity->id,
-            'log_name' => $activity->log_name,
-            'description' => $activity->description,
-            'event' => $activity->event,
-            'subject_type' => $activity->subject_type ? class_basename($activity->subject_type) : null,
-            'subject_id' => $activity->subject_id,
-            'changes' => $activity->changes,
-            'causer' => $activity->causer ? [
-                'id' => $activity->causer->id,
-                'name' => $activity->causer->name,
-                'email' => $activity->causer->email,
-            ] : null,
-            'created_at' => $activity->created_at?->toISOString(),
-        ]);
+        $items = collect($paginated->items())->map(function (Activity $activity): array {
+            $changeSummary = $this->buildChangeSummary($activity);
+
+            $rawChanges = $this->extractChanges($activity);
+
+            return [
+                'id' => $activity->id,
+                'log_name' => $activity->log_name,
+                'description' => $activity->description,
+                'event' => $activity->event,
+                'subject_type' => $activity->subject_type ? class_basename($activity->subject_type) : null,
+                'subject_id' => $activity->subject_id,
+                'changes' => $rawChanges,
+                'change_summary' => $changeSummary,
+                'change_count' => count($changeSummary),
+                'causer' => $activity->causer ? [
+                    'id' => $activity->causer->id,
+                    'name' => $activity->causer->name,
+                    'email' => $activity->causer->email,
+                ] : null,
+                'created_at' => $activity->created_at?->toISOString(),
+            ];
+        });
 
         return response()->json([
             'data' => $items,
@@ -72,5 +80,54 @@ class ActivityLogController extends Controller
             'per_page' => $paginated->perPage(),
             'total' => $paginated->total(),
         ]);
+    }
+
+    /**
+     * @return array<int, array{field:string,before:mixed,after:mixed,changed:bool}>
+     */
+    private function buildChangeSummary(Activity $activity): array
+    {
+        $changes = $this->extractChanges($activity);
+        $before = is_array($changes['old'] ?? null) ? $changes['old'] : [];
+        $after = is_array($changes['attributes'] ?? null) ? $changes['attributes'] : [];
+        $fields = array_values(array_unique(array_merge(array_keys($before), array_keys($after))));
+
+        return collect($fields)
+            ->map(function (string $field) use ($before, $after): array {
+                $previousValue = $before[$field] ?? null;
+                $nextValue = $after[$field] ?? null;
+
+                return [
+                    'field' => $field,
+                    'before' => $previousValue,
+                    'after' => $nextValue,
+                    'changed' => $previousValue !== $nextValue,
+                ];
+            })
+            ->filter(fn (array $row): bool => $row['changed'])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function extractChanges(Activity $activity): array
+    {
+        if (is_array($activity->changes) && $activity->changes !== []) {
+            return $activity->changes;
+        }
+
+        $properties = $activity->properties;
+
+        if (is_array($properties)) {
+            return $properties;
+        }
+
+        if (is_object($properties) && method_exists($properties, 'toArray')) {
+            return $properties->toArray();
+        }
+
+        return [];
     }
 }

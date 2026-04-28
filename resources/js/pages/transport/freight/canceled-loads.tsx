@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
 import {
+    formatEditableMoneyBR,
     formatCurrencyBR,
     formatDateBR,
     moneyMaskBR,
@@ -286,7 +287,7 @@ export default function TransportFreightCanceledLoadsPage() {
             data: item.data?.slice(0, 10) ?? '',
             placa: item.placa ?? '',
             aviario: item.aviario ?? '',
-            valor: moneyMaskBR(String(item.valor ?? '')),
+            valor: formatEditableMoneyBR(item.valor),
             n_viagem: item.n_viagem ?? '',
             obs: item.obs ?? '',
         });

@@ -378,7 +378,7 @@ class DriverInterviewApiTest extends TestCase
         $response = $this->post("/api/driver-interviews/{$interview->id}/attachments", [
             'candidate_photo_file' => UploadedFile::fake()->image('foto.jpg', 480, 640),
             'cnh_attachment_file' => UploadedFile::fake()->image('cnh.png', 800, 600),
-            'work_card_attachment_file' => UploadedFile::fake()->create('ctps.pdf', 256, 'application/pdf'),
+            'work_card_attachment_file' => $this->fakeSignedPdf('ctps.pdf'),
         ]);
 
         $response
@@ -507,5 +507,10 @@ class DriverInterviewApiTest extends TestCase
             'overall_score' => 9,
             'hr_status' => 'aprovado',
         ];
+    }
+
+    private function fakeSignedPdf(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\nfake");
     }
 }

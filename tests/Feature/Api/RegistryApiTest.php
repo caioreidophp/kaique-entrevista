@@ -109,7 +109,7 @@ class RegistryApiTest extends TestCase
         Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
 
         $response = $this->post('/api/registry/colaboradores/'.$colaborador->id.'/attachments', [
-            'cnh_attachment_file' => UploadedFile::fake()->create('cnh.pdf', 250, 'application/pdf'),
+            'cnh_attachment_file' => $this->fakeSignedPdf('cnh.pdf'),
             'work_card_attachment_file' => UploadedFile::fake()->image('ct.jpg', 640, 800),
         ], [
             'Accept' => 'application/json',
@@ -386,5 +386,10 @@ class RegistryApiTest extends TestCase
         @unlink($tempPath);
 
         return UploadedFile::fake()->createWithContent('colaboradores.xlsx', $content);
+    }
+
+    private function fakeSignedPdf(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\nfake");
     }
 }

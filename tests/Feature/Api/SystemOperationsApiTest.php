@@ -3,10 +3,16 @@
 namespace Tests\Feature\Api;
 
 use App\Models\AsyncOperation;
+use App\Models\Colaborador;
+use App\Models\DriverInterview;
+use App\Models\Funcao;
+use App\Models\Onboarding;
+use App\Models\OnboardingItem;
 use App\Models\Unidade;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
 class SystemOperationsApiTest extends TestCase
@@ -82,5 +88,125 @@ class SystemOperationsApiTest extends TestCase
                 'data',
                 'total',
             ]);
+    }
+
+    public function test_master_admin_receives_activity_log_change_summary(): void
+    {
+        $master = User::factory()->masterAdmin()->create();
+
+        Activity::query()->create([
+            'log_name' => 'folha',
+            'description' => 'Pagamento atualizado',
+            'subject_type' => User::class,
+            'subject_id' => $master->id,
+            'causer_type' => User::class,
+            'causer_id' => $master->id,
+            'event' => 'updated',
+            'properties' => [
+                'old' => ['status' => 'pending', 'valor' => 1200],
+                'attributes' => ['status' => 'approved', 'valor' => 1500],
+            ],
+        ]);
+
+        Sanctum::actingAs($master);
+
+        $this->getJson('/api/activity-log')
+            ->assertOk()
+            ->assertJsonPath('data.0.change_count', 2)
+            ->assertJsonPath('data.0.change_summary.0.field', 'status')
+            ->assertJsonPath('data.0.change_summary.0.before', 'pending')
+            ->assertJsonPath('data.0.change_summary.0.after', 'approved');
+    }
+
+    public function test_user_can_list_sessions_with_device_metadata(): void
+    {
+        $user = User::factory()->create();
+        $currentToken = $user->createToken('Current session');
+        $currentTokenModel = $currentToken->accessToken;
+
+        $remoteToken = $user->createToken('Chrome notebook');
+        $remoteTokenModel = $remoteToken->accessToken;
+
+        $remoteTokenModel->forceFill([
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/123.0.0.0 Safari/537.36',
+            'last_activity_at' => now()->subDays(45),
+        ])->save();
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$currentToken->plainTextToken)
+            ->getJson('/api/settings/sessions');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('current_token_id', $currentTokenModel->id);
+
+        $remotePayload = collect($response->json('data'))
+            ->firstWhere('id', $remoteTokenModel->id);
+
+        $this->assertSame('Chrome', $remotePayload['device']['browser'] ?? null);
+        $this->assertSame('Windows', $remotePayload['device']['os'] ?? null);
+        $this->assertSame('desktop', $remotePayload['device']['device_type'] ?? null);
+        $this->assertFalse((bool) ($remotePayload['is_current'] ?? true));
+        $this->assertSame(45, $remotePayload['days_without_activity'] ?? null);
+        $this->assertContains('stale', $remotePayload['risk_flags'] ?? []);
+    }
+
+    public function test_admin_can_access_new_insights_endpoints(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+        $colaborador = Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Carlos',
+            'ativo' => true,
+            'cpf' => '12345678901',
+        ]);
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $admin->id,
+            'user_id' => $admin->id,
+            'cpf' => '12345678901',
+        ]);
+
+        $onboarding = Onboarding::query()->create([
+            'driver_interview_id' => $interview->id,
+            'colaborador_id' => $colaborador->id,
+            'responsavel_user_id' => $admin->id,
+            'status' => 'em_andamento',
+            'started_at' => now(),
+        ]);
+
+        OnboardingItem::query()->create([
+            'onboarding_id' => $onboarding->id,
+            'code' => 'doc',
+            'title' => 'Documento',
+            'required' => true,
+            'status' => 'pendente',
+            'due_date' => now()->subDay()->toDateString(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/insights/executive')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'interviews',
+                    'payroll',
+                    'freight',
+                    'alerts',
+                ],
+            ]);
+
+        $this->getJson('/api/insights/pending-by-unit')
+            ->assertOk()
+            ->assertJsonPath('data.0.unidade_id', $unidade->id)
+            ->assertJsonPath('data.0.onboarding_overdue', 1);
+
+        $this->getJson('/api/insights/data-quality')
+            ->assertOk()
+            ->assertJsonPath('summary.total_collaborators', 1)
+            ->assertJsonPath('summary.missing_phone', 1);
     }
 }

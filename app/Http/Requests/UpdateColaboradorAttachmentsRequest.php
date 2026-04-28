@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\FileSignatureInspector;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateColaboradorAttachmentsRequest extends FormRequest
 {
@@ -43,9 +45,31 @@ class UpdateColaboradorAttachmentsRequest extends FormRequest
     {
         return [
             'cnh_attachment_file.mimes' => 'O anexo da CNH deve estar em JPG, PNG, WEBP ou PDF.',
-            'cnh_attachment_file.max' => 'O anexo da CNH deve ter no máximo 8 MB.',
+            'cnh_attachment_file.max' => 'O anexo da CNH deve ter no maximo 8 MB.',
             'work_card_attachment_file.mimes' => 'O anexo da carteira de trabalho deve estar em JPG, PNG, WEBP ou PDF.',
-            'work_card_attachment_file.max' => 'O anexo da carteira de trabalho deve ter no máximo 8 MB.',
+            'work_card_attachment_file.max' => 'O anexo da carteira de trabalho deve ter no maximo 8 MB.',
+        ];
+    }
+
+    /**
+     * @return array<int, \Closure>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                foreach (['cnh_attachment_file', 'work_card_attachment_file'] as $field) {
+                    $file = $this->file($field);
+
+                    if (! $file) {
+                        continue;
+                    }
+
+                    if (! FileSignatureInspector::matchesAllowedKinds($file, ['pdf', 'jpeg', 'png', 'webp'])) {
+                        $validator->errors()->add($field, 'O arquivo enviado nao passou na validacao de assinatura binaria.');
+                    }
+                }
+            },
         ];
     }
 }

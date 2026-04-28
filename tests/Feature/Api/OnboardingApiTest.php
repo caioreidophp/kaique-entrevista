@@ -130,7 +130,7 @@ class OnboardingApiTest extends TestCase
         $item = $onboarding->items()->firstOrFail();
 
         $uploadResponse = $this->postJson("/api/onboarding-items/{$item->id}/attachments", [
-            'file' => UploadedFile::fake()->create('documento.pdf', 120, 'application/pdf'),
+            'file' => $this->fakeSignedPdf('documento.pdf'),
         ]);
 
         $uploadResponse
@@ -263,5 +263,10 @@ class OnboardingApiTest extends TestCase
         return Onboarding::query()
             ->where('driver_interview_id', $interview->id)
             ->firstOrFail();
+    }
+
+    private function fakeSignedPdf(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\nfake");
     }
 }

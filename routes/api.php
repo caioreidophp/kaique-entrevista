@@ -142,6 +142,12 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::get('dashboard/summary', DashboardController::class);
     Route::get('insights/pending', [TransportInsightsController::class, 'pending'])
         ->middleware('throttle:transport-heavy');
+    Route::get('insights/executive', [TransportInsightsController::class, 'executive'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('insights/pending-by-unit', [TransportInsightsController::class, 'pendingByUnit'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('insights/data-quality', [TransportInsightsController::class, 'quality'])
+        ->middleware('throttle:transport-heavy');
     Route::get('payroll/dashboard', [PayrollController::class, 'dashboard']);
     Route::get('payroll/dashboard-page', [PayrollController::class, 'dashboardPage'])
         ->middleware('throttle:transport-heavy');

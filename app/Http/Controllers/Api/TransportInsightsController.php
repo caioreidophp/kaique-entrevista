@@ -9,8 +9,11 @@ use App\Models\FeriasLancamento;
 use App\Models\FreightCanceledLoad;
 use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
+use App\Models\Onboarding;
 use App\Models\Pagamento;
+use App\Models\Unidade;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,6 +47,9 @@ class TransportInsightsController extends Controller
         $plus2Months = $today->addMonths(2);
 
         $activeCollaborators = Colaborador::query()
+            ->when(! $isMaster && $this->hasRestrictedUnitScope($request, 'registry'), function (Builder $query) use ($request): void {
+                $query->whereIn('unidade_id', $request->user()->allowedUnitIdsFor('registry'));
+            })
             ->where('ativo', true)
             ->whereNotNull('data_admissao')
             ->select(['id', 'data_admissao'])
@@ -79,6 +85,7 @@ class TransportInsightsController extends Controller
 
         $canceledLoadsToReceive = FreightCanceledLoad::query()
             ->when(! $isMaster, fn ($query) => $query->where('autor_id', $user->id))
+            ->when($this->hasRestrictedUnitScope($request, 'freight'), fn ($query) => $query->whereIn('unidade_id', $user->allowedUnitIdsFor('freight')))
             ->where('status', 'a_receber')
             ->count();
 
@@ -87,12 +94,16 @@ class TransportInsightsController extends Controller
 
         $launchedPayrollCollaborators = Pagamento::query()
             ->when(! $isMaster, fn ($query) => $query->where('autor_id', $user->id))
+            ->when($this->hasRestrictedUnitScope($request, 'payroll'), fn ($query) => $query->whereIn('unidade_id', $user->allowedUnitIdsFor('payroll')))
             ->where('competencia_mes', $month)
             ->where('competencia_ano', $year)
             ->distinct('colaborador_id')
             ->count('colaborador_id');
 
-        $activeCollaboratorsCount = Colaborador::query()->where('ativo', true)->count();
+        $activeCollaboratorsCount = Colaborador::query()
+            ->when($this->hasRestrictedUnitScope($request, 'registry'), fn ($query) => $query->whereIn('unidade_id', $user->allowedUnitIdsFor('registry')))
+            ->where('ativo', true)
+            ->count();
         $payrollPendingCollaborators = max($activeCollaboratorsCount - $launchedPayrollCollaborators, 0);
 
         return response()->json([
@@ -143,6 +154,16 @@ class TransportInsightsController extends Controller
             $spotBase->where('autor_id', $user->id);
         }
 
+        if ($this->hasRestrictedUnitScope($request, 'payroll')) {
+            $payrollBase->whereIn('unidade_id', $user->allowedUnitIdsFor('payroll'));
+        }
+
+        if ($this->hasRestrictedUnitScope($request, 'freight')) {
+            $allowedUnits = $user->allowedUnitIdsFor('freight');
+            $freightBase->whereIn('unidade_id', $allowedUnits);
+            $spotBase->whereIn('unidade_origem_id', $allowedUnits);
+        }
+
         $totalInterviews = (clone $interviewsBase)->count();
         $approvedInterviews = (clone $interviewsBase)
             ->where('hr_status', 'aprovado')
@@ -153,7 +174,10 @@ class TransportInsightsController extends Controller
 
         $totalPayroll = (float) (clone $payrollBase)->sum('valor');
         $totalPayrollLaunches = (clone $payrollBase)->count();
-        $activeCollaborators = Colaborador::query()->where('ativo', true)->count();
+        $activeCollaborators = Colaborador::query()
+            ->when($this->hasRestrictedUnitScope($request, 'registry'), fn ($query) => $query->whereIn('unidade_id', $user->allowedUnitIdsFor('registry')))
+            ->where('ativo', true)
+            ->count();
         $coverageRate = $activeCollaborators > 0
             ? round((($totalPayrollLaunches / $activeCollaborators) * 100), 2)
             : 0.0;
@@ -178,16 +202,16 @@ class TransportInsightsController extends Controller
         if ($freightSpotShare > 35) {
             $alerts[] = [
                 'level' => 'warning',
-                'title' => 'Dependência alta de frete spot',
-                'detail' => "Participação spot em {$freightSpotShare}% no mês.",
+                'title' => 'Dependencia alta de frete spot',
+                'detail' => "Participacao spot em {$freightSpotShare}% no mes.",
             ];
         }
 
         if ($approvalRate < 40 && $totalInterviews >= 10) {
             $alerts[] = [
                 'level' => 'info',
-                'title' => 'Taxa de aprovação baixa',
-                'detail' => "Aprovação em entrevistas está em {$approvalRate}%.",
+                'title' => 'Taxa de aprovacao baixa',
+                'detail' => "Aprovacao em entrevistas esta em {$approvalRate}%.",
             ];
         }
 
@@ -214,5 +238,169 @@ class TransportInsightsController extends Controller
                 'alerts' => $alerts,
             ],
         ]);
+    }
+
+    public function pendingByUnit(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $allowedUnitIds = $this->visibleUnitIds($request, 'registry');
+        $today = now()->toDateString();
+        $month = now()->month;
+        $year = now()->year;
+
+        $units = Unidade::query()
+            ->when($allowedUnitIds !== null, fn ($query) => $query->whereIn('id', $allowedUnitIds))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        $activeByUnit = Colaborador::query()
+            ->selectRaw('unidade_id, COUNT(*) as total')
+            ->where('ativo', true)
+            ->when($allowedUnitIds !== null, fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds))
+            ->groupBy('unidade_id')
+            ->pluck('total', 'unidade_id');
+
+        $payrollLaunchedByUnit = Pagamento::query()
+            ->selectRaw('unidade_id, COUNT(DISTINCT colaborador_id) as total')
+            ->where('competencia_mes', $month)
+            ->where('competencia_ano', $year)
+            ->when(! $user->isMasterAdmin(), fn ($query) => $query->where('autor_id', $user->id))
+            ->when($this->visibleUnitIds($request, 'payroll') !== null, fn ($query) => $query->whereIn('unidade_id', $this->visibleUnitIds($request, 'payroll')))
+            ->groupBy('unidade_id')
+            ->pluck('total', 'unidade_id');
+
+        $freightPendingByUnit = FreightCanceledLoad::query()
+            ->selectRaw('unidade_id, COUNT(*) as total')
+            ->where('status', 'a_receber')
+            ->when(! $user->isMasterAdmin(), fn ($query) => $query->where('autor_id', $user->id))
+            ->when($this->visibleUnitIds($request, 'freight') !== null, fn ($query) => $query->whereIn('unidade_id', $this->visibleUnitIds($request, 'freight')))
+            ->groupBy('unidade_id')
+            ->pluck('total', 'unidade_id');
+
+        $onboardingOpenByUnit = Onboarding::query()
+            ->selectRaw('colaboradores.unidade_id, COUNT(DISTINCT onboardings.id) as total')
+            ->join('colaboradores', 'colaboradores.id', '=', 'onboardings.colaborador_id')
+            ->whereIn('onboardings.status', ['em_andamento', 'bloqueado'])
+            ->when($allowedUnitIds !== null, fn ($query) => $query->whereIn('colaboradores.unidade_id', $allowedUnitIds))
+            ->groupBy('colaboradores.unidade_id')
+            ->pluck('total', 'colaboradores.unidade_id');
+
+        $onboardingOverdueByUnit = Onboarding::query()
+            ->selectRaw('colaboradores.unidade_id, COUNT(DISTINCT onboardings.id) as total')
+            ->join('colaboradores', 'colaboradores.id', '=', 'onboardings.colaborador_id')
+            ->join('onboarding_items', 'onboarding_items.onboarding_id', '=', 'onboardings.id')
+            ->where('onboarding_items.required', true)
+            ->where('onboarding_items.status', '!=', 'aprovado')
+            ->whereDate('onboarding_items.due_date', '<', $today)
+            ->when($allowedUnitIds !== null, fn ($query) => $query->whereIn('colaboradores.unidade_id', $allowedUnitIds))
+            ->groupBy('colaboradores.unidade_id')
+            ->pluck('total', 'colaboradores.unidade_id');
+
+        return response()->json([
+            'generated_at' => now()->toISOString(),
+            'data' => $units->map(function (Unidade $unit) use ($activeByUnit, $payrollLaunchedByUnit, $freightPendingByUnit, $onboardingOpenByUnit, $onboardingOverdueByUnit): array {
+                $active = (int) ($activeByUnit[$unit->id] ?? 0);
+                $launched = (int) ($payrollLaunchedByUnit[$unit->id] ?? 0);
+
+                return [
+                    'unidade_id' => $unit->id,
+                    'unidade_nome' => $unit->nome,
+                    'active_collaborators' => $active,
+                    'payroll_pending_collaborators' => max($active - $launched, 0),
+                    'freight_canceled_to_receive' => (int) ($freightPendingByUnit[$unit->id] ?? 0),
+                    'onboarding_open' => (int) ($onboardingOpenByUnit[$unit->id] ?? 0),
+                    'onboarding_overdue' => (int) ($onboardingOverdueByUnit[$unit->id] ?? 0),
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function quality(Request $request): JsonResponse
+    {
+        $allowedUnitIds = $this->visibleUnitIds($request, 'registry');
+
+        $collaborators = Colaborador::query()
+            ->when($allowedUnitIds !== null, fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds))
+            ->get([
+                'id',
+                'unidade_id',
+                'nome',
+                'cpf_hash',
+                'telefone',
+                'email',
+                'data_admissao',
+                'funcao_id',
+                'foto_3x4_path',
+                'cnh_attachment_path',
+                'work_card_attachment_path',
+            ]);
+
+        $duplicates = $collaborators
+            ->filter(fn (Colaborador $colaborador): bool => filled($colaborador->cpf_hash))
+            ->groupBy('cpf_hash')
+            ->filter(fn ($group): bool => $group->count() > 1);
+
+        $issuesByUnit = $collaborators
+            ->groupBy(fn (Colaborador $colaborador): int => (int) ($colaborador->unidade_id ?? 0))
+            ->map(function ($group, $unitId): array {
+                $rows = collect($group);
+
+                return [
+                    'unidade_id' => (int) $unitId,
+                    'missing_phone' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->telefone))->count(),
+                    'missing_email' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->email))->count(),
+                    'missing_admission_date' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->data_admissao))->count(),
+                    'missing_function' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->funcao_id))->count(),
+                    'missing_photo' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->foto_3x4_path))->count(),
+                    'missing_cnh_attachment' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->cnh_attachment_path))->count(),
+                    'missing_work_card_attachment' => $rows->filter(fn (Colaborador $colaborador): bool => blank($colaborador->work_card_attachment_path))->count(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'generated_at' => now()->toISOString(),
+            'summary' => [
+                'total_collaborators' => $collaborators->count(),
+                'missing_phone' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->telefone))->count(),
+                'missing_email' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->email))->count(),
+                'missing_admission_date' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->data_admissao))->count(),
+                'missing_function' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->funcao_id))->count(),
+                'missing_photo' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->foto_3x4_path))->count(),
+                'missing_cnh_attachment' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->cnh_attachment_path))->count(),
+                'missing_work_card_attachment' => $collaborators->filter(fn (Colaborador $colaborador): bool => blank($colaborador->work_card_attachment_path))->count(),
+                'duplicate_cpf_groups' => $duplicates->count(),
+            ],
+            'duplicates' => $duplicates->map(function ($group, string $hash): array {
+                return [
+                    'cpf_hash' => $hash,
+                    'rows' => collect($group)->map(fn (Colaborador $colaborador): array => [
+                        'id' => $colaborador->id,
+                        'nome' => $colaborador->nome,
+                        'unidade_id' => $colaborador->unidade_id,
+                    ])->values(),
+                ];
+            })->values(),
+            'issues_by_unit' => $issuesByUnit,
+        ]);
+    }
+
+    private function hasRestrictedUnitScope(Request $request, string $moduleKey): bool
+    {
+        return $this->visibleUnitIds($request, $moduleKey) !== null;
+    }
+
+    /**
+     * @return array<int, int>|null
+     */
+    private function visibleUnitIds(Request $request, string $moduleKey): ?array
+    {
+        $user = $request->user();
+
+        if (! $user || $user->isMasterAdmin() || $user->dataScopeFor($moduleKey) !== 'units') {
+            return null;
+        }
+
+        return $user->allowedUnitIdsFor($moduleKey);
     }
 }

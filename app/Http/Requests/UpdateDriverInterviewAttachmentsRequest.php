@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\FileSignatureInspector;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateDriverInterviewAttachmentsRequest extends FormRequest
 {
@@ -51,13 +53,41 @@ class UpdateDriverInterviewAttachmentsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'candidate_photo_file.image' => 'A foto do candidato deve ser uma imagem válida.',
+            'candidate_photo_file.image' => 'A foto do candidato deve ser uma imagem valida.',
             'candidate_photo_file.mimes' => 'A foto do candidato deve estar em JPG, PNG ou WEBP.',
-            'candidate_photo_file.max' => 'A foto do candidato deve ter no máximo 5 MB.',
+            'candidate_photo_file.max' => 'A foto do candidato deve ter no maximo 5 MB.',
             'cnh_attachment_file.mimes' => 'O anexo da CNH deve estar em JPG, PNG, WEBP ou PDF.',
-            'cnh_attachment_file.max' => 'O anexo da CNH deve ter no máximo 8 MB.',
+            'cnh_attachment_file.max' => 'O anexo da CNH deve ter no maximo 8 MB.',
             'work_card_attachment_file.mimes' => 'O anexo da carteira de trabalho deve estar em JPG, PNG, WEBP ou PDF.',
-            'work_card_attachment_file.max' => 'O anexo da carteira de trabalho deve ter no máximo 8 MB.',
+            'work_card_attachment_file.max' => 'O anexo da carteira de trabalho deve ter no maximo 8 MB.',
+        ];
+    }
+
+    /**
+     * @return array<int, \Closure>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $fieldKinds = [
+                    'candidate_photo_file' => ['jpeg', 'png', 'webp'],
+                    'cnh_attachment_file' => ['pdf', 'jpeg', 'png', 'webp'],
+                    'work_card_attachment_file' => ['pdf', 'jpeg', 'png', 'webp'],
+                ];
+
+                foreach ($fieldKinds as $field => $allowedKinds) {
+                    $file = $this->file($field);
+
+                    if (! $file) {
+                        continue;
+                    }
+
+                    if (! FileSignatureInspector::matchesAllowedKinds($file, $allowedKinds)) {
+                        $validator->errors()->add($field, 'O arquivo enviado nao passou na validacao de assinatura binaria.');
+                    }
+                }
+            },
         ];
     }
 }

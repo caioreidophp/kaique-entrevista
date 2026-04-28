@@ -119,12 +119,35 @@ export function moneyMaskBR(value: string): string {
     return hasComma ? `${integerFormatted},${decimalRaw}` : integerFormatted;
 }
 
+export function formatEditableMoneyBR(value: string | number | null | undefined): string {
+    const normalized = normalizeNumberInput(value);
+
+    if (!Number.isFinite(normalized)) {
+        return '';
+    }
+
+    return new Intl.NumberFormat(getTransportIntlLocale(), {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(normalized);
+}
+
 export function integerThousandsMaskBR(value: string): string {
     const digits = value.replace(/\D/g, '');
 
     if (!digits) return '';
 
     return formatIntegerBR(Number(digits));
+}
+
+export function formatEditableIntegerBR(value: string | number | null | undefined): string {
+    const normalized = Math.round(normalizeNumberInput(value));
+
+    if (!Number.isFinite(normalized)) {
+        return '';
+    }
+
+    return formatIntegerBR(normalized);
 }
 
 export function decimalThousandsMaskBR(value: string): string {
@@ -141,6 +164,20 @@ export function decimalThousandsMaskBR(value: string): string {
     const integerFormatted = integerDigits ? formatIntegerBR(Number(integerDigits)) : '0';
 
     return hasComma ? `${integerFormatted},${decimalRaw}` : integerFormatted;
+}
+
+export function formatEditableDecimalBR(value: string | number | null | undefined, digits = 2): string {
+    const normalized = normalizeNumberInput(value);
+    const safeDigits = Math.max(0, Math.min(6, digits));
+
+    if (!Number.isFinite(normalized)) {
+        return '';
+    }
+
+    return new Intl.NumberFormat(getTransportIntlLocale(), {
+        minimumFractionDigits: safeDigits,
+        maximumFractionDigits: safeDigits,
+    }).format(normalized);
 }
 
 export function formatDateBR(value: string | null | undefined, empty = '-'): string {

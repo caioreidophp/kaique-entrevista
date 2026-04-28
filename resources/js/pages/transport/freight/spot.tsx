@@ -19,6 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
 import {
     decimalThousandsMaskBR,
+    formatEditableDecimalBR,
+    formatEditableIntegerBR,
+    formatEditableMoneyBR,
     formatCurrencyBR,
     formatDateBR,
     integerThousandsMaskBR,
@@ -169,10 +172,10 @@ export default function TransportFreightSpotLaunchPage() {
         setForm({
             data: target.data.slice(0, 10),
             unidade_origem_id: String(target.unidade_origem_id),
-            frete_spot: moneyMaskBR(String(target.frete_spot ?? '')),
-            cargas: integerThousandsMaskBR(String(target.cargas ?? '')),
-            aves: integerThousandsMaskBR(String(target.aves ?? '')),
-            km_rodado: decimalThousandsMaskBR(String(target.km_rodado ?? '')),
+            frete_spot: formatEditableMoneyBR(target.frete_spot),
+            cargas: formatEditableIntegerBR(target.cargas),
+            aves: formatEditableIntegerBR(target.aves),
+            km_rodado: formatEditableDecimalBR(target.km_rodado),
             obs: target.obs ?? '',
         });
 
@@ -232,10 +235,10 @@ export default function TransportFreightSpotLaunchPage() {
         setForm({
             data: entry.data.slice(0, 10),
             unidade_origem_id: String(entry.unidade_origem_id),
-            frete_spot: moneyMaskBR(String(entry.frete_spot ?? '')),
-            cargas: integerThousandsMaskBR(String(entry.cargas ?? '')),
-            aves: integerThousandsMaskBR(String(entry.aves ?? '')),
-            km_rodado: decimalThousandsMaskBR(String(entry.km_rodado ?? '')),
+            frete_spot: formatEditableMoneyBR(entry.frete_spot),
+            cargas: formatEditableIntegerBR(entry.cargas),
+            aves: formatEditableIntegerBR(entry.aves),
+            km_rodado: formatEditableDecimalBR(entry.km_rodado),
             obs: entry.obs ?? '',
         });
 
