@@ -11,6 +11,7 @@ use App\Models\AsyncExport;
 use App\Models\Colaborador;
 use App\Models\DescontoColaborador;
 use App\Models\EmprestimoColaborador;
+use App\Models\FinancialApproval;
 use App\Models\Pagamento;
 use App\Models\PensaoColaborador;
 use App\Models\TipoPagamento;
@@ -71,8 +72,20 @@ class PayrollController extends Controller
         $totalPagarMesAtual = (float) ($totals?->total_valor ?? 0);
         $colaboradoresPagosMes = (int) ($totals?->total_colaboradores ?? 0);
 
-        $colaboradoresAtivos = Colaborador::query()->where('ativo', true)->count();
+        $colaboradoresAtivos = Colaborador::query()
+            ->where('ativo', true)
+            ->when(
+                $request->user()?->dataScopeFor('registry') === 'units',
+                fn ($query) => $query->whereIn('unidade_id', $request->user()?->allowedUnitIdsFor('registry') ?: [0]),
+            )
+            ->count();
         $pagamentosAFazer = max(0, $colaboradoresAtivos - $colaboradoresPagosMes);
+        $coverageRate = $colaboradoresAtivos > 0
+            ? round(($colaboradoresPagosMes / $colaboradoresAtivos) * 100, 2)
+            : 0.0;
+        $averageByPaidCollaborator = $colaboradoresPagosMes > 0
+            ? round($totalPagarMesAtual / $colaboradoresPagosMes, 2)
+            : 0.0;
 
         $totaisPorUnidade = (clone $pagamentosMesQuery)
             ->selectRaw('unidade_id, COUNT(*) as total_lancamentos, SUM(valor) as total_valor')
@@ -100,6 +113,14 @@ class PayrollController extends Controller
             ])
             ->values();
 
+        $maiorUnidade = collect($totaisPorUnidade)
+            ->sortByDesc('total_valor')
+            ->first();
+
+        $tipoMaiorVolume = collect($totaisPorTipo)
+            ->sortByDesc('total_valor')
+            ->first();
+
         $pagamentosRecentes = $this->basePaymentsQueryForUser($request)
             ->select([
                 'id',
@@ -119,6 +140,86 @@ class PayrollController extends Controller
             ->limit(10)
             ->get();
 
+        $approvalBase = FinancialApproval::query()
+            ->where('action_key', 'payroll.launch-batch');
+
+        if ($request->user()?->dataScopeFor('payroll') === 'units') {
+            foreach ($request->user()?->allowedUnitIdsFor('payroll') ?: [] as $index => $allowedUnitId) {
+                if ($index === 0) {
+                    $approvalBase->where(function ($query) use ($allowedUnitId): void {
+                        $query->where('summary->unidade_id', $allowedUnitId);
+                    });
+                    continue;
+                }
+
+                $approvalBase->orWhere('summary->unidade_id', $allowedUnitId);
+            }
+        }
+
+        $pendingFinancialApprovals = (clone $approvalBase)
+            ->where('status', 'pending')
+            ->count();
+
+        $recentFinancialApprovals = (clone $approvalBase)
+            ->with(['requester:id,name', 'approver:id,name'])
+            ->latest('id')
+            ->limit(5)
+            ->get()
+            ->map(fn (FinancialApproval $approval): array => [
+                'id' => (int) $approval->id,
+                'status' => (string) $approval->status,
+                'requester_name' => $approval->requester?->name,
+                'approver_name' => $approval->approver?->name,
+                'total_valor' => round((float) (($approval->summary['total_valor'] ?? 0)), 2),
+                'total_colaboradores' => (int) (($approval->summary['total_colaboradores'] ?? 0)),
+                'created_at' => $approval->created_at?->toISOString(),
+                'reviewed_at' => $approval->reviewed_at?->toISOString(),
+            ])
+            ->values();
+
+        $periodoFim = CarbonImmutable::create($anoAtual, $mesAtual, 1);
+        $periodoInicio = $periodoFim->subMonths(5);
+        $inicioKey = ((int) $periodoInicio->year * 100) + (int) $periodoInicio->month;
+        $fimKey = ((int) $periodoFim->year * 100) + (int) $periodoFim->month;
+
+        $totaisPorMes = $this->basePaymentsQueryForUser($request)
+            ->whereRaw('(competencia_ano * 100 + competencia_mes) BETWEEN ? AND ?', [$inicioKey, $fimKey])
+            ->selectRaw('competencia_ano, competencia_mes, SUM(valor) as total_valor, COUNT(*) as total_lancamentos')
+            ->groupBy('competencia_ano', 'competencia_mes')
+            ->get()
+            ->keyBy(fn (Pagamento $pagamento): string => sprintf('%04d-%02d', (int) $pagamento->competencia_ano, (int) $pagamento->competencia_mes));
+
+        $evolucaoMensal = $this->buildMonthlySeries($periodoInicio, $periodoFim, $totaisPorMes);
+        $alerts = [];
+
+        if ($coverageRate < 95) {
+            $alerts[] = [
+                'level' => 'warning',
+                'title' => 'Cobertura abaixo da meta',
+                'detail' => "Apenas {$coverageRate}% dos colaboradores ativos receberam lancamento na competencia.",
+            ];
+        }
+
+        if ($pendingFinancialApprovals > 0) {
+            $alerts[] = [
+                'level' => 'info',
+                'title' => 'Aprovacoes pendentes',
+                'detail' => "{$pendingFinancialApprovals} solicitacao(oes) de aprovacao financeira aguardando analise.",
+            ];
+        }
+
+        if ($maiorUnidade && $totalPagarMesAtual > 0) {
+            $concentration = round((((float) $maiorUnidade['total_valor']) / $totalPagarMesAtual) * 100, 2);
+
+            if ($concentration >= 55) {
+                $alerts[] = [
+                    'level' => 'warning',
+                    'title' => 'Concentracao por unidade elevada',
+                    'detail' => "{$maiorUnidade['unidade_nome']} concentra {$concentration}% do valor do mes.",
+                ];
+            }
+        }
+
         $payload = [
             'competencia_mes' => $mesAtual,
             'competencia_ano' => $anoAtual,
@@ -126,10 +227,18 @@ class PayrollController extends Controller
             'total_pagamentos_a_fazer' => $pagamentosAFazer,
             'total_pagamentos_lancados' => $pagamentosLancados,
             'colaboradores_ativos' => $colaboradoresAtivos,
+            'coverage_rate' => $coverageRate,
+            'average_by_paid_collaborator' => $averageByPaidCollaborator,
             'total_a_pagar_mes_atual' => $totalPagarMesAtual,
             'totais_por_unidade' => $totaisPorUnidade,
             'totais_por_tipo' => $totaisPorTipo,
             'pagamentos_recentes' => $pagamentosRecentes,
+            'maior_unidade' => $maiorUnidade,
+            'tipo_maior_volume' => $tipoMaiorVolume,
+            'pending_financial_approvals' => $pendingFinancialApprovals,
+            'recent_financial_approvals' => $recentFinancialApprovals,
+            'evolucao_mensal' => $evolucaoMensal,
+            'alerts' => $alerts,
         ];
 
         Cache::put($cacheKey, $payload, now()->addSeconds(60));

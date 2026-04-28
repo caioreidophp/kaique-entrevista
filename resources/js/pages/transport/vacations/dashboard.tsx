@@ -40,6 +40,28 @@ interface VacationDashboard {
     percentual_sem_abono: number;
     taxa_vencidas_sobre_ativos: number;
     taxa_liberadas_sobre_ativos: number;
+    riscos_por_unidade: Array<{
+        unidade_id: number;
+        unidade_nome: string;
+        total_colaboradores: number;
+        vencidas: number;
+        urgentes: number;
+        atencao: number;
+        liberadas: number;
+        a_vencer: number;
+        risk_score: number;
+        risk_rate: number;
+    }>;
+    top_prioridades: Array<{
+        colaborador_id: number;
+        nome: string;
+        funcao: string | null;
+        unidade: string | null;
+        unidade_id: number | null;
+        status: string;
+        limite: string;
+        dias_para_limite: number;
+    }>;
     ferias_vigentes: Array<{
         id: number;
         nome: string | null;
@@ -130,6 +152,14 @@ function formatDate(date: string | null): string {
 
 function tipoLabel(tipo: 'confirmado' | 'previsao' | 'passada'): string {
     return tipo === 'previsao' ? 'Previsão' : tipo === 'passada' ? 'Passada' : 'Confirmado';
+}
+
+function priorityStatusLabel(status: string): string {
+    if (status === 'vencida') return 'Vencida';
+    if (status === 'urgente') return 'Urgente';
+    if (status === 'atencao') return 'Atencao';
+    if (status === 'liberada') return 'Liberada';
+    return 'A vencer';
 }
 
 function parseIsoDate(date: string): Date {
@@ -739,6 +769,74 @@ export default function VacationsDashboardPage() {
                                                 ))}
                                             </div>
                                         </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Prioridades de vencimento</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {data?.top_prioridades.length ? (
+                                        data.top_prioridades.map((item) => (
+                                            <div key={item.colaborador_id} className="rounded-md border p-3 text-sm">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="font-medium">{item.nome}</p>
+                                                    <span className="transport-status-badge transport-status-warning">
+                                                        {priorityStatusLabel(item.status)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-muted-foreground">
+                                                    {item.funcao ?? '-'} â€¢ {item.unidade ?? '-'}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    Limite {formatDate(item.limite)} â€¢ {formatIntegerBR(item.dias_para_limite)} dia(s)
+                                                </p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Sem prioridades criticas no momento.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Risco por unidade</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {data?.riscos_por_unidade.length ? (
+                                        data.riscos_por_unidade.slice(0, 6).map((item) => (
+                                            <div key={item.unidade_id} className="rounded-md border p-3 text-sm">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="font-medium">{item.unidade_nome}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
+                                                </div>
+                                                <div className="mt-2 grid gap-2 sm:grid-cols-4">
+                                                    <div>
+                                                        <p className="text-[11px] text-muted-foreground">Vencidas</p>
+                                                        <p className="font-semibold">{formatIntegerBR(item.vencidas)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[11px] text-muted-foreground">Urgentes</p>
+                                                        <p className="font-semibold">{formatIntegerBR(item.urgentes)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[11px] text-muted-foreground">Atencao</p>
+                                                        <p className="font-semibold">{formatIntegerBR(item.atencao)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[11px] text-muted-foreground">Liberadas</p>
+                                                        <p className="font-semibold">{formatIntegerBR(item.liberadas)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Sem consolidado por unidade.</p>
                                     )}
                                 </CardContent>
                             </Card>

@@ -130,11 +130,23 @@ interface ProgrammingDashboardResponse {
     jornada: JornadaItem[];
     summary: {
         trips_total: number;
+        trips_assigned?: number;
         trips_unassigned: number;
+        assignment_rate?: number;
         drivers_available: number;
+        drivers_started?: number;
         trucks_available: number;
+        trucks_started?: number;
         interjornada_alerts?: number;
+        trips_previous_day_start?: number;
+        overloaded_drivers_count?: number;
     };
+    driver_overload?: Array<DriverItem>;
+    operation_alerts?: Array<{
+        level: 'warning' | 'info';
+        title: string;
+        detail: string;
+    }>;
 }
 
 interface AssignmentDraft {
@@ -692,6 +704,10 @@ export default function TransportProgrammingDashboardPage() {
                 value: formatIntegerBR(summary.trips_total),
             },
             {
+                label: 'Viagens escaladas',
+                value: formatIntegerBR(summary.trips_assigned ?? 0),
+            },
+            {
                 label: 'Viagens sem escala completa',
                 value: formatIntegerBR(summary.trips_unassigned),
             },
@@ -702,6 +718,14 @@ export default function TransportProgrammingDashboardPage() {
             {
                 label: 'Alertas interjornada',
                 value: formatIntegerBR(summary.interjornada_alerts ?? 0),
+            },
+            {
+                label: 'Saida no dia anterior',
+                value: formatIntegerBR(summary.trips_previous_day_start ?? 0),
+            },
+            {
+                label: 'Motoristas em carga alta',
+                value: formatIntegerBR(summary.overloaded_drivers_count ?? 0),
             },
         ];
     }, [data, driverCounters.available]);
@@ -1656,7 +1680,7 @@ export default function TransportProgrammingDashboardPage() {
                 </Card>
 
                 {summaryCards.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
                         {summaryCards.map((item) => (
                             <Card key={item.label}>
                                 <CardContent className="space-y-0.5 py-3">
@@ -1665,6 +1689,47 @@ export default function TransportProgrammingDashboardPage() {
                                 </CardContent>
                             </Card>
                         ))}
+                    </div>
+                ) : null}
+
+                {data?.operation_alerts?.length ? (
+                    <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm">Leituras operacionais</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {data.operation_alerts.map((alert, index) => (
+                                    <div key={`${alert.title}-${index}`} className="rounded-md border p-3 text-sm">
+                                        <p className="font-medium">{alert.title}</p>
+                                        <p className="text-xs text-muted-foreground">{alert.detail}</p>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm">Motoristas para revisar</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {(data.driver_overload ?? []).length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">Sem revisoes pendentes por jornada.</p>
+                                ) : (
+                                    (data.driver_overload ?? []).map((driver) => (
+                                        <div key={driver.id} className="rounded-md border p-3 text-sm">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-medium">{driver.nome}</p>
+                                                <p className="text-xs text-muted-foreground">{formatDecimalBR(driver.horas_trabalhadas_dia)} h</p>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {driver.funcao_nome} • extra {formatDecimalBR(driver.horas_extra_dia)} h
+                                            </p>
+                                        </div>
+                                    ))
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
                 ) : null}
 

@@ -29,6 +29,8 @@ interface PayrollDashboard {
     total_pagamentos_a_fazer: number;
     total_pagamentos_lancados: number;
     colaboradores_ativos: number;
+    coverage_rate: number;
+    average_by_paid_collaborator: number;
     total_a_pagar_mes_atual: number;
     totais_por_tipo: Array<{
         tipo_pagamento_id: number | null;
@@ -43,6 +45,39 @@ interface PayrollDashboard {
         total_valor: number;
     }>;
     pagamentos_recentes: DashboardPagamento[];
+    maior_unidade?: {
+        unidade_id: number;
+        unidade_nome: string | null;
+        total_lancamentos: number;
+        total_valor: number;
+    } | null;
+    tipo_maior_volume?: {
+        tipo_pagamento_id: number | null;
+        tipo_pagamento_nome: string;
+        total_lancamentos: number;
+        total_valor: number;
+    } | null;
+    pending_financial_approvals: number;
+    recent_financial_approvals: Array<{
+        id: number;
+        status: string;
+        requester_name: string | null;
+        approver_name: string | null;
+        total_valor: number;
+        total_colaboradores: number;
+        created_at: string | null;
+        reviewed_at: string | null;
+    }>;
+    evolucao_mensal: Array<{
+        competencia_label: string;
+        total_lancamentos: number;
+        total_valor: number;
+    }>;
+    alerts: Array<{
+        level: 'warning' | 'info';
+        title: string;
+        detail: string;
+    }>;
 }
 
 interface PayrollDashboardPageResponse {
@@ -160,15 +195,11 @@ export default function TransportPayrollDashboardPage() {
         return `${String(data.competencia_mes).padStart(2, '0')}/${data.competencia_ano}`;
     }, [data]);
 
-    const averageByPaidCollaborator = useMemo(() => {
-        if (!data || data.colaboradores_pagos_mes === 0) return 0;
-        return data.total_a_pagar_mes_atual / data.colaboradores_pagos_mes;
-    }, [data]);
+    const averageByPaidCollaborator = useMemo(() => data?.average_by_paid_collaborator ?? 0, [data]);
 
     const topUnit = useMemo(() => {
-        if (!data || data.totais_por_unidade.length === 0) return null;
-
-        return [...data.totais_por_unidade].sort((a, b) => b.total_valor - a.total_valor)[0] ?? null;
+        if (!data) return null;
+        return data.maior_unidade ?? ([...data.totais_por_unidade].sort((a, b) => b.total_valor - a.total_valor)[0] ?? null);
     }, [data]);
 
     const concentrationTopUnit = useMemo(() => {
@@ -363,7 +394,7 @@ export default function TransportPayrollDashboardPage() {
                             </Card>
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-3">
                             <Card className="transport-kpi-card">
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-sm text-muted-foreground">
@@ -377,6 +408,22 @@ export default function TransportPayrollDashboardPage() {
                                     <p className="transport-kpi-value">{formatCurrencyBR(averageByPaidCollaborator)}</p>
                                     <p className="transport-kpi-detail">
                                         Total dos pagamentos no mês dividido pela quantidade de colaboradores que receberam pagamento.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="transport-kpi-card">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm text-muted-foreground">
+                                        Cobertura da folha
+                                    </CardTitle>
+                                    <span className="transport-kpi-icon">
+                                        <Wallet className="size-4" />
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="transport-kpi-value">{formatPercentBR(data.coverage_rate)}</p>
+                                    <p className="transport-kpi-detail">
+                                        {formatIntegerBR(data.colaboradores_pagos_mes)} pagos de {formatIntegerBR(data.colaboradores_ativos)} ativos.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -400,7 +447,65 @@ export default function TransportPayrollDashboardPage() {
                             </Card>
                         </div>
 
-                        <div className="grid gap-4 xl:grid-cols-2">
+                        <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Leituras operacionais</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {data.alerts.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem alertas relevantes para a competencia.
+                                        </p>
+                                    ) : (
+                                        data.alerts.map((alert, index) => (
+                                            <div key={`${alert.title}-${index}`} className="rounded-md border p-3 text-sm">
+                                                <p className="font-medium">{alert.title}</p>
+                                                <p className="text-xs text-muted-foreground">{alert.detail}</p>
+                                            </div>
+                                        ))
+                                    )}
+
+                                    <div className="grid gap-3 md:grid-cols-3">
+                                        <div className="rounded-md border p-3">
+                                            <p className="text-xs text-muted-foreground">Pagamentos a fazer</p>
+                                            <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.total_pagamentos_a_fazer)}</p>
+                                        </div>
+                                        <div className="rounded-md border p-3">
+                                            <p className="text-xs text-muted-foreground">Aprovacoes pendentes</p>
+                                            <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.pending_financial_approvals)}</p>
+                                        </div>
+                                        <div className="rounded-md border p-3">
+                                            <p className="text-xs text-muted-foreground">Maior tipo por valor</p>
+                                            <p className="mt-1 text-sm font-semibold">{data.tipo_maior_volume?.tipo_pagamento_nome ?? '-'}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Evolucao mensal</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {data.evolucao_mensal.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">Sem historico recente.</p>
+                                    ) : (
+                                        data.evolucao_mensal.map((item) => (
+                                            <div key={item.competencia_label} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                                                <div>
+                                                    <p className="font-medium">{item.competencia_label}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatIntegerBR(item.total_lancamentos)} lancamentos</p>
+                                                </div>
+                                                <p className="font-semibold">{formatCurrencyBR(item.total_valor)}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-3">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Totais por unidade</CardTitle>
@@ -470,6 +575,32 @@ export default function TransportPayrollDashboardPage() {
                                                 <p className="font-semibold">
                                                     {formatCurrencyBR(item.valor)}
                                                 </p>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Aprovacoes recentes</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {data.recent_financial_approvals.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem aprovacoes recentes.
+                                        </p>
+                                    ) : (
+                                        data.recent_financial_approvals.map((item) => (
+                                            <div key={item.id} className="rounded-md border p-3 text-sm">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="font-medium">{item.requester_name ?? 'Sem solicitante'}</p>
+                                                    <span className="text-xs text-muted-foreground">{item.status}</span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatIntegerBR(item.total_colaboradores)} colaboradores
+                                                </p>
+                                                <p className="mt-1 font-semibold">{formatCurrencyBR(item.total_valor)}</p>
                                             </div>
                                         ))
                                     )}

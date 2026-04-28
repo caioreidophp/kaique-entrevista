@@ -72,6 +72,8 @@ class PayrollVacationApiTest extends TestCase
                     'percentual_com_abono',
                     'percentual_sem_abono',
                     'taxa_vencidas_sobre_ativos',
+                    'riscos_por_unidade',
+                    'top_prioridades',
                 ],
             ]);
     }
@@ -178,6 +180,7 @@ class PayrollVacationApiTest extends TestCase
         $this->assertEquals(1, (int) $dashboardAll->json('data.total_com_abono'));
         $this->assertEquals(1, (int) $dashboardAll->json('data.total_sem_abono'));
         $this->assertEquals(50.0, (float) $dashboardAll->json('data.percentual_com_abono'));
+        $this->assertNotEmpty($dashboardAll->json('data.riscos_por_unidade'));
 
         $dashboardA = $this->getJson('/api/payroll/vacations/dashboard?unidade_id='.$unidadeA->id)->assertOk();
         $this->assertEquals(1, (int) $dashboardA->json('data.total_lancamentos_abono'));

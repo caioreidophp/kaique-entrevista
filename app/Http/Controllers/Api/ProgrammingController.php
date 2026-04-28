@@ -298,6 +298,44 @@ class ProgrammingController extends Controller
             ->values()
             ->all();
 
+        $tripsAssigned = collect($tripRows)->whereNotNull('escala')->count();
+        $driversStarted = collect($drivers)->where('is_assigned_today', true)->count();
+        $trucksStarted = collect($trucks)->where('is_assigned_today', true)->count();
+        $overloadedDrivers = collect($drivers)
+            ->filter(fn (array $driver): bool => ((float) ($driver['horas_trabalhadas_dia'] ?? 0)) >= 8 || ((bool) ($driver['tem_alerta_interjornada'] ?? false)))
+            ->sortByDesc(fn (array $driver): float => ((float) ($driver['horas_trabalhadas_dia'] ?? 0)) + (((bool) ($driver['tem_alerta_interjornada'] ?? false)) ? 100.0 : 0.0))
+            ->take(8)
+            ->values();
+        $previousDayDepartures = collect($tripRows)->filter(fn (array $trip): bool => (bool) ($trip['saida_dia_anterior'] ?? false))->count();
+        $assignmentRate = count($tripRows) > 0
+            ? round(($tripsAssigned / count($tripRows)) * 100, 2)
+            : 0.0;
+        $operationAlerts = [];
+
+        if ($assignmentRate < 100 && count($tripRows) > 0) {
+            $operationAlerts[] = [
+                'level' => 'warning',
+                'title' => 'Escalas incompletas',
+                'detail' => sprintf('%d viagem(ns) ainda sem escala completa.', max(count($tripRows) - $tripsAssigned, 0)),
+            ];
+        }
+
+        if ($previousDayDepartures > 0) {
+            $operationAlerts[] = [
+                'level' => 'info',
+                'title' => 'Saidas operacionais no dia anterior',
+                'detail' => sprintf('%d viagem(ns) iniciam operacionalmente antes da virada do dia.', $previousDayDepartures),
+            ];
+        }
+
+        if ($overloadedDrivers->count() > 0) {
+            $operationAlerts[] = [
+                'level' => 'warning',
+                'title' => 'Motoristas com carga elevada',
+                'detail' => sprintf('%d motorista(s) demandam revisao de jornada.', $overloadedDrivers->count()),
+            ];
+        }
+
         return response()->json([
             'unidades' => $units
                 ->map(fn (Unidade $unit): array => [
@@ -316,14 +354,22 @@ class ProgrammingController extends Controller
             'jornada' => $jornadaRows,
             'summary' => [
                 'trips_total' => count($tripRows),
+                'trips_assigned' => $tripsAssigned,
                 'trips_unassigned' => collect($tripRows)->whereNull('escala')->count(),
+                'assignment_rate' => $assignmentRate,
                 'drivers_available' => collect($drivers)->where('is_available_today', true)->count(),
+                'drivers_started' => $driversStarted,
                 'trucks_available' => collect($trucks)->where('is_available_today', true)->count(),
+                'trucks_started' => $trucksStarted,
                 'interjornada_alerts' => collect($tripRows)
                     ->whereNotNull('interjornada_alert')
                     ->filter(fn (array $trip): bool => (bool) ($trip['interjornada_alert']['is_violated'] ?? false))
                     ->count(),
+                'trips_previous_day_start' => $previousDayDepartures,
+                'overloaded_drivers_count' => $overloadedDrivers->count(),
             ],
+            'driver_overload' => $overloadedDrivers,
+            'operation_alerts' => $operationAlerts,
         ]);
     }
 

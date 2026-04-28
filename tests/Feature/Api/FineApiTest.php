@@ -117,6 +117,12 @@ class FineApiTest extends TestCase
             ->assertJsonCount(1, 'motoristas')
             ->assertJsonPath('unidades.0.id', $unidadePermitida->id);
 
+        $this->getJson('/api/fines/dashboard?data_inicio=2026-04-01&data_fim=2026-04-30')
+            ->assertOk()
+            ->assertJsonPath('totals.quantidade', 1)
+            ->assertJsonPath('totals.valor_medio', 150.5)
+            ->assertJsonPath('totals.top_placa.label', 'ABC1D23');
+
         $this->getJson('/api/fines/'.$multaBloqueada->id)
             ->assertForbidden();
     }

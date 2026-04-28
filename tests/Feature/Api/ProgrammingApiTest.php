@@ -77,7 +77,8 @@ class ProgrammingApiTest extends TestCase
         $this->assertNotNull($tripDate);
 
         $this->getJson('/api/programming/dashboard?unidade_id='.$unit->id.'&data='.$tripDate)
-            ->assertOk();
+            ->assertOk()
+            ->assertJsonPath('summary.trips_assigned', 0);
 
         $this->postJson('/api/programming/assignments', [
             'programacao_viagem_id' => $trip?->id,
@@ -97,7 +98,9 @@ class ProgrammingApiTest extends TestCase
         ]);
 
         $this->getJson('/api/programming/dashboard?unidade_id='.$unit->id.'&data='.$tripDate)
-            ->assertOk();
+            ->assertOk()
+            ->assertJsonPath('summary.trips_assigned', 1)
+            ->assertJsonPath('summary.assignment_rate', 100);
     }
 
     public function test_assignment_rejects_interjornada_lower_than_eleven_hours(): void

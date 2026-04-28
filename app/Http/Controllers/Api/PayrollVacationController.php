@@ -113,6 +113,70 @@ class PayrollVacationController extends Controller
             ? round(($faixaLiberada / $rows->count()) * 100, 2)
             : 0.0;
 
+        $riscosPorUnidade = $rows
+            ->groupBy(fn (array $row): int => (int) ($row['unidade_id'] ?? 0))
+            ->map(function (Collection $group): array {
+                $total = $group->count();
+                $vencidas = $group->where('status', 'vencida')->count();
+                $urgentes = $group->where('status', 'urgente')->count();
+                $atencao = $group->where('status', 'atencao')->count();
+                $liberadas = $group->where('status', 'liberada')->count();
+                $aVencer = $group->where('status', 'a_vencer')->count();
+                $riskScore = ($vencidas * 4) + ($urgentes * 3) + ($atencao * 2) + $liberadas;
+
+                return [
+                    'unidade_id' => (int) ($group->first()['unidade_id'] ?? 0),
+                    'unidade_nome' => (string) ($group->first()['unidade'] ?? 'Sem unidade'),
+                    'total_colaboradores' => $total,
+                    'vencidas' => $vencidas,
+                    'urgentes' => $urgentes,
+                    'atencao' => $atencao,
+                    'liberadas' => $liberadas,
+                    'a_vencer' => $aVencer,
+                    'risk_score' => $riskScore,
+                    'risk_rate' => $total > 0
+                        ? round((($vencidas + $urgentes + $atencao) / $total) * 100, 2)
+                        : 0.0,
+                ];
+            })
+            ->sortByDesc('risk_score')
+            ->values();
+
+        $topPrioridades = $rows
+            ->filter(fn (array $row): bool => in_array($row['status'], ['vencida', 'urgente', 'atencao'], true))
+            ->map(function (array $row) use ($today): array {
+                $limite = CarbonImmutable::parse((string) $row['limite']);
+
+                return [
+                    'colaborador_id' => (int) $row['colaborador_id'],
+                    'nome' => (string) ($row['nome'] ?? '-'),
+                    'funcao' => $row['funcao'],
+                    'unidade' => $row['unidade'],
+                    'unidade_id' => $row['unidade_id'] !== null ? (int) $row['unidade_id'] : null,
+                    'status' => (string) $row['status'],
+                    'limite' => (string) $row['limite'],
+                    'dias_para_limite' => (int) $today->diffInDays($limite, false),
+                ];
+            })
+            ->sort(function (array $left, array $right): int {
+                $severity = [
+                    'vencida' => 4,
+                    'urgente' => 3,
+                    'atencao' => 2,
+                    'liberada' => 1,
+                    'a_vencer' => 0,
+                ];
+
+                $severityCompare = ($severity[$right['status']] ?? 0) <=> ($severity[$left['status']] ?? 0);
+                if ($severityCompare !== 0) {
+                    return $severityCompare;
+                }
+
+                return ((int) $left['dias_para_limite']) <=> ((int) $right['dias_para_limite']);
+            })
+            ->take(8)
+            ->values();
+
         $feriasVigentesQuery = FeriasLancamento::query()
             ->with([
                 'colaborador:id,nome',
@@ -214,6 +278,8 @@ class PayrollVacationController extends Controller
                 'percentual_sem_abono' => $percentualSemAbono,
                 'taxa_vencidas_sobre_ativos' => $taxaVencidasSobreAtivos,
                 'taxa_liberadas_sobre_ativos' => $taxaLiberadasSobreAtivos,
+                'riscos_por_unidade' => $riscosPorUnidade,
+                'top_prioridades' => $topPrioridades,
                 'ferias_vigentes' => $feriasVigentes,
                 'timeline' => $timeline,
             ],

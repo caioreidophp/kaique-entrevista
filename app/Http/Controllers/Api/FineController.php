@@ -56,6 +56,23 @@ class FineController extends Controller
 
         $totalQuantidade = (clone $baseQuery)->count();
         $totalValor = (float) ((clone $baseQuery)->sum('multas.valor'));
+        $valorMedio = $totalQuantidade > 0
+            ? round($totalValor / $totalQuantidade, 2)
+            : 0.0;
+        $today = CarbonImmutable::today()->toDateString();
+
+        $statusSummaryRows = (clone $baseQuery)
+            ->selectRaw('multas.status as label, COUNT(*) as quantidade, COALESCE(SUM(multas.valor), 0) as valor_total')
+            ->groupBy('multas.status')
+            ->get();
+
+        $statusSummary = collect($this->normalizeChartRows($statusSummaryRows, 'Nao informado'))
+            ->keyBy('label');
+
+        $overdueOpenRows = (clone $baseQuery)
+            ->whereDate('multas.vencimento', '<', $today)
+            ->where('multas.status', '!=', 'pago')
+            ->get(['multas.id', 'multas.valor']);
 
         $porInfracao = (clone $baseQuery)
             ->leftJoin('multa_infracoes as infracoes', 'infracoes.id', '=', 'multas.multa_infracao_id')
@@ -98,6 +115,38 @@ class FineController extends Controller
             ->limit(12)
             ->get();
 
+        $topUnidades = (clone $baseQuery)
+            ->leftJoin('unidades', 'unidades.id', '=', 'multas.unidade_id')
+            ->selectRaw('unidades.nome as label, COUNT(*) as quantidade, COALESCE(SUM(multas.valor), 0) as valor_total')
+            ->groupBy('unidades.nome')
+            ->orderByDesc('valor_total')
+            ->limit(8)
+            ->get();
+
+        $topPlaca = $this->topChartRow($porPlaca);
+        $topMotorista = $this->topChartRow($porMotorista);
+        $alerts = [];
+
+        if ($overdueOpenRows->count() > 0) {
+            $alerts[] = [
+                'level' => 'warning',
+                'title' => 'Multas vencidas em aberto',
+                'detail' => sprintf(
+                    '%d registro(s) somando R$ %s.',
+                    $overdueOpenRows->count(),
+                    number_format((float) $overdueOpenRows->sum('valor'), 2, ',', '.'),
+                ),
+            ];
+        }
+
+        if ($topMotorista !== null && (int) $topMotorista['quantidade'] >= 3) {
+            $alerts[] = [
+                'level' => 'info',
+                'title' => 'Recorrencia por motorista',
+                'detail' => "{$topMotorista['label']} concentra {$topMotorista['quantidade']} registro(s) no periodo.",
+            ];
+        }
+
         return response()->json([
             'filters' => [
                 'data_inicio' => $start->toDateString(),
@@ -114,6 +163,32 @@ class FineController extends Controller
             'totals' => [
                 'quantidade' => $totalQuantidade,
                 'valor' => round($totalValor, 2),
+                'valor_medio' => $valorMedio,
+                'vencidas_em_aberto' => [
+                    'quantidade' => $overdueOpenRows->count(),
+                    'valor' => round((float) $overdueOpenRows->sum('valor'), 2),
+                ],
+                'status_summary' => [
+                    'aguardando_motorista' => [
+                        'quantidade' => (int) (($statusSummary['aguardando_motorista']['quantidade'] ?? 0)),
+                        'valor' => round((float) ($statusSummary['aguardando_motorista']['valor_total'] ?? 0), 2),
+                    ],
+                    'solicitado_boleto' => [
+                        'quantidade' => (int) (($statusSummary['solicitado_boleto']['quantidade'] ?? 0)),
+                        'valor' => round((float) ($statusSummary['solicitado_boleto']['valor_total'] ?? 0), 2),
+                    ],
+                    'boleto_ok' => [
+                        'quantidade' => (int) (($statusSummary['boleto_ok']['quantidade'] ?? 0)),
+                        'valor' => round((float) ($statusSummary['boleto_ok']['valor_total'] ?? 0), 2),
+                    ],
+                    'pago' => [
+                        'quantidade' => (int) (($statusSummary['pago']['quantidade'] ?? 0)),
+                        'valor' => round((float) ($statusSummary['pago']['valor_total'] ?? 0), 2),
+                    ],
+                ],
+                'top_placa' => $topPlaca,
+                'top_motorista' => $topMotorista,
+                'top_unidades' => $this->normalizeChartRows($topUnidades, 'Sem unidade'),
             ],
             'charts' => [
                 'infracao' => $this->normalizeChartRows($porInfracao, 'Sem infração'),
@@ -123,6 +198,7 @@ class FineController extends Controller
                 'placa' => $this->normalizeChartRows($porPlaca, 'Sem placa'),
                 'motorista' => $this->normalizeChartRows($porMotorista, 'Sem motorista'),
             ],
+            'alerts' => $alerts,
         ]);
     }
 
@@ -501,6 +577,28 @@ class FineController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  iterable<int, object|array<string, mixed>>  $rows
+     * @return array<string, mixed>|null
+     */
+    private function topChartRow(iterable $rows): ?array
+    {
+        $normalized = collect($rows)
+            ->map(function ($row): array {
+                return [
+                    'label' => trim((string) (data_get($row, 'label') ?? '')) !== ''
+                        ? trim((string) data_get($row, 'label'))
+                        : 'Nao informado',
+                    'quantidade' => (int) data_get($row, 'quantidade', 0),
+                    'valor_total' => round((float) data_get($row, 'valor_total', 0), 2),
+                ];
+            })
+            ->sortByDesc('valor_total')
+            ->values();
+
+        return $normalized->first();
     }
 
     private function resolveUnidadeId(?int $colaboradorId, int $placaFrotaId): ?int

@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Colaborador;
 use App\Models\DescontoColaborador;
+use App\Models\FinancialApproval;
 use App\Models\Funcao;
 use App\Models\Pagamento;
 use App\Models\TipoPagamento;
@@ -212,6 +213,7 @@ class PayrollApiTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $colaborador = $this->createColaborador(cpf: '66666666666');
+        $unidade = Unidade::query()->findOrFail($colaborador->unidade_id);
 
         Pagamento::query()->create([
             'colaborador_id' => $colaborador->id,
@@ -223,12 +225,30 @@ class PayrollApiTest extends TestCase
             'lancado_em' => now(),
         ]);
 
+        FinancialApproval::query()->create([
+            'request_uuid' => 'req-payroll-test',
+            'action_key' => 'payroll.launch-batch',
+            'request_hash' => hash('sha256', 'req-payroll-test'),
+            'status' => 'pending',
+            'requester_id' => $admin->id,
+            'summary' => [
+                'unidade_id' => $unidade->id,
+                'unidade_nome' => $unidade->nome,
+                'total_valor' => 2000,
+                'total_colaboradores' => 1,
+            ],
+            'expires_at' => now()->addHour(),
+        ]);
+
         Sanctum::actingAs($admin);
 
         $this->getJson('/api/payroll/dashboard')
             ->assertOk()
             ->assertJsonPath('total_pagamentos_lancados', 1)
-            ->assertJsonPath('total_a_pagar_mes_atual', 2000);
+            ->assertJsonPath('total_a_pagar_mes_atual', 2000)
+            ->assertJsonPath('pending_financial_approvals', 1)
+            ->assertJsonPath('coverage_rate', 100)
+            ->assertJsonCount(6, 'evolucao_mensal');
     }
 
     public function test_can_load_launch_candidates_and_launch_batch(): void

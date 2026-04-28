@@ -37,6 +37,15 @@ interface DashboardResponse {
     totals: {
         quantidade: number;
         valor: number;
+        valor_medio: number;
+        vencidas_em_aberto: {
+            quantidade: number;
+            valor: number;
+        };
+        status_summary: Record<string, { quantidade: number; valor: number }>;
+        top_placa?: ChartRow | null;
+        top_motorista?: ChartRow | null;
+        top_unidades: ChartRow[];
     };
     charts: {
         infracao: ChartRow[];
@@ -46,6 +55,11 @@ interface DashboardResponse {
         placa: ChartRow[];
         motorista: ChartRow[];
     };
+    alerts: Array<{
+        level: 'warning' | 'info';
+        title: string;
+        detail: string;
+    }>;
 }
 
 type ValueMode = 'quantidade' | 'valor_total';
@@ -494,7 +508,7 @@ export default function TransportFinesDashboardPage() {
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <Card className="border-border/80">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-base">Multas - Quantidade</CardTitle>
@@ -521,6 +535,29 @@ export default function TransportFinesDashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
+                    <Card className="border-border/80">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Ticket medio</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-3xl font-semibold">
+                                {formatCurrencyBR(data?.totals.valor_medio ?? 0)}
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-border/80">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">Vencidas em aberto</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-3xl font-semibold">
+                                {formatIntegerBR(data?.totals.vencidas_em_aberto.quantidade ?? 0)}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {formatCurrencyBR(data?.totals.vencidas_em_aberto.valor ?? 0)}
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {loading && !data ? (
@@ -530,6 +567,61 @@ export default function TransportFinesDashboardPage() {
                     </div>
                 ) : (
                     <>
+                        <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr]">
+                            <Card className="border-border/80">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Leituras rapidas</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {data?.alerts.length ? (
+                                        data.alerts.map((alert, index) => (
+                                            <div key={`${alert.title}-${index}`} className="rounded-md border p-3 text-sm">
+                                                <p className="font-medium">{alert.title}</p>
+                                                <p className="text-xs text-muted-foreground">{alert.detail}</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Sem alertas criticos no periodo.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-border/80">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Status financeiro</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 text-sm">
+                                    {Object.entries(data?.totals.status_summary ?? {}).map(([key, value]) => (
+                                        <div key={key} className="flex items-center justify-between rounded-md border px-3 py-2">
+                                            <div>
+                                                <p className="font-medium">{statusLabel(key)}</p>
+                                                <p className="text-xs text-muted-foreground">{formatIntegerBR(value.quantidade)} registros</p>
+                                            </div>
+                                            <p className="font-semibold">{formatCurrencyBR(value.valor)}</p>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-border/80">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Maior exposicao</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <div className="rounded-md border p-3">
+                                        <p className="text-xs text-muted-foreground">Placa</p>
+                                        <p className="mt-1 font-semibold">{data?.totals.top_placa?.label ?? '-'}</p>
+                                        <p className="text-xs text-muted-foreground">{formatCurrencyBR(data?.totals.top_placa?.valor_total ?? 0)}</p>
+                                    </div>
+                                    <div className="rounded-md border p-3">
+                                        <p className="text-xs text-muted-foreground">Motorista</p>
+                                        <p className="mt-1 font-semibold">{data?.totals.top_motorista?.label ?? '-'}</p>
+                                        <p className="text-xs text-muted-foreground">{formatCurrencyBR(data?.totals.top_motorista?.valor_total ?? 0)}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                             <LazyChartSlot>
                                 <PieSummaryCard title="Gráfico por Infração (Quantidade)" rows={data?.charts.infracao ?? []} mode="quantidade" colorSeed={0} />
@@ -559,6 +651,21 @@ export default function TransportFinesDashboardPage() {
                                 <ColumnComparisonCard title="Gráfico de Colunas por Motorista (qtde e valor)" rows={data?.charts.motorista ?? []} />
                             </LazyChartSlot>
                         </div>
+
+                        <Card className="border-border/80">
+                            <CardHeader>
+                                <CardTitle className="text-base">Top unidades por valor</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                {(data?.totals.top_unidades ?? []).map((item, index) => (
+                                    <div key={`${item.label}-${index}`} className="rounded-md border p-3 text-sm">
+                                        <p className="font-medium">{item.label}</p>
+                                        <p className="text-xs text-muted-foreground">{formatIntegerBR(item.quantidade)} registro(s)</p>
+                                        <p className="mt-1 font-semibold">{formatCurrencyBR(item.valor_total)}</p>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
                     </>
                 )}
             </div>
