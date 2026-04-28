@@ -126,7 +126,36 @@ php artisan test
 
 - 2-minute demo script: [documentos/admissions-demo-script-en.md](documentos/admissions-demo-script-en.md)
 - GitHub/deploy publication checklist: [documentos/admissions-publish-checklist-en.md](documentos/admissions-publish-checklist-en.md)
+- Architecture overview: [documentos/architecture-overview.md](documentos/architecture-overview.md)
+- Security and performance notes: [documentos/security-performance-notes.md](documentos/security-performance-notes.md)
 - VPS deployment guide: [documentos/deploy-vps.md](documentos/deploy-vps.md)
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## UX / UI Direction
+
+- Operational workspace focused on scanning, urgency detection, and low-friction navigation
+- Shared transport shell with permission-aware menus, keyboard shortcuts, and compact dashboards
+- Enterprise visual treatment with consistent card hierarchy, executive summaries, and alert framing
+
+## Security and Performance Posture
+
+- Environment-aware Content Security Policy with stronger production defaults
+- Hardened browser headers and attachment delivery protections
+- API retries, timeout handling, and lightweight GET caching on stable reference endpoints
+- Queue-backed exports and bulk operations for heavy workflows
+- Route-sensitive throttling and idempotency for critical write paths
+
+## Review and Revert Flow
+
+The current upgrade pass is designed to be easy to evaluate and undo:
+
+```bash
+git checkout codex-professional-upgrade
+git diff main...codex-professional-upgrade
+git checkout main
+```
+
+If you do not want to keep the changes later, you can stay on `main` or simply delete the branch.
 
 ## Suggested Demo Narrative
 

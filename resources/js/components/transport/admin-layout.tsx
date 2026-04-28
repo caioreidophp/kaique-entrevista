@@ -25,7 +25,7 @@ import {
     CircleX,
     CircleAlert,
 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -286,7 +286,7 @@ export function AdminLayout({
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.sidebar.collapsed') === '1';
     });
-    const [focusMode, setFocusMode] = useState<boolean>(() => {
+    const [focusMode] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.focus.mode') === '1';
     });
@@ -297,6 +297,7 @@ export function AdminLayout({
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
     const [menuSearch, setMenuSearch] = useState('');
+    const deferredMenuSearch = useDeferredValue(menuSearch);
     const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
         Partial<Record<SidebarLinkKey, boolean>>
     >({});
@@ -1238,7 +1239,7 @@ export function AdminLayout({
     );
 
     const filteredVisibleLinks = useMemo(() => {
-        const query = menuSearch.trim().toLocaleLowerCase();
+        const query = deferredMenuSearch.trim().toLocaleLowerCase();
 
         if (!query) {
             return visibleLinks;
@@ -1267,7 +1268,13 @@ export function AdminLayout({
                 };
             })
             .filter((link): link is SidebarLink => link !== null);
-    }, [menuSearch, visibleLinks]);
+    }, [deferredMenuSearch, visibleLinks]);
+
+    const roleLabel = useMemo(() => {
+        if (user?.role === 'master_admin') return 'Master Admin';
+        if (user?.role === 'usuario') return copy.roleUser;
+        return copy.roleAdmin;
+    }, [copy.roleAdmin, copy.roleUser, user?.role]);
 
     useEffect(() => {
         if (currentModule !== 'home') {
@@ -1322,7 +1329,7 @@ export function AdminLayout({
 
             <div
                 data-transport-i18n-root="transport-app"
-                className="min-h-screen bg-muted/20 print:min-h-0 print:bg-white"
+                className="transport-app-shell min-h-screen print:min-h-0 print:bg-white"
             >
                 {globalNotice ? (
                     <Notification
@@ -1332,7 +1339,7 @@ export function AdminLayout({
                     />
                 ) : null}
                 <div
-                    className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0 ${
+                    className={`relative z-10 grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:gap-5 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0 ${
                         focusMode
                             ? 'lg:grid-cols-[1fr]'
                             : sidebarCollapsed
@@ -1340,7 +1347,7 @@ export function AdminLayout({
                             : 'lg:grid-cols-[260px_1fr]'
                     }`}
                 >
-                    <div className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm lg:hidden print:hidden">
+                    <div className="transport-surface flex items-center justify-between p-3 lg:hidden print:hidden">
                         <Button
                             type="button"
                             variant="outline"
@@ -1370,7 +1377,7 @@ export function AdminLayout({
                     ) : null}
 
                     <aside
-                        className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
+                        className={`transport-nav-shell hidden h-full flex-col overflow-hidden rounded-xl transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
                             focusMode ? 'lg:hidden' : 'lg:flex'
                         } ${
                             sidebarCollapsed ? 'p-2' : 'p-4'
@@ -1389,11 +1396,11 @@ export function AdminLayout({
                                     prefetch
                                     className={sidebarCollapsed ? 'block' : 'mb-3 block w-full'}
                                 >
-                                    <div
-                                        className={`flex items-center justify-center rounded-lg border bg-muted/20 p-2 ${
-                                            sidebarCollapsed
-                                                ? 'min-h-[72px] w-[72px]'
-                                                : 'min-h-[96px] w-full'
+                                        <div
+                                            className={`flex items-center justify-center rounded-lg border border-border/80 bg-background/80 p-2 shadow-sm ${
+                                                sidebarCollapsed
+                                                    ? 'min-h-[72px] w-[72px]'
+                                                    : 'min-h-[96px] w-full'
                                         }`}
                                     >
                                         {sidebarCollapsed ? (
@@ -1451,14 +1458,14 @@ export function AdminLayout({
                                     >
                                         {user?.name} ({user?.email})
                                     </p>
-                                    <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
-                                        {copy.profile}:{' '}
-                                        {user?.role === 'master_admin'
-                                            ? 'Master Admin'
-                                            : user?.role === 'usuario'
-                                              ? copy.roleUser
-                                              : copy.roleAdmin}
-                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <span className="transport-chip">
+                                            {copy.profile}: {roleLabel}
+                                        </span>
+                                        <span className="transport-chip">
+                                            {filteredVisibleLinks.length} atalhos
+                                        </span>
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -1625,7 +1632,7 @@ export function AdminLayout({
 
                     {focusMode ? (
                         <aside
-                            className={`fixed top-6 bottom-6 left-6 z-50 hidden w-[260px] flex-col overflow-hidden rounded-xl border bg-card p-4 shadow-xl transition-all duration-200 ease-out lg:flex print:hidden ${
+                            className={`transport-nav-shell fixed top-6 bottom-6 left-6 z-50 hidden w-[260px] flex-col overflow-hidden rounded-xl p-4 shadow-xl transition-all duration-200 ease-out lg:flex print:hidden ${
                                 focusSidebarVisible
                                     ? 'translate-x-0 opacity-100'
                                     : '-translate-x-[120%] opacity-0 pointer-events-none'
@@ -1636,7 +1643,7 @@ export function AdminLayout({
                             <div className="mb-6 border-b pb-4">
                                 <div className="mb-3 block w-full">
                                     <Link href="/transport/home" prefetch className="mb-3 block w-full">
-                                        <div className="flex min-h-[96px] w-full items-center justify-center rounded-lg border bg-muted/20 p-2">
+                                        <div className="flex min-h-[96px] w-full items-center justify-center rounded-lg border border-border/80 bg-background/80 p-2 shadow-sm">
                                             <Logo className="h-16 w-full max-w-[236px] object-contain object-center" />
                                         </div>
                                     </Link>
@@ -1654,6 +1661,14 @@ export function AdminLayout({
                                 >
                                     {user?.name} ({user?.email})
                                 </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className="transport-chip">
+                                        {copy.profile}: {roleLabel}
+                                    </span>
+                                    <span className="transport-chip">
+                                        {filteredVisibleLinks.length} atalhos
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="flex min-h-0 flex-1 flex-col">
@@ -1807,7 +1822,7 @@ export function AdminLayout({
                                 onClick={() => setMobileMenuOpen(false)}
                                 aria-label={copy.closeMenu}
                             />
-                            <aside className="relative flex h-full w-[78%] max-w-[320px] flex-col border-r bg-card p-4 shadow-xl">
+                            <aside className="transport-nav-shell relative flex h-full w-[78%] max-w-[320px] flex-col border-r p-4 shadow-xl">
                                 <div className="mb-6 border-b pb-4">
                                     <Link
                                         href="/transport/home"
@@ -1815,7 +1830,7 @@ export function AdminLayout({
                                         className="mb-3 block"
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
-                                        <div className="flex min-h-[84px] items-center justify-center rounded-lg border bg-muted/20 p-2">
+                                        <div className="flex min-h-[84px] items-center justify-center rounded-lg border border-border/80 bg-background/80 p-2 shadow-sm">
                                             <Logo className="h-14 w-[220px] object-contain object-center" />
                                         </div>
                                     </Link>
@@ -1832,12 +1847,7 @@ export function AdminLayout({
                                         {user?.name} ({user?.email})
                                     </p>
                                     <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase">
-                                        {copy.profile}:{' '}
-                                        {user?.role === 'master_admin'
-                                            ? 'Master Admin'
-                                            : user?.role === 'usuario'
-                                                ? copy.roleUser
-                                                : copy.roleAdmin}
+                                        {copy.profile}: {roleLabel}
                                     </p>
                                 </div>
 
@@ -1989,7 +1999,7 @@ export function AdminLayout({
                     )}
 
                     <main
-                        className={`transport-page min-w-0 rounded-xl border bg-card p-3 pb-24 shadow-sm transition-[margin] duration-200 ease-out sm:p-4 sm:pb-24 lg:p-6 lg:pb-28 print:rounded-none print:border-0 print:p-0 print:shadow-none ${
+                        className={`transport-main-panel transport-page min-w-0 rounded-xl p-3 pb-24 transition-[margin] duration-200 ease-out sm:p-4 sm:pb-24 lg:p-6 lg:pb-28 print:rounded-none print:border-0 print:p-0 print:shadow-none ${
                             focusMode && focusSidebarVisible
                                 ? 'lg:ml-[284px]'
                                 : 'lg:ml-0'
