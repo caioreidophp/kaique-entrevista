@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\AsyncOperation;
 use App\Models\Colaborador;
 use App\Models\DriverInterview;
+use App\Models\FeriasLancamento;
 use App\Models\Funcao;
 use App\Models\Onboarding;
 use App\Models\OnboardingItem;
@@ -208,5 +209,56 @@ class SystemOperationsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('summary.total_collaborators', 1)
             ->assertJsonPath('summary.missing_phone', 1);
+    }
+
+    public function test_master_admin_can_read_vacation_audit_diff_after_update(): void
+    {
+        $master = User::factory()->masterAdmin()->create();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+        $colaborador = Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Colaborador Auditoria',
+            'ativo' => true,
+            'cpf' => '98765432100',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $lancamento = FeriasLancamento::query()->create([
+            'colaborador_id' => $colaborador->id,
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'autor_id' => $admin->id,
+            'tipo' => 'confirmado',
+            'com_abono' => false,
+            'dias_ferias' => 30,
+            'data_inicio' => '2026-05-01',
+            'data_fim' => '2026-05-30',
+            'periodo_aquisitivo_inicio' => '2025-05-01',
+            'periodo_aquisitivo_fim' => '2026-04-30',
+            'observacoes' => 'Original',
+        ]);
+
+        $lancamento->update([
+            'dias_ferias' => 20,
+            'com_abono' => true,
+            'data_fim' => '2026-05-20',
+            'observacoes' => 'Atualizado',
+        ]);
+
+        Sanctum::actingAs($master);
+
+        $response = $this->getJson('/api/activity-log?log_name=ferias&event=updated')
+            ->assertOk()
+            ->assertJsonPath('data.0.log_name', 'ferias')
+            ->assertJsonPath('data.0.event', 'updated');
+
+        $changes = collect($response->json('data.0.change_summary'));
+
+        $this->assertTrue($changes->contains(fn (array $change): bool => $change['field'] === 'dias_ferias'));
+        $this->assertTrue($changes->contains(fn (array $change): bool => $change['field'] === 'com_abono'));
     }
 }

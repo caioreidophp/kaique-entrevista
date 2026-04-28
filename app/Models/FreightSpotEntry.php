@@ -6,10 +6,12 @@ use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FreightSpotEntry extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * @var array<int, string>
@@ -55,5 +57,28 @@ class FreightSpotEntry extends Model
     public function autor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'autor_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'data',
+                'unidade_origem_id',
+                'frete_spot',
+                'cargas',
+                'aves',
+                'km_rodado',
+                'obs',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('frete-spot')
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Frete spot criado',
+                'updated' => 'Frete spot atualizado',
+                'deleted' => 'Frete spot removido',
+                default => $eventName,
+            });
     }
 }

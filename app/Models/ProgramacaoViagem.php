@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProgramacaoViagem extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $table = 'programacao_viagens';
 
@@ -76,5 +78,37 @@ class ProgramacaoViagem extends Model
     public function escala(): HasOne
     {
         return $this->hasOne(ProgramacaoEscala::class, 'programacao_viagem_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'data_viagem',
+                'unidade_id',
+                'codigo_viagem',
+                'origem',
+                'destino',
+                'aviario',
+                'cidade',
+                'distancia_km',
+                'equipe',
+                'aves',
+                'numero_carga',
+                'hora_inicio_prevista',
+                'hora_carregamento_prevista',
+                'hora_fim_prevista',
+                'jornada_horas_prevista',
+                'observacoes',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('programacao')
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Viagem da programacao criada',
+                'updated' => 'Viagem da programacao atualizada',
+                'deleted' => 'Viagem da programacao removida',
+                default => $eventName,
+            });
     }
 }

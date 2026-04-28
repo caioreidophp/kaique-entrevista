@@ -424,6 +424,7 @@ export default function VacationsDashboardPage() {
     }, [data?.total_com_abono, data?.total_lancamentos_abono, data?.total_sem_abono]);
 
     const activeAbonoSlice = hoveredAbonoSlice !== null ? abonoDonutData[hoveredAbonoSlice] : null;
+    const maxRiskScore = Math.max(1, ...((data?.riscos_por_unidade ?? []).map((item) => item.risk_score)));
 
     function loadReports(): void {
         if (!reportStartDate || !reportEndDate) {
@@ -800,13 +801,19 @@ export default function VacationsDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Prioridades de vencimento</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Ranking de colaboradores com maior pressao de vencimento.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data?.top_prioridades.length ? (
-                                        data.top_prioridades.map((item) => (
+                                        data.top_prioridades.map((item, index) => (
                                             <div key={item.colaborador_id} className="transport-list-panel">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="font-medium">{item.nome}</p>
+                                                    <div className="flex min-w-0 items-center gap-2">
+                                                        <span className="transport-value-pill shrink-0">#{index + 1}</span>
+                                                        <p className="truncate font-medium">{item.nome}</p>
+                                                    </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                                                             D-{formatIntegerBR(item.dias_para_limite)}
@@ -833,19 +840,28 @@ export default function VacationsDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Risco por unidade</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Comparativo direto de criticidade entre unidades.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data?.riscos_por_unidade.length ? (
-                                        data.riscos_por_unidade.slice(0, 6).map((item) => (
+                                        data.riscos_por_unidade.slice(0, 6).map((item, index) => (
                                             <div key={item.unidade_id} className="transport-list-panel">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="font-medium">{item.unidade_nome}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
+                                                    <div className="flex min-w-0 items-center gap-2">
+                                                        <span className="transport-value-pill shrink-0">#{index + 1}</span>
+                                                        <p className="truncate font-medium">{item.unidade_nome}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-xs font-semibold text-foreground">Score {formatIntegerBR(item.risk_score)}</p>
+                                                        <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
+                                                    </div>
                                                 </div>
                                                 <div className="transport-progress-track mt-2">
                                                     <div
                                                         className="transport-progress-fill bg-amber-500"
-                                                        style={{ width: `${Math.min(100, Math.max(0, item.risk_rate))}%` }}
+                                                        style={{ width: `${Math.min(100, Math.max(8, (item.risk_score / maxRiskScore) * 100))}%` }}
                                                     />
                                                 </div>
                                                 <div className="mt-2 grid gap-2 sm:grid-cols-4">

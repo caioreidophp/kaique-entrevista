@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FinancialApproval extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'request_uuid',
@@ -50,5 +52,30 @@ class FinancialApproval extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'action_key',
+                'status',
+                'requester_id',
+                'approver_id',
+                'token_expires_at',
+                'reviewed_at',
+                'consumed_at',
+                'expires_at',
+                'reason',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('aprovacao-financeira')
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Solicitacao financeira criada',
+                'updated' => 'Solicitacao financeira atualizada',
+                'deleted' => 'Solicitacao financeira removida',
+                default => $eventName,
+            });
     }
 }

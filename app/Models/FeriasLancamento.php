@@ -6,10 +6,12 @@ use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class FeriasLancamento extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $table = 'ferias_lancamentos';
 
@@ -76,5 +78,32 @@ class FeriasLancamento extends Model
     public function autor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'autor_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'colaborador_id',
+                'unidade_id',
+                'funcao_id',
+                'tipo',
+                'com_abono',
+                'dias_ferias',
+                'data_inicio',
+                'data_fim',
+                'periodo_aquisitivo_inicio',
+                'periodo_aquisitivo_fim',
+                'observacoes',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('ferias')
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Lancamento de ferias criado',
+                'updated' => 'Lancamento de ferias atualizado',
+                'deleted' => 'Lancamento de ferias removido',
+                default => $eventName,
+            });
     }
 }
