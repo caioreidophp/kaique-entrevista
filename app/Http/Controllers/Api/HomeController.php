@@ -14,6 +14,7 @@ use App\Models\ProgramacaoEscala;
 use App\Models\ProgramacaoViagem;
 use App\Models\TipoPagamento;
 use App\Models\Unidade;
+use App\Support\TransportCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,12 @@ class HomeController extends Controller
             && (bool) config('transport_features.programming_panel', true);
         $canViewOperationsPanel = $user->hasPermission('sidebar.operations-hub.view')
             && (bool) config('transport_features.operations_hub', true);
+        $registryUnitScope = $user->allowedUnitIdsFor('registry');
+        $payrollUnitScope = $user->allowedUnitIdsFor('payroll');
+        $freightUnitScope = $user->allowedUnitIdsFor('freight');
+        $vacationUnitScope = $user->allowedUnitIdsFor('vacations');
+        $finesUnitScope = $user->allowedUnitIdsFor('fines');
+        $programmingUnitScope = $user->allowedUnitIdsFor('programming');
 
         $periodMode = (string) $request->string('period_mode', '1m');
 
@@ -55,7 +62,8 @@ class HomeController extends Controller
 
         $cacheFingerprint = [
             'user_id' => (int) $user->id,
-            'permissions_version' => (int) Cache::get('transport:permissions-version', 1),
+            'home_version' => TransportCache::version('home'),
+            'permissions_version' => TransportCache::version('permissions'),
             'is_master' => (bool) $isMaster,
             'interviews' => (bool) $canViewInterviewsPanel,
             'payroll' => (bool) $canViewPayrollPanel,
@@ -70,8 +78,14 @@ class HomeController extends Controller
             'period_mode' => $periodMode,
             'payroll_month' => $payrollCompetenciaMes,
             'payroll_year' => $payrollCompetenciaAno,
+            'registry_scope' => $registryUnitScope,
+            'payroll_scope' => $payrollUnitScope,
+            'freight_scope' => $freightUnitScope,
+            'vacation_scope' => $vacationUnitScope,
+            'fines_scope' => $finesUnitScope,
+            'programming_scope' => $programmingUnitScope,
         ];
-        $cacheKey = 'transport:home:v3:'.sha1(json_encode($cacheFingerprint));
+        $cacheKey = TransportCache::key('home', $cacheFingerprint);
         $cachedPayload = Cache::get($cacheKey);
 
         if (is_array($cachedPayload)) {
@@ -133,6 +147,10 @@ class HomeController extends Controller
         if (($canViewRegistryPanel || $canViewVacationsPanel || $canViewOperationsPanel) && $hasColaboradores) {
             $colaboradoresAtivos = Colaborador::query()
                 ->where('ativo', true)
+                ->when(
+                    $user->dataScopeFor('registry') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $registryUnitScope !== [] ? $registryUnitScope : [0]),
+                )
                 ->count();
         }
 
@@ -146,6 +164,10 @@ class HomeController extends Controller
 
             if (! $isMaster) {
                 $pagamentosQuery->where('autor_id', $user->id);
+            }
+
+            if ($user->dataScopeFor('payroll') === 'units') {
+                $pagamentosQuery->whereIn('unidade_id', $payrollUnitScope !== [] ? $payrollUnitScope : [0]);
             }
 
             $totalPagamentosMes = (float) ((clone $pagamentosQuery)->sum('valor'));
@@ -163,6 +185,10 @@ class HomeController extends Controller
                 $freightQuery->where('autor_id', $user->id);
             }
 
+            if ($user->dataScopeFor('freight') === 'units') {
+                $freightQuery->whereIn('unidade_id', $freightUnitScope !== [] ? $freightUnitScope : [0]);
+            }
+
             $freightEntriesMes = (clone $freightQuery)->count();
             $freightTotalMes = (float) ((clone $freightQuery)->sum('frete_total'));
             $freightTotalTerceirosMes = (float) ((clone $freightQuery)->sum('frete_terceiros'));
@@ -177,6 +203,10 @@ class HomeController extends Controller
                 ->whereYear('data', $anoAtual)
                 ->whereMonth('data', $mesAtual);
 
+            if ($user->dataScopeFor('fines') === 'units') {
+                $finesQuery->whereIn('unidade_id', $finesUnitScope !== [] ? $finesUnitScope : [0]);
+            }
+
             $finesCountMes = (clone $finesQuery)->count();
             $finesTotalMes = (float) ((clone $finesQuery)->sum('valor'));
         }
@@ -184,10 +214,20 @@ class HomeController extends Controller
         if ($canViewProgrammingPanel && $hasProgramacaoViagens && $hasProgramacaoEscalas) {
             $programmingTripsToday = ProgramacaoViagem::query()
                 ->whereDate('data_viagem', $today->toDateString())
+                ->when(
+                    $user->dataScopeFor('programming') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $programmingUnitScope !== [] ? $programmingUnitScope : [0]),
+                )
                 ->count();
 
             $programmingAssignedToday = ProgramacaoEscala::query()
-                ->whereHas('viagem', fn ($query) => $query->whereDate('data_viagem', $today->toDateString()))
+                ->whereHas('viagem', function ($query) use ($today, $user, $programmingUnitScope) {
+                    $query->whereDate('data_viagem', $today->toDateString());
+
+                    if ($user->dataScopeFor('programming') === 'units') {
+                        $query->whereIn('unidade_id', $programmingUnitScope !== [] ? $programmingUnitScope : [0]);
+                    }
+                })
                 ->count();
 
             $programmingUnassignedToday = max(0, $programmingTripsToday - $programmingAssignedToday);
@@ -205,6 +245,10 @@ class HomeController extends Controller
                     ->where('ativo', true)
                     ->whereNotNull('cnh')
                     ->when(
+                        $user->dataScopeFor('programming') === 'units',
+                        fn ($query) => $query->whereIn('unidade_id', $programmingUnitScope !== [] ? $programmingUnitScope : [0]),
+                    )
+                    ->when(
                         count($assignedDriverIds) > 0,
                         fn ($query) => $query->whereNotIn('id', $assignedDriverIds),
                     )
@@ -213,7 +257,13 @@ class HomeController extends Controller
 
             if ($hasPlacasFrota) {
                 $assignedTruckIds = ProgramacaoEscala::query()
-                    ->whereHas('viagem', fn ($query) => $query->whereDate('data_viagem', $today->toDateString()))
+                    ->whereHas('viagem', function ($query) use ($today, $user, $programmingUnitScope) {
+                        $query->whereDate('data_viagem', $today->toDateString());
+
+                        if ($user->dataScopeFor('programming') === 'units') {
+                            $query->whereIn('unidade_id', $programmingUnitScope !== [] ? $programmingUnitScope : [0]);
+                        }
+                    })
                     ->pluck('placa_frota_id')
                     ->filter()
                     ->unique()
@@ -221,6 +271,10 @@ class HomeController extends Controller
                     ->all();
 
                 $programmingAvailableTrucks = PlacaFrota::query()
+                    ->when(
+                        $user->dataScopeFor('programming') === 'units',
+                        fn ($query) => $query->whereIn('unidade_id', $programmingUnitScope !== [] ? $programmingUnitScope : [0]),
+                    )
                     ->when(
                         count($assignedTruckIds) > 0,
                         fn ($query) => $query->whereNotIn('id', $assignedTruckIds),
@@ -233,6 +287,10 @@ class HomeController extends Controller
             $activeCollaborators = Colaborador::query()
                 ->where('ativo', true)
                 ->whereNotNull('data_admissao')
+                ->when(
+                    $user->dataScopeFor('vacations') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $vacationUnitScope !== [] ? $vacationUnitScope : [0]),
+                )
                 ->select(['id', 'unidade_id', 'data_admissao'])
                 ->get();
 
@@ -297,6 +355,10 @@ class HomeController extends Controller
                 $freightQuery->where('autor_id', $user->id);
             }
 
+            if ($user->dataScopeFor('freight') === 'units') {
+                $freightQuery->whereIn('unidade_id', $freightUnitScope !== [] ? $freightUnitScope : [0]);
+            }
+
             $freightCompanyTotal = (float) ((clone $freightQuery)->sum('frete_total'));
 
             $freightByUnit = (clone $freightQuery)
@@ -332,6 +394,10 @@ class HomeController extends Controller
                 ])
                 ->whereDate('data_inicio', '<=', $today->toDateString())
                 ->whereDate('data_fim', '>=', $today->toDateString())
+                ->when(
+                    $user->dataScopeFor('vacations') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $vacationUnitScope !== [] ? $vacationUnitScope : [0]),
+                )
                 ->orderBy('data_fim')
                 ->get();
 
@@ -436,6 +502,10 @@ class HomeController extends Controller
                 ->where('competencia_ano', $payrollCompetenciaAno)
                 ->where('competencia_mes', $payrollCompetenciaMes)
                 ->when(! $isMaster, fn ($query) => $query->where('autor_id', $user->id))
+                ->when(
+                    $user->dataScopeFor('payroll') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $payrollUnitScope !== [] ? $payrollUnitScope : [0]),
+                )
                 ->get();
 
             $grouped = [];
@@ -544,6 +614,10 @@ class HomeController extends Controller
             $recentAdmissions = Colaborador::query()
                 ->with(['unidade:id,nome', 'funcao:id,nome'])
                 ->whereNotNull('data_admissao')
+                ->when(
+                    $user->dataScopeFor('registry') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $registryUnitScope !== [] ? $registryUnitScope : [0]),
+                )
                 ->orderByDesc('data_admissao')
                 ->limit(8)
                 ->get(['id', 'nome', 'unidade_id', 'funcao_id', 'data_admissao'])
@@ -560,6 +634,10 @@ class HomeController extends Controller
             $recentDismissals = Colaborador::query()
                 ->with(['unidade:id,nome', 'funcao:id,nome'])
                 ->whereNotNull('data_demissao')
+                ->when(
+                    $user->dataScopeFor('registry') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $registryUnitScope !== [] ? $registryUnitScope : [0]),
+                )
                 ->orderByDesc('data_demissao')
                 ->limit(8)
                 ->get(['id', 'nome', 'unidade_id', 'funcao_id', 'data_demissao'])

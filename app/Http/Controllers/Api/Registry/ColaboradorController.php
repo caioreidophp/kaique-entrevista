@@ -11,11 +11,11 @@ use App\Http\Requests\UploadColaboradorPhotoRequest;
 use App\Models\Colaborador;
 use App\Models\Funcao;
 use App\Models\Unidade;
+use App\Support\TransportCache;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -26,8 +26,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ColaboradorController extends Controller
 {
-    private const INDEX_CACHE_KEY = 'transport:registry:colaboradores:index:default';
-
     public function birthdays(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -48,6 +46,11 @@ class ColaboradorController extends Controller
             ->orderBy('nome')
             ->get(['id', 'nome', 'data_nascimento', 'unidade_id', 'funcao_id']);
 
+        if ($user && $user->dataScopeFor('registry') === 'units') {
+            $allowedUnitIds = $user->allowedUnitIdsFor('registry');
+            $todayRows = $todayRows->whereIn('unidade_id', $allowedUnitIds)->values();
+        }
+
         $monthRows = Colaborador::query()
             ->with(['unidade:id,nome', 'funcao:id,nome'])
             ->where('ativo', true)
@@ -60,6 +63,11 @@ class ColaboradorController extends Controller
             )
             ->orderBy('nome')
             ->get(['id', 'nome', 'data_nascimento', 'unidade_id', 'funcao_id']);
+
+        if ($user && $user->dataScopeFor('registry') === 'units') {
+            $allowedUnitIds = $user->allowedUnitIdsFor('registry');
+            $monthRows = $monthRows->whereIn('unidade_id', $allowedUnitIds)->values();
+        }
 
         return response()->json([
             'today' => $today->toDateString(),
@@ -79,6 +87,11 @@ class ColaboradorController extends Controller
         $query = Colaborador::query()
             ->select('colaboradores.*')
             ->with(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']);
+
+        if ($user && $user->dataScopeFor('registry') === 'units') {
+            $allowedUnitIds = $user->allowedUnitIdsFor('registry');
+            $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
 
         if ($request->filled('name')) {
             $query->where('nome', 'like', '%'.(string) $request->string('name').'%');
@@ -138,8 +151,15 @@ class ColaboradorController extends Controller
             return response()->json($query->paginate($perPage)->withQueryString());
         }
 
-        $payload = Cache::remember(self::INDEX_CACHE_KEY, now()->addSeconds(45), fn () => $query->paginate($perPage)->withQueryString()
-        );
+        $payload = TransportCache::remember('registry', [
+            'resource' => 'colaboradores-index',
+            'user_id' => (int) $user->id,
+            'scope' => $user->resolvedAccessScopes(),
+            'page' => (int) $request->integer('page', 1),
+            'per_page' => $perPage,
+            'sort_by' => $sortBy,
+            'sort_direction' => $sortDirection,
+        ], now()->addSeconds(45), fn () => $query->paginate($perPage)->withQueryString());
 
         return response()->json($payload);
     }
@@ -147,10 +167,9 @@ class ColaboradorController extends Controller
     public function store(StoreColaboradorRequest $request): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('registry.collaborators.create'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $request->integer('unidade_id')), 403);
 
         $colaborador = Colaborador::query()->create($request->validated());
-
-        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([
             'data' => $colaborador->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -160,6 +179,7 @@ class ColaboradorController extends Controller
     public function show(Request $request, Colaborador $colaborador): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('registry.collaborators.list'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $colaborador->unidade_id), 403);
 
         return response()->json([
             'data' => $colaborador->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -169,10 +189,10 @@ class ColaboradorController extends Controller
     public function update(UpdateColaboradorRequest $request, Colaborador $colaborador): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $colaborador->unidade_id), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $request->integer('unidade_id')), 403);
 
         $colaborador->update($request->validated());
-
-        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([
             'data' => $colaborador->refresh()->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
@@ -182,10 +202,9 @@ class ColaboradorController extends Controller
     public function destroy(Request $request, Colaborador $colaborador): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('registry.collaborators.delete'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $colaborador->unidade_id), 403);
 
         $colaborador->delete();
-
-        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([], 204);
     }
@@ -193,6 +212,7 @@ class ColaboradorController extends Controller
     public function uploadPhoto(UploadColaboradorPhotoRequest $request, Colaborador $colaborador): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $colaborador->unidade_id), 403);
 
         $file = $request->file('foto');
 
@@ -210,8 +230,6 @@ class ColaboradorController extends Controller
             'foto_3x4_path' => $path,
         ]);
 
-        Cache::forget(self::INDEX_CACHE_KEY);
-
         return response()->json([
             'data' => $colaborador->refresh()->load(['unidade:id,nome,slug', 'funcao:id,nome', 'user:id,name,email']),
         ]);
@@ -222,6 +240,7 @@ class ColaboradorController extends Controller
         Colaborador $colaborador,
     ): JsonResponse {
         abort_unless($request->user()?->hasPermission('registry.collaborators.update'), 403);
+        abort_unless($request->user()?->canAccessUnit('registry', (int) $colaborador->unidade_id), 403);
 
         $validated = $request->validated();
         $updates = [];
@@ -268,7 +287,6 @@ class ColaboradorController extends Controller
 
         if ($updates !== []) {
             $colaborador->update($updates);
-            Cache::forget(self::INDEX_CACHE_KEY);
         }
 
         return response()->json([
@@ -528,8 +546,6 @@ class ColaboradorController extends Controller
                 $imported++;
             }
         });
-
-        Cache::forget(self::INDEX_CACHE_KEY);
 
         return response()->json([
             'message' => 'Importação finalizada.',

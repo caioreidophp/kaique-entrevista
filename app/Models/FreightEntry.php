@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -97,6 +98,16 @@ class FreightEntry extends Model
             'canceladas_escaladas_frete' => 'decimal:2',
             'canceladas_escaladas_km' => 'decimal:2',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['freight', 'home']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function unidade(): BelongsTo

@@ -32,7 +32,9 @@ class ProgrammingController extends Controller
 
     public function dashboard(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('programming.dashboard.view'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('programming.dashboard.view'), 403);
 
         $validated = $request->validate([
             'unidade_id' => ['nullable', 'integer', 'min:1'],
@@ -41,8 +43,13 @@ class ProgrammingController extends Controller
 
         $selectedDate = (string) ($validated['data'] ?? now()->toDateString());
         $requestedUnitId = (int) ($validated['unidade_id'] ?? 0);
+        $allowedUnitIds = $this->allowedProgrammingUnitIds($request);
 
         $units = Unidade::query()
+            ->when(
+                $user?->dataScopeFor('programming') === 'units',
+                fn ($query) => $query->whereIn('id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->orderBy('nome')
             ->get(['id', 'nome']);
 
@@ -325,6 +332,7 @@ class ProgrammingController extends Controller
         abort_unless($request->user()?->hasPermission('programming.import'), 403);
 
         $unitId = (int) $request->integer('unidade_id');
+        abort_unless($request->user()?->canAccessUnit('programming', $unitId), 403);
         $unit = Unidade::query()->find($unitId);
 
         if (! $unit) {
@@ -367,6 +375,7 @@ class ProgrammingController extends Controller
         abort_unless($request->user()?->hasPermission('programming.import'), 403);
 
         $unitId = (int) $request->integer('unidade_id');
+        abort_unless($request->user()?->canAccessUnit('programming', $unitId), 403);
         $unit = Unidade::query()->find($unitId);
 
         if (! $unit) {
@@ -502,6 +511,7 @@ class ProgrammingController extends Controller
 
         $unitId = (int) $validated['unidade_id'];
         $date = (string) $validated['data'];
+        abort_unless($request->user()?->canAccessUnit('programming', $unitId), 403);
 
         $query = ProgramacaoViagem::query()
             ->where('unidade_id', $unitId)
@@ -532,7 +542,9 @@ class ProgrammingController extends Controller
 
     public function assign(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('programming.assign'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('programming.assign'), 403);
 
         $validated = $request->validate([
             'programacao_viagem_id' => ['required', 'integer', 'exists:programacao_viagens,id'],
@@ -547,6 +559,7 @@ class ProgrammingController extends Controller
         $trip = ProgramacaoViagem::query()->findOrFail((int) $validated['programacao_viagem_id']);
         $collaborator = Colaborador::query()->findOrFail((int) $validated['colaborador_id']);
         $truck = PlacaFrota::query()->findOrFail((int) $validated['placa_frota_id']);
+        abort_unless($user?->canAccessUnit('programming', (int) $trip->unidade_id), 403);
 
         if (! $collaborator->ativo) {
             return response()->json([
@@ -1096,6 +1109,14 @@ class ProgrammingController extends Controller
                 : null,
             'ultimo_fim' => $latestEnd->toIso8601String(),
         ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function allowedProgrammingUnitIds(Request $request): array
+    {
+        return $request->user()?->allowedUnitIdsFor('programming') ?? [];
     }
 
     private function resolveTripStartDateTime(ProgramacaoViagem $trip): ?Carbon

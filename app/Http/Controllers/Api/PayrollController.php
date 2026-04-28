@@ -14,8 +14,10 @@ use App\Models\EmprestimoColaborador;
 use App\Models\Pagamento;
 use App\Models\PensaoColaborador;
 use App\Models\TipoPagamento;
+use App\Support\AsyncOperationTracker;
 use App\Support\FinancialApprovalService;
 use App\Support\OutboundWebhookService;
+use App\Support\TransportCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -1346,12 +1348,14 @@ class PayrollController extends Controller
                     'competencia_ano' => $ano,
                 ],
             ]);
+            $operation = AsyncOperationTracker::ensureForExport($export, 'Exportação de pagamentos enfileirada');
 
             GeneratePayrollExportJob::dispatch($export->id);
 
             return response()->json([
                 'message' => 'Exportação enfileirada com sucesso.',
                 'export_id' => $export->id,
+                'operation_id' => $operation->id,
                 'status' => $export->status,
             ], 202);
         }
@@ -1725,9 +1729,14 @@ class PayrollController extends Controller
     private function basePaymentsQueryForUser(Request $request): Builder
     {
         $query = Pagamento::query();
+        $user = $request->user();
 
-        if (! $request->user()?->isMasterAdmin()) {
-            $query->where('autor_id', $request->user()->id);
+        if (! $user?->isMasterAdmin()) {
+            $query->where('autor_id', $user->id);
+        }
+
+        if ($user?->dataScopeFor('payroll') === 'units') {
+            $query->whereIn('unidade_id', $user->allowedUnitIdsFor('payroll') ?: [0]);
         }
 
         return $query;
@@ -1735,12 +1744,12 @@ class PayrollController extends Controller
 
     private function payrollCacheVersion(): int
     {
-        return (int) Cache::get('payroll:cache:version', 1);
+        return TransportCache::version('payroll');
     }
 
     private function bumpPayrollCacheVersion(): void
     {
-        Cache::forever('payroll:cache:version', $this->payrollCacheVersion() + 1);
+        TransportCache::bumpMany(['payroll', 'home']);
     }
 
     private function normalizePaymentName(string $value): string

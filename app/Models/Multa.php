@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,6 +50,16 @@ class Multa extends Model
             'indicado_condutor' => 'boolean',
             'descontar' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['fines', 'home']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function unidade(): BelongsTo

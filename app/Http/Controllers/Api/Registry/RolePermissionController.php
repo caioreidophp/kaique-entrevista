@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\Registry;
 
 use App\Http\Controllers\Controller;
 use App\Support\RolePermissionCatalog;
+use App\Support\TransportCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class RolePermissionController extends Controller
 {
@@ -40,11 +40,7 @@ class RolePermissionController extends Controller
 
         $saved = RolePermissionCatalog::saveForRole($role, (array) $data['permissions']);
 
-        if (! Cache::has('transport:permissions-version')) {
-            Cache::put('transport:permissions-version', 1, now()->addDays(7));
-        }
-
-        Cache::increment('transport:permissions-version');
+        TransportCache::bumpMany(['permissions', 'home']);
 
         return response()->json([
             'role' => $role,

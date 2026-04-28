@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,18 @@ class Funcao extends Model
         return [
             'ativo' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['master-data', 'registry', 'home', 'vacations']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function colaboradores(): HasMany

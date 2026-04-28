@@ -7,6 +7,8 @@ use App\Http\Requests\StoreRegistryUserRequest;
 use App\Http\Requests\UpdateRegistryUserRequest;
 use App\Models\Colaborador;
 use App\Models\User;
+use App\Support\AccessScopeCatalog;
+use App\Support\TransportCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,11 +19,15 @@ class RegistryUserController extends Controller
         abort_unless($request->user()?->isMasterAdmin(), 403);
 
         $users = User::query()
-            ->with(['colaborador:id,nome,user_id'])
+            ->with(['colaborador:id,nome,user_id', 'accessScopes'])
             ->latest('id')
             ->get();
 
-        return response()->json(['data' => $users]);
+        return response()->json([
+            'modules' => AccessScopeCatalog::modules(),
+            'data_scopes' => AccessScopeCatalog::dataScopes(),
+            'data' => $users,
+        ]);
     }
 
     public function store(StoreRegistryUserRequest $request): JsonResponse
@@ -47,8 +53,11 @@ class RegistryUserController extends Controller
                 ->update(['user_id' => $user->id]);
         }
 
+        $this->syncAccessScopes($user, (array) ($data['access_scopes'] ?? []));
+        TransportCache::bumpMany(['permissions', 'home']);
+
         return response()->json([
-            'data' => $user->load(['colaborador:id,nome,user_id']),
+            'data' => $user->load(['colaborador:id,nome,user_id', 'accessScopes']),
         ], 201);
     }
 
@@ -78,8 +87,11 @@ class RegistryUserController extends Controller
                 ->update(['user_id' => $user->id]);
         }
 
+        $this->syncAccessScopes($user, (array) ($data['access_scopes'] ?? []));
+        TransportCache::bumpMany(['permissions', 'home']);
+
         return response()->json([
-            'data' => $user->refresh()->load(['colaborador:id,nome,user_id']),
+            'data' => $user->refresh()->load(['colaborador:id,nome,user_id', 'accessScopes']),
         ]);
     }
 
@@ -96,7 +108,22 @@ class RegistryUserController extends Controller
 
         $user->tokens()->delete();
         $user->delete();
+        TransportCache::bumpMany(['permissions', 'home']);
 
         return response()->json([], 204);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $scopes
+     */
+    private function syncAccessScopes(User $user, array $scopes): void
+    {
+        $normalizedScopes = AccessScopeCatalog::normalize($scopes);
+
+        $user->accessScopes()->delete();
+
+        foreach ($normalizedScopes as $scope) {
+            $user->accessScopes()->create($scope);
+        }
     }
 }

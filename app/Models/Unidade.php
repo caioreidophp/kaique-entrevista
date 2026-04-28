@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,16 @@ class Unidade extends Model
         'nome',
         'slug',
     ];
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['master-data', 'home', 'registry', 'payroll', 'freight', 'programming', 'fines', 'vacations']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
+    }
 
     public function colaboradores(): HasMany
     {

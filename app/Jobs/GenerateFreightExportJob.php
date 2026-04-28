@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\AsyncExport;
 use App\Models\FreightEntry;
 use App\Models\User;
+use App\Support\AsyncOperationTracker;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -34,7 +35,11 @@ class GenerateFreightExportJob implements ShouldQueue
             return;
         }
 
+        $operation = AsyncOperationTracker::ensureForExport($export, 'Exportação de fretes em processamento');
         $export->update(['status' => 'processing', 'error_message' => null]);
+        AsyncOperationTracker::markProcessing($operation->id, [
+            'filters' => $export->filters ?? [],
+        ]);
 
         try {
             $filters = (array) ($export->filters ?? []);
@@ -140,10 +145,17 @@ class GenerateFreightExportJob implements ShouldQueue
                 'file_path' => $relativePath,
                 'completed_at' => now(),
             ]);
+            AsyncOperationTracker::markCompleted($operation->id, [
+                'file_name' => $fileName,
+                'file_path' => $relativePath,
+            ]);
         } catch (Throwable $exception) {
             $export->update([
                 'status' => 'failed',
                 'error_message' => mb_substr($exception->getMessage(), 0, 2000),
+            ]);
+            AsyncOperationTracker::markFailed($operation->id, $exception->getMessage(), [
+                'filters' => $export->filters ?? [],
             ]);
         }
     }

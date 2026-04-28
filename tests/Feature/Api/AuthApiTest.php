@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Unidade;
+use App\Models\UserAccessScope;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -12,8 +14,19 @@ class AuthApiTest extends TestCase
 
     public function test_user_can_login_and_receive_token(): void
     {
+        $unidade = Unidade::query()->create([
+            'nome' => 'Amparo',
+            'slug' => 'amparo',
+        ]);
+
         $user = User::factory()->create([
             'password' => 'password',
+        ]);
+        UserAccessScope::query()->create([
+            'user_id' => $user->id,
+            'module_key' => 'registry',
+            'data_scope' => 'units',
+            'allowed_unit_ids' => [$unidade->id],
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -25,8 +38,11 @@ class AuthApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'token',
-                'user' => ['id', 'name', 'email'],
+                'user' => ['id', 'name', 'email', 'access_scopes'],
             ])
+            ->assertJsonPath('user.access_scopes.registry.module_key', 'registry')
+            ->assertJsonPath('user.access_scopes.registry.data_scope', 'units')
+            ->assertJsonPath('user.access_scopes.registry.allowed_unit_ids.0', $unidade->id)
             ->assertHeader('X-Request-Id')
             ->assertHeader('Cache-Control', 'no-store, private');
     }

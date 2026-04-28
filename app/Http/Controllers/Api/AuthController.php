@@ -58,6 +58,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'permissions' => RolePermissionCatalog::forRole((string) $user->role),
+                'access_scopes' => $user->resolvedAccessScopes(),
             ],
         ]);
     }
@@ -82,6 +83,7 @@ class AuthController extends Controller
                 'email' => $user?->email,
                 'role' => $user?->role,
                 'permissions' => RolePermissionCatalog::forRole((string) $user?->role),
+                'access_scopes' => $user?->resolvedAccessScopes() ?? [],
             ],
         ]);
     }

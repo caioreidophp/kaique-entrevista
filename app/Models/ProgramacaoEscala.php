@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,16 @@ class ProgramacaoEscala extends Model
         'autor_id',
         'observacoes',
     ];
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['programming', 'home']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
+    }
 
     public function viagem(): BelongsTo
     {

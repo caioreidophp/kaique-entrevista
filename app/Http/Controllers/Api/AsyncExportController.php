@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsyncOperation;
 use App\Models\AsyncExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +22,24 @@ class AsyncExportController extends Controller
             ->limit(30)
             ->get(['id', 'type', 'status', 'file_name', 'error_message', 'created_at', 'completed_at']);
 
+        $operationIdsByExportId = AsyncOperation::query()
+            ->where('reference_type', AsyncExport::class)
+            ->whereIn('reference_id', $rows->pluck('id')->map(fn ($id): string => (string) $id)->all())
+            ->pluck('id', 'reference_id');
+
         return response()->json([
-            'data' => $rows,
+            'data' => $rows->map(function (AsyncExport $export) use ($operationIdsByExportId): array {
+                return [
+                    'id' => $export->id,
+                    'type' => $export->type,
+                    'status' => $export->status,
+                    'file_name' => $export->file_name,
+                    'error_message' => $export->error_message,
+                    'created_at' => $export->created_at?->toIso8601String(),
+                    'completed_at' => $export->completed_at?->toIso8601String(),
+                    'operation_id' => $operationIdsByExportId->get((string) $export->id),
+                ];
+            })->values(),
         ]);
     }
 
@@ -34,9 +51,16 @@ class AsyncExportController extends Controller
             ->where('id', $id)
             ->where('user_id', (int) $request->user()->id)
             ->firstOrFail();
+        $operationId = AsyncOperation::query()
+            ->where('reference_type', AsyncExport::class)
+            ->where('reference_id', (string) $export->id)
+            ->value('id');
 
         return response()->json([
-            'data' => $export,
+            'data' => [
+                ...$export->toArray(),
+                'operation_id' => $operationId,
+            ],
         ]);
     }
 

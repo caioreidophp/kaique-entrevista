@@ -8,6 +8,7 @@ use App\Models\PlacaFrota;
 use App\Models\ProgramacaoViagem;
 use App\Models\Unidade;
 use App\Models\User;
+use App\Models\UserAccessScope;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Laravel\Sanctum\Sanctum;
@@ -165,6 +166,65 @@ class ProgrammingApiTest extends TestCase
         ])
             ->assertStatus(422)
             ->assertJsonPath('interjornada_alert.is_violated', true);
+    }
+
+    public function test_programming_scope_limits_dashboard_and_import_to_allowed_units(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidadePermitida = Unidade::query()->create([
+            'nome' => 'Atibaia',
+            'slug' => 'atibaia',
+        ]);
+        $unidadeBloqueada = Unidade::query()->create([
+            'nome' => 'Campinas',
+            'slug' => 'campinas',
+        ]);
+
+        ProgramacaoViagem::query()->create([
+            'data_viagem' => '2026-04-10',
+            'unidade_id' => $unidadePermitida->id,
+            'codigo_viagem' => 'OK-1',
+            'origem' => 'A',
+            'destino' => 'B',
+            'hora_inicio_prevista' => '08:00',
+            'hora_fim_prevista' => '16:00',
+            'jornada_horas_prevista' => 8,
+            'autor_id' => $admin->id,
+        ]);
+
+        ProgramacaoViagem::query()->create([
+            'data_viagem' => '2026-04-10',
+            'unidade_id' => $unidadeBloqueada->id,
+            'codigo_viagem' => 'NO-1',
+            'origem' => 'C',
+            'destino' => 'D',
+            'hora_inicio_prevista' => '09:00',
+            'hora_fim_prevista' => '17:00',
+            'jornada_horas_prevista' => 8,
+            'autor_id' => $admin->id,
+        ]);
+
+        UserAccessScope::query()->create([
+            'user_id' => $admin->id,
+            'module_key' => 'programming',
+            'data_scope' => 'units',
+            'allowed_unit_ids' => [$unidadePermitida->id],
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/programming/dashboard?data=2026-04-10')
+            ->assertOk()
+            ->assertJsonCount(1, 'unidades')
+            ->assertJsonPath('unidades.0.id', $unidadePermitida->id)
+            ->assertJsonPath('summary.trips_total', 1);
+
+        $xlsx = $this->buildProgrammingSpreadsheetBinary($unidadeBloqueada->nome);
+
+        $this->postJson('/api/programming/import-base', [
+            'file' => UploadedFile::fake()->createWithContent('programacao-bloqueada.xlsx', $xlsx),
+            'unidade_id' => $unidadeBloqueada->id,
+        ])->assertForbidden();
     }
 
     private function buildProgrammingSpreadsheetBinary(string $unitName): string

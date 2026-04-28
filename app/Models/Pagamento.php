@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +42,16 @@ class Pagamento extends Model
             'data_pagamento' => 'date',
             'lancado_em' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['payroll', 'home', 'master-data']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function tipoPagamento(): BelongsTo

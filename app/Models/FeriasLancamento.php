@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,6 +46,16 @@ class FeriasLancamento extends Model
             'periodo_aquisitivo_fim' => 'date',
             'observacoes' => 'string',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['vacations', 'home']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function colaborador(): BelongsTo

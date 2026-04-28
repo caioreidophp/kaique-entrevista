@@ -6,6 +6,7 @@ use App\Models\Colaborador;
 use App\Models\Funcao;
 use App\Models\Unidade;
 use App\Models\User;
+use App\Models\UserAccessScope;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -199,6 +200,33 @@ class RegistryApiTest extends TestCase
             ->assertJsonPath('data.role', 'usuario');
     }
 
+    public function test_master_admin_can_define_access_scopes_for_registry_user(): void
+    {
+        $master = User::factory()->create(['role' => 'master_admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        Sanctum::actingAs($master);
+
+        $this->postJson('/api/registry/users', [
+            'name' => 'Gestor Unidade',
+            'email' => 'gestor-unidade@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'admin',
+            'access_scopes' => [
+                [
+                    'module_key' => 'registry',
+                    'data_scope' => 'units',
+                    'allowed_unit_ids' => [$unidade->id],
+                ],
+            ],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.access_scopes.0.module_key', 'registry')
+            ->assertJsonPath('data.access_scopes.0.data_scope', 'units')
+            ->assertJsonPath('data.access_scopes.0.allowed_unit_ids.0', $unidade->id);
+    }
+
     public function test_only_master_admin_can_delete_registry_user_and_cannot_delete_self(): void
     {
         $master = User::factory()->create(['role' => 'master_admin']);
@@ -275,6 +303,44 @@ class RegistryApiTest extends TestCase
         $this->postJson('/api/registry/colaboradores/import-spreadsheet', [
             'file' => $file,
         ])->assertUnauthorized();
+    }
+
+    public function test_registry_scope_filters_colaboradores_by_allowed_units(): void
+    {
+        $unidadePermitida = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $unidadeBloqueada = Unidade::query()->create(['nome' => 'Tatui', 'slug' => 'tatui']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+
+        Colaborador::query()->create([
+            'unidade_id' => $unidadePermitida->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Permitido',
+            'ativo' => true,
+            'cpf' => '12345678901',
+        ]);
+
+        Colaborador::query()->create([
+            'unidade_id' => $unidadeBloqueada->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Bloqueado',
+            'ativo' => true,
+            'cpf' => '98765432100',
+        ]);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        UserAccessScope::query()->create([
+            'user_id' => $admin->id,
+            'module_key' => 'registry',
+            'data_scope' => 'units',
+            'allowed_unit_ids' => [$unidadePermitida->id],
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/registry/colaboradores')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nome', 'Permitido');
     }
 
     /**

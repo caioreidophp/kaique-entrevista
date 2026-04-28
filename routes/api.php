@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\AsyncOperationController;
 use App\Http\Controllers\Api\ApiTelemetryController;
 use App\Http\Controllers\Api\AsyncExportController;
 use App\Http\Controllers\Api\AuthController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Api\SecurityIncidentController;
 use App\Http\Controllers\Api\ServiceAccountController;
 use App\Http\Controllers\Api\SessionManagementController;
 use App\Http\Controllers\Api\SystemObservabilityController;
+use App\Http\Controllers\Api\SystemMasterDataController;
 use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
 use App\Http\Controllers\Api\Registry\FuncaoController;
@@ -104,6 +106,12 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::post('system/webhooks/{outboundWebhook}/test', [OutboundWebhookController::class, 'test'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/queue', [QueueMonitorController::class, 'overview'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/async-operations', [AsyncOperationController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/async-operations/{asyncOperation}', [AsyncOperationController::class, 'show'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/master-data/consistency', [SystemMasterDataController::class, 'consistency'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/queue/failed', [QueueMonitorController::class, 'failed'])
         ->middleware('throttle:transport-heavy');

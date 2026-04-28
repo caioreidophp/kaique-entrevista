@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -32,6 +33,18 @@ class TipoPagamento extends Model
         return [
             'gera_encargos' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['master-data', 'registry', 'payroll', 'home']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     public function getActivitylogOptions(): LogOptions

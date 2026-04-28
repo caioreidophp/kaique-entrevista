@@ -7,6 +7,7 @@ use App\Models\FeriasLancamento;
 use App\Models\Funcao;
 use App\Models\Unidade;
 use App\Models\User;
+use App\Models\UserAccessScope;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -281,6 +282,71 @@ class PayrollVacationApiTest extends TestCase
 
         $this->postJson('/api/payroll/vacations', $payload)->assertForbidden();
         $this->putJson('/api/payroll/vacations/'.$lancamento->id, $payload)->assertForbidden();
+    }
+
+    public function test_vacation_scope_limits_dashboard_and_blocks_launch_for_other_units(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidadePermitida = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $unidadeBloqueada = Unidade::query()->create(['nome' => 'Tatui', 'slug' => 'tatui']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+
+        $colaboradorPermitido = Colaborador::query()->create([
+            'unidade_id' => $unidadePermitida->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Permitido',
+            'ativo' => true,
+            'cpf' => '74185296300',
+            'rg' => '123456789X',
+            'telefone' => '11999999999',
+            'data_admissao' => now()->subYears(2)->toDateString(),
+        ]);
+
+        $colaboradorBloqueado = Colaborador::query()->create([
+            'unidade_id' => $unidadeBloqueada->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Bloqueado',
+            'ativo' => true,
+            'cpf' => '14725836900',
+            'rg' => '987654321X',
+            'telefone' => '11888888888',
+            'data_admissao' => now()->subYears(2)->toDateString(),
+        ]);
+
+        FeriasLancamento::query()->create([
+            'colaborador_id' => $colaboradorPermitido->id,
+            'unidade_id' => $unidadePermitida->id,
+            'funcao_id' => $funcao->id,
+            'autor_id' => $admin->id,
+            'com_abono' => false,
+            'dias_ferias' => 30,
+            'data_inicio' => now()->startOfMonth()->toDateString(),
+            'data_fim' => now()->startOfMonth()->addDays(29)->toDateString(),
+            'periodo_aquisitivo_inicio' => now()->subYear()->startOfMonth()->toDateString(),
+            'periodo_aquisitivo_fim' => now()->subYear()->endOfMonth()->toDateString(),
+        ]);
+
+        UserAccessScope::query()->create([
+            'user_id' => $admin->id,
+            'module_key' => 'vacations',
+            'data_scope' => 'units',
+            'allowed_unit_ids' => [$unidadePermitida->id],
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/payroll/vacations/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.total_lancamentos_abono', 1);
+
+        $this->postJson('/api/payroll/vacations', [
+            'colaborador_id' => $colaboradorBloqueado->id,
+            'tipo' => 'confirmado',
+            'com_abono' => false,
+            'data_inicio' => now()->startOfMonth()->toDateString(),
+            'periodo_aquisitivo_inicio' => now()->subYear()->startOfMonth()->toDateString(),
+            'periodo_aquisitivo_fim' => now()->subYear()->endOfMonth()->toDateString(),
+        ])->assertForbidden();
     }
 
     private function createColaborador(string $cpf = '12345678901'): Colaborador

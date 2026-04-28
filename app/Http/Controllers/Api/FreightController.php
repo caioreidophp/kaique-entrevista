@@ -14,7 +14,9 @@ use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
 use App\Models\PlacaFrota;
 use App\Models\Unidade;
+use App\Support\AsyncOperationTracker;
 use App\Support\OutboundWebhookService;
+use App\Support\TransportCache;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -588,12 +590,14 @@ class FreightController extends Controller
                 'status' => 'queued',
                 'filters' => $filters,
             ]);
+            $operation = AsyncOperationTracker::ensureForExport($export, 'Exportação de fretes enfileirada');
 
             GenerateFreightExportJob::dispatch($export->id);
 
             return response()->json([
                 'message' => 'Exportação enfileirada com sucesso.',
                 'export_id' => $export->id,
+                'operation_id' => $operation->id,
                 'status' => $export->status,
             ], 202);
         }
@@ -2062,12 +2066,17 @@ class FreightController extends Controller
     private function queryForUser(Request $request): Builder
     {
         $query = FreightEntry::query();
+        $user = $request->user();
 
-        if ($request->user()?->isMasterAdmin()) {
-            return $query;
+        if (! $user?->isMasterAdmin()) {
+            $query->where('autor_id', $user->id);
         }
 
-        return $query->where('autor_id', $request->user()->id);
+        if ($user?->dataScopeFor('freight') === 'units') {
+            $query->whereIn('unidade_id', $user->allowedUnitIdsFor('freight') ?: [0]);
+        }
+
+        return $query;
     }
 
     private function freightDashboardCacheKey(Request $request, array $validated, int $month, int $year): string
@@ -2079,7 +2088,7 @@ class FreightController extends Controller
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
             'unidade_id' => $validated['unidade_id'] ?? null,
-            'version' => $this->freightCacheVersion(),
+            'version' => TransportCache::version('freight'),
         ];
 
         return 'freight:dashboard:'.md5((string) json_encode($context));
@@ -2096,23 +2105,28 @@ class FreightController extends Controller
 
     private function freightCacheVersion(): int
     {
-        return (int) Cache::get('freight:cache:version', 1);
+        return TransportCache::version('freight');
     }
 
     private function bumpFreightCacheVersion(): void
     {
-        Cache::forever('freight:cache:version', $this->freightCacheVersion() + 1);
+        TransportCache::bumpMany(['freight', 'home']);
     }
 
     private function spotQueryForUser(Request $request): Builder
     {
         $query = FreightSpotEntry::query();
+        $user = $request->user();
 
-        if ($request->user()?->isMasterAdmin()) {
-            return $query;
+        if (! $user?->isMasterAdmin()) {
+            $query->where('autor_id', $user->id);
         }
 
-        return $query->where('autor_id', $request->user()->id);
+        if ($user?->dataScopeFor('freight') === 'units') {
+            $query->whereIn('unidade_origem_id', $user->allowedUnitIdsFor('freight') ?: [0]);
+        }
+
+        return $query;
     }
 
     /**

@@ -44,6 +44,11 @@ class PayrollVacationController extends Controller
         $unidadeId = $request->filled('unidade_id')
             ? (int) $request->integer('unidade_id')
             : null;
+        $allowedUnitIds = $this->allowedVacationUnitIds($request);
+
+        if ($unidadeId !== null) {
+            abort_unless($user?->canAccessUnit('vacations', $unidadeId), 403);
+        }
 
         $today = CarbonImmutable::today();
         $plus30Days = $today->addDays(30);
@@ -68,6 +73,10 @@ class PayrollVacationController extends Controller
             ->count();
 
         $lancamentosDashboardQuery = FeriasLancamento::query();
+
+        if ($user?->dataScopeFor('vacations') === 'units') {
+            $lancamentosDashboardQuery->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
 
         if ($unidadeId !== null) {
             $lancamentosDashboardQuery->where('unidade_id', $unidadeId);
@@ -114,6 +123,10 @@ class PayrollVacationController extends Controller
             ->whereDate('data_fim', '>=', $today->toDateString())
             ->orderBy('data_fim');
 
+        if ($user?->dataScopeFor('vacations') === 'units') {
+            $feriasVigentesQuery->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
+
         if ($request->filled('unidade_id')) {
             $feriasVigentesQuery->where('unidade_id', (int) $request->integer('unidade_id'));
         }
@@ -142,6 +155,10 @@ class PayrollVacationController extends Controller
             ->whereDate('data_fim', '>=', $today->toDateString())
             ->orderBy('data_inicio')
             ->orderBy('data_fim');
+
+        if ($user?->dataScopeFor('vacations') === 'units') {
+            $timelineQuery->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
 
         if ($request->filled('unidade_id')) {
             $timelineQuery->where('unidade_id', (int) $request->integer('unidade_id'));
@@ -218,11 +235,16 @@ class PayrollVacationController extends Controller
 
         $startDate = CarbonImmutable::parse((string) $validated['start_date']);
         $endDate = CarbonImmutable::parse((string) $validated['end_date']);
+        $allowedUnitIds = $this->allowedVacationUnitIds($request);
 
         $feriasGozadas = FeriasLancamento::query()
             ->with(['colaborador:id,nome', 'unidade:id,nome'])
             ->whereDate('data_inicio', '<=', $endDate->toDateString())
             ->whereDate('data_fim', '>=', $startDate->toDateString())
+            ->when(
+                $user?->dataScopeFor('vacations') === 'units',
+                fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->orderBy('data_inicio')
             ->get()
             ->map(fn (FeriasLancamento $item): array => [
@@ -242,6 +264,10 @@ class PayrollVacationController extends Controller
             ->whereNotNull('data_admissao')
             ->whereDate('data_admissao', '>=', $startDate->toDateString())
             ->whereDate('data_admissao', '<=', $endDate->toDateString())
+            ->when(
+                $user?->dataScopeFor('vacations') === 'units',
+                fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->orderBy('data_admissao')
             ->get()
             ->map(fn (Colaborador $item): array => [
@@ -258,6 +284,10 @@ class PayrollVacationController extends Controller
             ->whereNotNull('data_demissao')
             ->whereDate('data_demissao', '>=', $startDate->toDateString())
             ->whereDate('data_demissao', '<=', $endDate->toDateString())
+            ->when(
+                $user?->dataScopeFor('vacations') === 'units',
+                fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->orderBy('data_demissao')
             ->get()
             ->map(fn (Colaborador $item): array => [
@@ -285,7 +315,13 @@ class PayrollVacationController extends Controller
                     'total' => $demissoes->count(),
                     'rows' => $demissoes,
                 ],
-                'unidades' => Unidade::query()->orderBy('nome')->get(['id', 'nome']),
+                'unidades' => Unidade::query()
+                    ->when(
+                        $user?->dataScopeFor('vacations') === 'units',
+                        fn ($query) => $query->whereIn('id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+                    )
+                    ->orderBy('nome')
+                    ->get(['id', 'nome']),
             ],
         ]);
     }
@@ -356,6 +392,7 @@ class PayrollVacationController extends Controller
         if (! in_array($sortDirection, ['asc', 'desc'], true)) {
             $sortDirection = 'desc';
         }
+        $allowedUnitIds = $this->allowedVacationUnitIds($request);
 
         $rows = FeriasLancamento::query()
             ->with([
@@ -364,6 +401,10 @@ class PayrollVacationController extends Controller
                 'funcao:id,nome',
                 'autor:id,name',
             ])
+            ->when(
+                $user?->dataScopeFor('vacations') === 'units',
+                fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->when($request->filled('unidade_id'), function ($query) use ($request): void {
                 $query->where('unidade_id', (int) $request->integer('unidade_id'));
             })
@@ -411,6 +452,7 @@ class PayrollVacationController extends Controller
             ->whereKey((int) $validated['colaborador_id'])
             ->with(['unidade:id,nome', 'funcao:id,nome'])
             ->firstOrFail();
+        abort_unless($user?->canAccessUnit('vacations', (int) $colaborador->unidade_id), 403);
 
         $dataInicio = CarbonImmutable::parse((string) $validated['data_inicio']);
         $dataFim = isset($validated['data_fim'])
@@ -463,6 +505,7 @@ class PayrollVacationController extends Controller
         $user = $request->user();
 
         abort_unless($user?->hasPermission('vacations.edit'), 403);
+        abort_unless($user?->canAccessUnit('vacations', (int) $feriasLancamento->unidade_id), 403);
 
         $validated = $request->validated();
         $oldCollaboratorId = (int) $feriasLancamento->colaborador_id;
@@ -475,6 +518,7 @@ class PayrollVacationController extends Controller
             ->whereKey((int) $validated['colaborador_id'])
             ->with(['unidade:id,nome', 'funcao:id,nome'])
             ->firstOrFail();
+        abort_unless($user?->canAccessUnit('vacations', (int) $colaborador->unidade_id), 403);
 
         $dataInicio = CarbonImmutable::parse((string) $validated['data_inicio']);
         $dataFim = isset($validated['data_fim'])
@@ -531,6 +575,7 @@ class PayrollVacationController extends Controller
         $user = $request->user();
 
         abort_unless($user?->hasPermission('vacations.edit'), 403);
+        abort_unless($user?->canAccessUnit('vacations', (int) $feriasLancamento->unidade_id), 403);
 
         $colaboradorId = (int) $feriasLancamento->colaborador_id;
 
@@ -548,6 +593,7 @@ class PayrollVacationController extends Controller
         $user = $request->user();
 
         abort_unless($user?->hasPermission('vacations.history.view'), 403);
+        abort_unless($user?->canAccessUnit('vacations', (int) $colaborador->unidade_id), 403);
 
         $this->syncFinishedVacationsToPast();
 
@@ -654,6 +700,11 @@ class PayrollVacationController extends Controller
             ->where('ativo', true)
             ->whereNotNull('data_admissao');
 
+        if ($request->user()?->dataScopeFor('vacations') === 'units') {
+            $allowedUnitIds = $this->allowedVacationUnitIds($request);
+            $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
+
         if ($request->filled('unidade_id')) {
             $query->where('unidade_id', (int) $request->integer('unidade_id'));
         }
@@ -663,6 +714,14 @@ class PayrollVacationController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function allowedVacationUnitIds(Request $request): array
+    {
+        return $request->user()?->allowedUnitIdsFor('vacations') ?? [];
     }
 
     private function rebalanceCollaboratorVacationPeriods(int $colaboradorId): void

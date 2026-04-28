@@ -406,6 +406,10 @@ class RolePermissionCatalog
 
     private static function cacheKeyForRole(string $role): string
     {
-        return 'transport:role-permissions:v1:'.$role;
+        return sprintf(
+            'transport:role-permissions:v%d:%s',
+            TransportCache::version('permissions'),
+            $role,
+        );
     }
 }

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsyncOperation;
+use App\Support\MasterDataConsistencyService;
+use App\Support\TransportCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +20,9 @@ class SystemObservabilityController extends Controller
         $httpStatuses = $this->httpStatusSummary();
         $recentErrors = $this->recentErrors();
         $recentExceptions = $this->recentExceptions();
+        $asyncOperations = $this->asyncOperationsSummary();
+        $cache = $this->cacheSummary();
+        $masterData = app(MasterDataConsistencyService::class)->snapshot();
 
         return response()->json([
             'generated_at' => now()->toIso8601String(),
@@ -25,11 +31,25 @@ class SystemObservabilityController extends Controller
                 'slowest_p95_ms' => $routes !== [] ? max(array_column($routes, 'p95_ms')) : 0,
             ],
             'http' => $httpStatuses,
+            'async_operations' => $asyncOperations,
+            'cache' => $cache,
+            'master_data' => [
+                'issues' => collect((array) ($masterData['checks'] ?? []))
+                    ->filter(fn (array $check): bool => ((int) ($check['count'] ?? 0)) > 0)
+                    ->values(),
+            ],
             'errors' => [
                 'recent_5xx' => $recentErrors,
                 'recent_exceptions' => $recentExceptions,
             ],
-            'alerts' => $this->alerts($routes, $httpStatuses, $recentErrors, $recentExceptions),
+            'alerts' => $this->alerts(
+                $routes,
+                $httpStatuses,
+                $recentErrors,
+                $recentExceptions,
+                $asyncOperations,
+                $masterData,
+            ),
         ]);
     }
 
@@ -145,14 +165,58 @@ class SystemObservabilityController extends Controller
     }
 
     /**
-     * @param array<int, array<string, float|int|string>> $routes
-     * @param array<string, int> $httpStatuses
-     * @param array<int, array<string, mixed>> $recentErrors
-     * @param array<int, array<string, mixed>> $recentExceptions
+     * @return array<string, mixed>
+     */
+    private function asyncOperationsSummary(): array
+    {
+        $rows = AsyncOperation::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return [
+            'queued' => (int) ($rows['queued'] ?? 0),
+            'processing' => (int) ($rows['processing'] ?? 0),
+            'completed' => (int) ($rows['completed'] ?? 0),
+            'failed' => (int) ($rows['failed'] ?? 0),
+            'recent' => AsyncOperation::query()
+                ->latest('created_at')
+                ->limit(10)
+                ->get(['id', 'category', 'type', 'status', 'progress_percent', 'created_at', 'completed_at']),
+        ];
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function cacheSummary(): array
+    {
+        return [
+            'permissions_version' => TransportCache::version('permissions'),
+            'home_version' => TransportCache::version('home'),
+            'payroll_version' => TransportCache::version('payroll'),
+            'freight_version' => TransportCache::version('freight'),
+            'master_data_version' => TransportCache::version('master-data'),
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, float|int|string>>  $routes
+     * @param  array<string, int>  $httpStatuses
+     * @param  array<int, array<string, mixed>>  $recentErrors
+     * @param  array<int, array<string, mixed>>  $recentExceptions
+     * @param  array<string, mixed>  $asyncOperations
+     * @param  array<string, mixed>  $masterData
      * @return array<int, array<string, mixed>>
      */
-    private function alerts(array $routes, array $httpStatuses, array $recentErrors, array $recentExceptions): array
-    {
+    private function alerts(
+        array $routes,
+        array $httpStatuses,
+        array $recentErrors,
+        array $recentExceptions,
+        array $asyncOperations,
+        array $masterData,
+    ): array {
         $alerts = [];
 
         $slowRoutes = array_values(array_filter($routes, fn (array $row): bool => (float) ($row['p95_ms'] ?? 0) >= 1500));
@@ -189,6 +253,28 @@ class SystemObservabilityController extends Controller
                 'code' => 'recent_exceptions_high',
                 'message' => 'Muitas exceções de aplicação registradas recentemente.',
                 'count' => count($recentExceptions),
+            ];
+        }
+
+        if (((int) ($asyncOperations['failed'] ?? 0)) >= 5) {
+            $alerts[] = [
+                'severity' => 'warning',
+                'code' => 'async_operations_failed',
+                'message' => 'Existem muitas operações assíncronas falhas aguardando análise.',
+                'count' => (int) ($asyncOperations['failed'] ?? 0),
+            ];
+        }
+
+        $masterDataIssues = collect((array) ($masterData['checks'] ?? []))
+            ->filter(fn (array $check): bool => ((int) ($check['count'] ?? 0)) > 0)
+            ->count();
+
+        if ($masterDataIssues > 0) {
+            $alerts[] = [
+                'severity' => 'warning',
+                'code' => 'master_data_consistency_issues',
+                'message' => 'Foram encontrados problemas de consistência em cadastros mestres.',
+                'count' => $masterDataIssues,
             ];
         }
 

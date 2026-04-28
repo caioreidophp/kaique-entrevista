@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\TransportCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -137,6 +138,13 @@ class Colaborador extends Model
 
             self::recalculateVacationAcquisitionPeriods($colaborador);
         });
+
+        $bumpCaches = static function (): void {
+            TransportCache::bumpMany(['master-data', 'registry', 'home', 'payroll', 'vacations', 'programming', 'fines']);
+        };
+
+        static::saved($bumpCaches);
+        static::deleted($bumpCaches);
     }
 
     private static function recalculateVacationAcquisitionPeriods(self $colaborador): void

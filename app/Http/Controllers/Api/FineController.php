@@ -20,7 +20,9 @@ class FineController extends Controller
 {
     public function dashboard(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('fines.dashboard.view'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('fines.dashboard.view'), 403);
 
         $validated = $request->validate([
             'data_inicio' => ['nullable', 'date_format:Y-m-d'],
@@ -36,11 +38,20 @@ class FineController extends Controller
         }
 
         $unidadeId = isset($validated['unidade_id']) ? (int) $validated['unidade_id'] : null;
+        $allowedUnitIds = $this->allowedUnitIds($request);
+
+        if ($unidadeId !== null) {
+            abort_unless($user?->canAccessUnit('fines', $unidadeId), 403);
+        }
 
         $baseQuery = Multa::query()
             ->where('multas.tipo_registro', 'multa')
             ->whereDate('multas.data', '>=', $start->toDateString())
             ->whereDate('multas.data', '<=', $end->toDateString())
+            ->when(
+                $user?->dataScopeFor('fines') === 'units',
+                fn ($query) => $query->whereIn('multas.unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+            )
             ->when($unidadeId, fn ($query) => $query->where('multas.unidade_id', $unidadeId));
 
         $totalQuantidade = (clone $baseQuery)->count();
@@ -93,7 +104,13 @@ class FineController extends Controller
                 'data_fim' => $end->toDateString(),
                 'unidade_id' => $unidadeId,
             ],
-            'unidades' => Unidade::query()->orderBy('nome')->get(['id', 'nome']),
+            'unidades' => Unidade::query()
+                ->when(
+                    $user?->dataScopeFor('fines') === 'units',
+                    fn ($query) => $query->whereIn('id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+                )
+                ->orderBy('nome')
+                ->get(['id', 'nome']),
             'totals' => [
                 'quantidade' => $totalQuantidade,
                 'valor' => round($totalValor, 2),
@@ -111,7 +128,9 @@ class FineController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('fines.list.view'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('fines.list.view'), 403);
 
         $validated = $request->validate([
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -154,6 +173,7 @@ class FineController extends Controller
         $sortBy = (string) ($validated['sort_by'] ?? 'data');
         $sortDirection = (string) ($validated['sort_direction'] ?? 'desc');
         $tipoRegistro = (string) ($validated['tipo_registro'] ?? 'multa');
+        $allowedUnitIds = $this->allowedUnitIds($request);
 
         $query = Multa::query()
             ->select('multas.*')
@@ -164,6 +184,10 @@ class FineController extends Controller
                 'orgaoAutuador:id,nome',
                 'colaborador:id,nome,unidade_id',
             ]);
+
+        if ($user?->dataScopeFor('fines') === 'units') {
+            $query->whereIn('multas.unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]);
+        }
 
         if (! empty($validated['data_inicio'])) {
             $query->whereDate('multas.data', '>=', (string) $validated['data_inicio']);
@@ -176,6 +200,7 @@ class FineController extends Controller
         $query->where('multas.tipo_registro', $tipoRegistro);
 
         if (! empty($validated['unidade_id'])) {
+            abort_unless($user?->canAccessUnit('fines', (int) $validated['unidade_id']), 403);
             $query->where('multas.unidade_id', (int) $validated['unidade_id']);
         }
 
@@ -244,12 +269,15 @@ class FineController extends Controller
 
     public function show(Request $request, Multa $multa): JsonResponse
     {
+        $user = $request->user();
+
         abort_unless(
-            $request->user()?->hasPermission('fines.list.view')
-            || $request->user()?->hasPermission('fines.entries.create')
-            || $request->user()?->hasPermission('fines.entries.update'),
+            $user?->hasPermission('fines.list.view')
+            || $user?->hasPermission('fines.entries.create')
+            || $user?->hasPermission('fines.entries.update'),
             403,
         );
+        abort_unless($user?->canAccessUnit('fines', (int) $multa->unidade_id), 403);
 
         $tipoRegistro = (string) $request->query('tipo_registro', '');
 
@@ -279,16 +307,31 @@ class FineController extends Controller
             || $user?->hasPermission('fines.entries.update'),
             403,
         );
+        $allowedUnitIds = $this->allowedUnitIds($request);
 
         return response()->json([
-            'unidades' => Unidade::query()->orderBy('nome')->get(['id', 'nome']),
+            'unidades' => Unidade::query()
+                ->when(
+                    $user?->dataScopeFor('fines') === 'units',
+                    fn ($query) => $query->whereIn('id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+                )
+                ->orderBy('nome')
+                ->get(['id', 'nome']),
             'placas' => PlacaFrota::query()
                 ->with('unidade:id,nome')
+                ->when(
+                    $user?->dataScopeFor('fines') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+                )
                 ->orderBy('placa')
                 ->get(['id', 'placa', 'unidade_id']),
             'motoristas' => Colaborador::query()
                 ->with('unidade:id,nome')
                 ->where('ativo', true)
+                ->when(
+                    $user?->dataScopeFor('fines') === 'units',
+                    fn ($query) => $query->whereIn('unidade_id', $allowedUnitIds !== [] ? $allowedUnitIds : [0]),
+                )
                 ->orderBy('nome')
                 ->get(['id', 'nome', 'unidade_id']),
             'infracoes' => MultaInfracao::query()
@@ -304,7 +347,9 @@ class FineController extends Controller
 
     public function store(StoreMultaRequest $request): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('fines.entries.create'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('fines.entries.create'), 403);
 
         $data = $request->validated();
         $tipoRegistro = (string) ($data['tipo_registro'] ?? 'multa');
@@ -330,7 +375,8 @@ class FineController extends Controller
             isset($data['colaborador_id']) ? (int) $data['colaborador_id'] : null,
             (int) $data['placa_frota_id'],
         );
-        $data['autor_id'] = (int) $request->user()->id;
+        abort_unless($user?->canAccessUnit('fines', (int) $data['unidade_id']), 403);
+        $data['autor_id'] = (int) $user->id;
 
         $multa = Multa::query()->create($data);
 
@@ -347,7 +393,10 @@ class FineController extends Controller
 
     public function update(UpdateMultaRequest $request, Multa $multa): JsonResponse
     {
-        abort_unless($request->user()?->hasPermission('fines.entries.update'), 403);
+        $user = $request->user();
+
+        abort_unless($user?->hasPermission('fines.entries.update'), 403);
+        abort_unless($user?->canAccessUnit('fines', (int) $multa->unidade_id), 403);
 
         $data = $request->validated();
         $tipoRegistro = (string) ($data['tipo_registro'] ?? $multa->tipo_registro ?? 'multa');
@@ -373,6 +422,7 @@ class FineController extends Controller
             isset($data['colaborador_id']) ? (int) $data['colaborador_id'] : null,
             (int) $data['placa_frota_id'],
         );
+        abort_unless($user?->canAccessUnit('fines', (int) $data['unidade_id']), 403);
 
         $multa->update($data);
 
@@ -390,6 +440,7 @@ class FineController extends Controller
     public function destroy(Request $request, Multa $multa): JsonResponse
     {
         abort_unless($request->user()?->hasPermission('fines.entries.delete'), 403);
+        abort_unless($request->user()?->canAccessUnit('fines', (int) $multa->unidade_id), 403);
 
         $multa->delete();
 
@@ -465,5 +516,13 @@ class FineController extends Controller
         $placa = PlacaFrota::query()->find($placaFrotaId);
 
         return $placa?->unidade_id ? (int) $placa->unidade_id : null;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function allowedUnitIds(Request $request): array
+    {
+        return $request->user()?->allowedUnitIdsFor('fines') ?? [];
     }
 }

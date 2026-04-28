@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\RolePermissionCatalog;
+use App\Models\UserAccessScope;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -77,6 +78,87 @@ class User extends Authenticatable
         }
 
         return RolePermissionCatalog::isAllowed((string) $this->role, $permissionKey);
+    }
+
+    public function accessScopes(): HasMany
+    {
+        return $this->hasMany(UserAccessScope::class);
+    }
+
+    /**
+     * @return array<string, array{module_key:string,data_scope:string,allowed_unit_ids:array<int, int>,metadata:array<string, mixed>}>
+     */
+    public function resolvedAccessScopes(): array
+    {
+        if ($this->isMasterAdmin()) {
+            return [];
+        }
+
+        return $this->accessScopes
+            ->mapWithKeys(function (UserAccessScope $scope): array {
+                return [
+                    (string) $scope->module_key => [[
+                        'module_key' => (string) $scope->module_key,
+                        'data_scope' => (string) ($scope->data_scope ?: 'all'),
+                        'allowed_unit_ids' => collect((array) ($scope->allowed_unit_ids ?? []))
+                            ->map(fn ($unitId): int => (int) $unitId)
+                            ->filter(fn (int $unitId): bool => $unitId > 0)
+                            ->values()
+                            ->all(),
+                        'metadata' => is_array($scope->metadata) ? $scope->metadata : [],
+                    ]],
+                ];
+            })
+            ->map(fn (array $rows): array => $rows[0])
+            ->all();
+    }
+
+    public function dataScopeFor(string $moduleKey): string
+    {
+        if ($this->isMasterAdmin()) {
+            return 'all';
+        }
+
+        $scopes = $this->resolvedAccessScopes();
+
+        return (string) ($scopes[$moduleKey]['data_scope'] ?? 'all');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function allowedUnitIdsFor(string $moduleKey): array
+    {
+        if ($this->isMasterAdmin()) {
+            return [];
+        }
+
+        $scopes = $this->resolvedAccessScopes();
+
+        return collect((array) ($scopes[$moduleKey]['allowed_unit_ids'] ?? []))
+            ->map(fn ($unitId): int => (int) $unitId)
+            ->filter(fn (int $unitId): bool => $unitId > 0)
+            ->values()
+            ->all();
+    }
+
+    public function canAccessUnit(string $moduleKey, ?int $unitId): bool
+    {
+        if ($this->isMasterAdmin()) {
+            return true;
+        }
+
+        $scope = $this->dataScopeFor($moduleKey);
+
+        if ($scope !== 'units') {
+            return true;
+        }
+
+        if (! $unitId || $unitId <= 0) {
+            return false;
+        }
+
+        return in_array($unitId, $this->allowedUnitIdsFor($moduleKey), true);
     }
 
     public function interviews(): HasMany
