@@ -89,13 +89,13 @@ class FinancialApprovalController extends Controller
     ): JsonResponse {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        abort_if($financialApproval->requester_id === (int) $request->user()->id, 422, 'Aprovacao pelo proprio solicitante nao e permitida.');
-        abort_if($financialApproval->status !== 'pending', 422, 'Aprovacao ja foi processada anteriormente.');
+        abort_if($financialApproval->requester_id === (int) $request->user()->id, 422, 'Aprovação pelo próprio solicitante não é permitida.');
+        abort_if($financialApproval->status !== 'pending', 422, 'Aprovação já foi processada anteriormente.');
 
         $approved = $service->approve($financialApproval, $request->user());
 
         return response()->json([
-            'message' => 'Solicitacao aprovada com sucesso.',
+            'message' => 'Solicitação aprovada com sucesso.',
             'data' => $approved,
             'execution_token' => $approved->execution_token,
             'token_expires_at' => $approved->token_expires_at?->toISOString(),
@@ -113,12 +113,12 @@ class FinancialApprovalController extends Controller
             'reason' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        abort_if($financialApproval->status !== 'pending', 422, 'Aprovacao ja foi processada anteriormente.');
+        abort_if($financialApproval->status !== 'pending', 422, 'Aprovação já foi processada anteriormente.');
 
         $rejected = $service->reject($financialApproval, $request->user(), $validated['reason'] ?? null);
 
         return response()->json([
-            'message' => 'Solicitacao rejeitada.',
+            'message' => 'Solicitação rejeitada.',
             'data' => $rejected,
         ]);
     }

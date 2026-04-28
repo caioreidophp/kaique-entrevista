@@ -1047,7 +1047,7 @@ export default function TransportPayrollLaunchPage() {
             active="payroll-launch"
             module="payroll"
         >
-            <div className="space-y-6">
+            <div className="transport-dashboard-page">
                 <Dialog
                     open={resumeDialogOpen}
                     onOpenChange={(open) => {
@@ -1090,11 +1090,12 @@ export default function TransportPayrollLaunchPage() {
                     <p className="text-sm text-muted-foreground">Carregando rascunho...</p>
                 ) : null}
 
-                <div>
-                    <h2 className="text-2xl font-semibold">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Pagamentos</p>
+                    <h2 className="transport-dashboard-title">
                         Lançar Pagamentos
                     </h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="transport-dashboard-subtitle">
                         Informe descrição, unidade, tipos e data para lançar pagamentos em lote.
                     </p>
                 </div>
@@ -1106,9 +1107,9 @@ export default function TransportPayrollLaunchPage() {
                     />
                 ) : null}
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-4">
@@ -1197,9 +1198,9 @@ export default function TransportPayrollLaunchPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Colaboradores Ativos da Unidade</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Colaboradores ativos da unidade</CardTitle>
                         {hasSalaryTypeSelected ? (
                             <p className="text-xs text-muted-foreground">
                                 Para tipos de salário, informe também os valores de pensão do mês em linhas "Colaborador - Pensão".
@@ -1213,12 +1214,13 @@ export default function TransportPayrollLaunchPage() {
                                 Carregando colaboradores...
                             </div>
                         ) : candidates.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Nenhum colaborador ativo encontrado para os filtros.
-                            </p>
+                            <div className="transport-empty-state">
+                                <strong>Nenhum colaborador ativo encontrado</strong>
+                                Selecione unidade, data e tipo de pagamento para carregar os colaboradores.
+                            </div>
                         ) : (
                             <div className="space-y-3">
-                                <div className="overflow-x-auto rounded-md border">
+                                <div className="transport-table-scroll rounded-md border">
                                     <table className="w-full min-w-[760px] text-sm">
                                         <thead className="bg-muted/40">
                                             {hasGlobalTopAutoFill ? (

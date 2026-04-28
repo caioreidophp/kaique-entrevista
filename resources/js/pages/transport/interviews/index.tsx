@@ -322,12 +322,13 @@ export default function TransportInterviewsListPage() {
 
     return (
         <AdminLayout title="Entrevistas" active="interviews">
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Entrevistas</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Recrutamento</p>
+                    <h2 className="transport-dashboard-title">Entrevistas</h2>
+                    <p className="transport-dashboard-subtitle">
                         Gerencie entrevistas de motoristas com filtros e
-                        paginação.
+                        paginação operacional.
                     </p>
                 </div>
 
@@ -338,7 +339,7 @@ export default function TransportInterviewsListPage() {
                     />
                 ) : null}
 
-                <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-2 xl:grid-cols-6">
+                <div className="transport-filter-panel grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                     <Input
                         placeholder="Buscar por nome"
                         value={nameFilter}
@@ -419,7 +420,8 @@ export default function TransportInterviewsListPage() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border">
+                <div className="transport-table-card">
+                    <div className="transport-table-scroll">
                     <table className="w-full min-w-[1220px] table-fixed text-sm">
                         <thead className="bg-muted/40">
                             <tr>
@@ -468,7 +470,10 @@ export default function TransportInterviewsListPage() {
                                         colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
-                                        Nenhuma entrevista encontrada.
+                                        <div className="transport-empty-state mx-auto max-w-md text-left">
+                                            <strong>Nenhuma entrevista encontrada</strong>
+                                            Ajuste os filtros ou cadastre uma nova entrevista para iniciar o acompanhamento.
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
@@ -809,6 +814,7 @@ export default function TransportInterviewsListPage() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

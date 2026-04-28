@@ -196,15 +196,15 @@ class PayrollController extends Controller
             $alerts[] = [
                 'level' => 'warning',
                 'title' => 'Cobertura abaixo da meta',
-                'detail' => "Apenas {$coverageRate}% dos colaboradores ativos receberam lancamento na competencia.",
+                'detail' => "Apenas {$coverageRate}% dos colaboradores ativos receberam lançamento na competência.",
             ];
         }
 
         if ($pendingFinancialApprovals > 0) {
             $alerts[] = [
                 'level' => 'info',
-                'title' => 'Aprovacoes pendentes',
-                'detail' => "{$pendingFinancialApprovals} solicitacao(oes) de aprovacao financeira aguardando analise.",
+                'title' => 'Aprovações pendentes',
+                'detail' => "{$pendingFinancialApprovals} solicitação(ões) de aprovação financeira aguardando análise.",
             ];
         }
 
@@ -214,8 +214,8 @@ class PayrollController extends Controller
             if ($concentration >= 55) {
                 $alerts[] = [
                     'level' => 'warning',
-                    'title' => 'Concentracao por unidade elevada',
-                    'detail' => "{$maiorUnidade['unidade_nome']} concentra {$concentration}% do valor do mes.",
+                    'title' => 'Concentração por unidade elevada',
+                    'detail' => "{$maiorUnidade['unidade_nome']} concentra {$concentration}% do valor do mês.",
                 ];
             }
         }

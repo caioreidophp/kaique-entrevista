@@ -1339,19 +1339,20 @@ export default function TransportPayrollListPage() {
 
     return (
         <AdminLayout title="Pagamentos - Lista de Pagamentos" active="payroll-list" module="payroll">
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Lista de Pagamentos</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Pagamentos</p>
+                    <h2 className="transport-dashboard-title">Lista de Pagamentos</h2>
+                    <p className="transport-dashboard-subtitle">
                         Cada linha representa um lançamento por nome/descrição. Expanda para ver os colaboradores.
                     </p>
                 </div>
 
                 {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-4">
@@ -1413,9 +1414,9 @@ export default function TransportPayrollListPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Lançamentos agrupados ({launchGroups.length})</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Lançamentos agrupados ({launchGroups.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
@@ -1424,9 +1425,12 @@ export default function TransportPayrollListPage() {
                                 Carregando pagamentos...
                             </div>
                         ) : launchGroups.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Nenhum pagamento encontrado.</p>
+                            <div className="transport-empty-state">
+                                <strong>Nenhum pagamento encontrado</strong>
+                                Ajuste os filtros ou lance novos pagamentos para visualizar grupos.
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="transport-table-scroll">
                                 <table className="w-full table-fixed text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
@@ -1453,7 +1457,7 @@ export default function TransportPayrollListPage() {
                                                         <td className="py-2 pr-3">
                                                             <div className="flex flex-wrap gap-1">
                                                                 {launch.tipoIds.map((tipoId) => (
-                                                                    <span key={`${launch.key}-${tipoId}`} className="rounded-full border px-2 py-0.5 text-xs">
+                                                                    <span key={`${launch.key}-${tipoId}`} className="transport-value-pill">
                                                                         {tipos.find((tipo) => tipo.id === tipoId)?.nome ?? 'Tipo'}
                                                                     </span>
                                                                 ))}
@@ -1534,7 +1538,7 @@ export default function TransportPayrollListPage() {
                                                     {isExpanded ? (
                                                         <tr className="border-b bg-muted/20">
                                                             <td colSpan={7} className="p-3">
-                                                                <div className="overflow-x-auto rounded-md border bg-background">
+                                                                <div className="transport-table-scroll rounded-md border bg-background">
                                                                     <table className="w-full min-w-[820px] text-sm">
                                                                         <thead className="bg-muted/40">
                                                                             <tr>

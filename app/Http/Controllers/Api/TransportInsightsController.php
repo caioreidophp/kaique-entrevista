@@ -202,16 +202,16 @@ class TransportInsightsController extends Controller
         if ($freightSpotShare > 35) {
             $alerts[] = [
                 'level' => 'warning',
-                'title' => 'Dependencia alta de frete spot',
-                'detail' => "Participacao spot em {$freightSpotShare}% no mes.",
+                'title' => 'Dependência alta de frete spot',
+                'detail' => "Participação spot em {$freightSpotShare}% no mês.",
             ];
         }
 
         if ($approvalRate < 40 && $totalInterviews >= 10) {
             $alerts[] = [
                 'level' => 'info',
-                'title' => 'Taxa de aprovacao baixa',
-                'detail' => "Aprovacao em entrevistas esta em {$approvalRate}%.",
+                'title' => 'Taxa de aprovação baixa',
+                'detail' => "Aprovação em entrevistas está em {$approvalRate}%.",
             ];
         }
 

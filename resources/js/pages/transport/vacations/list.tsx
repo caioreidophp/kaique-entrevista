@@ -114,7 +114,7 @@ function normalizeText(value: string | null | undefined): string {
 function vacationStatusLabel(status: VacationCandidateRow['status']): string {
     switch (status) {
         case 'a_vencer':
-            return 'À Vencer';
+            return 'A vencer';
         case 'liberada':
             return 'Liberada';
         case 'atencao':
@@ -464,10 +464,11 @@ export default function VacationsListPage() {
             active="vacations-list"
             module="vacations"
         >
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Lista de Férias</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Controle de férias</p>
+                    <h2 className="transport-dashboard-title">Lista de Férias</h2>
+                    <p className="transport-dashboard-subtitle">
                         Duas visões separadas para férias pendentes e férias já lançadas.
                     </p>
                 </div>
@@ -476,7 +477,7 @@ export default function VacationsListPage() {
                     <Notification message={notification.message} variant={notification.variant} />
                 ) : null}
 
-                <div className="flex flex-wrap gap-3">
+                <div className="transport-tab-group">
                     <Button
                         type="button"
                         variant={activeTab === 'a-realizar' ? 'default' : 'outline'}
@@ -493,9 +494,9 @@ export default function VacationsListPage() {
                     </Button>
                 </div>
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-3 md:grid-cols-4">
                         <div className="space-y-2">
@@ -560,9 +561,9 @@ export default function VacationsListPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
                             {activeTab === 'a-realizar'
                                 ? `A realizar (${filteredCandidates.length})`
                                 : `Realizadas (${filteredLaunched.length})`}
@@ -576,9 +577,12 @@ export default function VacationsListPage() {
                             </div>
                         ) : activeTab === 'a-realizar' ? (
                             filteredCandidates.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                <div className="transport-empty-state">
+                                    <strong>Nenhum colaborador encontrado</strong>
+                                    Ajuste os filtros para localizar férias pendentes ou próximas do vencimento.
+                                </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div className="transport-table-scroll">
                                     <table className="w-full min-w-[1100px] text-sm">
                                         <thead>
                                             <tr className="border-b text-left text-muted-foreground">
@@ -663,9 +667,12 @@ export default function VacationsListPage() {
                                 </div>
                             )
                         ) : filteredLaunched.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Nenhum lançamento de férias encontrado.</p>
+                            <div className="transport-empty-state">
+                                <strong>Nenhum lançamento encontrado</strong>
+                                Ainda não há férias lançadas para os filtros selecionados.
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="transport-table-scroll">
                                 <table className="w-full min-w-[1280px] text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">

@@ -250,6 +250,14 @@ export default function TransportPayrollDashboardPage() {
     }, [data]);
 
     const hoveredSlice = hoveredTypeIndex !== null ? donutData[hoveredTypeIndex] : null;
+    const maxMonthlyTotal = useMemo(
+        () => Math.max(0, ...(data?.evolucao_mensal ?? []).map((item) => item.total_valor)),
+        [data?.evolucao_mensal],
+    );
+    const maxUnitTotal = useMemo(
+        () => Math.max(0, ...(data?.totais_por_unidade ?? []).map((item) => item.total_valor)),
+        [data?.totais_por_unidade],
+    );
 
     return (
         <AdminLayout
@@ -457,20 +465,31 @@ export default function TransportPayrollDashboardPage() {
                             </CardContent>
                         </Card>
 
-                        <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
+                        <div className="grid items-start gap-4 xl:grid-cols-[1.15fr_1fr]">
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Leituras operacionais</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Alertas, pendências e concentração financeira da competência.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {data.alerts.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Sem alertas relevantes para a competência.
-                                        </p>
+                                        <div className="transport-empty-state">
+                                            <strong>Operação sem alerta crítico</strong>
+                                            Sem alertas relevantes para a competência selecionada.
+                                        </div>
                                     ) : (
                                         data.alerts.map((alert, index) => (
-                                            <div key={`${alert.title}-${index}`} className="transport-list-panel">
-                                                <p className="font-medium">{alert.title}</p>
+                                            <div
+                                                key={`${alert.title}-${index}`}
+                                                className={`transport-list-panel border-l-4 ${
+                                                    alert.level === 'warning'
+                                                        ? 'border-l-amber-500 bg-amber-50/45'
+                                                        : 'border-l-sky-500 bg-sky-50/45'
+                                                }`}
+                                            >
+                                                <p className="font-semibold">{alert.title}</p>
                                                 <p className="text-xs text-muted-foreground">{alert.detail}</p>
                                             </div>
                                         ))
@@ -478,16 +497,19 @@ export default function TransportPayrollDashboardPage() {
 
                                     <div className="grid gap-3 md:grid-cols-3">
                                         <div className="transport-list-panel">
-                                            <p className="text-xs text-muted-foreground">Pagamentos a fazer</p>
-                                            <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.total_pagamentos_a_fazer)}</p>
+                                            <p className="transport-metric-label">A fazer</p>
+                                            <p className="mt-1 text-2xl font-semibold">{formatIntegerBR(data.total_pagamentos_a_fazer)}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">Colaboradores ainda sem lançamento na competência.</p>
                                         </div>
                                         <div className="transport-list-panel">
-                                            <p className="text-xs text-muted-foreground">Aprovações pendentes</p>
-                                            <p className="mt-1 text-xl font-semibold">{formatIntegerBR(data.pending_financial_approvals)}</p>
+                                            <p className="transport-metric-label">Aprovações pendentes</p>
+                                            <p className="mt-1 text-2xl font-semibold">{formatIntegerBR(data.pending_financial_approvals)}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">Solicitações financeiras aguardando análise.</p>
                                         </div>
                                         <div className="transport-list-panel">
-                                            <p className="text-xs text-muted-foreground">Maior tipo por valor</p>
-                                            <p className="mt-1 text-sm font-semibold">{data.tipo_maior_volume?.tipo_pagamento_nome ?? '-'}</p>
+                                            <p className="transport-metric-label">Maior tipo por valor</p>
+                                            <p className="mt-1 text-base font-semibold">{data.tipo_maior_volume?.tipo_pagamento_nome ?? '-'}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">Categoria com maior peso no total do mês.</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -496,20 +518,38 @@ export default function TransportPayrollDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Evolução mensal</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Comparativo recente para leitura de volume e tendência.
+                                    </p>
                                 </CardHeader>
-                                <CardContent className="space-y-2">
+                                <CardContent className="space-y-3">
                                     {data.evolucao_mensal.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem histórico recente.</p>
+                                        <div className="transport-empty-state">
+                                            <strong>Sem histórico recente</strong>
+                                            Ainda não há meses suficientes para comparar a evolução.
+                                        </div>
                                     ) : (
-                                        data.evolucao_mensal.map((item) => (
-                                            <div key={item.competencia_label} className="transport-compare-row">
-                                                <div>
-                                                    <p className="font-medium">{item.competencia_label}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatIntegerBR(item.total_lancamentos)} lançamentos</p>
+                                        data.evolucao_mensal.map((item) => {
+                                            const percent = maxMonthlyTotal > 0 ? (item.total_valor / maxMonthlyTotal) * 100 : 0;
+
+                                            return (
+                                                <div key={item.competencia_label} className="transport-compare-row">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="font-semibold">{item.competencia_label}</p>
+                                                            <p className="text-xs text-muted-foreground">{formatIntegerBR(item.total_lancamentos)} lançamentos</p>
+                                                        </div>
+                                                        <p className="font-semibold">{formatCurrencyBR(item.total_valor)}</p>
+                                                    </div>
+                                                    <div className="transport-progress-track mt-3">
+                                                        <div
+                                                            className="transport-progress-fill"
+                                                            style={{ width: `${Math.max(3, Math.min(100, percent))}%` }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <p className="font-semibold">{formatCurrencyBR(item.total_valor)}</p>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </CardContent>
                             </Card>
@@ -519,35 +559,53 @@ export default function TransportPayrollDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Totais por unidade</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Distribuição do valor lançado entre unidades.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.totais_por_unidade.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Sem lançamentos no período.
-                                        </p>
+                                        <div className="transport-empty-state">
+                                            <strong>Sem lançamentos</strong>
+                                            Nenhuma unidade possui pagamentos no período selecionado.
+                                        </div>
                                     ) : (
-                                        data.totais_por_unidade.map((item) => (
-                                            <div
-                                                key={item.unidade_id}
-                                                className="transport-compare-row"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {item.unidade_nome ??
-                                                            'Sem unidade'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.total_lancamentos}{' '}
-                                                        lançamentos
-                                                    </p>
+                                        data.totais_por_unidade.map((item) => {
+                                            const share = data.total_a_pagar_mes_atual > 0
+                                                ? (item.total_valor / data.total_a_pagar_mes_atual) * 100
+                                                : 0;
+                                            const width = maxUnitTotal > 0 ? (item.total_valor / maxUnitTotal) * 100 : 0;
+
+                                            return (
+                                                <div
+                                                    key={item.unidade_id}
+                                                    className="transport-list-panel"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="font-semibold">
+                                                                {item.unidade_nome ??
+                                                                    'Sem unidade'}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {formatIntegerBR(item.total_lancamentos)} lançamentos • {formatPercentBR(share)} do total
+                                                            </p>
+                                                        </div>
+                                                        <p className="font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.total_valor,
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                    <div className="transport-progress-track mt-3">
+                                                        <div
+                                                            className="transport-progress-fill"
+                                                            style={{ width: `${Math.max(3, Math.min(100, width))}%` }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <p className="font-semibold">
-                                                    {formatCurrencyBR(
-                                                        item.total_valor,
-                                                    )}
-                                                </p>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </CardContent>
                             </Card>
@@ -555,36 +613,40 @@ export default function TransportPayrollDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Pagamentos recentes</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Últimos lançamentos registrados na competência.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.pagamentos_recentes.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Sem pagamentos recentes.
-                                        </p>
+                                        <div className="transport-empty-state">
+                                            <strong>Sem pagamentos recentes</strong>
+                                            Nenhum pagamento recente encontrado para o período.
+                                        </div>
                                     ) : (
                                         data.pagamentos_recentes.map((item) => (
                                             <div
                                                 key={item.id}
-                                                className="transport-compare-row"
+                                                className="transport-list-panel"
                                             >
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {item.colaborador
-                                                            ?.nome ?? '-'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.unidade?.nome ??
-                                                            '-'}{' '}
-                                                        •{' '}
-                                                        {String(
-                                                            item.competencia_mes,
-                                                        ).padStart(2, '0')}
-                                                        /{item.competencia_ano}
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            {item.colaborador
+                                                                ?.nome ?? '-'}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {item.unidade?.nome ??
+                                                                '-'} • {String(
+                                                                item.competencia_mes,
+                                                            ).padStart(2, '0')}
+                                                            /{item.competencia_ano}
+                                                        </p>
+                                                    </div>
+                                                    <p className="font-semibold">
+                                                        {formatCurrencyBR(item.valor)}
                                                     </p>
                                                 </div>
-                                                <p className="font-semibold">
-                                                    {formatCurrencyBR(item.valor)}
-                                                </p>
                                             </div>
                                         ))
                                     )}
@@ -594,23 +656,27 @@ export default function TransportPayrollDashboardPage() {
                             <Card className="transport-insight-card">
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Aprovações recentes</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Solicitações financeiras revisadas ou pendentes de revisão.
+                                    </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.recent_financial_approvals.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Sem aprovações recentes.
-                                        </p>
+                                        <div className="transport-empty-state">
+                                            <strong>Sem aprovações recentes</strong>
+                                            Nenhuma aprovação financeira recente no período selecionado.
+                                        </div>
                                     ) : (
                                         data.recent_financial_approvals.map((item) => (
                                             <div key={item.id} className="transport-list-panel">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="font-medium">{item.requester_name ?? 'Sem solicitante'}</p>
-                                                    <span className="text-xs text-muted-foreground">{item.status}</span>
+                                                    <p className="font-semibold">{item.requester_name ?? 'Sem solicitante'}</p>
+                                                    <span className="transport-value-pill">{item.status}</span>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="mt-1 text-xs text-muted-foreground">
                                                     {formatIntegerBR(item.total_colaboradores)} colaboradores
                                                 </p>
-                                                <p className="mt-1 font-semibold">{formatCurrencyBR(item.total_valor)}</p>
+                                                <p className="mt-2 font-semibold">{formatCurrencyBR(item.total_valor)}</p>
                                             </div>
                                         ))
                                     )}

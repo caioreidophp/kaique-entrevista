@@ -220,10 +220,11 @@ export default function VacationsLaunchPage() {
             active="vacations-launch"
             module="vacations"
         >
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-2xl font-semibold">Controle de Férias - Lançar</h2>
-                    <p className="text-sm text-muted-foreground">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header">
+                    <p className="transport-dashboard-eyebrow">Controle de férias</p>
+                    <h2 className="transport-dashboard-title">Controle de Férias - Lançar</h2>
+                    <p className="transport-dashboard-subtitle">
                         Lançamento com cálculo automático de data fim e fim do período aquisitivo.
                     </p>
                 </div>
@@ -232,9 +233,9 @@ export default function VacationsLaunchPage() {
                     <Notification message={notification.message} variant={notification.variant} />
                 ) : null}
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Lançar Férias</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Lançar Férias</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {loading ? (

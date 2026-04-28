@@ -391,13 +391,14 @@ export default function TransportPayrollPage() {
             active="payroll-dashboard"
             module="payroll"
         >
-            <div className="space-y-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="transport-dashboard-page">
+                <div className="transport-dashboard-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-2xl font-semibold">
+                        <p className="transport-dashboard-eyebrow">Pagamentos</p>
+                        <h2 className="transport-dashboard-title">
                             Módulo Pagamentos
                         </h2>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="transport-dashboard-subtitle">
                             Controle de lançamentos salariais por competência.
                         </p>
                     </div>
@@ -414,9 +415,9 @@ export default function TransportPayrollPage() {
                     />
                 ) : null}
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-5">
@@ -530,9 +531,9 @@ export default function TransportPayrollPage() {
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
+                    <Card className="transport-metric-card transport-tone-info">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-sm text-muted-foreground">
+                            <CardTitle className="transport-metric-label">
                                 Total de lançamentos
                             </CardTitle>
                             <Wallet className="size-4 text-muted-foreground" />
@@ -541,16 +542,16 @@ export default function TransportPayrollPage() {
                             {summaryLoading ? (
                                 <LoaderCircle className="size-4 animate-spin" />
                             ) : (
-                                <p className="text-2xl font-semibold">
+                                <p className="transport-metric-value">
                                     {summary?.total_lancamentos ?? 0}
                                 </p>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="transport-metric-card transport-tone-success">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-sm text-muted-foreground">
+                            <CardTitle className="transport-metric-label">
                                 Colaboradores pagos
                             </CardTitle>
                             <Wallet className="size-4 text-muted-foreground" />
@@ -559,16 +560,16 @@ export default function TransportPayrollPage() {
                             {summaryLoading ? (
                                 <LoaderCircle className="size-4 animate-spin" />
                             ) : (
-                                <p className="text-2xl font-semibold">
+                                <p className="transport-metric-value">
                                     {summary?.total_colaboradores ?? 0}
                                 </p>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="transport-metric-card transport-tone-info">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-sm text-muted-foreground">
+                            <CardTitle className="transport-metric-label">
                                 Valor total
                             </CardTitle>
                             <Wallet className="size-4 text-muted-foreground" />
@@ -577,7 +578,7 @@ export default function TransportPayrollPage() {
                             {summaryLoading ? (
                                 <LoaderCircle className="size-4 animate-spin" />
                             ) : (
-                                <p className="text-2xl font-semibold">
+                                <p className="transport-metric-value">
                                     {formatCurrencyBR(summary?.total_valor ?? 0)}
                                 </p>
                             )}
@@ -585,9 +586,9 @@ export default function TransportPayrollPage() {
                     </Card>
                 </div>
 
-                <Card>
+                <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle>Lançamentos ({total})</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">Lançamentos ({total})</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {listLoading ? (
@@ -596,11 +597,12 @@ export default function TransportPayrollPage() {
                                 Carregando lançamentos...
                             </div>
                         ) : items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Nenhum lançamento encontrado.
-                            </p>
+                            <div className="transport-empty-state">
+                                <strong>Nenhum lançamento encontrado</strong>
+                                Ajuste os filtros ou cadastre um novo lançamento para esta competência.
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="transport-table-scroll">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
