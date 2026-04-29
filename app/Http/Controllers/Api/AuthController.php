@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\RolePermissionCatalog;
+use App\Support\TransportPanelGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -49,6 +50,11 @@ class AuthController extends Controller
         ])->save();
 
         $token = $newToken->plainTextToken;
+        $tokenId = (int) explode('|', $token, 2)[0];
+        $guardCookieValue = TransportPanelGuard::makeCookieValue(
+            userId: (int) $user->id,
+            tokenId: $tokenId,
+        );
 
         return response()->json([
             'token' => $token,
@@ -60,7 +66,17 @@ class AuthController extends Controller
                 'permissions' => RolePermissionCatalog::forRole((string) $user->role),
                 'access_scopes' => $user->resolvedAccessScopes(),
             ],
-        ]);
+        ])->cookie(
+            TransportPanelGuard::COOKIE_NAME,
+            $guardCookieValue,
+            60 * 24 * 7,
+            '/',
+            null,
+            (bool) $request->isSecure(),
+            true,
+            false,
+            'lax',
+        );
     }
 
     public function logout(Request $request): JsonResponse
@@ -69,7 +85,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logout realizado com sucesso.',
-        ]);
+        ])->withoutCookie(TransportPanelGuard::COOKIE_NAME, '/');
     }
 
     public function me(Request $request): JsonResponse

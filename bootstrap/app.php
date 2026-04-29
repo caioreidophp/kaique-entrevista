@@ -57,7 +57,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
         }
 
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'transport_panel_guard']);
         $middleware->trustProxies(at: '*');
 
         $appEnv = (string) ($_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? getenv('APP_ENV') ?: '');

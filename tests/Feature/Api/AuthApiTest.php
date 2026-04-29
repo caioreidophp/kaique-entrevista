@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Unidade;
 use App\Models\UserAccessScope;
 use App\Models\User;
+use App\Support\TransportPanelGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +45,8 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('user.access_scopes.registry.data_scope', 'units')
             ->assertJsonPath('user.access_scopes.registry.allowed_unit_ids.0', $unidade->id)
             ->assertHeader('X-Request-Id')
-            ->assertHeader('Cache-Control', 'no-store, private');
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertCookie(TransportPanelGuard::COOKIE_NAME);
     }
 
     public function test_login_rejects_invalid_credentials(): void
@@ -81,5 +83,25 @@ class AuthApiTest extends TestCase
         ])
             ->assertStatus(429)
             ->assertJsonPath('message', 'Muitas tentativas de login. Aguarde 1 minuto e tente novamente.');
+    }
+
+    public function test_logout_revokes_cookie_guard(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'password',
+        ]);
+
+        $login = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertOk();
+
+        $token = (string) $login->json('token');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/logout')
+            ->assertOk()
+            ->assertJsonPath('message', 'Logout realizado com sucesso.')
+            ->assertCookieExpired(TransportPanelGuard::COOKIE_NAME);
     }
 }

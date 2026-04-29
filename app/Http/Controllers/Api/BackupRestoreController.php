@@ -10,10 +10,31 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 use ZipArchive;
 
 class BackupRestoreController extends Controller
 {
+    private const MAX_SQL_BYTES = 200 * 1024 * 1024; // 200 MB
+
+    /**
+     * @var array<int, string>
+     */
+    private const FORBIDDEN_SQL_PATTERNS = [
+        '/\bGRANT\b/i',
+        '/\bREVOKE\b/i',
+        '/\bCREATE\s+USER\b/i',
+        '/\bALTER\s+USER\b/i',
+        '/\bDROP\s+USER\b/i',
+        '/\bDROP\s+DATABASE\b/i',
+        '/\bCREATE\s+DATABASE\b/i',
+        '/\bUSE\s+[a-z0-9_`]+/i',
+        '/\bSET\s+GLOBAL\b/i',
+        '/\bLOAD\s+DATA\b/i',
+        '/\bINTO\s+OUTFILE\b/i',
+        '/\bINTO\s+DUMPFILE\b/i',
+    ];
+
     public function preview(Request $request): JsonResponse
     {
         abort_unless($request->user()?->isMasterAdmin(), 403);
@@ -71,11 +92,15 @@ class BackupRestoreController extends Controller
 
         $statementCount = 0;
         $sqlBytes = 0;
+        $sqlHash = null;
+        $forbiddenCommands = [];
 
         if ($hasSql) {
             $sqlContent = (string) File::get($sqlPath);
             $statementCount = substr_count($sqlContent, ';');
             $sqlBytes = strlen($sqlContent);
+            $sqlHash = hash('sha256', $sqlContent);
+            $forbiddenCommands = $this->detectForbiddenSqlCommands($sqlContent);
         }
 
         $expiresAt = now()->addMinutes(30);
@@ -88,6 +113,8 @@ class BackupRestoreController extends Controller
             'has_sql' => $hasSql,
             'has_storage' => $hasStorage,
             'has_env' => $hasEnv,
+            'sql_hash' => $sqlHash,
+            'forbidden_sql_commands' => $forbiddenCommands,
             'expires_at' => $expiresAt->toISOString(),
         ], $expiresAt);
 
@@ -102,6 +129,8 @@ class BackupRestoreController extends Controller
                 'has_storage_snapshot' => $hasStorage,
                 'sql_statements_estimate' => $statementCount,
                 'sql_size_bytes' => $sqlBytes,
+                'sql_sha256' => $sqlHash,
+                'forbidden_sql_commands' => $forbiddenCommands,
             ],
         ]);
     }
@@ -118,6 +147,7 @@ class BackupRestoreController extends Controller
             'restore_token' => ['required', 'string'],
             'mode' => ['required', 'in:database_only,database_and_storage'],
             'confirm_text' => ['required', 'string', 'in:RESTAURAR AGORA'],
+            'sql_sha256' => ['nullable', 'string', 'size:64'],
         ]);
 
         $metadata = Cache::get('backup:restore:'.(string) $validated['restore_token']);
@@ -134,36 +164,142 @@ class BackupRestoreController extends Controller
             ], 422);
         }
 
+        $forbiddenCommands = $metadata['forbidden_sql_commands'] ?? [];
+        if (is_array($forbiddenCommands) && $forbiddenCommands !== []) {
+            return response()->json([
+                'message' => 'Backup bloqueado por comandos SQL proibidos na restauração.',
+                'forbidden_sql_commands' => array_values($forbiddenCommands),
+            ], 422);
+        }
+
         $sqlPath = (string) $metadata['sql_path'];
+        $sqlBytes = (int) File::size($sqlPath);
+
+        if ($sqlBytes <= 0 || $sqlBytes > self::MAX_SQL_BYTES) {
+            return response()->json([
+                'message' => 'Tamanho do SQL fora do limite permitido para restauração segura.',
+                'sql_size_bytes' => $sqlBytes,
+                'max_sql_size_bytes' => self::MAX_SQL_BYTES,
+            ], 422);
+        }
+
         $sql = (string) File::get($sqlPath);
+        $computedSqlHash = hash('sha256', $sql);
+        $cachedSqlHash = (string) ($metadata['sql_hash'] ?? '');
+        $providedSqlHash = (string) ($validated['sql_sha256'] ?? '');
 
-        DB::connection()->unprepared($sql);
+        if ($cachedSqlHash !== '' && ! hash_equals($cachedSqlHash, $computedSqlHash)) {
+            return response()->json([
+                'message' => 'Integridade do SQL inválida: hash da prévia não confere.',
+            ], 422);
+        }
 
-        if ($validated['mode'] === 'database_and_storage' && ($metadata['has_storage'] ?? false)) {
-            $sourceStoragePath = (string) ($metadata['storage_path'] ?? '');
-            $targetStoragePath = storage_path();
+        if ($providedSqlHash !== '' && ! hash_equals($providedSqlHash, $computedSqlHash)) {
+            return response()->json([
+                'message' => 'Integridade do SQL inválida: hash informado não confere.',
+            ], 422);
+        }
 
-            if (File::isDirectory($sourceStoragePath)) {
-                File::copyDirectory($sourceStoragePath, $targetStoragePath);
+        $runtimeForbiddenCommands = $this->detectForbiddenSqlCommands($sql);
+        if ($runtimeForbiddenCommands !== []) {
+            return response()->json([
+                'message' => 'Backup bloqueado por comandos SQL proibidos.',
+                'forbidden_sql_commands' => $runtimeForbiddenCommands,
+            ], 422);
+        }
+
+        $restoreLock = Cache::lock('backup:restore:running', 900);
+
+        if (! $restoreLock->get()) {
+            return response()->json([
+                'message' => 'Já existe uma restauração em execução. Tente novamente em instantes.',
+            ], 423);
+        }
+
+        try {
+            DB::connection()->unprepared($sql);
+
+            if ($validated['mode'] === 'database_and_storage' && ($metadata['has_storage'] ?? false)) {
+                $sourceStoragePath = (string) ($metadata['storage_path'] ?? '');
+                $this->restoreStorageSnapshot($sourceStoragePath);
+            }
+
+            Cache::forget('backup:restore:'.(string) $validated['restore_token']);
+
+            $baseDir = (string) ($metadata['base_dir'] ?? '');
+            if ($baseDir !== '' && File::isDirectory($baseDir)) {
+                File::deleteDirectory($baseDir);
+            }
+
+            Log::warning('Backup restore executed', [
+                'user_id' => (int) $request->user()->id,
+                'mode' => $validated['mode'],
+                'restore_token' => (string) $validated['restore_token'],
+                'sql_size_bytes' => $sqlBytes,
+                'sql_sha256' => $computedSqlHash,
+            ]);
+
+            return response()->json([
+                'message' => 'Restauração executada com sucesso.',
+                'mode' => $validated['mode'],
+            ]);
+        } catch (Throwable $exception) {
+            Log::error('Backup restore failed', [
+                'user_id' => (int) ($request->user()?->id ?? 0),
+                'restore_token' => (string) $validated['restore_token'],
+                'mode' => $validated['mode'],
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+            ]);
+
+            return response()->json([
+                'message' => 'Falha ao executar restauração. Verifique logs e tente novamente.',
+            ], 500);
+        } finally {
+            try {
+                $restoreLock->release();
+            } catch (Throwable) {
+                // no-op
+            }
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function detectForbiddenSqlCommands(string $sql): array
+    {
+        $matches = [];
+
+        foreach (self::FORBIDDEN_SQL_PATTERNS as $pattern) {
+            if (preg_match($pattern, $sql) === 1) {
+                $matches[] = $pattern;
             }
         }
 
-        Cache::forget('backup:restore:'.(string) $validated['restore_token']);
+        return $matches;
+    }
 
-        $baseDir = (string) ($metadata['base_dir'] ?? '');
-        if ($baseDir !== '' && File::isDirectory($baseDir)) {
-            File::deleteDirectory($baseDir);
+    private function restoreStorageSnapshot(string $sourceStoragePath): void
+    {
+        if (! File::isDirectory($sourceStoragePath)) {
+            return;
         }
 
-        Log::warning('Backup restore executed', [
-            'user_id' => (int) $request->user()->id,
-            'mode' => $validated['mode'],
-            'restore_token' => (string) $validated['restore_token'],
-        ]);
+        $allowedSubdirectories = ['app', 'framework', 'logs'];
 
-        return response()->json([
-            'message' => 'Restauração executada com sucesso.',
-            'mode' => $validated['mode'],
-        ]);
+        foreach ($allowedSubdirectories as $subdirectory) {
+            $source = $sourceStoragePath.DIRECTORY_SEPARATOR.$subdirectory;
+            $target = storage_path($subdirectory);
+
+            if (! File::isDirectory($source)) {
+                continue;
+            }
+
+            File::ensureDirectoryExists($target);
+            File::copyDirectory($source, $target);
+        }
     }
 }
+

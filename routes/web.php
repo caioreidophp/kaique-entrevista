@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureTransportPanelAuthenticated;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -19,6 +20,7 @@ Route::prefix('transport')->group(function (): void {
         return Inertia::render('transport/login');
     })->name('transport.login');
 
+    Route::middleware([EnsureTransportPanelAuthenticated::class])->group(function (): void {
     Route::get('home', function () {
         return Inertia::render('transport/home');
     })->name('transport.home');
@@ -224,6 +226,7 @@ Route::prefix('transport')->group(function (): void {
     Route::get('activity-log', function () {
         return Inertia::render('transport/activity-log');
     })->name('transport.activity-log');
+    });
 });
 
 require __DIR__.'/settings.php';
