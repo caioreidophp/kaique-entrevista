@@ -294,7 +294,10 @@ class SystemOperationsApiTest extends TestCase
         $this->getJson('/api/operations/tasks/summary')
             ->assertOk()
             ->assertJsonPath('summary.total', 1)
-            ->assertJsonPath('summary.sla.overdue', 1);
+            ->assertJsonPath('summary.sla.overdue', 1)
+            ->assertJsonPath('by_unit_risk.0.unidade_id', $unidade->id)
+            ->assertJsonPath('by_unit_risk.0.overdue', 1)
+            ->assertJsonPath('alerts.0.code', 'task_sla_overdue');
 
         $this->putJson('/api/operations/tasks/'.$taskId, [
             'status' => 'done',

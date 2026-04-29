@@ -106,24 +106,26 @@ class OperationalTaskController extends Controller
         $next24h = now()->addHours(24);
         $next72h = now()->addHours(72);
 
+        $openTasks = $allTasks->filter(
+            fn (OperationalTask $task): bool => in_array($task->status, ['open', 'in_progress'], true),
+        );
+
+        $slaByTaskId = [];
+
+        foreach ($openTasks as $task) {
+            $slaByTaskId[(int) $task->id] = $this->resolveSlaStateForTask(
+                $task,
+                $now,
+                $next24h,
+                $next72h,
+            );
+        }
+
         $sla = [
-            'overdue' => $allTasks->filter(
-                fn (OperationalTask $task): bool => in_array($task->status, ['open', 'in_progress'], true)
-                    && $task->due_at !== null
-                    && $task->due_at->lt($now),
-            )->count(),
-            'due_24h' => $allTasks->filter(
-                fn (OperationalTask $task): bool => in_array($task->status, ['open', 'in_progress'], true)
-                    && $task->due_at !== null
-                    && $task->due_at->betweenIncluded($now, $next24h),
-            )->count(),
-            'due_72h' => $allTasks->filter(
-                fn (OperationalTask $task): bool => in_array($task->status, ['open', 'in_progress'], true)
-                    && $task->due_at !== null
-                    && $task->due_at->greaterThan($next24h)
-                    && $task->due_at->betweenIncluded($now, $next72h),
-            )->count(),
-            'without_due_date' => $allTasks->whereIn('status', ['open', 'in_progress'])->whereNull('due_at')->count(),
+            'overdue' => collect($slaByTaskId)->filter(fn (string $state): bool => $state === 'overdue')->count(),
+            'due_24h' => collect($slaByTaskId)->filter(fn (string $state): bool => $state === 'due_24h')->count(),
+            'due_72h' => collect($slaByTaskId)->filter(fn (string $state): bool => $state === 'due_72h')->count(),
+            'without_due_date' => collect($slaByTaskId)->filter(fn (string $state): bool => $state === 'without_due_date')->count(),
         ];
 
         $byUnit = OperationalTask::query()
@@ -140,18 +142,95 @@ class OperationalTaskController extends Controller
             ->sortByDesc('total')
             ->values();
 
+        $byUnitRisk = $openTasks
+            ->groupBy(fn (OperationalTask $task): string => (string) ($task->unidade_id ?? 'none'))
+            ->map(function ($tasksByUnit, string $groupKey) use ($slaByTaskId): array {
+                $rows = collect($tasksByUnit);
+                /** @var OperationalTask|null $first */
+                $first = $rows->first();
+
+                $overdue = $rows->filter(
+                    fn (OperationalTask $task): bool => ($slaByTaskId[(int) $task->id] ?? 'on_track') === 'overdue',
+                )->count();
+                $due24h = $rows->filter(
+                    fn (OperationalTask $task): bool => ($slaByTaskId[(int) $task->id] ?? 'on_track') === 'due_24h',
+                )->count();
+                $critical = $rows->where('priority', 'critical')->count();
+                $high = $rows->where('priority', 'high')->count();
+                $total = $rows->count();
+                $riskScore = ($overdue * 5) + ($due24h * 3) + ($critical * 2) + $high + (int) ceil($total / 3);
+
+                return [
+                    'unidade_id' => $groupKey === 'none' ? null : (int) $groupKey,
+                    'unidade_nome' => $first?->unidade?->nome ?? 'Sem unidade',
+                    'total_open' => $total,
+                    'overdue' => $overdue,
+                    'due_24h' => $due24h,
+                    'critical' => $critical,
+                    'high' => $high,
+                    'risk_score' => $riskScore,
+                ];
+            })
+            ->sortByDesc('risk_score')
+            ->values();
+
+        $highPriorityOpen = $openTasks
+            ->whereIn('priority', ['high', 'critical'])
+            ->count();
+
+        $alerts = [];
+        if ($sla['overdue'] > 0) {
+            $alerts[] = [
+                'severity' => 'critical',
+                'code' => 'task_sla_overdue',
+                'title' => 'SLA vencido em tarefas operacionais',
+                'message' => "Existem {$sla['overdue']} tarefa(s) com SLA vencido.",
+                'count' => $sla['overdue'],
+            ];
+        }
+
+        if ($sla['due_24h'] > 0) {
+            $alerts[] = [
+                'severity' => 'warning',
+                'code' => 'task_sla_due_24h',
+                'title' => 'SLA vencendo em 24h',
+                'message' => "{$sla['due_24h']} tarefa(s) vencem nas proximas 24h.",
+                'count' => $sla['due_24h'],
+            ];
+        }
+
+        if ($highPriorityOpen > 0) {
+            $alerts[] = [
+                'severity' => 'warning',
+                'code' => 'high_priority_tasks_open',
+                'title' => 'Pendencias de alta prioridade',
+                'message' => "{$highPriorityOpen} tarefa(s) de alta prioridade seguem em aberto.",
+                'count' => $highPriorityOpen,
+            ];
+        }
+
+        $topRiskUnit = $byUnitRisk->first();
+        if (is_array($topRiskUnit) && ((int) ($topRiskUnit['risk_score'] ?? 0)) >= 8) {
+            $alerts[] = [
+                'severity' => 'warning',
+                'code' => 'unit_operational_bottleneck',
+                'title' => 'Gargalo operacional por unidade',
+                'message' => "{$topRiskUnit['unidade_nome']} lidera risco operacional no momento.",
+                'count' => (int) ($topRiskUnit['risk_score'] ?? 0),
+            ];
+        }
+
         return response()->json([
             'generated_at' => now()->toISOString(),
             'summary' => [
                 'total' => $allTasks->count(),
                 'by_status' => $byStatus,
                 'sla' => $sla,
-                'high_priority_open' => $allTasks
-                    ->whereIn('status', ['open', 'in_progress'])
-                    ->whereIn('priority', ['high', 'critical'])
-                    ->count(),
+                'high_priority_open' => $highPriorityOpen,
             ],
             'by_unit' => $byUnit,
+            'by_unit_risk' => $byUnitRisk,
+            'alerts' => $alerts,
         ]);
     }
 
@@ -344,20 +423,7 @@ class OperationalTaskController extends Controller
         $next24h = now()->addHours(24);
         $next72h = now()->addHours(72);
 
-        $slaState = 'closed';
-        if (in_array($task->status, ['open', 'in_progress'], true)) {
-            if ($task->due_at === null) {
-                $slaState = 'without_due_date';
-            } elseif ($task->due_at->lt($now)) {
-                $slaState = 'overdue';
-            } elseif ($task->due_at->betweenIncluded($now, $next24h)) {
-                $slaState = 'due_24h';
-            } elseif ($task->due_at->betweenIncluded($next24h, $next72h)) {
-                $slaState = 'due_72h';
-            } else {
-                $slaState = 'on_track';
-            }
-        }
+        $slaState = $this->resolveSlaStateForTask($task, $now, $next24h, $next72h);
 
         return [
             'id' => (int) $task->id,
@@ -380,5 +446,34 @@ class OperationalTaskController extends Controller
             'updated_at' => $task->updated_at?->toISOString(),
             'sla_state' => $slaState,
         ];
+    }
+
+    private function resolveSlaStateForTask(
+        OperationalTask $task,
+        \Carbon\CarbonInterface $now,
+        \Carbon\CarbonInterface $next24h,
+        \Carbon\CarbonInterface $next72h,
+    ): string {
+        if (! in_array($task->status, ['open', 'in_progress'], true)) {
+            return 'closed';
+        }
+
+        if ($task->due_at === null) {
+            return 'without_due_date';
+        }
+
+        if ($task->due_at->lt($now)) {
+            return 'overdue';
+        }
+
+        if ($task->due_at->betweenIncluded($now, $next24h)) {
+            return 'due_24h';
+        }
+
+        if ($task->due_at->betweenIncluded($next24h, $next72h)) {
+            return 'due_72h';
+        }
+
+        return 'on_track';
     }
 }

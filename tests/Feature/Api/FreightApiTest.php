@@ -444,6 +444,39 @@ class FreightApiTest extends TestCase
         $this->assertSame('1240.50', (string) $entry?->km_rodado);
     }
 
+    public function test_spot_update_keeps_ptbr_money_value_without_inflation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/freight/spot-entries', [
+            'data' => '2026-04-18',
+            'unidade_origem_id' => $unidade->id,
+            'frete_spot' => '6.400,00',
+            'cargas' => '12',
+            'aves' => '18.500',
+            'km_rodado' => '980,5',
+        ])->assertCreated();
+
+        $spotId = (int) $createResponse->json('data.id');
+
+        $this->putJson('/api/freight/spot-entries/'.$spotId, [
+            'data' => '2026-04-18',
+            'unidade_origem_id' => $unidade->id,
+            'frete_spot' => '6.400,00',
+            'cargas' => '12',
+            'aves' => '18.500',
+            'km_rodado' => '980,5',
+        ])->assertOk();
+
+        $entry = \App\Models\FreightSpotEntry::query()->find($spotId);
+        $this->assertNotNull($entry);
+        $this->assertSame('6400.00', (string) $entry?->frete_spot);
+        $this->assertSame('980.50', (string) $entry?->km_rodado);
+    }
+
     public function test_main_freight_endpoints_return_success_for_admin(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -88,6 +88,35 @@ interface OperationalTaskSummaryResponse {
         unidade_nome: string;
         total: number;
     }>;
+    by_unit_risk: Array<{
+        unidade_id: number | null;
+        unidade_nome: string;
+        total_open: number;
+        overdue: number;
+        due_24h: number;
+        critical: number;
+        high: number;
+        risk_score: number;
+    }>;
+    alerts: Array<{
+        severity: 'critical' | 'warning' | 'info';
+        code: string;
+        title: string;
+        message: string;
+        count: number;
+    }>;
+}
+
+interface PendingByUnitResponse {
+    data: Array<{
+        unidade_id: number;
+        unidade_nome: string;
+        active_collaborators: number;
+        payroll_pending_collaborators: number;
+        freight_canceled_to_receive: number;
+        onboarding_open: number;
+        onboarding_overdue: number;
+    }>;
 }
 
 interface TaskFormState {
@@ -163,6 +192,7 @@ export default function TransportOperationsHubPage() {
     const [taskSummary, setTaskSummary] = useState<OperationalTaskSummaryResponse | null>(null);
     const [tasks, setTasks] = useState<OperationalTask[]>([]);
     const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
+    const [pendingByUnit, setPendingByUnit] = useState<PendingByUnitResponse['data']>([]);
     const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
 
     async function loadHub(): Promise<void> {
@@ -170,17 +200,19 @@ export default function TransportOperationsHubPage() {
         setError(null);
 
         try {
-            const [pendingResponse, summaryResponse, tasksResponse, unidadesResponse] = await Promise.all([
+            const [pendingResponse, summaryResponse, tasksResponse, unidadesResponse, pendingByUnitResponse] = await Promise.all([
                 apiGet<PendingInsightsResponse>('/insights/pending'),
                 apiGet<OperationalTaskSummaryResponse>('/operations/tasks/summary'),
                 apiGet<OperationalTasksResponse>('/operations/tasks?status=open&per_page=8'),
                 apiGet<UnidadesResponse>('/registry/unidades'),
+                apiGet<PendingByUnitResponse>('/insights/pending-by-unit'),
             ]);
 
             setData(pendingResponse.data);
             setTaskSummary(summaryResponse);
             setTasks(tasksResponse.data);
             setUnidades(unidadesResponse.data);
+            setPendingByUnit(pendingByUnitResponse.data);
         } catch {
             setError('Nao foi possivel carregar o hub operacional.');
         } finally {
@@ -242,6 +274,52 @@ export default function TransportOperationsHubPage() {
             },
         ];
     }, [data]);
+
+    const riskByUnit = useMemo(() => {
+        const map = new Map<number, { riskScore: number; overdue: number; due24h: number }>();
+
+        if (!taskSummary) {
+            return map;
+        }
+
+        for (const row of taskSummary.by_unit_risk ?? []) {
+            if (row.unidade_id === null) {
+                continue;
+            }
+
+            map.set(row.unidade_id, {
+                riskScore: row.risk_score,
+                overdue: row.overdue,
+                due24h: row.due_24h,
+            });
+        }
+
+        return map;
+    }, [taskSummary]);
+
+    const pendingByUnitOrdered = useMemo(() => {
+        return [...pendingByUnit].sort((first, second) => {
+            const riskFirst = riskByUnit.get(first.unidade_id)?.riskScore ?? 0;
+            const riskSecond = riskByUnit.get(second.unidade_id)?.riskScore ?? 0;
+
+            const firstTotal =
+                first.payroll_pending_collaborators
+                + first.freight_canceled_to_receive
+                + first.onboarding_open
+                + (first.onboarding_overdue * 2);
+            const secondTotal =
+                second.payroll_pending_collaborators
+                + second.freight_canceled_to_receive
+                + second.onboarding_open
+                + (second.onboarding_overdue * 2);
+
+            if (riskSecond !== riskFirst) {
+                return riskSecond - riskFirst;
+            }
+
+            return secondTotal - firstTotal;
+        });
+    }, [pendingByUnit, riskByUnit]);
 
     async function handleCreateTask(): Promise<void> {
         if (!taskForm.title.trim()) {
@@ -510,7 +588,39 @@ export default function TransportOperationsHubPage() {
                             </Card>
                         </div>
 
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="grid gap-4 lg:grid-cols-3">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Alertas automaticos</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {(taskSummary.alerts ?? []).length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">Sem alertas ativos no momento.</p>
+                                    ) : (
+                                        (taskSummary.alerts ?? []).map((alert) => (
+                                            <div
+                                                key={alert.code}
+                                                className={`rounded-md border p-3 text-sm ${
+                                                    alert.severity === 'critical'
+                                                        ? 'border-destructive/50 bg-destructive/5'
+                                                        : alert.severity === 'warning'
+                                                            ? 'border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20'
+                                                            : 'border-muted'
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <p className="font-semibold">{alert.title}</p>
+                                                    <Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'}>
+                                                        {formatIntegerBR(alert.count)}
+                                                    </Badge>
+                                                </div>
+                                                <p className="mt-1 text-xs text-muted-foreground">{alert.message}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Tarefas abertas e em execucao</CardTitle>
@@ -547,18 +657,40 @@ export default function TransportOperationsHubPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Pendencias por unidade (tarefas)</CardTitle>
+                                    <CardTitle>Centro de pendencias por unidade</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    {(taskSummary.by_unit ?? []).length === 0 ? (
+                                    {pendingByUnitOrdered.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">Sem pendencias classificadas por unidade.</p>
                                     ) : (
-                                        taskSummary.by_unit.map((row) => (
-                                            <div key={`unit-${row.unidade_id ?? 'none'}`} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                                                <span className="text-muted-foreground">{row.unidade_nome}</span>
-                                                <span className="font-semibold">{formatIntegerBR(row.total)}</span>
-                                            </div>
-                                        ))
+                                        pendingByUnitOrdered.map((row) => {
+                                            const risk = riskByUnit.get(row.unidade_id);
+                                            const totalPending =
+                                                row.payroll_pending_collaborators
+                                                + row.freight_canceled_to_receive
+                                                + row.onboarding_open;
+
+                                            return (
+                                                <div key={`unit-${row.unidade_id}`} className="rounded-md border p-3 text-sm">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="font-medium">{row.unidade_nome}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            {risk ? (
+                                                                <Badge variant={risk.overdue > 0 ? 'destructive' : 'outline'}>
+                                                                    Risco {formatIntegerBR(risk.riskScore)}
+                                                                </Badge>
+                                                            ) : null}
+                                                            <span className="font-semibold">{formatIntegerBR(totalPending)}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground">
+                                                        <p>Folha pendente: {formatIntegerBR(row.payroll_pending_collaborators)}</p>
+                                                        <p>Cargas a receber: {formatIntegerBR(row.freight_canceled_to_receive)}</p>
+                                                        <p>Onboarding em aberto: {formatIntegerBR(row.onboarding_open)}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
                                     )}
 
                                     {(taskSummary.summary.sla.overdue > 0 || taskSummary.summary.high_priority_open > 0) ? (
@@ -588,4 +720,3 @@ export default function TransportOperationsHubPage() {
         </AdminLayout>
     );
 }
-
