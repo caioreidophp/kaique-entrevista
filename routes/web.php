@@ -27,6 +27,10 @@ Route::prefix('transport')->group(function (): void {
         return Inertia::render('transport/dashboard');
     })->name('transport.dashboard');
 
+    Route::get('executive-dashboard', function () {
+        return Inertia::render('transport/executive-dashboard');
+    })->name('transport.executive-dashboard');
+
     if ((bool) config('transport_features.operations_hub', true)) {
         Route::get('pendencias', function () {
             return Inertia::render('transport/operations-hub');

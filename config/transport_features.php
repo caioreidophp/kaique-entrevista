@@ -19,4 +19,10 @@ return [
     'financial_double_approval_token_ttl' => (int) env('TRANSPORT_FINANCIAL_DOUBLE_APPROVAL_TOKEN_TTL', 15),
     'financial_multistep_second_level_threshold' => (float) env('TRANSPORT_FINANCIAL_MULTISTEP_SECOND_LEVEL_THRESHOLD', 50000),
     'financial_multistep_second_level_people_threshold' => (int) env('TRANSPORT_FINANCIAL_MULTISTEP_SECOND_LEVEL_PEOPLE_THRESHOLD', 60),
+    'financial_fine_approval' => (bool) env('TRANSPORT_FINANCIAL_FINE_APPROVAL', true),
+    'financial_fine_approval_threshold' => (float) env('TRANSPORT_FINANCIAL_FINE_APPROVAL_THRESHOLD', 1000),
+    'financial_fine_driver_discount_approval' => (bool) env('TRANSPORT_FINANCIAL_FINE_DRIVER_DISCOUNT_APPROVAL', true),
+    'financial_vacation_approval' => (bool) env('TRANSPORT_FINANCIAL_VACATION_APPROVAL', true),
+    'financial_vacation_approval_days_threshold' => (int) env('TRANSPORT_FINANCIAL_VACATION_APPROVAL_DAYS_THRESHOLD', 31),
+    'financial_vacation_approval_for_past' => (bool) env('TRANSPORT_FINANCIAL_VACATION_APPROVAL_FOR_PAST', true),
 ];

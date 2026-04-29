@@ -7,6 +7,7 @@ use App\Http\Requests\StoreFeriasLancamentoRequest;
 use App\Models\Colaborador;
 use App\Models\FeriasLancamento;
 use App\Models\Unidade;
+use App\Support\FinancialApprovalService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -542,6 +543,52 @@ class PayrollVacationController extends Controller
             $dataFim = $dataInicio->addDays($diasFerias - 1);
         }
 
+        /** @var FinancialApprovalService $approvalService */
+        $approvalService = app(FinancialApprovalService::class);
+        $approvalPayload = [
+            'colaborador_id' => (int) $colaborador->id,
+            'unidade_id' => (int) $colaborador->unidade_id,
+            'unidade_nome' => $colaborador->unidade?->nome,
+            'tipo' => $tipo,
+            'com_abono' => $comAbono,
+            'dias_ferias' => $diasFerias,
+            'data_inicio' => $dataInicio->toDateString(),
+            'data_fim' => $dataFim->toDateString(),
+        ];
+        $approvalHash = $approvalService->buildRequestHash([
+            'action' => 'vacations.entry.store',
+            'payload' => $approvalPayload,
+        ]);
+
+        if ($approvalService->requiresVacationEntryApproval($user, $approvalPayload)) {
+            $approvalToken = $this->resolveApprovalToken($request);
+
+            if ($approvalToken === '') {
+                $approval = $approvalService->requestOrReusePendingApproval(
+                    requester: $user,
+                    actionKey: 'vacations.entry.store',
+                    requestHash: $approvalHash,
+                    summary: $approvalService->buildVacationEntrySummary($approvalPayload),
+                );
+
+                return response()->json([
+                    'message' => 'Este lancamento de ferias exige aprovacao adicional.',
+                    'approval_required' => true,
+                    'approval_id' => (int) $approval->id,
+                    'approval_uuid' => (string) $approval->request_uuid,
+                    'summary' => $approval->summary,
+                ], 202);
+            }
+
+            $consumedApproval = $approvalService->consumeExecutionToken(
+                requester: $user,
+                token: $approvalToken,
+                requestHash: $approvalHash,
+            );
+
+            abort_unless($consumedApproval, 422, 'Token de aprovacao invalido, expirado ou incompativel com este lancamento.');
+        }
+
         $lancamento = FeriasLancamento::query()->create([
             'colaborador_id' => (int) $colaborador->id,
             'unidade_id' => (int) $colaborador->unidade_id,
@@ -606,6 +653,53 @@ class PayrollVacationController extends Controller
             $diasFerias = $requestedDiasFerias;
             $comAbono = $diasFerias === 20;
             $dataFim = $dataInicio->addDays($diasFerias - 1);
+        }
+
+        /** @var FinancialApprovalService $approvalService */
+        $approvalService = app(FinancialApprovalService::class);
+        $approvalPayload = [
+            'colaborador_id' => (int) $colaborador->id,
+            'unidade_id' => (int) $colaborador->unidade_id,
+            'unidade_nome' => $colaborador->unidade?->nome,
+            'tipo' => $tipo,
+            'com_abono' => $comAbono,
+            'dias_ferias' => $diasFerias,
+            'data_inicio' => $dataInicio->toDateString(),
+            'data_fim' => $dataFim->toDateString(),
+        ];
+        $approvalHash = $approvalService->buildRequestHash([
+            'action' => 'vacations.entry.update',
+            'lancamento_id' => (int) $feriasLancamento->id,
+            'payload' => $approvalPayload,
+        ]);
+
+        if ($approvalService->requiresVacationEntryApproval($user, $approvalPayload)) {
+            $approvalToken = $this->resolveApprovalToken($request);
+
+            if ($approvalToken === '') {
+                $approval = $approvalService->requestOrReusePendingApproval(
+                    requester: $user,
+                    actionKey: 'vacations.entry.update',
+                    requestHash: $approvalHash,
+                    summary: $approvalService->buildVacationEntrySummary($approvalPayload),
+                );
+
+                return response()->json([
+                    'message' => 'Esta alteracao de ferias exige aprovacao adicional.',
+                    'approval_required' => true,
+                    'approval_id' => (int) $approval->id,
+                    'approval_uuid' => (string) $approval->request_uuid,
+                    'summary' => $approval->summary,
+                ], 202);
+            }
+
+            $consumedApproval = $approvalService->consumeExecutionToken(
+                requester: $user,
+                token: $approvalToken,
+                requestHash: $approvalHash,
+            );
+
+            abort_unless($consumedApproval, 422, 'Token de aprovacao invalido, expirado ou incompativel com esta alteracao.');
         }
 
         $feriasLancamento->update([
@@ -788,6 +882,11 @@ class PayrollVacationController extends Controller
     private function allowedVacationUnitIds(Request $request): array
     {
         return $request->user()?->allowedUnitIdsFor('vacations') ?? [];
+    }
+
+    private function resolveApprovalToken(Request $request): string
+    {
+        return trim((string) ($request->header('X-Financial-Approval-Token') ?: $request->input('financial_approval_token', '')));
     }
 
     private function rebalanceCollaboratorVacationPeriods(int $colaboradorId): void

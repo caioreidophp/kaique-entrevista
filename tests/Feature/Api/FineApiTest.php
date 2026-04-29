@@ -126,4 +126,83 @@ class FineApiTest extends TestCase
         $this->getJson('/api/fines/'.$multaBloqueada->id)
             ->assertForbidden();
     }
+
+    public function test_fine_store_can_require_approval_and_create_after_token_consumption(): void
+    {
+        config()->set('transport_features.financial_double_approval', true);
+        config()->set('transport_features.financial_fine_approval', true);
+        config()->set('transport_features.financial_fine_approval_threshold', 100);
+
+        $requester = User::factory()->create(['role' => 'admin']);
+        $approver = User::factory()->masterAdmin()->create();
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+        $infracao = MultaInfracao::query()->create(['nome' => 'Direcao perigosa', 'ativo' => true]);
+        $orgao = MultaOrgaoAutuador::query()->create(['nome' => 'DER', 'ativo' => true]);
+        $placa = PlacaFrota::query()->create([
+            'placa' => 'QWE1R23',
+            'unidade_id' => $unidade->id,
+        ]);
+        $motorista = Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Motorista Fluxo',
+            'ativo' => true,
+            'cpf' => '33322211100',
+        ]);
+
+        $payload = [
+            'tipo_registro' => 'multa',
+            'data' => '2026-04-10',
+            'hora' => '08:15',
+            'placa_frota_id' => $placa->id,
+            'multa_infracao_id' => $infracao->id,
+            'descricao' => 'Validacao de fluxo de aprovacao',
+            'numero_auto_infracao' => 'AUTO-900',
+            'multa_orgao_autuador_id' => $orgao->id,
+            'colaborador_id' => $motorista->id,
+            'indicado_condutor' => true,
+            'culpa' => 'motorista',
+            'valor' => '550,00',
+            'tipo_valor' => 'normal',
+            'vencimento' => '2026-05-10',
+            'status' => 'aguardando_motorista',
+            'descontar' => true,
+        ];
+
+        Sanctum::actingAs($requester);
+
+        $approvalResponse = $this->postJson('/api/fines', $payload)
+            ->assertStatus(202)
+            ->assertJsonPath('approval_required', true);
+
+        $approvalId = (int) $approvalResponse->json('approval_id');
+        $this->assertGreaterThan(0, $approvalId);
+
+        Sanctum::actingAs($approver);
+
+        $approved = $this->postJson('/api/payroll/approvals/'.$approvalId.'/approve', [])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'approved');
+
+        $token = (string) $approved->json('execution_token');
+        $this->assertNotSame('', $token);
+
+        Sanctum::actingAs($requester);
+
+        $this->postJson('/api/fines', [
+            ...$payload,
+            'financial_approval_token' => $token,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.unidade_id', $unidade->id);
+
+        $this->assertDatabaseHas('multas', [
+            'unidade_id' => $unidade->id,
+            'placa_frota_id' => $placa->id,
+            'colaborador_id' => $motorista->id,
+            'status' => 'aguardando_motorista',
+            'descontar' => true,
+        ]);
+    }
 }

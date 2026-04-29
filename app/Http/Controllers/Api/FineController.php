@@ -11,6 +11,7 @@ use App\Models\MultaInfracao;
 use App\Models\MultaOrgaoAutuador;
 use App\Models\PlacaFrota;
 use App\Models\Unidade;
+use App\Support\FinancialApprovalService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -454,6 +455,46 @@ class FineController extends Controller
         abort_unless($user?->canAccessUnit('fines', (int) $data['unidade_id']), 403);
         $data['autor_id'] = (int) $user->id;
 
+        /** @var FinancialApprovalService $approvalService */
+        $approvalService = app(FinancialApprovalService::class);
+        $approvalSummary = $approvalService->buildFineEntrySummary([
+            ...$data,
+            'unidade_nome' => Unidade::query()->whereKey((int) $data['unidade_id'])->value('nome'),
+        ]);
+        $approvalHash = $approvalService->buildRequestHash([
+            'action' => 'fines.entry.store',
+            'payload' => $data,
+        ]);
+
+        if ($approvalService->requiresFineEntryApproval($user, $data)) {
+            $approvalToken = $this->resolveApprovalToken($request);
+
+            if ($approvalToken === '') {
+                $approval = $approvalService->requestOrReusePendingApproval(
+                    requester: $user,
+                    actionKey: 'fines.entry.store',
+                    requestHash: $approvalHash,
+                    summary: $approvalSummary,
+                );
+
+                return response()->json([
+                    'message' => 'Esta multa exige aprovacao financeira adicional antes da confirmacao.',
+                    'approval_required' => true,
+                    'approval_id' => (int) $approval->id,
+                    'approval_uuid' => (string) $approval->request_uuid,
+                    'summary' => $approvalSummary,
+                ], 202);
+            }
+
+            $consumedApproval = $approvalService->consumeExecutionToken(
+                requester: $user,
+                token: $approvalToken,
+                requestHash: $approvalHash,
+            );
+
+            abort_unless($consumedApproval, 422, 'Token de aprovacao invalido, expirado ou incompativel com este lancamento.');
+        }
+
         $multa = Multa::query()->create($data);
 
         return response()->json([
@@ -499,6 +540,47 @@ class FineController extends Controller
             (int) $data['placa_frota_id'],
         );
         abort_unless($user?->canAccessUnit('fines', (int) $data['unidade_id']), 403);
+
+        /** @var FinancialApprovalService $approvalService */
+        $approvalService = app(FinancialApprovalService::class);
+        $approvalSummary = $approvalService->buildFineEntrySummary([
+            ...$data,
+            'unidade_nome' => Unidade::query()->whereKey((int) $data['unidade_id'])->value('nome'),
+        ]);
+        $approvalHash = $approvalService->buildRequestHash([
+            'action' => 'fines.entry.update',
+            'multa_id' => (int) $multa->id,
+            'payload' => $data,
+        ]);
+
+        if ($approvalService->requiresFineEntryApproval($user, $data)) {
+            $approvalToken = $this->resolveApprovalToken($request);
+
+            if ($approvalToken === '') {
+                $approval = $approvalService->requestOrReusePendingApproval(
+                    requester: $user,
+                    actionKey: 'fines.entry.update',
+                    requestHash: $approvalHash,
+                    summary: $approvalSummary,
+                );
+
+                return response()->json([
+                    'message' => 'Esta alteracao de multa exige aprovacao financeira adicional.',
+                    'approval_required' => true,
+                    'approval_id' => (int) $approval->id,
+                    'approval_uuid' => (string) $approval->request_uuid,
+                    'summary' => $approvalSummary,
+                ], 202);
+            }
+
+            $consumedApproval = $approvalService->consumeExecutionToken(
+                requester: $user,
+                token: $approvalToken,
+                requestHash: $approvalHash,
+            );
+
+            abort_unless($consumedApproval, 422, 'Token de aprovacao invalido, expirado ou incompativel com esta alteracao.');
+        }
 
         $multa->update($data);
 
@@ -622,5 +704,10 @@ class FineController extends Controller
     private function allowedUnitIds(Request $request): array
     {
         return $request->user()?->allowedUnitIdsFor('fines') ?? [];
+    }
+
+    private function resolveApprovalToken(Request $request): string
+    {
+        return trim((string) ($request->header('X-Financial-Approval-Token') ?: $request->input('financial_approval_token', '')));
     }
 }

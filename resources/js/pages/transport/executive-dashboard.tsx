@@ -2,8 +2,9 @@ import { AlertTriangle, LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiGet } from '@/lib/api-client';
+import { ApiError, apiGet, apiPost } from '@/lib/api-client';
 import { formatCurrencyBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
 
 interface ExecutiveInsightsResponse {
@@ -100,9 +101,12 @@ interface PayrollApprovalsResponse {
     };
     data: Array<{
         id: number;
+        action_key: string;
         status: string;
         priority: 'normal' | 'medium' | 'high';
         expires_soon: boolean;
+        required_approvals: number;
+        approved_steps: number;
         requester?: {
             name?: string | null;
         } | null;
@@ -146,6 +150,15 @@ function priorityToneClass(priority: PayrollApprovalsResponse['data'][number]['p
     return 'transport-status-info';
 }
 
+function approvalActionLabel(actionKey: string): string {
+    if (actionKey === 'payroll.launch-batch') return 'Folha - lancamento em lote';
+    if (actionKey === 'fines.entry.store') return 'Multas - novo lancamento';
+    if (actionKey === 'fines.entry.update') return 'Multas - alteracao';
+    if (actionKey === 'vacations.entry.store') return 'Ferias - novo lancamento';
+    if (actionKey === 'vacations.entry.update') return 'Ferias - alteracao';
+    return actionKey;
+}
+
 function InfoMetric({
     title,
     value,
@@ -173,7 +186,69 @@ function InfoMetric({
 export default function TransportExecutiveDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [notification, setNotification] = useState<{
+        message: string;
+        variant: 'success' | 'error' | 'info';
+    } | null>(null);
+    const [approvalActionById, setApprovalActionById] = useState<Record<number, 'approve' | 'reject' | null>>({});
     const [state, setState] = useState<ExecutiveDashboardState | null>(null);
+
+    async function refreshApprovals(): Promise<void> {
+        const approvals = await apiGet<PayrollApprovalsResponse>('/payroll/approvals?status=pending&per_page=5');
+
+        setState((previous) => {
+            if (!previous) return previous;
+
+            return {
+                ...previous,
+                approvals,
+            };
+        });
+    }
+
+    async function handleApprovalAction(approvalId: number, action: 'approve' | 'reject'): Promise<void> {
+        setApprovalActionById((previous) => ({
+            ...previous,
+            [approvalId]: action,
+        }));
+        setNotification(null);
+
+        try {
+            if (action === 'approve') {
+                await apiPost(`/payroll/approvals/${approvalId}/approve`, {});
+            } else {
+                await apiPost(`/payroll/approvals/${approvalId}/reject`, {
+                    reason: 'Rejeicao registrada no dashboard executivo.',
+                });
+            }
+
+            setNotification({
+                message: action === 'approve'
+                    ? 'Solicitacao aprovada com sucesso.'
+                    : 'Solicitacao rejeitada com sucesso.',
+                variant: 'success',
+            });
+
+            await refreshApprovals();
+        } catch (requestError) {
+            if (requestError instanceof ApiError) {
+                setNotification({
+                    message: requestError.message,
+                    variant: 'error',
+                });
+            } else {
+                setNotification({
+                    message: 'Nao foi possivel concluir a revisao da solicitacao.',
+                    variant: 'error',
+                });
+            }
+        } finally {
+            setApprovalActionById((previous) => ({
+                ...previous,
+                [approvalId]: null,
+            }));
+        }
+    }
 
     useEffect(() => {
         setLoading(true);
@@ -253,6 +328,7 @@ export default function TransportExecutiveDashboardPage() {
                 </div>
 
                 {error ? <Notification message={error} variant="error" /> : null}
+                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
 
                 {loading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -475,7 +551,29 @@ export default function TransportExecutiveDashboardPage() {
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {approval.requester?.name ?? 'Sem solicitante'} • {formatIntegerBR(approval.summary?.total_colaboradores ?? 0)} colaboradores
                                                 </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {approvalActionLabel(approval.action_key)} - Etapas {formatIntegerBR(approval.approved_steps)}/{formatIntegerBR(approval.required_approvals)}
+                                                </p>
                                                 <p className="mt-1 font-semibold">{formatCurrencyBR(approval.summary?.total_valor ?? 0)}</p>
+                                                <div className="mt-3 flex items-center gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled={Boolean(approvalActionById[approval.id])}
+                                                        onClick={() => void handleApprovalAction(approval.id, 'approve')}
+                                                    >
+                                                        Aprovar
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={Boolean(approvalActionById[approval.id])}
+                                                        onClick={() => void handleApprovalAction(approval.id, 'reject')}
+                                                    >
+                                                        Rejeitar
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))
                                     )}

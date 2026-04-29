@@ -123,6 +123,14 @@ interface FineShowResponse {
     };
 }
 
+interface FineSubmitResponse {
+    data?: FineShowResponse['data'];
+    approval_required?: boolean;
+    approval_id?: number;
+    approval_uuid?: string;
+    message?: string;
+}
+
 function todayDateString(): string {
     return new Date().toISOString().slice(0, 10);
 }
@@ -272,10 +280,22 @@ export default function TransportFinesLaunchPage() {
         setNotification(null);
 
         try {
+            let response: FineSubmitResponse;
+
             if (notificationIdForConversion) {
-                await apiPut(`/fines/${notificationIdForConversion}`, payload);
+                response = await apiPut<FineSubmitResponse>(`/fines/${notificationIdForConversion}`, payload);
             } else {
-                await apiPost('/fines', payload);
+                response = await apiPost<FineSubmitResponse>('/fines', payload);
+            }
+
+            if (response.approval_required) {
+                setNotification({
+                    message:
+                        response.message ??
+                        'Solicitacao enviada para aprovacao financeira. A operacao sera concluida apos aprovacao.',
+                    variant: 'info',
+                });
+                return;
             }
 
             if (payload.culpa === 'motorista' && payload.descontar) {

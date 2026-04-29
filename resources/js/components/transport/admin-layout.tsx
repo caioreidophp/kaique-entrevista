@@ -193,6 +193,7 @@ const adminLayoutCopy = {
         linkFinesLaunch: 'Lançar Multas',
         linkFinesLaunchNotification: 'Lançar Notificação',
         linkFinesList: 'Lista de Multas',
+        linkExecutive: 'Dashboard Executivo',
         linkPending: 'Pendências',
         linkSettings: 'Configurações',
         linkLog: 'Log',
@@ -263,6 +264,7 @@ const adminLayoutCopy = {
         linkFinesLaunch: 'Launch fines',
         linkFinesLaunchNotification: 'Launch notification',
         linkFinesList: 'Fines list',
+        linkExecutive: 'Executive dashboard',
         linkPending: 'Pending items',
         linkSettings: 'Settings',
         linkLog: 'Log',
@@ -967,7 +969,8 @@ export function AdminLayout({
         if (
             active === 'settings' ||
             active === 'activity-log' ||
-            active === 'operations-hub'
+            active === 'operations-hub' ||
+            active === 'executive-dashboard'
         ) return 'home';
         if (active.startsWith('registry-')) return 'registry';
         if (active.startsWith('payroll-')) return 'payroll';
@@ -1023,6 +1026,7 @@ export function AdminLayout({
         'fines-launch-notification': 'sidebar.fines.launch.view',
         'fines-list': 'sidebar.fines.list.view',
         'operations-hub': 'sidebar.operations-hub.view',
+        'executive-dashboard': 'sidebar.executive-dashboard.view',
         settings: 'sidebar.settings.view',
         'activity-log': 'sidebar.activity-log.view',
     }), []);
@@ -1189,6 +1193,12 @@ export function AdminLayout({
 
     const fixedLinks = useMemo(
         () => [
+            {
+                key: 'executive-dashboard' as const,
+                label: copy.linkExecutive,
+                href: '/transport/executive-dashboard',
+                icon: ChartColumn,
+            },
             ...(transportFeatures.operationsHub
                 ? [
                       {
@@ -1216,7 +1226,7 @@ export function AdminLayout({
                 icon: settingsLink.icon,
             },
         ],
-        [copy.linkLog, copy.linkPending, settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
+        [copy.linkExecutive, copy.linkLog, copy.linkPending, settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
     );
 
     const visibleLinks = useMemo(

@@ -23,6 +23,7 @@ class RolePermissionCatalog
                         'items' => [
                             ['key' => 'sidebar.settings.view', 'label' => 'Configurações'],
                             ['key' => 'sidebar.activity-log.view', 'label' => 'Log de Atividades'],
+                            ['key' => 'sidebar.executive-dashboard.view', 'label' => 'Dashboard Executivo'],
                             ['key' => 'sidebar.operations-hub.view', 'label' => 'Pendências'],
                         ],
                     ],

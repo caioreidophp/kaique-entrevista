@@ -352,6 +352,64 @@ class PayrollVacationApiTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_vacation_store_can_require_approval_and_create_after_token_consumption(): void
+    {
+        config()->set('transport_features.financial_double_approval', true);
+        config()->set('transport_features.financial_vacation_approval', true);
+        config()->set('transport_features.financial_vacation_approval_days_threshold', 20);
+        config()->set('transport_features.financial_vacation_approval_for_past', false);
+
+        $requester = User::factory()->create(['role' => 'admin']);
+        $approver = User::factory()->masterAdmin()->create();
+        $colaborador = $this->createColaborador(cpf: '80135790124');
+
+        $payload = [
+            'colaborador_id' => $colaborador->id,
+            'tipo' => 'confirmado',
+            'com_abono' => true,
+            'dias_ferias' => 20,
+            'data_inicio' => '2026-05-05',
+            'data_fim' => '2026-05-24',
+            'periodo_aquisitivo_inicio' => '2025-05-05',
+            'periodo_aquisitivo_fim' => '2026-05-04',
+            'observacoes' => 'Fluxo com aprovacao obrigatoria',
+        ];
+
+        Sanctum::actingAs($requester);
+
+        $approvalResponse = $this->postJson('/api/payroll/vacations', $payload)
+            ->assertStatus(202)
+            ->assertJsonPath('approval_required', true);
+
+        $approvalId = (int) $approvalResponse->json('approval_id');
+        $this->assertGreaterThan(0, $approvalId);
+
+        Sanctum::actingAs($approver);
+
+        $approved = $this->postJson('/api/payroll/approvals/'.$approvalId.'/approve', [])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'approved');
+
+        $token = (string) $approved->json('execution_token');
+        $this->assertNotSame('', $token);
+
+        Sanctum::actingAs($requester);
+
+        $this->postJson('/api/payroll/vacations', [
+            ...$payload,
+            'financial_approval_token' => $token,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.colaborador_id', $colaborador->id)
+            ->assertJsonPath('data.dias_ferias', 20);
+
+        $this->assertDatabaseHas('ferias_lancamentos', [
+            'colaborador_id' => $colaborador->id,
+            'dias_ferias' => 20,
+            'com_abono' => true,
+        ]);
+    }
+
     private function createColaborador(string $cpf = '12345678901'): Colaborador
     {
         $unidade = Unidade::query()->first() ?? Unidade::query()->create([

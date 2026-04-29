@@ -21,11 +21,7 @@ class TransportInsightsController extends Controller
 {
     public function pending(Request $request): JsonResponse
     {
-        abort_unless(
-            $request->user()?->hasPermission('operations.tasks.view')
-            || $request->user()?->hasPermission('sidebar.operations-hub.view'),
-            403,
-        );
+        abort_unless($this->canAccessInsights($request), 403);
 
         $user = $request->user();
         $isMaster = $user->isMasterAdmin();
@@ -136,6 +132,8 @@ class TransportInsightsController extends Controller
 
     public function executive(Request $request): JsonResponse
     {
+        abort_unless($this->canAccessInsights($request), 403);
+
         $user = $request->user();
         $isMaster = $user->isMasterAdmin();
 
@@ -248,11 +246,7 @@ class TransportInsightsController extends Controller
 
     public function pendingByUnit(Request $request): JsonResponse
     {
-        abort_unless(
-            $request->user()?->hasPermission('operations.tasks.view')
-            || $request->user()?->hasPermission('sidebar.operations-hub.view'),
-            403,
-        );
+        abort_unless($this->canAccessInsights($request), 403);
 
         $user = $request->user();
         $allowedUnitIds = $this->visibleUnitIds($request, 'registry');
@@ -329,6 +323,8 @@ class TransportInsightsController extends Controller
 
     public function quality(Request $request): JsonResponse
     {
+        abort_unless($this->canAccessInsights($request), 403);
+
         $allowedUnitIds = $this->visibleUnitIds($request, 'registry');
 
         $collaborators = Colaborador::query()
@@ -414,5 +410,18 @@ class TransportInsightsController extends Controller
         }
 
         return $user->allowedUnitIdsFor($moduleKey);
+    }
+
+    private function canAccessInsights(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermission('operations.tasks.view')
+            || $user->hasPermission('sidebar.operations-hub.view')
+            || $user->hasPermission('sidebar.executive-dashboard.view');
     }
 }

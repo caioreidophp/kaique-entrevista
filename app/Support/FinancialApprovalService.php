@@ -70,6 +70,86 @@ class FinancialApprovalService
         ];
     }
 
+    public function requiresFineEntryApproval(User $requester, array $payload): bool
+    {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        if (! (bool) config('transport_features.financial_fine_approval', true)) {
+            return false;
+        }
+
+        if ($requester->isMasterAdmin()) {
+            return false;
+        }
+
+        $summary = $this->buildFineEntrySummary($payload);
+        $thresholdValue = (float) config('transport_features.financial_fine_approval_threshold', 1000);
+        $requiresByValue = (float) ($summary['total_valor'] ?? 0) >= $thresholdValue;
+        $requiresDriverDiscount = (bool) config('transport_features.financial_fine_driver_discount_approval', true)
+            && (bool) ($summary['desconto_motorista'] ?? false);
+
+        return $requiresByValue || $requiresDriverDiscount;
+    }
+
+    public function buildFineEntrySummary(array $payload): array
+    {
+        $valor = round(max((float) ($payload['valor'] ?? 0), 0), 2);
+        $colaboradorId = (int) ($payload['colaborador_id'] ?? 0);
+
+        return [
+            'total_valor' => $valor,
+            'total_colaboradores' => $colaboradorId > 0 ? 1 : 0,
+            'unidade_id' => (int) ($payload['unidade_id'] ?? 0),
+            'unidade_nome' => isset($payload['unidade_nome']) ? (string) $payload['unidade_nome'] : null,
+            'tipo_registro' => (string) ($payload['tipo_registro'] ?? 'multa'),
+            'status' => (string) ($payload['status'] ?? ''),
+            'desconto_motorista' => ((string) ($payload['culpa'] ?? 'empresa') === 'motorista')
+                && (bool) ($payload['descontar'] ?? false),
+        ];
+    }
+
+    public function requiresVacationEntryApproval(User $requester, array $payload): bool
+    {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        if (! (bool) config('transport_features.financial_vacation_approval', true)) {
+            return false;
+        }
+
+        if ($requester->isMasterAdmin()) {
+            return false;
+        }
+
+        $summary = $this->buildVacationEntrySummary($payload);
+        $daysThreshold = max((int) config('transport_features.financial_vacation_approval_days_threshold', 30), 1);
+        $requiresByDays = (int) ($summary['dias_ferias'] ?? 0) >= $daysThreshold;
+        $requiresPastEntry = (bool) config('transport_features.financial_vacation_approval_for_past', true)
+            && (string) ($summary['tipo'] ?? '') === 'passada';
+
+        return $requiresByDays || $requiresPastEntry;
+    }
+
+    public function buildVacationEntrySummary(array $payload): array
+    {
+        $diasFerias = (int) ($payload['dias_ferias'] ?? 0);
+
+        return [
+            'total_valor' => 0.0,
+            'total_colaboradores' => 1,
+            'unidade_id' => (int) ($payload['unidade_id'] ?? 0),
+            'unidade_nome' => isset($payload['unidade_nome']) ? (string) $payload['unidade_nome'] : null,
+            'tipo' => (string) ($payload['tipo'] ?? ''),
+            'dias_ferias' => $diasFerias,
+            'com_abono' => (bool) ($payload['com_abono'] ?? false),
+            'data_inicio' => (string) ($payload['data_inicio'] ?? ''),
+            'data_fim' => (string) ($payload['data_fim'] ?? ''),
+        ];
+    }
+
     public function buildRequestHash(array $payload): string
     {
         $normalized = Arr::sortRecursive($payload);

@@ -19,6 +19,13 @@ interface WrappedResponse<T> {
     data: T;
 }
 
+interface VacationLaunchResponse {
+    approval_required?: boolean;
+    approval_id?: number;
+    approval_uuid?: string;
+    message?: string;
+}
+
 interface VacationRow {
     colaborador_id: number;
     nome: string;
@@ -164,7 +171,7 @@ export default function VacationsLaunchPage() {
         setNotification(null);
 
         try {
-            await apiPost('/payroll/vacations', {
+            const response = await apiPost<VacationLaunchResponse>('/payroll/vacations', {
                 colaborador_id: Number(selectedCollaboratorId),
                 tipo,
                 com_abono: comAbono,
@@ -175,6 +182,16 @@ export default function VacationsLaunchPage() {
                 periodo_aquisitivo_fim: periodoAquisitivoFim,
                 observacoes: observacoes.trim() || null,
             });
+
+            if (response.approval_required) {
+                setNotification({
+                    message:
+                        response.message ??
+                        'Lancamento enviado para aprovacao financeira. Ele sera aplicado apos aprovacao.',
+                    variant: 'info',
+                });
+                return;
+            }
 
             setNotification({
                 message: 'Férias lançadas com sucesso.',
