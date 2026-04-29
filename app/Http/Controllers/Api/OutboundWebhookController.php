@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OutboundWebhook;
+use App\Models\WebhookDelivery;
 use App\Support\OutboundWebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -125,6 +126,31 @@ class OutboundWebhookController extends Controller
         return response()->json([
             'message' => 'Disparo de teste enfileirado.',
             'delivery_id' => (int) $delivery->id,
+        ]);
+    }
+
+    public function retryDelivery(
+        Request $request,
+        OutboundWebhook $outboundWebhook,
+        WebhookDelivery $webhookDelivery,
+        OutboundWebhookService $service,
+    ): JsonResponse {
+        abort_unless($request->user()?->isMasterAdmin(), 403);
+        abort_unless((int) $webhookDelivery->outbound_webhook_id === (int) $outboundWebhook->id, 404);
+
+        if ($webhookDelivery->is_success) {
+            return response()->json([
+                'message' => 'Este delivery já foi entregue com sucesso.',
+                'delivery_id' => (int) $webhookDelivery->id,
+            ]);
+        }
+
+        $retry = $service->retryDelivery($outboundWebhook, $webhookDelivery);
+
+        return response()->json([
+            'message' => 'Reenvio enfileirado com sucesso.',
+            'delivery_id' => (int) $retry->id,
+            'retries_from_delivery_id' => (int) $webhookDelivery->id,
         ]);
     }
 }

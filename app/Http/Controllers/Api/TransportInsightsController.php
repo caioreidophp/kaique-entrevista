@@ -9,8 +9,10 @@ use App\Models\FeriasLancamento;
 use App\Models\FreightCanceledLoad;
 use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
+use App\Models\Multa;
 use App\Models\Onboarding;
 use App\Models\Pagamento;
+use App\Models\ProgramacaoViagem;
 use App\Models\Unidade;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -391,6 +393,297 @@ class TransportInsightsController extends Controller
             })->values(),
             'issues_by_unit' => $issuesByUnit,
         ]);
+    }
+
+    public function benchmark(Request $request): JsonResponse
+    {
+        abort_unless($this->canAccessInsights($request), 403);
+
+        $month = now()->month;
+        $year = now()->year;
+        $benchmark = $this->buildUnitBenchmarkData($request, $month, $year);
+
+        return response()->json([
+            'generated_at' => now()->toISOString(),
+            'competencia_mes' => $month,
+            'competencia_ano' => $year,
+            'totals' => $benchmark['totals'],
+            'highlights' => $benchmark['highlights'],
+            'data' => $benchmark['rows'],
+        ]);
+    }
+
+    public function forecast(Request $request): JsonResponse
+    {
+        abort_unless($this->canAccessInsights($request), 403);
+
+        $user = $request->user();
+        $today = CarbonImmutable::today();
+        $horizons = [30, 60, 90];
+        $vacationForecast = [
+            'next_30_days' => 0,
+            'next_60_days' => 0,
+            'next_90_days' => 0,
+        ];
+
+        $activeCollaborators = Colaborador::query()
+            ->when($this->hasRestrictedUnitScope($request, 'registry'), function (Builder $query) use ($request): void {
+                $query->whereIn('unidade_id', $request->user()->allowedUnitIdsFor('registry'));
+            })
+            ->where('ativo', true)
+            ->whereNotNull('data_admissao')
+            ->select(['id', 'data_admissao'])
+            ->get();
+
+        $latestPeriodEndByCollaborator = FeriasLancamento::query()
+            ->whereIn('colaborador_id', $activeCollaborators->pluck('id')->all())
+            ->selectRaw('colaborador_id, MAX(periodo_aquisitivo_fim) as base_fim')
+            ->groupBy('colaborador_id')
+            ->pluck('base_fim', 'colaborador_id');
+
+        foreach ($activeCollaborators as $colaborador) {
+            $admissao = $colaborador->data_admissao?->toDateString();
+
+            if (! $admissao) {
+                continue;
+            }
+
+            $baseDate = (string) ($latestPeriodEndByCollaborator->get($colaborador->id) ?? $admissao);
+            $limite = CarbonImmutable::parse($baseDate)->addYear()->addMonths(11);
+
+            foreach ($horizons as $horizon) {
+                if ($limite->betweenIncluded($today, $today->addDays($horizon))) {
+                    $vacationForecast['next_'.$horizon.'_days']++;
+                }
+            }
+        }
+
+        $benchmarkCurrent = $this->buildUnitBenchmarkData($request, now()->month, now()->year);
+
+        $monthlyOperationCost = [];
+        for ($offset = 5; $offset >= 0; $offset--) {
+            $reference = $today->startOfMonth()->subMonths($offset);
+            $month = (int) $reference->month;
+            $year = (int) $reference->year;
+
+            $benchmark = $this->buildUnitBenchmarkData($request, $month, $year);
+            $monthlyOperationCost[] = [
+                'mes' => $month,
+                'ano' => $year,
+                'label' => $reference->format('m/y'),
+                'freight_total' => (float) ($benchmark['totals']['freight_total'] ?? 0),
+                'fines_total' => (float) ($benchmark['totals']['fines_total'] ?? 0),
+                'operation_cost_total' => (float) ($benchmark['totals']['operation_cost_total'] ?? 0),
+            ];
+        }
+
+        $payrollMonthlyTotals = [];
+        for ($offset = 2; $offset >= 0; $offset--) {
+            $reference = $today->startOfMonth()->subMonths($offset);
+            $month = (int) $reference->month;
+            $year = (int) $reference->year;
+
+            $payrollBase = Pagamento::query()
+                ->where('competencia_mes', $month)
+                ->where('competencia_ano', $year);
+
+            if (! $user->isMasterAdmin()) {
+                $payrollBase->where('autor_id', $user->id);
+            }
+
+            if ($this->hasRestrictedUnitScope($request, 'payroll')) {
+                $payrollBase->whereIn('unidade_id', $user->allowedUnitIdsFor('payroll'));
+            }
+
+            $payrollMonthlyTotals[] = (float) $payrollBase->sum('valor');
+        }
+
+        $averagePayroll = $payrollMonthlyTotals !== []
+            ? array_sum($payrollMonthlyTotals) / count($payrollMonthlyTotals)
+            : 0.0;
+
+        return response()->json([
+            'generated_at' => now()->toISOString(),
+            'vacations' => $vacationForecast,
+            'cost_relation' => [
+                'totals' => $benchmarkCurrent['totals'],
+                'by_unit' => $benchmarkCurrent['rows'],
+                'highlights' => $benchmarkCurrent['highlights'],
+                'trend_last_6_months' => $monthlyOperationCost,
+            ],
+            'payroll_forecast' => [
+                'average_last_3_months' => round($averagePayroll, 2),
+                'next_30_days' => round($averagePayroll, 2),
+                'next_60_days' => round($averagePayroll * 2, 2),
+                'next_90_days' => round($averagePayroll * 3, 2),
+            ],
+        ]);
+    }
+
+    /**
+     * @return array{
+     *   rows: array<int, array<string, int|float|string|null>>,
+     *   totals: array<string, float|int>,
+     *   highlights: array<string, array<string, int|float|string|null>|null>
+     * }
+     */
+    private function buildUnitBenchmarkData(Request $request, int $month, int $year): array
+    {
+        $user = $request->user();
+        $isMaster = $user->isMasterAdmin();
+        $allowedRegistryUnits = $this->visibleUnitIds($request, 'registry');
+
+        $units = Unidade::query()
+            ->when($allowedRegistryUnits !== null, fn (Builder $query) => $query->whereIn('id', $allowedRegistryUnits))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        $freightUnitScope = $this->visibleUnitIds($request, 'freight');
+        $payrollUnitScope = $this->visibleUnitIds($request, 'payroll');
+        $finesUnitScope = $this->visibleUnitIds($request, 'fines');
+        $programmingUnitScope = $this->visibleUnitIds($request, 'programming');
+
+        $freightByUnit = FreightEntry::query()
+            ->selectRaw('unidade_id, SUM(frete_total) as freight_total, SUM(km_rodado) as km_total, SUM(aves) as aves_total, COUNT(*) as entries_total')
+            ->whereYear('data', $year)
+            ->whereMonth('data', $month)
+            ->when(! $isMaster, fn (Builder $query) => $query->where('autor_id', $user->id))
+            ->when($freightUnitScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $freightUnitScope))
+            ->groupBy('unidade_id')
+            ->get()
+            ->keyBy('unidade_id');
+
+        $spotByUnit = FreightSpotEntry::query()
+            ->selectRaw('unidade_origem_id, SUM(frete_spot) as freight_total, SUM(km_rodado) as km_total, SUM(aves) as aves_total, COUNT(*) as entries_total')
+            ->whereYear('data', $year)
+            ->whereMonth('data', $month)
+            ->when(! $isMaster, fn (Builder $query) => $query->where('autor_id', $user->id))
+            ->when($freightUnitScope !== null, fn (Builder $query) => $query->whereIn('unidade_origem_id', $freightUnitScope))
+            ->groupBy('unidade_origem_id')
+            ->get()
+            ->keyBy('unidade_origem_id');
+
+        $payrollByUnit = Pagamento::query()
+            ->selectRaw('unidade_id, SUM(valor) as payroll_total')
+            ->where('competencia_mes', $month)
+            ->where('competencia_ano', $year)
+            ->when(! $isMaster, fn (Builder $query) => $query->where('autor_id', $user->id))
+            ->when($payrollUnitScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $payrollUnitScope))
+            ->groupBy('unidade_id')
+            ->get()
+            ->keyBy('unidade_id');
+
+        $finesByUnit = Multa::query()
+            ->selectRaw('unidade_id, SUM(valor) as fines_total')
+            ->whereYear('data', $year)
+            ->whereMonth('data', $month)
+            ->when(! $isMaster, fn (Builder $query) => $query->where('autor_id', $user->id))
+            ->when($finesUnitScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $finesUnitScope))
+            ->groupBy('unidade_id')
+            ->get()
+            ->keyBy('unidade_id');
+
+        $programmingByUnit = ProgramacaoViagem::query()
+            ->selectRaw('unidade_id, COUNT(*) as trips_total')
+            ->whereYear('data_viagem', $year)
+            ->whereMonth('data_viagem', $month)
+            ->when(! $isMaster, fn (Builder $query) => $query->where('autor_id', $user->id))
+            ->when($programmingUnitScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $programmingUnitScope))
+            ->groupBy('unidade_id')
+            ->get()
+            ->keyBy('unidade_id');
+
+        $rows = [];
+        $totals = [
+            'freight_total' => 0.0,
+            'payroll_total' => 0.0,
+            'fines_total' => 0.0,
+            'operation_cost_total' => 0.0,
+            'km_total' => 0.0,
+            'trips_total' => 0,
+        ];
+
+        foreach ($units as $unit) {
+            $freightRow = $freightByUnit->get($unit->id);
+            $spotRow = $spotByUnit->get($unit->id);
+            $payrollRow = $payrollByUnit->get($unit->id);
+            $finesRow = $finesByUnit->get($unit->id);
+            $programmingRow = $programmingByUnit->get($unit->id);
+
+            $freightTotal = (float) ($freightRow->freight_total ?? 0) + (float) ($spotRow->freight_total ?? 0);
+            $kmTotal = (float) ($freightRow->km_total ?? 0) + (float) ($spotRow->km_total ?? 0);
+            $avesTotal = (int) ((int) ($freightRow->aves_total ?? 0) + (int) ($spotRow->aves_total ?? 0));
+            $tripsTotal = (int) ($programmingRow->trips_total ?? 0);
+            $payrollTotal = (float) ($payrollRow->payroll_total ?? 0);
+            $finesTotal = (float) ($finesRow->fines_total ?? 0);
+            $operationCost = $freightTotal + $finesTotal;
+
+            $totals['freight_total'] += $freightTotal;
+            $totals['payroll_total'] += $payrollTotal;
+            $totals['fines_total'] += $finesTotal;
+            $totals['operation_cost_total'] += $operationCost;
+            $totals['km_total'] += $kmTotal;
+            $totals['trips_total'] += $tripsTotal;
+
+            $rows[] = [
+                'unidade_id' => (int) $unit->id,
+                'unidade_nome' => (string) $unit->nome,
+                'freight_total' => round($freightTotal, 2),
+                'payroll_total' => round($payrollTotal, 2),
+                'fines_total' => round($finesTotal, 2),
+                'operation_cost_total' => round($operationCost, 2),
+                'km_total' => round($kmTotal, 2),
+                'trips_total' => $tripsTotal,
+                'aves_total' => $avesTotal,
+                'cost_per_km' => $kmTotal > 0 ? round($operationCost / $kmTotal, 4) : null,
+                'cost_per_trip' => $tripsTotal > 0 ? round($operationCost / $tripsTotal, 2) : null,
+                'aves_por_viagem' => $tripsTotal > 0 ? (int) round($avesTotal / $tripsTotal) : null,
+            ];
+        }
+
+        $rowsCollection = collect($rows);
+
+        $totals['freight_total'] = round((float) $totals['freight_total'], 2);
+        $totals['payroll_total'] = round((float) $totals['payroll_total'], 2);
+        $totals['fines_total'] = round((float) $totals['fines_total'], 2);
+        $totals['operation_cost_total'] = round((float) $totals['operation_cost_total'], 2);
+        $totals['km_total'] = round((float) $totals['km_total'], 2);
+
+        $rows = $rowsCollection
+            ->map(function (array $row) use ($totals): array {
+                $costShare = (float) ($row['operation_cost_total'] ?? 0);
+                $row['operation_cost_share_percent'] = $totals['operation_cost_total'] > 0
+                    ? round(($costShare / (float) $totals['operation_cost_total']) * 100, 2)
+                    : 0.0;
+
+                return $row;
+            })
+            ->sortByDesc('operation_cost_total')
+            ->values()
+            ->all();
+
+        $bestCostPerKm = $rowsCollection
+            ->filter(fn (array $row): bool => isset($row['cost_per_km']) && $row['cost_per_km'] !== null)
+            ->sortBy('cost_per_km')
+            ->first();
+
+        $highestVolume = $rowsCollection
+            ->sortByDesc('freight_total')
+            ->first();
+
+        $highestCostPressure = $rowsCollection
+            ->sortByDesc('operation_cost_total')
+            ->first();
+
+        return [
+            'rows' => $rows,
+            'totals' => $totals,
+            'highlights' => [
+                'best_cost_per_km' => $bestCostPerKm,
+                'highest_volume' => $highestVolume,
+                'highest_cost_pressure' => $highestCostPressure,
+            ],
+        ];
     }
 
     private function hasRestrictedUnitScope(Request $request, string $moduleKey): bool

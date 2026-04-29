@@ -104,6 +104,8 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         ->middleware('throttle:transport-heavy');
     Route::get('system/webhooks/{outboundWebhook}/deliveries', [OutboundWebhookController::class, 'deliveries'])
         ->middleware('throttle:transport-heavy');
+    Route::post('system/webhooks/{outboundWebhook}/deliveries/{webhookDelivery}/retry', [OutboundWebhookController::class, 'retryDelivery'])
+        ->middleware('throttle:transport-heavy');
     Route::post('system/webhooks/{outboundWebhook}/test', [OutboundWebhookController::class, 'test'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/queue', [QueueMonitorController::class, 'overview'])
@@ -144,6 +146,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::get('insights/pending', [TransportInsightsController::class, 'pending'])
         ->middleware('throttle:transport-heavy');
     Route::get('insights/executive', [TransportInsightsController::class, 'executive'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('insights/benchmark-by-unit', [TransportInsightsController::class, 'benchmark'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('insights/forecast', [TransportInsightsController::class, 'forecast'])
         ->middleware('throttle:transport-heavy');
     Route::get('insights/pending-by-unit', [TransportInsightsController::class, 'pendingByUnit'])
         ->middleware('throttle:transport-heavy');

@@ -42,4 +42,15 @@ class OutboundWebhookService
 
         return $delivery;
     }
+
+    public function retryDelivery(OutboundWebhook $hook, WebhookDelivery $sourceDelivery): WebhookDelivery
+    {
+        $payload = is_array($sourceDelivery->payload) ? $sourceDelivery->payload : [];
+
+        return $this->queueDelivery(
+            $hook,
+            (string) $sourceDelivery->event_name,
+            $payload,
+        );
+    }
 }

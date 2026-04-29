@@ -71,6 +71,69 @@ interface DataQualityResponse {
     }>;
 }
 
+interface BenchmarkByUnitResponse {
+    totals: {
+        freight_total: number;
+        payroll_total: number;
+        fines_total: number;
+        operation_cost_total: number;
+        km_total: number;
+        trips_total: number;
+    };
+    highlights: {
+        best_cost_per_km: {
+            unidade_nome: string;
+            cost_per_km: number | null;
+        } | null;
+        highest_volume: {
+            unidade_nome: string;
+            freight_total: number;
+        } | null;
+        highest_cost_pressure: {
+            unidade_nome: string;
+            operation_cost_total: number;
+        } | null;
+    };
+    data: Array<{
+        unidade_id: number;
+        unidade_nome: string;
+        freight_total: number;
+        payroll_total: number;
+        fines_total: number;
+        operation_cost_total: number;
+        km_total: number;
+        trips_total: number;
+        aves_total: number;
+        cost_per_km: number | null;
+        cost_per_trip: number | null;
+        operation_cost_share_percent: number;
+    }>;
+}
+
+interface ForecastResponse {
+    vacations: {
+        next_30_days: number;
+        next_60_days: number;
+        next_90_days: number;
+    };
+    payroll_forecast: {
+        average_last_3_months: number;
+        next_30_days: number;
+        next_60_days: number;
+        next_90_days: number;
+    };
+    cost_relation: {
+        trend_last_6_months: Array<{
+            mes: number;
+            ano: number;
+            label: string;
+            freight_total: number;
+            fines_total: number;
+            operation_cost_total: number;
+        }>;
+    };
+}
+
 interface ObservabilityResponse {
     async_operations: {
         queued: number;
@@ -124,6 +187,8 @@ interface ExecutiveDashboardState {
     quality: DataQualityResponse;
     observability: ObservabilityResponse;
     approvals: PayrollApprovalsResponse;
+    benchmark: BenchmarkByUnitResponse;
+    forecast: ForecastResponse;
 }
 
 function alertToneClass(level: 'warning' | 'info' | 'critical'): string {
@@ -157,6 +222,14 @@ function approvalActionLabel(actionKey: string): string {
     if (actionKey === 'vacations.entry.store') return 'Ferias - novo lancamento';
     if (actionKey === 'vacations.entry.update') return 'Ferias - alteracao';
     return actionKey;
+}
+
+function pendingPriorityLabel(score: number, maxScore: number): string {
+    if (maxScore <= 0) return 'Estavel';
+    const ratio = score / maxScore;
+    if (ratio >= 0.75) return 'Critica';
+    if (ratio >= 0.45) return 'Atencao';
+    return 'Moderada';
 }
 
 function InfoMetric({
@@ -256,14 +329,18 @@ export default function TransportExecutiveDashboardPage() {
 
         Promise.all([
             apiGet<ExecutiveInsightsResponse>('/insights/executive'),
+            apiGet<BenchmarkByUnitResponse>('/insights/benchmark-by-unit'),
+            apiGet<ForecastResponse>('/insights/forecast'),
             apiGet<PendingByUnitResponse>('/insights/pending-by-unit'),
             apiGet<DataQualityResponse>('/insights/data-quality'),
             apiGet<ObservabilityResponse>('/system/observability'),
             apiGet<PayrollApprovalsResponse>('/payroll/approvals?status=pending&per_page=5'),
         ])
-            .then(([executive, pendingByUnit, quality, observability, approvals]) => {
+            .then(([executive, benchmark, forecast, pendingByUnit, quality, observability, approvals]) => {
                 setState({
                     executive: executive.data,
+                    benchmark,
+                    forecast,
                     pendingByUnit: pendingByUnit.data,
                     quality,
                     observability,
@@ -311,6 +388,14 @@ export default function TransportExecutiveDashboardPage() {
             }))
             .sort((a, b) => b.total_issues - a.total_issues)
             .slice(0, 5);
+    }, [state]);
+
+    const benchmarkTopUnits = useMemo(() => {
+        if (!state) return [];
+
+        return [...state.benchmark.data]
+            .sort((a, b) => b.operation_cost_total - a.operation_cost_total)
+            .slice(0, 4);
     }, [state]);
 
     const maxPendingPressure = Math.max(1, ...topPendingUnits.map((item) => item.pressure_score));
@@ -362,6 +447,132 @@ export default function TransportExecutiveDashboardPage() {
                                 detail={`${formatIntegerBR(state.approvals.summary.expires_soon)} vencendo em breve`}
                                 tone="warning"
                             />
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
+                            <Card className="transport-insight-card">
+                                <CardHeader>
+                                    <CardTitle className="transport-dashboard-section-title">Benchmark por unidade</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Comparativo de volume e custo operacional consolidado no mes atual.
+                                    </p>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Melhor custo por KM</p>
+                                            <p className="mt-1 font-semibold">
+                                                {state.benchmark.highlights.best_cost_per_km?.unidade_nome ?? 'Sem dados'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {state.benchmark.highlights.best_cost_per_km?.cost_per_km != null
+                                                    ? `${formatCurrencyBR(state.benchmark.highlights.best_cost_per_km.cost_per_km)}/km`
+                                                    : 'Sem base suficiente'}
+                                            </p>
+                                        </div>
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Maior volume de frete</p>
+                                            <p className="mt-1 font-semibold">
+                                                {state.benchmark.highlights.highest_volume?.unidade_nome ?? 'Sem dados'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatCurrencyBR(state.benchmark.highlights.highest_volume?.freight_total ?? 0)}
+                                            </p>
+                                        </div>
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Maior custo operacional</p>
+                                            <p className="mt-1 font-semibold">
+                                                {state.benchmark.highlights.highest_cost_pressure?.unidade_nome ?? 'Sem dados'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatCurrencyBR(state.benchmark.highlights.highest_cost_pressure?.operation_cost_total ?? 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {benchmarkTopUnits.length === 0 ? (
+                                            <div className="transport-empty-state">
+                                                <strong>Sem benchmark no periodo</strong>
+                                                Nao ha dados suficientes para comparar unidades neste mes.
+                                            </div>
+                                        ) : (
+                                            benchmarkTopUnits.map((unit, index) => (
+                                                <div key={unit.unidade_id} className="transport-list-panel">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex min-w-0 items-center gap-2">
+                                                            <span className="transport-value-pill shrink-0">#{index + 1}</span>
+                                                            <p className="truncate font-medium">{unit.unidade_nome}</p>
+                                                        </div>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {formatPercentBR(unit.operation_cost_share_percent)} do custo
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                                                        <div>
+                                                            <p className="text-[11px] text-muted-foreground">Custo operacional</p>
+                                                            <p className="font-semibold">{formatCurrencyBR(unit.operation_cost_total)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] text-muted-foreground">Custo por viagem</p>
+                                                            <p className="font-semibold">
+                                                                {unit.cost_per_trip != null ? formatCurrencyBR(unit.cost_per_trip) : '-'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] text-muted-foreground">KM total</p>
+                                                            <p className="font-semibold">{formatIntegerBR(Math.round(unit.km_total))}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="transport-insight-card">
+                                <CardHeader>
+                                    <CardTitle className="transport-dashboard-section-title">Forecast 30/60/90</CardTitle>
+                                    <p className="transport-dashboard-section-subtitle">
+                                        Projecao de ferias e previsao de folha para planejamento operacional.
+                                    </p>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Ferias ate 30 dias</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatIntegerBR(state.forecast.vacations.next_30_days)}
+                                            </p>
+                                        </div>
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Ferias ate 60 dias</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatIntegerBR(state.forecast.vacations.next_60_days)}
+                                            </p>
+                                        </div>
+                                        <div className="transport-list-panel">
+                                            <p className="text-xs text-muted-foreground">Ferias ate 90 dias</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatIntegerBR(state.forecast.vacations.next_90_days)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="transport-list-panel">
+                                        <p className="text-xs text-muted-foreground">Previsao de folha (media ultimos 3 meses)</p>
+                                        <p className="mt-1 text-lg font-semibold">
+                                            {formatCurrencyBR(state.forecast.payroll_forecast.average_last_3_months)}
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            30d: {formatCurrencyBR(state.forecast.payroll_forecast.next_30_days)} •
+                                            60d: {formatCurrencyBR(state.forecast.payroll_forecast.next_60_days)} •
+                                            90d: {formatCurrencyBR(state.forecast.payroll_forecast.next_90_days)}
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
 
                         <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
