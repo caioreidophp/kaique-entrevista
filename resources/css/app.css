@@ -455,3 +455,8 @@
         margin-top: 0.5rem !important;
     }
 }
+
+/* Hides numeric pressure score in executive pending-by-unit cards, keeping textual priority only. */
+.transport-insight-card .transport-list-panel .text-right > p.text-xs.font-semibold.text-foreground:first-child {
+    display: none;
+}

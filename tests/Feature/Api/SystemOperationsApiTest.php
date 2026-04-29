@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Jobs\DeliverOutboundWebhookJob;
 use App\Models\AsyncOperation;
 use App\Models\Colaborador;
 use App\Models\DriverInterview;
@@ -9,10 +10,13 @@ use App\Models\FeriasLancamento;
 use App\Models\Funcao;
 use App\Models\Onboarding;
 use App\Models\OnboardingItem;
+use App\Models\OutboundWebhook;
 use App\Models\Unidade;
 use App\Models\User;
+use App\Models\WebhookDelivery;
 use App\Support\FinancialApprovalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -210,6 +214,73 @@ class SystemOperationsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('summary.total_collaborators', 1)
             ->assertJsonPath('summary.missing_phone', 1);
+
+        $this->getJson('/api/insights/benchmark-by-unit')
+            ->assertOk()
+            ->assertJsonStructure([
+                'generated_at',
+                'competencia_mes',
+                'competencia_ano',
+                'totals',
+                'highlights',
+                'data',
+            ]);
+
+        $this->getJson('/api/insights/forecast')
+            ->assertOk()
+            ->assertJsonStructure([
+                'generated_at',
+                'vacations' => ['next_30_days', 'next_60_days', 'next_90_days'],
+                'cost_relation' => ['totals', 'by_unit', 'highlights', 'trend_last_6_months'],
+                'payroll_forecast' => ['average_last_3_months', 'next_30_days', 'next_60_days', 'next_90_days'],
+            ]);
+    }
+
+    public function test_master_admin_can_retry_failed_webhook_delivery(): void
+    {
+        $master = User::factory()->masterAdmin()->create();
+
+        $hook = OutboundWebhook::query()->create([
+            'name' => 'ERP Integration',
+            'target_url' => 'https://example.com/webhooks/erp',
+            'signing_secret' => str_repeat('a', 32),
+            'events' => ['payroll.launch-batch'],
+            'timeout_seconds' => 10,
+            'max_attempts' => 3,
+            'is_active' => true,
+            'created_by_user_id' => $master->id,
+        ]);
+
+        $failedDelivery = WebhookDelivery::query()->create([
+            'outbound_webhook_id' => $hook->id,
+            'event_name' => 'payroll.launch-batch',
+            'attempt' => 3,
+            'is_success' => false,
+            'http_status' => 500,
+            'payload' => ['batch_id' => 123],
+            'error_message' => 'HTTP 500',
+            'dead_lettered_at' => now(),
+        ]);
+
+        Queue::fake();
+        Sanctum::actingAs($master);
+
+        $response = $this->postJson("/api/system/webhooks/{$hook->id}/deliveries/{$failedDelivery->id}/retry")
+            ->assertOk()
+            ->assertJsonPath('retries_from_delivery_id', $failedDelivery->id)
+            ->assertJsonPath('message', 'Reenvio enfileirado com sucesso.');
+
+        $newDeliveryId = (int) $response->json('delivery_id');
+
+        $this->assertDatabaseHas('webhook_deliveries', [
+            'id' => $newDeliveryId,
+            'outbound_webhook_id' => $hook->id,
+            'event_name' => 'payroll.launch-batch',
+            'attempt' => 1,
+            'is_success' => false,
+        ]);
+
+        Queue::assertPushed(DeliverOutboundWebhookJob::class);
     }
 
     public function test_master_admin_can_read_vacation_audit_diff_after_update(): void
