@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\GeneratePayrollExportJob;
 use App\Http\Requests\StoreBatchPagamentosRequest;
 use App\Http\Requests\StorePagamentoRequest;
 use App\Http\Requests\UpdatePagamentoRequest;
+use App\Jobs\GeneratePayrollExportJob;
 use App\Models\AsyncExport;
 use App\Models\Colaborador;
 use App\Models\DescontoColaborador;
@@ -149,6 +149,7 @@ class PayrollController extends Controller
                     $approvalBase->where(function ($query) use ($allowedUnitId): void {
                         $query->where('summary->unidade_id', $allowedUnitId);
                     });
+
                     continue;
                 }
 
@@ -172,6 +173,8 @@ class PayrollController extends Controller
                 'approver_name' => $approval->approver?->name,
                 'total_valor' => round((float) (($approval->summary['total_valor'] ?? 0)), 2),
                 'total_colaboradores' => (int) (($approval->summary['total_colaboradores'] ?? 0)),
+                'required_approvals' => (int) ($approval->required_approvals ?? 1),
+                'approved_steps' => (int) ($approval->approved_steps ?? 0),
                 'created_at' => $approval->created_at?->toISOString(),
                 'reviewed_at' => $approval->reviewed_at?->toISOString(),
             ])
@@ -511,7 +514,7 @@ class PayrollController extends Controller
                     ->values();
             });
 
-                    $this->bumpPayrollCacheVersion();
+            $this->bumpPayrollCacheVersion();
 
             $webhookService->dispatch('payroll.batch.launched', [
                 'mode' => 'legacy',
@@ -1648,11 +1651,13 @@ class PayrollController extends Controller
 
             if ($this->containsAny($normalizedType, ['vale refeicao', 'vr'])) {
                 $grouped[$key]['vr'] += $value;
+
                 continue;
             }
 
             if ($this->containsAny($normalizedType, ['vale transporte', 'vt'])) {
                 $grouped[$key]['va'] += $value;
+
                 continue;
             }
 

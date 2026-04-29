@@ -21,6 +21,12 @@ class TransportInsightsController extends Controller
 {
     public function pending(Request $request): JsonResponse
     {
+        abort_unless(
+            $request->user()?->hasPermission('operations.tasks.view')
+            || $request->user()?->hasPermission('sidebar.operations-hub.view'),
+            403,
+        );
+
         $user = $request->user();
         $isMaster = $user->isMasterAdmin();
 
@@ -242,6 +248,12 @@ class TransportInsightsController extends Controller
 
     public function pendingByUnit(Request $request): JsonResponse
     {
+        abort_unless(
+            $request->user()?->hasPermission('operations.tasks.view')
+            || $request->user()?->hasPermission('sidebar.operations-hub.view'),
+            403,
+        );
+
         $user = $request->user();
         $allowedUnitIds = $this->visibleUnitIds($request, 'registry');
         $today = now()->toDateString();

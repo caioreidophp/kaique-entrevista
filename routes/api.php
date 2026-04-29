@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
-use App\Http\Controllers\Api\AsyncOperationController;
 use App\Http\Controllers\Api\ApiTelemetryController;
 use App\Http\Controllers\Api\AsyncExportController;
+use App\Http\Controllers\Api\AsyncOperationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupRestoreController;
 use App\Http\Controllers\Api\BobAssistantController;
@@ -14,11 +14,12 @@ use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
 use App\Http\Controllers\Api\HomeController;
-use App\Http\Controllers\Api\InterviewCurriculumController;
 use App\Http\Controllers\Api\IntegrationGatewayController;
+use App\Http\Controllers\Api\InterviewCurriculumController;
 use App\Http\Controllers\Api\NextStepController;
-use App\Http\Controllers\Api\OpenApiController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\OpenApiController;
+use App\Http\Controllers\Api\OperationalTaskController;
 use App\Http\Controllers\Api\OutboundWebhookController;
 use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\PayrollDescontoController;
@@ -28,11 +29,6 @@ use App\Http\Controllers\Api\PayrollVacationController;
 use App\Http\Controllers\Api\ProgrammingController;
 use App\Http\Controllers\Api\QueueMonitorController;
 use App\Http\Controllers\Api\ReferenceCityController;
-use App\Http\Controllers\Api\SecurityIncidentController;
-use App\Http\Controllers\Api\ServiceAccountController;
-use App\Http\Controllers\Api\SessionManagementController;
-use App\Http\Controllers\Api\SystemObservabilityController;
-use App\Http\Controllers\Api\SystemMasterDataController;
 use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
 use App\Http\Controllers\Api\Registry\FuncaoController;
@@ -42,6 +38,11 @@ use App\Http\Controllers\Api\Registry\RegistryUserController;
 use App\Http\Controllers\Api\Registry\RolePermissionController;
 use App\Http\Controllers\Api\Registry\TipoPagamentoController;
 use App\Http\Controllers\Api\Registry\UnidadeController;
+use App\Http\Controllers\Api\SecurityIncidentController;
+use App\Http\Controllers\Api\ServiceAccountController;
+use App\Http\Controllers\Api\SessionManagementController;
+use App\Http\Controllers\Api\SystemMasterDataController;
+use App\Http\Controllers\Api\SystemObservabilityController;
 use App\Http\Controllers\Api\TransportInsightsController;
 use App\Http\Controllers\Api\TransportSettingsController;
 use App\Http\Middleware\AuthenticateServiceAccount;
@@ -147,6 +148,16 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::get('insights/pending-by-unit', [TransportInsightsController::class, 'pendingByUnit'])
         ->middleware('throttle:transport-heavy');
     Route::get('insights/data-quality', [TransportInsightsController::class, 'quality'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('operations/tasks', [OperationalTaskController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('operations/tasks/summary', [OperationalTaskController::class, 'summary'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('operations/tasks', [OperationalTaskController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::put('operations/tasks/{operationalTask}', [OperationalTaskController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('operations/tasks/{operationalTask}', [OperationalTaskController::class, 'destroy'])
         ->middleware('throttle:transport-heavy');
     Route::get('payroll/dashboard', [PayrollController::class, 'dashboard']);
     Route::get('payroll/dashboard-page', [PayrollController::class, 'dashboardPage'])

@@ -79,6 +79,8 @@ class FinancialApprovalService
 
     public function requestOrReusePendingApproval(User $requester, string $actionKey, string $requestHash, array $summary): FinancialApproval
     {
+        $requiredApprovals = $this->requiredApprovalsForSummary($summary);
+
         $existing = FinancialApproval::query()
             ->where('status', 'pending')
             ->where('requester_id', $requester->id)
@@ -91,6 +93,12 @@ class FinancialApprovalService
             ->first();
 
         if ($existing) {
+            if ((int) $existing->required_approvals !== $requiredApprovals) {
+                $existing->update([
+                    'required_approvals' => $requiredApprovals,
+                ]);
+            }
+
             return $existing;
         }
 
@@ -99,7 +107,10 @@ class FinancialApprovalService
             'action_key' => $actionKey,
             'request_hash' => $requestHash,
             'status' => 'pending',
+            'required_approvals' => $requiredApprovals,
+            'approved_steps' => 0,
             'summary' => $summary,
+            'approval_history' => [],
             'requester_id' => $requester->id,
             'expires_at' => now()->addHours(8),
         ]);
@@ -107,12 +118,32 @@ class FinancialApprovalService
 
     public function approve(FinancialApproval $approval, User $approver): FinancialApproval
     {
+        $history = collect((array) ($approval->approval_history ?? []))
+            ->filter(fn ($row): bool => is_array($row))
+            ->values()
+            ->all();
+
+        $history[] = [
+            'approver_id' => (int) $approver->id,
+            'approver_name' => (string) $approver->name,
+            'approved_at' => now()->toISOString(),
+            'step' => count($history) + 1,
+        ];
+
+        $requiredApprovals = max((int) ($approval->required_approvals ?? 1), 1);
+        $approvedSteps = count($history);
+        $isFinal = $approvedSteps >= $requiredApprovals;
+
         $approval->update([
-            'status' => 'approved',
+            'status' => $isFinal ? 'approved' : 'pending',
             'approver_id' => $approver->id,
+            'approved_steps' => $approvedSteps,
+            'approval_history' => $history,
             'reviewed_at' => now(),
-            'execution_token' => Str::random(64),
-            'token_expires_at' => now()->addMinutes((int) config('transport_features.financial_double_approval_token_ttl', 15)),
+            'execution_token' => $isFinal ? Str::random(64) : null,
+            'token_expires_at' => $isFinal
+                ? now()->addMinutes((int) config('transport_features.financial_double_approval_token_ttl', 15))
+                : null,
             'reason' => null,
         ]);
 
@@ -124,6 +155,7 @@ class FinancialApprovalService
         $approval->update([
             'status' => 'rejected',
             'approver_id' => $approver->id,
+            'approved_steps' => 0,
             'reviewed_at' => now(),
             'execution_token' => null,
             'token_expires_at' => null,
@@ -156,5 +188,19 @@ class FinancialApprovalService
         ]);
 
         return $approval->refresh();
+    }
+
+    private function requiredApprovalsForSummary(array $summary): int
+    {
+        $totalValor = (float) ($summary['total_valor'] ?? 0);
+        $totalColaboradores = (int) ($summary['total_colaboradores'] ?? 0);
+        $secondLevelValueThreshold = (float) config('transport_features.financial_multistep_second_level_threshold', 50000);
+        $secondLevelPeopleThreshold = (int) config('transport_features.financial_multistep_second_level_people_threshold', 60);
+
+        if ($totalValor >= $secondLevelValueThreshold || $totalColaboradores >= $secondLevelPeopleThreshold) {
+            return 2;
+        }
+
+        return 1;
     }
 }

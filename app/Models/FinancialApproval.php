@@ -17,7 +17,10 @@ class FinancialApproval extends Model
         'action_key',
         'request_hash',
         'status',
+        'required_approvals',
+        'approved_steps',
         'summary',
+        'approval_history',
         'requester_id',
         'approver_id',
         'execution_token',
@@ -32,6 +35,9 @@ class FinancialApproval extends Model
     {
         return [
             'summary' => 'array',
+            'approval_history' => 'array',
+            'required_approvals' => 'integer',
+            'approved_steps' => 'integer',
             'token_expires_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'consumed_at' => 'datetime',
@@ -60,6 +66,8 @@ class FinancialApproval extends Model
             ->logOnly([
                 'action_key',
                 'status',
+                'required_approvals',
+                'approved_steps',
                 'requester_id',
                 'approver_id',
                 'token_expires_at',

@@ -11,6 +11,7 @@ use App\Models\Onboarding;
 use App\Models\OnboardingItem;
 use App\Models\Unidade;
 use App\Models\User;
+use App\Support\FinancialApprovalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Activitylog\Models\Activity;
@@ -260,5 +261,105 @@ class SystemOperationsApiTest extends TestCase
 
         $this->assertTrue($changes->contains(fn (array $change): bool => $change['field'] === 'dias_ferias'));
         $this->assertTrue($changes->contains(fn (array $change): bool => $change['field'] === 'com_abono'));
+    }
+
+    public function test_admin_can_manage_operational_tasks_and_read_sla_summary(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $assignee = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/operations/tasks', [
+            'module_key' => 'payroll',
+            'unidade_id' => $unidade->id,
+            'title' => 'Revisar folha de abril',
+            'description' => 'Conferir concentracao por unidade.',
+            'priority' => 'high',
+            'status' => 'open',
+            'due_at' => now()->subHours(2)->toISOString(),
+            'assigned_to' => $assignee->id,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.title', 'Revisar folha de abril');
+
+        $taskId = (int) $createResponse->json('data.id');
+
+        $this->getJson('/api/operations/tasks')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $taskId)
+            ->assertJsonPath('data.0.sla_state', 'overdue');
+
+        $this->getJson('/api/operations/tasks/summary')
+            ->assertOk()
+            ->assertJsonPath('summary.total', 1)
+            ->assertJsonPath('summary.sla.overdue', 1);
+
+        $this->putJson('/api/operations/tasks/'.$taskId, [
+            'status' => 'done',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'done');
+
+        $this->assertDatabaseHas('operational_tasks', [
+            'id' => $taskId,
+            'status' => 'done',
+        ]);
+
+        $this->deleteJson('/api/operations/tasks/'.$taskId)
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('operational_tasks', [
+            'id' => $taskId,
+        ]);
+    }
+
+    public function test_financial_approval_supports_multistep_flow_for_high_value_payload(): void
+    {
+        config()->set('transport_features.financial_multistep_second_level_threshold', 1000);
+        config()->set('transport_features.financial_multistep_second_level_people_threshold', 1);
+
+        $requester = User::factory()->create(['role' => 'admin']);
+        $approverOne = User::factory()->create(['role' => 'admin']);
+        $approverTwo = User::factory()->create(['role' => 'master_admin']);
+
+        $service = app(FinancialApprovalService::class);
+        $summary = [
+            'total_valor' => 5000,
+            'total_colaboradores' => 3,
+            'unidade_id' => 1,
+            'data_pagamento' => '2026-04-29',
+            'competencia_mes' => 4,
+            'competencia_ano' => 2026,
+        ];
+
+        $approval = $service->requestOrReusePendingApproval(
+            requester: $requester,
+            actionKey: 'payroll.launch-batch',
+            requestHash: hash('sha256', 'high-value-multistep'),
+            summary: $summary,
+        );
+
+        $this->assertSame(2, (int) $approval->required_approvals);
+        $this->assertSame(0, (int) $approval->approved_steps);
+        $this->assertSame('pending', (string) $approval->status);
+
+        $stepOne = $service->approve($approval, $approverOne);
+
+        $this->assertSame('pending', (string) $stepOne->status);
+        $this->assertSame(1, (int) $stepOne->approved_steps);
+        $this->assertNull($stepOne->execution_token);
+
+        $stepTwo = $service->approve($stepOne, $approverTwo);
+
+        $this->assertSame('approved', (string) $stepTwo->status);
+        $this->assertSame(2, (int) $stepTwo->approved_steps);
+        $this->assertNotNull($stepTwo->execution_token);
+
+        $history = collect((array) $stepTwo->approval_history);
+        $this->assertCount(2, $history);
+        $this->assertSame($approverOne->id, (int) ($history[0]['approver_id'] ?? 0));
+        $this->assertSame($approverTwo->id, (int) ($history[1]['approver_id'] ?? 0));
     }
 }

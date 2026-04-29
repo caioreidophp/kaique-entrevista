@@ -187,6 +187,14 @@ class RolePermissionCatalog
                         ],
                     ],
                     [
+                        'key' => 'actions.operations',
+                        'label' => 'Operacoes',
+                        'items' => [
+                            ['key' => 'operations.tasks.view', 'label' => 'Visualizar tarefas operacionais'],
+                            ['key' => 'operations.tasks.manage', 'label' => 'Criar, editar e excluir tarefas operacionais'],
+                        ],
+                    ],
+                    [
                         'key' => 'actions.fines',
                         'label' => 'Gestão de Multas',
                         'items' => [
@@ -255,6 +263,7 @@ class RolePermissionCatalog
         if ($role === 'usuario') {
             $allowed = [
                 'sidebar.settings.view',
+                'sidebar.operations-hub.view',
                 'sidebar.dashboard.view',
                 'sidebar.interviews.view',
                 'sidebar.curriculums.view',
@@ -289,6 +298,8 @@ class RolePermissionCatalog
                 'registry.payment-types.manage',
                 'registry.plates-aviaries.manage',
                 'registry.infractions.manage',
+                'operations.tasks.view',
+                'operations.tasks.manage',
                 'settings.password.update',
             ];
 

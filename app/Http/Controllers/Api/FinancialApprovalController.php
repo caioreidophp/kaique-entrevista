@@ -56,6 +56,9 @@ class FinancialApprovalController extends Controller
                     'requester' => $approval->requester,
                     'approver' => $approval->approver,
                     'reason' => $approval->reason,
+                    'required_approvals' => (int) ($approval->required_approvals ?? 1),
+                    'approved_steps' => (int) ($approval->approved_steps ?? 0),
+                    'approval_history' => $approval->approval_history ?? [],
                     'reviewed_at' => $approval->reviewed_at?->toISOString(),
                     'expires_at' => $approval->expires_at?->toISOString(),
                     'created_at' => $approval->created_at?->toISOString(),
@@ -89,16 +92,26 @@ class FinancialApprovalController extends Controller
     ): JsonResponse {
         abort_unless($request->user()?->isAdmin() || $request->user()?->isMasterAdmin(), 403);
 
-        abort_if($financialApproval->requester_id === (int) $request->user()->id, 422, 'Aprovação pelo próprio solicitante não é permitida.');
-        abort_if($financialApproval->status !== 'pending', 422, 'Aprovação já foi processada anteriormente.');
+        abort_if($financialApproval->requester_id === (int) $request->user()->id, 422, 'Aprovacao pelo proprio solicitante nao e permitida.');
+        abort_if($financialApproval->status !== 'pending', 422, 'Aprovacao ja foi processada anteriormente.');
+
+        $alreadyApproved = collect((array) ($financialApproval->approval_history ?? []))
+            ->contains(fn ($step): bool => is_array($step) && (int) ($step['approver_id'] ?? 0) === (int) $request->user()->id);
+        abort_if($alreadyApproved, 422, 'Este aprovador ja registrou uma etapa para esta solicitacao.');
 
         $approved = $service->approve($financialApproval, $request->user());
+        $isFinal = $approved->status === 'approved';
 
         return response()->json([
-            'message' => 'Solicitação aprovada com sucesso.',
+            'message' => $isFinal
+                ? 'Solicitacao aprovada com sucesso.'
+                : 'Etapa aprovada. Aguardando proxima aprovacao.',
             'data' => $approved,
-            'execution_token' => $approved->execution_token,
-            'token_expires_at' => $approved->token_expires_at?->toISOString(),
+            'execution_token' => $isFinal ? $approved->execution_token : null,
+            'token_expires_at' => $isFinal ? $approved->token_expires_at?->toISOString() : null,
+            'required_approvals' => (int) ($approved->required_approvals ?? 1),
+            'approved_steps' => (int) ($approved->approved_steps ?? 0),
+            'pending_steps' => max((int) ($approved->required_approvals ?? 1) - (int) ($approved->approved_steps ?? 0), 0),
         ]);
     }
 
@@ -113,12 +126,12 @@ class FinancialApprovalController extends Controller
             'reason' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        abort_if($financialApproval->status !== 'pending', 422, 'Aprovação já foi processada anteriormente.');
+        abort_if($financialApproval->status !== 'pending', 422, 'Aprovacao ja foi processada anteriormente.');
 
         $rejected = $service->reject($financialApproval, $request->user(), $validated['reason'] ?? null);
 
         return response()->json([
-            'message' => 'Solicitação rejeitada.',
+            'message' => 'Solicitacao rejeitada.',
             'data' => $rejected,
         ]);
     }

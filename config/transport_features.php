@@ -17,4 +17,6 @@ return [
     'financial_double_approval_threshold' => (float) env('TRANSPORT_FINANCIAL_DOUBLE_APPROVAL_THRESHOLD', 15000),
     'financial_double_approval_people_threshold' => (int) env('TRANSPORT_FINANCIAL_DOUBLE_APPROVAL_PEOPLE_THRESHOLD', 25),
     'financial_double_approval_token_ttl' => (int) env('TRANSPORT_FINANCIAL_DOUBLE_APPROVAL_TOKEN_TTL', 15),
+    'financial_multistep_second_level_threshold' => (float) env('TRANSPORT_FINANCIAL_MULTISTEP_SECOND_LEVEL_THRESHOLD', 50000),
+    'financial_multistep_second_level_people_threshold' => (int) env('TRANSPORT_FINANCIAL_MULTISTEP_SECOND_LEVEL_PEOPLE_THRESHOLD', 60),
 ];

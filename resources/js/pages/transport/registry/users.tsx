@@ -34,6 +34,7 @@ interface RegistryUser {
         id: number;
         nome: string;
     } | null;
+    access_scopes?: UserAccessScope[];
 }
 
 interface ColaboradorOption {
@@ -41,8 +42,32 @@ interface ColaboradorOption {
     nome: string;
 }
 
-interface WrappedResponse<T> {
-    data: T;
+type DataScopeKey = 'all' | 'own' | 'units';
+
+interface AccessScopeModule {
+    key: string;
+    label: string;
+}
+
+interface UserAccessScope {
+    module_key: string;
+    data_scope: DataScopeKey;
+    allowed_unit_ids: number[];
+}
+
+interface UsersRegistryResponse {
+    modules: AccessScopeModule[];
+    data_scopes: DataScopeKey[];
+    data: RegistryUser[];
+}
+
+interface UnidadeOption {
+    id: number;
+    nome: string;
+}
+
+interface UnidadesResponse {
+    data: UnidadeOption[];
 }
 
 interface PaginatedCollaborators {
@@ -56,6 +81,7 @@ interface UserFormData {
     password_confirmation: string;
     role: 'master_admin' | 'admin' | 'usuario';
     colaborador_id: string;
+    access_scopes: UserAccessScope[];
 }
 
 type RoleName = 'master_admin' | 'admin' | 'usuario';
@@ -83,6 +109,39 @@ interface RolePermissionResponse {
     permissions_by_role: Record<RoleName, Record<string, boolean>>;
 }
 
+function buildDefaultAccessScopes(modules: AccessScopeModule[]): UserAccessScope[] {
+    return modules.map((module) => ({
+        module_key: module.key,
+        data_scope: 'all',
+        allowed_unit_ids: [],
+    }));
+}
+
+function mergeAccessScopes(
+    modules: AccessScopeModule[],
+    rawScopes: UserAccessScope[] | undefined,
+): UserAccessScope[] {
+    const defaultByModule = new Map(
+        buildDefaultAccessScopes(modules).map((scope) => [scope.module_key, scope]),
+    );
+
+    for (const scope of rawScopes ?? []) {
+        if (!defaultByModule.has(scope.module_key)) {
+            continue;
+        }
+
+        defaultByModule.set(scope.module_key, {
+            module_key: scope.module_key,
+            data_scope: scope.data_scope ?? 'all',
+            allowed_unit_ids: (scope.allowed_unit_ids ?? [])
+                .map((unitId) => Number(unitId))
+                .filter((unitId) => Number.isFinite(unitId) && unitId > 0),
+        });
+    }
+
+    return Array.from(defaultByModule.values());
+}
+
 const emptyForm: UserFormData = {
     name: '',
     email: '',
@@ -90,11 +149,15 @@ const emptyForm: UserFormData = {
     password_confirmation: '',
     role: 'admin',
     colaborador_id: 'none',
+    access_scopes: [],
 };
 
 export default function TransportRegistryUsersPage() {
     const [items, setItems] = useState<RegistryUser[]>([]);
+    const [scopeModules, setScopeModules] = useState<AccessScopeModule[]>([]);
+    const [scopeTypes, setScopeTypes] = useState<DataScopeKey[]>(['all', 'own', 'units']);
     const [colaboradores, setColaboradores] = useState<ColaboradorOption[]>([]);
+    const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -128,16 +191,24 @@ export default function TransportRegistryUsersPage() {
         setNotification(null);
 
         try {
-            const [usersResponse, colaboradoresResponse, permissionsResponse] = await Promise.all([
-                apiGet<WrappedResponse<RegistryUser[]>>('/registry/users'),
+            const [usersResponse, colaboradoresResponse, permissionsResponse, unidadesResponse] = await Promise.all([
+                apiGet<UsersRegistryResponse>('/registry/users'),
                 apiGet<PaginatedCollaborators>(
                     '/registry/colaboradores?active=1&per_page=100',
                 ),
                 apiGet<RolePermissionResponse>('/registry/role-permissions'),
+                apiGet<UnidadesResponse>('/registry/unidades'),
             ]);
 
             setItems(usersResponse.data);
+            setScopeModules(usersResponse.modules);
+            setScopeTypes(
+                usersResponse.data_scopes.length > 0
+                    ? usersResponse.data_scopes
+                    : ['all', 'own', 'units'],
+            );
             setColaboradores(colaboradoresResponse.data);
+            setUnidades(unidadesResponse.data);
             setPermissionRoles(permissionsResponse.roles);
             setPermissionSections(permissionsResponse.sections);
             setPermissionsByRole(permissionsResponse.permissions_by_role);
@@ -165,7 +236,10 @@ export default function TransportRegistryUsersPage() {
 
     function openCreateDialog(): void {
         setEditingItem(null);
-        setFormData(emptyForm);
+        setFormData({
+            ...emptyForm,
+            access_scopes: buildDefaultAccessScopes(scopeModules),
+        });
         setFormOpen(true);
     }
 
@@ -180,6 +254,7 @@ export default function TransportRegistryUsersPage() {
             colaborador_id: item.colaborador
                 ? String(item.colaborador.id)
                 : 'none',
+            access_scopes: mergeAccessScopes(scopeModules, item.access_scopes),
         });
         setFormOpen(true);
     }
@@ -198,6 +273,16 @@ export default function TransportRegistryUsersPage() {
                     formData.colaborador_id === 'none'
                         ? null
                         : Number(formData.colaborador_id),
+                access_scopes: formData.access_scopes
+                    .filter((scope) => scope.data_scope !== 'all' || scope.allowed_unit_ids.length > 0)
+                    .map((scope) => ({
+                        module_key: scope.module_key,
+                        data_scope: scope.data_scope,
+                        allowed_unit_ids:
+                            scope.data_scope === 'units'
+                                ? scope.allowed_unit_ids
+                                : [],
+                    })),
                 ...(formData.password
                     ? {
                           password: formData.password,
@@ -220,7 +305,10 @@ export default function TransportRegistryUsersPage() {
             });
             setFormOpen(false);
             setEditingItem(null);
-            setFormData(emptyForm);
+            setFormData({
+                ...emptyForm,
+                access_scopes: buildDefaultAccessScopes(scopeModules),
+            });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
@@ -287,6 +375,53 @@ export default function TransportRegistryUsersPage() {
         if (role === 'master_admin') return 'Master Admin';
         if (role === 'usuario') return 'Usuário';
         return 'Admin';
+    }
+
+    function scopeTypeLabel(scope: DataScopeKey): string {
+        if (scope === 'units') return 'Somente unidades';
+        if (scope === 'own') return 'Somente registros proprios';
+        return 'Todos os registros';
+    }
+
+    function resolveScopeByModule(moduleKey: string): UserAccessScope {
+        return (
+            formData.access_scopes.find((scope) => scope.module_key === moduleKey) ?? {
+                module_key: moduleKey,
+                data_scope: 'all',
+                allowed_unit_ids: [],
+            }
+        );
+    }
+
+    function updateScopeForModule(moduleKey: string, nextScope: Partial<UserAccessScope>): void {
+        setFormData((previous) => {
+            const existing = previous.access_scopes.find((scope) => scope.module_key === moduleKey);
+            const updated: UserAccessScope = {
+                module_key: moduleKey,
+                data_scope: (nextScope.data_scope ?? existing?.data_scope ?? 'all') as DataScopeKey,
+                allowed_unit_ids: (
+                    nextScope.allowed_unit_ids
+                    ?? existing?.allowed_unit_ids
+                    ?? []
+                )
+                    .map((unitId) => Number(unitId))
+                    .filter((unitId) => Number.isFinite(unitId) && unitId > 0),
+            };
+
+            if (updated.data_scope !== 'units') {
+                updated.allowed_unit_ids = [];
+            }
+
+            const nextScopes = previous.access_scopes
+                .filter((scope) => scope.module_key !== moduleKey)
+                .concat(updated)
+                .sort((a, b) => a.module_key.localeCompare(b.module_key));
+
+            return {
+                ...previous,
+                access_scopes: nextScopes,
+            };
+        });
     }
 
     async function handleSavePermissions(): Promise<void> {
@@ -488,7 +623,10 @@ export default function TransportRegistryUsersPage() {
                     setFormOpen(open);
                     if (!open) {
                         setEditingItem(null);
-                        setFormData(emptyForm);
+                        setFormData({
+                            ...emptyForm,
+                            access_scopes: buildDefaultAccessScopes(scopeModules),
+                        });
                     }
                 }}
             >
@@ -598,6 +736,81 @@ export default function TransportRegistryUsersPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Escopo de dados por mÃ³dulo</Label>
+                            <div className="max-h-72 space-y-3 overflow-y-auto rounded-md border p-3">
+                                {scopeModules.map((module) => {
+                                    const moduleScope = resolveScopeByModule(module.key);
+
+                                    return (
+                                        <div key={module.key} className="space-y-2 rounded-md border bg-muted/20 p-3">
+                                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                                <p className="text-sm font-medium">{module.label}</p>
+                                                <Select
+                                                    value={moduleScope.data_scope}
+                                                    onValueChange={(value) =>
+                                                        updateScopeForModule(module.key, {
+                                                            data_scope: value as DataScopeKey,
+                                                        })
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-full md:w-56">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {scopeTypes.map((scopeType) => (
+                                                            <SelectItem key={`${module.key}-${scopeType}`} value={scopeType}>
+                                                                {scopeTypeLabel(scopeType)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {moduleScope.data_scope === 'units' ? (
+                                                <div className="grid gap-2 rounded-md border border-dashed bg-background p-3 md:grid-cols-2">
+                                                    {unidades.length === 0 ? (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Sem unidades cadastradas para este escopo.
+                                                        </p>
+                                                    ) : (
+                                                        unidades.map((unidade) => {
+                                                            const checked = moduleScope.allowed_unit_ids.includes(unidade.id);
+
+                                                            return (
+                                                                <label
+                                                                    key={`${module.key}-unit-${unidade.id}`}
+                                                                    className="flex items-center gap-2 text-sm"
+                                                                >
+                                                                    <Checkbox
+                                                                        checked={checked}
+                                                                        onCheckedChange={(nextChecked) => {
+                                                                            const nextUnits = nextChecked
+                                                                                ? [...moduleScope.allowed_unit_ids, unidade.id]
+                                                                                : moduleScope.allowed_unit_ids.filter((unitId) => unitId !== unidade.id);
+
+                                                                            updateScopeForModule(module.key, {
+                                                                                allowed_unit_ids: Array.from(new Set(nextUnits)),
+                                                                            });
+                                                                        }}
+                                                                    />
+                                                                    <span>{unidade.nome}</span>
+                                                                </label>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Este mÃ³dulo usa escopo {scopeTypeLabel(moduleScope.data_scope).toLowerCase()}.
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
