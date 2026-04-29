@@ -429,7 +429,7 @@ export default function TransportExecutiveDashboardPage() {
                                 <CardHeader>
                                     <CardTitle className="transport-dashboard-section-title">Pendencias por unidade</CardTitle>
                                     <p className="transport-dashboard-section-subtitle">
-                                        Priorizacao por score de pressao operacional.
+                                        Priorização por volume e urgência operacional.
                                     </p>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
@@ -447,7 +447,7 @@ export default function TransportExecutiveDashboardPage() {
                                                         <p className="truncate font-medium">{unit.unidade_nome}</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xs font-semibold text-foreground">Score {formatIntegerBR(unit.pressure_score)}</p>
+                                                        <p className="text-xs font-semibold text-foreground">Pressão {formatIntegerBR(unit.pressure_score)}</p>
                                                         <p className="text-xs text-muted-foreground">{formatIntegerBR(unit.active_collaborators)} ativos</p>
                                                     </div>
                                                 </div>

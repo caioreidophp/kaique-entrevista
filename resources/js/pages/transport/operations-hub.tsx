@@ -677,7 +677,7 @@ export default function TransportOperationsHubPage() {
                                                         <div className="flex items-center gap-2">
                                                             {risk ? (
                                                                 <Badge variant={risk.overdue > 0 ? 'destructive' : 'outline'}>
-                                                                    Risco {formatIntegerBR(risk.riskScore)}
+                                                                    Criticidade {formatIntegerBR(risk.riskScore)}
                                                                 </Badge>
                                                             ) : null}
                                                             <span className="font-semibold">{formatIntegerBR(totalPending)}</span>

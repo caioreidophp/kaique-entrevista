@@ -255,7 +255,7 @@ function defaultFormData(
         general_observations: initialData?.general_observations ?? '',
         candidate_interest: initialData?.candidate_interest ?? 'medio',
         availability_matches: initialData?.availability_matches ?? true,
-        overall_score: String(initialData?.overall_score ?? ''),
+        overall_score: String(initialData?.overall_score ?? '0'),
         hr_status: initialData?.hr_status ?? 'aguardando_vaga',
         hr_rejection_reason: initialData?.hr_rejection_reason ?? '',
         guep_status: initialData?.guep_status ?? 'aguardando',
@@ -693,14 +693,6 @@ export function InterviewForm({
         return options;
     }, [formData.start_availability_date]);
 
-    const overallScoreOptions = useMemo(
-        () =>
-            Array.from({ length: 21 }, (_, index) =>
-                (index / 2).toFixed(1).replace('.0', ''),
-            ),
-        [],
-    );
-
     const selectedCurriculumOption = useMemo(() => {
         if (!hasText(formData.curriculum_id)) {
             return null;
@@ -826,7 +818,6 @@ export function InterviewForm({
 
             hasText(formData.candidate_interest) &&
                 hasText(formData.availability_matches ? '1' : '0') &&
-                hasText(formData.overall_score) &&
                 (!isHrReproved || hasText(formData.hr_rejection_reason)) &&
                 hasText(formData.hr_status),
 
@@ -1002,7 +993,7 @@ export function InterviewForm({
             salary_observation: formData.salary_observation.trim() || null,
             overall_score:
                 formData.overall_score === ''
-                    ? null
+                    ? 0
                     : Number(formData.overall_score),
             start_availability_date:
                 formData.start_availability_note === 'ira_retornar'
@@ -2347,31 +2338,6 @@ export function InterviewForm({
                                         )
                                     }
                                 />
-                            </FormField>
-                            <FormField
-                                label="Nota geral (0 a 10, de 0,5 em 0,5)"
-                                error={errors.overall_score}
-                            >
-                                <Select
-                                    value={formData.overall_score || undefined}
-                                    onValueChange={(value) =>
-                                        updateField('overall_score', value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {overallScoreOptions.map((score) => (
-                                            <SelectItem
-                                                key={score}
-                                                value={score}
-                                            >
-                                                {score}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </FormField>
                             <FormField label="Parecer" error={errors.hr_status}>
                                 <Select

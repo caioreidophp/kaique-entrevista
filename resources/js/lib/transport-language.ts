@@ -5,7 +5,21 @@ export const TRANSPORT_LANGUAGE_EVENT = 'transport:language-changed';
 const DEFAULT_LANGUAGE: TransportLanguage = 'pt-BR';
 
 export function normalizeTransportLanguage(value: unknown): TransportLanguage {
-    void value;
+    if (value === 'en-US' || value === 'pt-BR') {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+
+        if (normalized === 'en' || normalized === 'en-us') {
+            return 'en-US';
+        }
+
+        if (normalized === 'pt' || normalized === 'pt-br') {
+            return 'pt-BR';
+        }
+    }
 
     return DEFAULT_LANGUAGE;
 }
@@ -25,16 +39,19 @@ export function setStoredTransportLanguage(language: TransportLanguage): void {
         return;
     }
 
-    void language;
+    const normalizedLanguage = normalizeTransportLanguage(language);
 
-    window.localStorage.setItem(TRANSPORT_LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE);
-    document.documentElement.lang = DEFAULT_LANGUAGE;
+    window.localStorage.setItem(
+        TRANSPORT_LANGUAGE_STORAGE_KEY,
+        normalizedLanguage,
+    );
+    document.documentElement.lang = normalizedLanguage;
     window.dispatchEvent(
         new CustomEvent<{ language: TransportLanguage }>(
             TRANSPORT_LANGUAGE_EVENT,
             {
                 detail: {
-                    language: DEFAULT_LANGUAGE,
+                    language: normalizedLanguage,
                 },
             },
         ),
@@ -42,5 +59,11 @@ export function setStoredTransportLanguage(language: TransportLanguage): void {
 }
 
 export function getTransportIntlLocale(): string {
-    return DEFAULT_LANGUAGE;
+    if (typeof window === 'undefined') {
+        return DEFAULT_LANGUAGE;
+    }
+
+    return normalizeTransportLanguage(
+        window.localStorage.getItem(TRANSPORT_LANGUAGE_STORAGE_KEY),
+    );
 }

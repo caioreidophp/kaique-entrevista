@@ -9,6 +9,11 @@ import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ApiError, apiPut } from '@/lib/api-client';
 import { getAuthToken } from '@/lib/transport-auth';
+import {
+    getStoredTransportLanguage,
+    setStoredTransportLanguage,
+    type TransportLanguage,
+} from '@/lib/transport-language';
 import { getStoredUser } from '@/lib/transport-session';
 
 export default function TransportSettingsPage() {
@@ -18,6 +23,9 @@ export default function TransportSettingsPage() {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [language, setLanguage] = useState<TransportLanguage>(() =>
+        getStoredTransportLanguage(),
+    );
     const [savingPassword, setSavingPassword] = useState(false);
     const [downloadingBackup, setDownloadingBackup] = useState(false);
     const [message, setMessage] = useState<{
@@ -123,13 +131,12 @@ export default function TransportSettingsPage() {
                         detailLines.push(`Etapa: ${payload.stage}`);
                     }
 
-                    // Mantem os detalhes completos no console para diagnostico rapido.
                     console.error('Falha backup payload:', payload);
                 } catch {
                     const textBody = await response.text().catch(() => '');
                     if (textBody.trim()) {
                         detailLines = [
-                            'Resposta não-JSON recebida do servidor.',
+                            'Resposta não JSON recebida do servidor.',
                             textBody.slice(0, 350),
                         ];
                     }
@@ -175,13 +182,26 @@ export default function TransportSettingsPage() {
         }
     }
 
+    function handleLanguageChange(nextLanguage: TransportLanguage): void {
+        setLanguage(nextLanguage);
+        setStoredTransportLanguage(nextLanguage);
+        setMessage({
+            text:
+                nextLanguage === 'en-US'
+                    ? 'Idioma alterado para English.'
+                    : 'Idioma alterado para Português.',
+            variant: 'success',
+        });
+    }
+
     return (
         <AdminLayout title="Configurações" active="settings">
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">Configurações</h2>
                     <p className="text-sm text-muted-foreground">
-                        Ajuste o modo escuro e altere sua senha de acesso.
+                        Ajuste o tema visual, o idioma e a segurança da sua
+                        conta.
                     </p>
                 </div>
 
@@ -221,6 +241,37 @@ export default function TransportSettingsPage() {
                             >
                                 <Moon className="size-4" />
                                 Modo escuro
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Idioma</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                            Escolha o idioma principal da interface.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                type="button"
+                                variant={
+                                    language === 'pt-BR' ? 'default' : 'outline'
+                                }
+                                onClick={() => handleLanguageChange('pt-BR')}
+                            >
+                                Português (Brasil)
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={
+                                    language === 'en-US' ? 'default' : 'outline'
+                                }
+                                onClick={() => handleLanguageChange('en-US')}
+                            >
+                                English (US)
                             </Button>
                         </div>
                     </CardContent>
@@ -301,7 +352,8 @@ export default function TransportSettingsPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-muted-foreground">
-                                Gera um arquivo ZIP com banco de dados e arquivos essenciais do sistema.
+                                Gera um arquivo ZIP com banco de dados e
+                                arquivos essenciais do sistema.
                             </p>
                             <Button
                                 type="button"

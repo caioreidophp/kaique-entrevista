@@ -449,10 +449,6 @@ export default function TransportInterviewsShowPage({
                                     value={item.availability_matches}
                                 />
                                 <Item
-                                    label="Nota geral"
-                                    value={item.overall_score}
-                                />
-                                <Item
                                     label="Parecer RH"
                                     value={statusLabel(item.hr_status)}
                                 />

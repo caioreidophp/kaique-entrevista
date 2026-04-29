@@ -854,7 +854,7 @@ export default function VacationsDashboardPage() {
                                                         <p className="truncate font-medium">{item.unidade_nome}</p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xs font-semibold text-foreground">Score {formatIntegerBR(item.risk_score)}</p>
+                                                        <p className="text-xs font-semibold text-foreground">Criticidade {formatIntegerBR(item.risk_score)}</p>
                                                         <p className="text-xs text-muted-foreground">{formatPercentBR(item.risk_rate)}</p>
                                                     </div>
                                                 </div>

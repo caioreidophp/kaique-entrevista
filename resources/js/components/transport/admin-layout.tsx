@@ -38,12 +38,20 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ApiError, apiPost } from '@/lib/api-client';
+import { mountTransportAutoTranslation } from '@/lib/transport-auto-translation';
 import {
     clearAuthToken,
     getAuthToken,
     redirectToLogin,
 } from '@/lib/transport-auth';
 import { transportFeatures } from '@/lib/transport-features';
+import {
+    getStoredTransportLanguage,
+    normalizeTransportLanguage,
+    setStoredTransportLanguage,
+    TRANSPORT_LANGUAGE_EVENT,
+    type TransportLanguage,
+} from '@/lib/transport-language';
 import {
     clearStoredUser,
     fetchCurrentUser,
@@ -299,11 +307,17 @@ export function AdminLayout({
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
     const [menuSearch, setMenuSearch] = useState('');
+    const [language, setLanguage] = useState<TransportLanguage>(() =>
+        typeof window === 'undefined'
+            ? 'pt-BR'
+            : getStoredTransportLanguage(),
+    );
     const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
         Partial<Record<SidebarLinkKey, boolean>>
     >({});
+    const pageRootRef = useRef<HTMLDivElement | null>(null);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
-    const copy = adminLayoutCopy['pt-BR'];
+    const copy = adminLayoutCopy[language];
 
     const clearFocusSidebarCloseTimeout = useCallback((): void => {
         if (focusSidebarCloseTimeoutRef.current !== null) {
@@ -344,6 +358,51 @@ export function AdminLayout({
             clearFocusSidebarCloseTimeout();
         }
     }, [clearFocusSidebarCloseTimeout, focusMode]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        setStoredTransportLanguage(language);
+    }, [language]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const onLanguageChanged = (event: Event): void => {
+            const customEvent = event as CustomEvent<{ language?: TransportLanguage }>;
+            const nextLanguage = normalizeTransportLanguage(
+                customEvent.detail?.language ?? getStoredTransportLanguage(),
+            );
+
+            setLanguage(nextLanguage);
+        };
+
+        window.addEventListener(
+            TRANSPORT_LANGUAGE_EVENT,
+            onLanguageChanged as EventListener,
+        );
+
+        return () => {
+            window.removeEventListener(
+                TRANSPORT_LANGUAGE_EVENT,
+                onLanguageChanged as EventListener,
+            );
+        };
+    }, []);
+
+    useEffect(() => {
+        const root = pageRootRef.current;
+
+        if (!root) {
+            return;
+        }
+
+        return mountTransportAutoTranslation(root, language);
+    }, [language]);
 
     useEffect(() => {
         const token = getAuthToken();
@@ -1331,6 +1390,7 @@ export function AdminLayout({
             <Head title={title} />
 
             <div
+                ref={pageRootRef}
                 data-transport-i18n-root="transport-app"
                 className="min-h-screen bg-muted/20 print:min-h-0 print:bg-white"
             >
