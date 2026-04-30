@@ -1,5 +1,5 @@
 import { AlertTriangle, LoaderCircle, Wallet } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -152,19 +152,44 @@ export default function TransportPayrollDashboardPage() {
     const [competenciaMes, setCompetenciaMes] = useState(String(new Date().getMonth() + 1));
     const [competenciaAno, setCompetenciaAno] = useState(String(currentYear));
 
-    useEffect(() => {
+    const handleCompetenciaMesChange = useCallback((value: string): void => {
+        setError(null);
         setLoading(true);
+        setCompetenciaMes(value);
+    }, []);
+
+    const handleCompetenciaAnoChange = useCallback((value: string): void => {
+        setError(null);
+        setLoading(true);
+        setCompetenciaAno(value);
+    }, []);
+
+    useEffect(() => {
+        let active = true;
         const params = new URLSearchParams({
             competencia_mes: competenciaMes,
             competencia_ano: competenciaAno,
         });
 
         apiGet<PayrollDashboardPageResponse>(`/payroll/dashboard-page?${params.toString()}`)
-            .then((response) => setData(response.dashboard))
-            .catch(() =>
-                setError('Não foi possível carregar o dashboard de pagamentos.'),
-            )
-            .finally(() => setLoading(false));
+            .then((response) => {
+                if (!active) return;
+                setData(response.dashboard);
+                setError(null);
+            })
+            .catch(() => {
+                if (!active) return;
+                setError('Não foi possível carregar o dashboard de pagamentos.');
+            })
+            .finally(() => {
+                if (active) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
     }, [competenciaAno, competenciaMes]);
 
     const monthOptions = useMemo(
@@ -278,7 +303,10 @@ export default function TransportPayrollDashboardPage() {
                         </p>
                     </div>
                     <div className="grid w-full gap-2 md:w-auto md:grid-cols-2">
-                        <Select value={competenciaMes} onValueChange={setCompetenciaMes}>
+                        <Select
+                            value={competenciaMes}
+                            onValueChange={handleCompetenciaMesChange}
+                        >
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
@@ -290,7 +318,10 @@ export default function TransportPayrollDashboardPage() {
                                 ))}
                             </SelectContent>
                         </Select>
-                        <Select value={competenciaAno} onValueChange={setCompetenciaAno}>
+                        <Select
+                            value={competenciaAno}
+                            onValueChange={handleCompetenciaAnoChange}
+                        >
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
