@@ -3,6 +3,7 @@ import { Download, LoaderCircle, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
+import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -494,6 +495,14 @@ export default function TransportInterviewsShowPage({
                                 </p>
                             </CardContent>
                         </Card>
+
+                        <div className="print:hidden">
+                            <RecordCommentsPanel
+                                moduleKey="interviews"
+                                recordId={item.id}
+                                title="Comentários da entrevista"
+                            />
+                        </div>
                     </div>
                 ) : null}
             </div>

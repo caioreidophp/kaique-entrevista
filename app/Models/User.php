@@ -185,4 +185,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(OnboardingEvent::class, 'performed_by');
     }
+
+    public function quickAccesses(): HasMany
+    {
+        return $this->hasMany(UserQuickAccess::class);
+    }
 }

@@ -3,6 +3,7 @@ import {
     Briefcase,
     ChevronLeft,
     ChevronRight,
+    Clock3,
     ClipboardCheck,
     Cog,
     LayoutDashboard,
@@ -21,6 +22,9 @@ import {
     Truck,
     CalendarDays,
     Menu,
+    Pin,
+    PinOff,
+    Search,
     TrendingUp,
     CircleX,
     CircleAlert,
@@ -37,8 +41,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ApiError, apiPost } from '@/lib/api-client';
+import { ApiError, apiDelete, apiGet, apiPost } from '@/lib/api-client';
 import { mountTransportAutoTranslation } from '@/lib/transport-auto-translation';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import {
     clearAuthToken,
     getAuthToken,
@@ -58,6 +63,11 @@ import {
     getStoredUser,
     type TransportAuthUser,
 } from '@/lib/transport-session';
+import type {
+    TransportGlobalSearchResponse,
+    UserQuickAccessEntry,
+    UserQuickAccessListResponse,
+} from '@/types/record-comments';
 
 const BobChatButton = lazy(async () => {
     const module = await import('@/components/transport/bob-chat');
@@ -136,6 +146,16 @@ interface SidebarLink {
     children?: SidebarChildLink[];
 }
 
+interface GlobalSearchItem {
+    id: string;
+    type: string;
+    module: string;
+    title: string;
+    subtitle: string;
+    href: string;
+    meta: Record<string, unknown>;
+}
+
 const adminLayoutCopy = {
     'pt-BR': {
         languageLabel: 'Idioma',
@@ -207,6 +227,17 @@ const adminLayoutCopy = {
         linkLog: 'Log',
         menuSearchPlaceholder: 'Buscar no menu',
         menuSearchNoResults: 'Nenhum item encontrado para este termo.',
+        quickSearchPlaceholder: 'Buscar por colaborador, placa, viagem, multa...',
+        quickSearchTitle: 'Busca global',
+        quickSearchEmpty: 'Digite pelo menos 2 caracteres para buscar.',
+        quickSearchNoResults: 'Nenhum resultado encontrado para este termo.',
+        quickSearchRecentTitle: 'Atalhos favoritados',
+        quickSearchRecentEmpty: 'Nenhum atalho favoritado ainda.',
+        quickSearchPin: 'Favoritar atalho',
+        quickSearchUnpin: 'Remover favorito',
+        quickSearchPinned: 'Atalho salvo com sucesso.',
+        quickSearchUnpinned: 'Atalho removido com sucesso.',
+        quickSearchOpen: 'Abrir',
     },
     'en-US': {
         languageLabel: 'Language',
@@ -278,6 +309,17 @@ const adminLayoutCopy = {
         linkLog: 'Log',
         menuSearchPlaceholder: 'Search menu',
         menuSearchNoResults: 'No navigation items found for this term.',
+        quickSearchPlaceholder: 'Search collaborator, plate, trip, fine...',
+        quickSearchTitle: 'Global search',
+        quickSearchEmpty: 'Type at least 2 characters to search.',
+        quickSearchNoResults: 'No results found for this term.',
+        quickSearchRecentTitle: 'Pinned shortcuts',
+        quickSearchRecentEmpty: 'No pinned shortcuts yet.',
+        quickSearchPin: 'Pin shortcut',
+        quickSearchUnpin: 'Unpin shortcut',
+        quickSearchPinned: 'Shortcut pinned successfully.',
+        quickSearchUnpinned: 'Shortcut removed successfully.',
+        quickSearchOpen: 'Open',
     },
 } as const;
 
@@ -292,6 +334,11 @@ export function AdminLayout({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [navigationInput, setNavigationInput] = useState('');
+    const [navigationResults, setNavigationResults] = useState<GlobalSearchItem[]>([]);
+    const [navigationLoading, setNavigationLoading] = useState(false);
+    const [quickAccesses, setQuickAccesses] = useState<UserQuickAccessEntry[]>([]);
+    const [quickAccessLoading, setQuickAccessLoading] = useState(false);
+    const [navigationActionBusy, setNavigationActionBusy] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.sidebar.collapsed') === '1';
@@ -317,6 +364,7 @@ export function AdminLayout({
     >({});
     const pageRootRef = useRef<HTMLDivElement | null>(null);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
+    const debouncedNavigationInput = useDebouncedValue(navigationInput.trim(), 280);
     const copy = adminLayoutCopy[language];
 
     const clearFocusSidebarCloseTimeout = useCallback((): void => {
@@ -445,6 +493,117 @@ export function AdminLayout({
             [groupKey]: !current[groupKey],
         }));
     }, []);
+
+    const loadQuickAccesses = useCallback(async (): Promise<void> => {
+        setQuickAccessLoading(true);
+
+        try {
+            const response = await apiGet<UserQuickAccessListResponse>('/quick-accesses');
+            setQuickAccesses(response.data);
+        } catch {
+            setQuickAccesses([]);
+        } finally {
+            setQuickAccessLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!navigationOpen) {
+            return;
+        }
+
+        void loadQuickAccesses();
+    }, [loadQuickAccesses, navigationOpen]);
+
+    useEffect(() => {
+        if (!navigationOpen) {
+            return;
+        }
+
+        if (debouncedNavigationInput.length < 2) {
+            setNavigationResults([]);
+            setNavigationLoading(false);
+            return;
+        }
+
+        let activeSearch = true;
+        setNavigationLoading(true);
+
+        apiGet<TransportGlobalSearchResponse>(
+            `/search/global?q=${encodeURIComponent(debouncedNavigationInput)}&limit=18`,
+        )
+            .then((response) => {
+                if (!activeSearch) {
+                    return;
+                }
+
+                setNavigationResults(response.data);
+            })
+            .catch(() => {
+                if (!activeSearch) {
+                    return;
+                }
+
+                setNavigationResults([]);
+            })
+            .finally(() => {
+                if (activeSearch) {
+                    setNavigationLoading(false);
+                }
+            });
+
+        return () => {
+            activeSearch = false;
+        };
+    }, [debouncedNavigationInput, navigationOpen]);
+
+    const quickAccessByHref = useMemo(() => {
+        return new Map(quickAccesses.map((entry) => [entry.href, entry]));
+    }, [quickAccesses]);
+
+    const handleQuickAccessToggle = useCallback(
+        async (entry: { title: string; href: string; module: string; id: string }): Promise<void> => {
+            const saved = quickAccessByHref.get(entry.href);
+            setNavigationActionBusy(entry.href);
+
+            try {
+                if (saved) {
+                    await apiDelete(`/quick-accesses/${saved.id}`);
+                    setGlobalNotice({
+                        message: copy.quickSearchUnpinned,
+                        variant: 'success',
+                    });
+                } else {
+                    await apiPost('/quick-accesses', {
+                        shortcut_key: `${entry.module}:${entry.id}`,
+                        label: entry.title,
+                        href: entry.href,
+                    });
+                    setGlobalNotice({
+                        message: copy.quickSearchPinned,
+                        variant: 'success',
+                    });
+                }
+
+                await loadQuickAccesses();
+            } catch (error) {
+                if (error instanceof ApiError) {
+                    setGlobalNotice({
+                        message: error.message,
+                        variant: 'error',
+                    });
+                } else {
+                    setGlobalNotice({
+                        message: 'Nao foi possivel atualizar os atalhos.',
+                        variant: 'error',
+                    });
+                }
+            } finally {
+                setNavigationActionBusy(null);
+            }
+        },
+        [copy.quickSearchPinned, copy.quickSearchUnpinned, loadQuickAccesses, quickAccessByHref],
+    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1004,21 +1163,46 @@ export function AdminLayout({
         },
     };
 
+    function openQuickNavigation(href: string): void {
+        router.visit(href);
+        setNavigationOpen(false);
+        setNavigationInput('');
+        setNavigationResults([]);
+    }
+
     function handleNavigationInput(
         event: React.KeyboardEvent<HTMLInputElement>,
     ): void {
         const key = event.key;
 
-        if (navigationOptions[key]) {
-            event.preventDefault();
-            const option = navigationOptions[key];
-            router.visit(option.href);
-            setNavigationOpen(false);
-            setNavigationInput('');
-        } else if (key === 'Escape') {
+        if (key === 'Escape') {
             event.preventDefault();
             setNavigationOpen(false);
             setNavigationInput('');
+            setNavigationResults([]);
+            return;
+        }
+
+        if (key === 'Enter') {
+            const term = navigationInput.trim();
+            const directOption = term.length === 1 ? navigationOptions[term] : null;
+
+            event.preventDefault();
+
+            if (directOption) {
+                openQuickNavigation(directOption.href);
+                return;
+            }
+
+            if (navigationResults[0]) {
+                openQuickNavigation(navigationResults[0].href);
+            }
+            return;
+        }
+
+        if (navigationInput.trim() === '' && navigationOptions[key]) {
+            event.preventDefault();
+            openQuickNavigation(navigationOptions[key].href);
         }
     }
 
@@ -2086,65 +2270,191 @@ export function AdminLayout({
                     </DialogHeader>
 
                     <div className="space-y-4">
-                        <Input
-                            autoFocus
-                            placeholder={copy.quickNavigationPlaceholder}
-                            value={navigationInput}
-                            onChange={(event) =>
-                                setNavigationInput(event.target.value)
-                            }
-                            onKeyDown={handleNavigationInput}
-                            className="text-lg font-semibold"
-                        />
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                autoFocus
+                                placeholder={copy.quickSearchPlaceholder}
+                                value={navigationInput}
+                                onChange={(event) =>
+                                    setNavigationInput(event.target.value)
+                                }
+                                onKeyDown={handleNavigationInput}
+                                className="pl-9 text-base font-medium"
+                            />
+                        </div>
 
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-2">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                {copy.quickSearchRecentTitle}
+                            </p>
+                            {quickAccessLoading ? (
+                                <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                                    <LoaderCircle className="size-3.5 animate-spin" />
+                                    Carregando atalhos...
+                                </p>
+                            ) : quickAccesses.length === 0 ? (
+                                <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                                    {copy.quickSearchRecentEmpty}
+                                </p>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    {quickAccesses.slice(0, 6).map((shortcut) => (
+                                        <div
+                                            key={shortcut.id}
+                                            className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
+                                        >
+                                            <button
+                                                type="button"
+                                                className="min-w-0 flex-1 text-left"
+                                                onClick={() => openQuickNavigation(shortcut.href)}
+                                            >
+                                                <p className="truncate text-xs font-medium">
+                                                    {shortcut.label}
+                                                </p>
+                                                <p className="truncate text-[11px] text-muted-foreground">
+                                                    {shortcut.href}
+                                                </p>
+                                            </button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="size-7"
+                                                title={copy.quickSearchUnpin}
+                                                onClick={() =>
+                                                    void handleQuickAccessToggle({
+                                                        title: shortcut.label,
+                                                        href: shortcut.href,
+                                                        module: 'shortcut',
+                                                        id: String(shortcut.id),
+                                                    })
+                                                }
+                                                disabled={navigationActionBusy === shortcut.href}
+                                            >
+                                                <PinOff className="size-3.5" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                {copy.quickSearchTitle}
+                            </p>
+                            {navigationInput.trim().length < 2 ? (
+                                <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                                    {copy.quickSearchEmpty}
+                                </p>
+                            ) : navigationLoading ? (
+                                <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                                    <LoaderCircle className="size-3.5 animate-spin" />
+                                    Buscando...
+                                </p>
+                            ) : navigationResults.length === 0 ? (
+                                <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                                    {copy.quickSearchNoResults}
+                                </p>
+                            ) : (
+                                <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                                    {navigationResults.map((result) => {
+                                        const isPinned = quickAccessByHref.has(result.href);
+
+                                        return (
+                                            <div
+                                                key={result.id}
+                                                className="flex items-start justify-between gap-2 rounded-md border px-2 py-1.5"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className="min-w-0 flex-1 text-left"
+                                                    onClick={() => openQuickNavigation(result.href)}
+                                                >
+                                                    <p className="truncate text-xs font-medium">
+                                                        {result.title}
+                                                    </p>
+                                                    <p className="truncate text-[11px] text-muted-foreground">
+                                                        {result.subtitle}
+                                                    </p>
+                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="size-7"
+                                                        onClick={() => openQuickNavigation(result.href)}
+                                                        title={copy.quickSearchOpen}
+                                                    >
+                                                        <Clock3 className="size-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="size-7"
+                                                        title={
+                                                            isPinned
+                                                                ? copy.quickSearchUnpin
+                                                                : copy.quickSearchPin
+                                                        }
+                                                        onClick={() =>
+                                                            void handleQuickAccessToggle({
+                                                                title: result.title,
+                                                                href: result.href,
+                                                                module: result.module,
+                                                                id: result.id,
+                                                            })
+                                                        }
+                                                        disabled={navigationActionBusy === result.href}
+                                                    >
+                                                        {isPinned ? (
+                                                            <PinOff className="size-3.5" />
+                                                        ) : (
+                                                            <Pin className="size-3.5" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2 rounded-md border bg-muted/20 px-3 py-2 text-sm">
+                            <p className="text-xs font-medium text-muted-foreground uppercase">
+                                Atalhos numericos
+                            </p>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    1
-                                </span>
+                                <span className="text-muted-foreground">1</span>
                                 <span className="font-medium">{copy.quickInterviews}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    2
-                                </span>
+                                <span className="text-muted-foreground">2</span>
                                 <span className="font-medium">{copy.quickPayroll}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    3
-                                </span>
+                                <span className="text-muted-foreground">3</span>
                                 <span className="font-medium">{copy.quickVacations}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    4
-                                </span>
+                                <span className="text-muted-foreground">4</span>
                                 <span className="font-medium">{copy.quickRegistry}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    5
-                                </span>
-                                <span className="font-medium">
-                                    {copy.quickFreight}
-                                </span>
+                                <span className="text-muted-foreground">5</span>
+                                <span className="font-medium">{copy.quickFreight}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    6
-                                </span>
-                                <span className="font-medium">
-                                    {copy.quickProgramming}
-                                </span>
+                                <span className="text-muted-foreground">6</span>
+                                <span className="font-medium">{copy.quickProgramming}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">
-                                    7
-                                </span>
-                                <span className="font-medium">
-                                    {copy.quickFines}
-                                </span>
+                                <span className="text-muted-foreground">7</span>
+                                <span className="font-medium">{copy.quickFines}</span>
                             </div>
                         </div>
                     </div>

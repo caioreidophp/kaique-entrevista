@@ -1,7 +1,8 @@
-import { AlertCircle, LoaderCircle, Save, Search } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, Save, Search, WandSparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
+import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -184,6 +185,8 @@ export default function TransportOnboardingPage() {
     const [initialFormState, setInitialFormState] = useState<FormState>(
         emptyFormState(),
     );
+    const [guidedMode, setGuidedMode] = useState(false);
+    const [wizardStep, setWizardStep] = useState(0);
 
     const hasChanges = useMemo(
         () => !formEquals(formState, initialFormState),
@@ -209,6 +212,11 @@ export default function TransportOnboardingPage() {
 
         return docsOk && cursosOk && outrosOk && examesOk;
     }, [formState]);
+
+    const wizardSteps = useMemo(
+        () => ['Exames', 'Documentos', 'Cursos', 'Outros', 'Revisão'],
+        [],
+    );
 
     async function loadLists(targetId?: number): Promise<void> {
         setLoading(true);
@@ -406,6 +414,10 @@ export default function TransportOnboardingPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSearch]);
 
+    useEffect(() => {
+        setWizardStep(0);
+    }, [selected?.id]);
+
     const selectedName = selected ? onboardingDisplayName(selected) : '-';
 
     return (
@@ -424,6 +436,27 @@ export default function TransportOnboardingPage() {
                         variant={notification.variant}
                     />
                 ) : null}
+
+                <Card>
+                    <CardContent className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                            <p className="inline-flex items-center gap-2 text-sm font-medium">
+                                <WandSparkles className="size-4" />
+                                Modo guiado de onboarding
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Conduz o preenchimento por etapas para reduzir erros operacionais.
+                            </p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant={guidedMode ? 'default' : 'outline'}
+                            onClick={() => setGuidedMode((previous) => !previous)}
+                        >
+                            {guidedMode ? 'Desativar guia' : 'Ativar guia'}
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardContent className="pt-6">
@@ -575,7 +608,69 @@ export default function TransportOnboardingPage() {
                                     </CardHeader>
                                 </Card>
 
-                                <Card>
+                                {guidedMode ? (
+                                    <Card>
+                                        <CardContent className="space-y-4 pt-6">
+                                            <div className="space-y-2">
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Etapa {wizardStep + 1} de {wizardSteps.length}
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                    {wizardSteps[wizardStep]}
+                                                </p>
+                                                <div className="grid grid-cols-5 gap-2">
+                                                    {wizardSteps.map((stepLabel, index) => (
+                                                        <button
+                                                            key={stepLabel}
+                                                            type="button"
+                                                            className={`h-1.5 rounded-full transition ${
+                                                                index <= wizardStep
+                                                                    ? 'bg-primary'
+                                                                    : 'bg-muted'
+                                                            }`}
+                                                            onClick={() => setWizardStep(index)}
+                                                            aria-label={`Ir para etapa ${stepLabel}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setWizardStep((previous) =>
+                                                            Math.max(previous - 1, 0),
+                                                        )
+                                                    }
+                                                    disabled={wizardStep <= 0}
+                                                >
+                                                    <ChevronLeft className="size-4" />
+                                                    Voltar
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setWizardStep((previous) =>
+                                                            Math.min(
+                                                                previous + 1,
+                                                                wizardSteps.length - 1,
+                                                            ),
+                                                        )
+                                                    }
+                                                    disabled={wizardStep >= wizardSteps.length - 1}
+                                                >
+                                                    Próxima etapa
+                                                    <ChevronRight className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : null}
+
+                                {!guidedMode || wizardStep === 0 ? (
+                                    <Card>
                                     <CardHeader>
                                         <CardTitle>Exames</CardTitle>
                                     </CardHeader>
@@ -619,9 +714,11 @@ export default function TransportOnboardingPage() {
                                             </Select>
                                         </div>
                                     </CardContent>
-                                </Card>
+                                    </Card>
+                                ) : null}
 
-                                <Card>
+                                {!guidedMode || wizardStep === 1 ? (
+                                    <Card>
                                     <CardHeader>
                                         <CardTitle>Documentos</CardTitle>
                                     </CardHeader>
@@ -649,9 +746,11 @@ export default function TransportOnboardingPage() {
                                             </label>
                                         ))}
                                     </CardContent>
-                                </Card>
+                                    </Card>
+                                ) : null}
 
-                                <Card>
+                                {!guidedMode || wizardStep === 2 ? (
+                                    <Card>
                                     <CardHeader>
                                         <CardTitle>Cursos</CardTitle>
                                         <p className="text-sm text-muted-foreground">
@@ -682,9 +781,11 @@ export default function TransportOnboardingPage() {
                                             </label>
                                         ))}
                                     </CardContent>
-                                </Card>
+                                    </Card>
+                                ) : null}
 
-                                <Card>
+                                {!guidedMode || wizardStep === 3 ? (
+                                    <Card>
                                     <CardHeader>
                                         <CardTitle>Outros</CardTitle>
                                     </CardHeader>
@@ -731,7 +832,48 @@ export default function TransportOnboardingPage() {
                                             </div>
                                         ))}
                                     </CardContent>
-                                </Card>
+                                    </Card>
+                                ) : null}
+
+                                {guidedMode && wizardStep === 4 ? (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Revisão antes de salvar</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid gap-3 md:grid-cols-2">
+                                            <div className="rounded-md border px-3 py-2">
+                                                <p className="text-xs text-muted-foreground uppercase">Exames</p>
+                                                <p className="text-sm font-medium">
+                                                    {formState.exames === '' ? 'Pendente' : formState.exames}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border px-3 py-2">
+                                                <p className="text-xs text-muted-foreground uppercase">Documentos aprovados</p>
+                                                <p className="text-sm font-medium">
+                                                    {Object.values(formState.documentos).filter(Boolean).length} de {DOCUMENT_ITEMS.length}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border px-3 py-2">
+                                                <p className="text-xs text-muted-foreground uppercase">Cursos concluídos</p>
+                                                <p className="text-sm font-medium">
+                                                    {Object.values(formState.cursos).filter(Boolean).length} de {COURSE_ITEMS.length}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border px-3 py-2">
+                                                <p className="text-xs text-muted-foreground uppercase">Outros itens preenchidos</p>
+                                                <p className="text-sm font-medium">
+                                                    {Object.values(formState.outros).filter((value) => value !== '').length} de {OTHER_ITEMS.length}
+                                                </p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : null}
+
+                                <RecordCommentsPanel
+                                    moduleKey="onboarding"
+                                    recordId={selected.id}
+                                    title="Comentários do onboarding"
+                                />
 
                                 <div className="flex justify-end">
                                     <Button

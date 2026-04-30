@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\FinancialApprovalController;
 use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
+use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\IntegrationGatewayController;
 use App\Http\Controllers\Api\InterviewCurriculumController;
@@ -28,7 +29,9 @@ use App\Http\Controllers\Api\PayrollEmprestimoController;
 use App\Http\Controllers\Api\PayrollPensaoController;
 use App\Http\Controllers\Api\PayrollVacationController;
 use App\Http\Controllers\Api\ProgrammingController;
+use App\Http\Controllers\Api\QuickAccessController;
 use App\Http\Controllers\Api\QueueMonitorController;
+use App\Http\Controllers\Api\RecordCommentController;
 use App\Http\Controllers\Api\ReferenceCityController;
 use App\Http\Controllers\Api\Registry\AviarioController;
 use App\Http\Controllers\Api\Registry\ColaboradorController;
@@ -150,6 +153,23 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         ->middleware('throttle:transport-heavy');
 
     Route::get('home', HomeController::class);
+    Route::get('search/global', [GlobalSearchController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('quick-accesses', [QuickAccessController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('quick-accesses', [QuickAccessController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::put('quick-accesses/{userQuickAccess}', [QuickAccessController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('quick-accesses/{userQuickAccess}', [QuickAccessController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('record-comments', [RecordCommentController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('record-comments', [RecordCommentController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('record-comments/{recordComment}', [RecordCommentController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+
     if (config('services.bob.enabled') || app()->runningUnitTests()) {
         Route::post('bob/chat', [BobAssistantController::class, 'chat'])
             ->middleware('throttle:transport-heavy');
