@@ -1873,6 +1873,26 @@ const updateLogTimeline: UpdateLogDay[] = [
             },
         ],
     },
+    {
+        dateLabel: 'Quarta-Feira, 30/04/2026',
+        sections: [
+            {
+                panel: 'Segurança & Performance',
+                items: [
+                    {
+                        title: 'Endurecimento de segurança: proteção de rotas, restauração segura e validações em produção',
+                        details: [
+                            'Rotas do painel de transportes agora são protegidas por middleware de autenticação que valida cookie assinado e token Sanctum antes de permitir acesso.',
+                            'Sistema de backup/restore foi completamente refatorado para executar SQL em transações, bloqueando comandos perigosos (GRANT, DROP, CREATE DATABASE, etc.) e validando hash dos arquivos.',
+                            'Restauração de dados agora agrupa operações em transações atômicas com rollback automático em falhas, eliminando risco de estado inconsistente no banco.',
+                            'Cache de telemetria de exceções foi adicionado ao bootstrap com limite de 100 últimas exceções e TTL de 6 horas para auditoria e debug em produção.',
+                            'TypeScript 7.0 compatibilizado adicionando flag `ignoreDeprecations` para manter funcionalidade de `baseUrl` durante migração planejada.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
 ];
 
 function formatDate(iso: string): string {
