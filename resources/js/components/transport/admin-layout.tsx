@@ -341,7 +341,7 @@ export function AdminLayout({
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.sidebar.collapsed') === '1';
     });
-    const [focusMode, setFocusMode] = useState<boolean>(() => {
+    const [focusMode] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('transport.focus.mode') === '1';
     });
@@ -1503,29 +1503,26 @@ export function AdminLayout({
             return visibleLinks;
         }
 
-        return visibleLinks
-            .map((link) => {
-                const parentMatch = link.label.toLocaleLowerCase().includes(query);
-                const children = link.children ?? [];
+        return visibleLinks.flatMap((link) => {
+            if (link.label.toLocaleLowerCase().includes(query)) {
+                return [link];
+            }
 
-                if (parentMatch) {
-                    return link;
-                }
+            const matchedChildren = link.children.filter((child) =>
+                child.label.toLocaleLowerCase().includes(query),
+            );
 
-                const matchedChildren = children.filter((child) =>
-                    child.label.toLocaleLowerCase().includes(query),
-                );
+            if (matchedChildren.length === 0) {
+                return [];
+            }
 
-                if (matchedChildren.length === 0) {
-                    return null;
-                }
-
-                return {
+            return [
+                {
                     ...link,
                     children: matchedChildren,
-                };
-            })
-            .filter((link): link is SidebarLink => link !== null);
+                },
+            ];
+        });
     }, [menuSearch, visibleLinks]);
 
     const sidebarQuickAccesses = useMemo(

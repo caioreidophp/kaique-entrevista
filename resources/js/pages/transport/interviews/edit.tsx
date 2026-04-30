@@ -87,10 +87,12 @@ export default function TransportInterviewsEditPage({
                     options.unshift({
                         id: item.curriculum.id,
                         full_name: item.curriculum.full_name,
-                        has_cnh_attachment:
+                        has_cnh_attachment: Boolean(
                             item.curriculum.has_cnh_attachment,
-                        has_work_card_attachment:
+                        ),
+                        has_work_card_attachment: Boolean(
                             item.curriculum.has_work_card_attachment,
+                        ),
                     });
                 }
 
@@ -102,10 +104,12 @@ export default function TransportInterviewsEditPage({
                         {
                             id: item.curriculum.id,
                             full_name: item.curriculum.full_name,
-                            has_cnh_attachment:
+                            has_cnh_attachment: Boolean(
                                 item.curriculum.has_cnh_attachment,
-                            has_work_card_attachment:
+                            ),
+                            has_work_card_attachment: Boolean(
                                 item.curriculum.has_work_card_attachment,
+                            ),
                         },
                     ]);
 
@@ -114,7 +118,7 @@ export default function TransportInterviewsEditPage({
 
                 setCurriculumOptions([]);
             });
-    }, [item?.curriculum?.full_name, item?.curriculum?.id]);
+    }, [item?.curriculum]);
 
     useEffect(() => {
         loadReferenceCitiesCached()

@@ -61,28 +61,81 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
     }
 }
 
+const CHUNK_RECOVERY_KEY = 'transport.chunk-recovery-attempt';
 let hasReloadedForChunkFailure = false;
+
+function registerChunkRecoveryAttempt(): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        const stored = window.sessionStorage.getItem(CHUNK_RECOVERY_KEY);
+        const attempts = stored ? Number(stored) : 0;
+        const safeAttempts = Number.isFinite(attempts) ? attempts : 0;
+
+        if (safeAttempts >= 1) {
+            return false;
+        }
+
+        window.sessionStorage.setItem(
+            CHUNK_RECOVERY_KEY,
+            String(safeAttempts + 1),
+        );
+
+        return true;
+    } catch {
+        return true;
+    }
+}
+
+function clearChunkRecoveryAttempt(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        window.sessionStorage.removeItem(CHUNK_RECOVERY_KEY);
+    } catch {
+        // Ignore storage failures.
+    }
+}
+
+function recoverFromChunkFailure(): void {
+    if (hasReloadedForChunkFailure) {
+        return;
+    }
+
+    if (!registerChunkRecoveryAttempt()) {
+        console.error(
+            'transport-chunk-recovery-skipped',
+            'Chunk recovery already attempted in this session.',
+        );
+        return;
+    }
+
+    hasReloadedForChunkFailure = true;
+    window.location.reload();
+}
 
 if (typeof window !== 'undefined') {
     window.addEventListener('vite:preloadError', (event) => {
         event.preventDefault();
-        if (hasReloadedForChunkFailure) {
-            return;
-        }
-
-        hasReloadedForChunkFailure = true;
-        window.location.reload();
+        recoverFromChunkFailure();
     });
 
     window.addEventListener('error', (event) => {
         const message = String(event?.message ?? '');
-        if (
-            !hasReloadedForChunkFailure &&
-            /Failed to fetch dynamically imported module/i.test(message)
-        ) {
-            hasReloadedForChunkFailure = true;
-            window.location.reload();
+
+        if (/Failed to fetch dynamically imported module/i.test(message)) {
+            recoverFromChunkFailure();
         }
+    });
+
+    window.addEventListener('pageshow', () => {
+        window.setTimeout(() => {
+            clearChunkRecoveryAttempt();
+        }, 3000);
     });
 }
 

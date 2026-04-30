@@ -56,7 +56,7 @@ function shouldTranslateText(value: string): boolean {
         return false;
     }
 
-    if (/^[\d\s.,:/()[\]{}%+\-]+$/.test(trimmed)) {
+    if (/^[\d\s.,:/()[\]{}%+-]+$/.test(trimmed)) {
         return false;
     }
 
