@@ -59,7 +59,7 @@ $errLog = Join-Path $projectRoot "storage\logs\cloudflared.err.log"
 if (Test-Path $outLog) { Remove-Item $outLog -Force }
 if (Test-Path $errLog) { Remove-Item $errLog -Force }
 
-$cfProcess = Start-Process -FilePath $cloudflaredExe -ArgumentList @("tunnel", "--config", "NUL", "--url", "http://127.0.0.1:8000") -RedirectStandardOutput $outLog -RedirectStandardError $errLog -PassThru -WindowStyle Hidden
+$cfProcess = Start-Process -FilePath $cloudflaredExe -ArgumentList @("tunnel", "run") -RedirectStandardOutput $outLog -RedirectStandardError $errLog -PassThru -WindowStyle Hidden
 
 Start-Sleep -Seconds 8
 
