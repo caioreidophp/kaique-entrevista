@@ -217,7 +217,36 @@ class BackupRestoreController extends Controller
         }
 
         try {
-            DB::connection()->unprepared($sql);
+            // Execute SQL safely by splitting into statements and running each one
+            $driver = DB::connection()->getDriverName();
+
+            DB::beginTransaction();
+            try {
+                if ($driver !== 'sqlite') {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                }
+
+                $statements = preg_split('/;(?=\s*(?:\r\n|\n|$))/m', $sql);
+
+                foreach ($statements as $statement) {
+                    $stmt = trim((string) $statement);
+
+                    if ($stmt === '') {
+                        continue;
+                    }
+
+                    DB::statement($stmt);
+                }
+
+                if ($driver !== 'sqlite') {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                }
+
+                DB::commit();
+            } catch (Throwable $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
             if ($validated['mode'] === 'database_and_storage' && ($metadata['has_storage'] ?? false)) {
                 $sourceStoragePath = (string) ($metadata['storage_path'] ?? '');
