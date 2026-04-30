@@ -516,6 +516,14 @@ export function AdminLayout({
     }, [loadQuickAccesses, navigationOpen]);
 
     useEffect(() => {
+        if (!user?.id) {
+            return;
+        }
+
+        void loadQuickAccesses();
+    }, [loadQuickAccesses, user?.id]);
+
+    useEffect(() => {
         if (!navigationOpen) {
             return;
         }
@@ -1522,6 +1530,15 @@ export function AdminLayout({
             .filter((link): link is SidebarLink => link !== null);
     }, [menuSearch, visibleLinks]);
 
+    const sidebarQuickAccesses = useMemo(
+        () =>
+            quickAccesses
+                .filter((entry) => entry.is_active)
+                .sort((first, second) => first.sort_order - second.sort_order)
+                .slice(0, 6),
+        [quickAccesses],
+    );
+
     useEffect(() => {
         if (currentModule !== 'home') {
             setExpandedSidebarGroups({});
@@ -1732,6 +1749,31 @@ export function AdminLayout({
                                                 className="h-8 rounded-md bg-background/90 text-xs"
                                             />
                                         </div>
+                                        <div className="mb-3">
+                                            <p className="mb-1 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                                {copy.quickSearchRecentTitle}
+                                            </p>
+                                            {sidebarQuickAccesses.length === 0 ? (
+                                                <p className="px-1 text-[11px] text-muted-foreground">
+                                                    {copy.quickSearchRecentEmpty}
+                                                </p>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    {sidebarQuickAccesses.map((shortcut) => (
+                                                        <Link
+                                                            key={shortcut.id}
+                                                            href={shortcut.href}
+                                                            prefetch
+                                                            title={shortcut.label}
+                                                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                        >
+                                                            <Pin className="size-3.5 text-muted-foreground" />
+                                                            <span className="truncate">{shortcut.label}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </>
                                 ) : null}
                                 <nav className="space-y-2">
@@ -1923,6 +1965,31 @@ export function AdminLayout({
                                             className="h-8 rounded-md bg-background/90 text-xs"
                                         />
                                     </div>
+                                    <div className="mb-3">
+                                        <p className="mb-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                            {copy.quickSearchRecentTitle}
+                                        </p>
+                                        {sidebarQuickAccesses.length === 0 ? (
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {copy.quickSearchRecentEmpty}
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                {sidebarQuickAccesses.map((shortcut) => (
+                                                    <Link
+                                                        key={shortcut.id}
+                                                        href={shortcut.href}
+                                                        prefetch
+                                                        onClick={() => setMobileMenuOpen(false)}
+                                                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                    >
+                                                        <Pin className="size-3.5 text-muted-foreground" />
+                                                        <span className="truncate">{shortcut.label}</span>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <nav className="space-y-2">
                                         {filteredVisibleLinks.map((link) => {
                                             const Icon = link.icon;
@@ -2106,6 +2173,31 @@ export function AdminLayout({
                                             placeholder={copy.menuSearchPlaceholder}
                                             className="h-8 rounded-md bg-background/90 text-xs"
                                         />
+                                    </div>
+                                    <div className="mb-3">
+                                        <p className="mb-1 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                            {copy.quickSearchRecentTitle}
+                                        </p>
+                                        {sidebarQuickAccesses.length === 0 ? (
+                                            <p className="px-1 text-[11px] text-muted-foreground">
+                                                {copy.quickSearchRecentEmpty}
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                {sidebarQuickAccesses.map((shortcut) => (
+                                                    <Link
+                                                        key={shortcut.id}
+                                                        href={shortcut.href}
+                                                        prefetch
+                                                        title={shortcut.label}
+                                                        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                    >
+                                                        <Pin className="size-3.5 text-muted-foreground" />
+                                                        <span className="truncate">{shortcut.label}</span>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <nav className="space-y-2">
                                         {filteredVisibleLinks.map((link) => {

@@ -57,7 +57,29 @@ High-level flow:
 - Permission-aware navigation and API access controls.
 - Admin shell language switch (Portuguese/English) with persistent preference.
 - First-visit Demo shortcut on transport login for faster product walkthroughs.
+- Phase 6 UX layer: global search (`Ctrl+K`), pinned quick-access shortcuts, and record comments with mentions.
 - Regression, contract, and E2E test coverage integrated in CI.
+
+## Phase 6 Completion (Search, Collaboration, Navigation)
+
+Implemented and production-ready:
+
+- Global search API and UI command palette (`Ctrl+K`) with permission-aware results.
+- User quick-access persistence (pin/unpin shortcuts) stored in database.
+- Record comments with mentions (`@name` / `@email`) and delete controls.
+- Onboarding guided wizard mode with step-by-step flow and review stage.
+- Comments panel already integrated in interviews, onboarding, and operations hub.
+
+New API routes:
+
+- `GET /api/search/global`
+- `GET|POST|PUT|DELETE /api/quick-accesses`
+- `GET|POST|DELETE /api/record-comments`
+
+New migrations:
+
+- `create_user_quick_accesses_table`
+- `create_record_comments_table`
 
 ## Local Setup
 

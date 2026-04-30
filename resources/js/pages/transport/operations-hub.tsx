@@ -2,6 +2,7 @@ import { AlertTriangle, CalendarClock, LoaderCircle, PlusCircle } from 'lucide-r
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
+import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -194,6 +195,7 @@ export default function TransportOperationsHubPage() {
     const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
     const [pendingByUnit, setPendingByUnit] = useState<PendingByUnitResponse['data']>([]);
     const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
+    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
     async function loadHub(): Promise<void> {
         setLoading(true);
@@ -213,6 +215,18 @@ export default function TransportOperationsHubPage() {
             setTasks(tasksResponse.data);
             setUnidades(unidadesResponse.data);
             setPendingByUnit(pendingByUnitResponse.data);
+
+            setSelectedTaskId((current) => {
+                if (tasksResponse.data.length === 0) {
+                    return null;
+                }
+
+                if (current && tasksResponse.data.some((task) => task.id === current)) {
+                    return current;
+                }
+
+                return tasksResponse.data[0]?.id ?? null;
+            });
         } catch {
             setError('Nao foi possivel carregar o hub operacional.');
         } finally {
@@ -649,9 +663,25 @@ export default function TransportOperationsHubPage() {
                                                         {task.due_at ? formatDateTimeBR(task.due_at) : 'Sem prazo definido'}
                                                     </p>
                                                 </div>
+                                                <div className="mt-3 flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant={selectedTaskId === task.id ? 'default' : 'outline'}
+                                                        onClick={() => setSelectedTaskId(task.id)}
+                                                    >
+                                                        Comentarios
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))
                                     )}
+
+                                    <RecordCommentsPanel
+                                        moduleKey="operations"
+                                        recordId={selectedTaskId}
+                                        title="Comentarios da tarefa selecionada"
+                                    />
                                 </CardContent>
                             </Card>
 
