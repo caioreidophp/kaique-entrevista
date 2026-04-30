@@ -10,12 +10,15 @@ use App\Models\FeriasLancamento;
 use App\Models\Funcao;
 use App\Models\Onboarding;
 use App\Models\OnboardingItem;
+use App\Models\OperationalTask;
 use App\Models\OutboundWebhook;
 use App\Models\Unidade;
 use App\Models\User;
 use App\Models\WebhookDelivery;
 use App\Support\FinancialApprovalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Activitylog\Models\Activity;
@@ -281,6 +284,179 @@ class SystemOperationsApiTest extends TestCase
         ]);
 
         Queue::assertPushed(DeliverOutboundWebhookJob::class);
+    }
+
+    public function test_master_admin_can_retry_failed_webhook_deliveries_in_batch(): void
+    {
+        $master = User::factory()->masterAdmin()->create();
+
+        $hook = OutboundWebhook::query()->create([
+            'name' => 'ERP Integration',
+            'target_url' => 'https://example.com/webhooks/erp',
+            'signing_secret' => str_repeat('a', 32),
+            'events' => ['*'],
+            'timeout_seconds' => 10,
+            'max_attempts' => 3,
+            'is_active' => true,
+            'created_by_user_id' => $master->id,
+        ]);
+
+        WebhookDelivery::query()->create([
+            'outbound_webhook_id' => $hook->id,
+            'event_name' => 'payroll.batch.launched',
+            'attempt' => 3,
+            'is_success' => false,
+            'http_status' => 500,
+            'payload' => ['batch_id' => 1],
+            'dead_lettered_at' => now(),
+        ]);
+
+        WebhookDelivery::query()->create([
+            'outbound_webhook_id' => $hook->id,
+            'event_name' => 'freight.entry.updated',
+            'attempt' => 3,
+            'is_success' => false,
+            'http_status' => 500,
+            'payload' => ['entry_id' => 2],
+            'dead_lettered_at' => now(),
+        ]);
+
+        WebhookDelivery::query()->create([
+            'outbound_webhook_id' => $hook->id,
+            'event_name' => 'system.webhook.test',
+            'attempt' => 1,
+            'is_success' => true,
+            'http_status' => 200,
+            'payload' => ['ok' => true],
+            'delivered_at' => now(),
+        ]);
+
+        Queue::fake();
+        Sanctum::actingAs($master);
+
+        $this->postJson("/api/system/webhooks/{$hook->id}/deliveries/retry-failed", [
+            'limit' => 10,
+        ])
+            ->assertOk()
+            ->assertJsonPath('queued', 2);
+
+        Queue::assertPushed(DeliverOutboundWebhookJob::class, 2);
+
+        $this->getJson('/api/system/webhooks')
+            ->assertOk()
+            ->assertJsonPath('summary.hooks_total', 1)
+            ->assertJsonPath('summary.active_hooks', 1);
+    }
+
+    public function test_master_admin_can_manage_and_run_automated_reminder_rules(): void
+    {
+        config()->set('transport_features.automated_reminders', true);
+        Mail::fake();
+        Http::fake([
+            'https://wa.example.com/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $master = User::factory()->masterAdmin()->create();
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+        $funcao = Funcao::query()->create(['nome' => 'Motorista', 'ativo' => true]);
+
+        Colaborador::query()->create([
+            'unidade_id' => $unidade->id,
+            'funcao_id' => $funcao->id,
+            'nome' => 'Carlos Reminder',
+            'ativo' => true,
+            'cpf' => '11122233344',
+            'data_admissao' => now()->subYear()->subMonths(10)->subDays(12)->toDateString(),
+            'telefone' => '19999999999',
+            'email' => 'carlos@example.com',
+        ]);
+
+        OperationalTask::query()->create([
+            'module_key' => 'payroll',
+            'unidade_id' => $unidade->id,
+            'title' => 'Validar folha com SLA',
+            'priority' => 'high',
+            'status' => 'open',
+            'due_at' => now()->subHours(3),
+            'created_by' => $master->id,
+        ]);
+
+        Sanctum::actingAs($master);
+
+        $emailRuleResponse = $this->postJson('/api/system/reminders/rules', [
+            'name' => 'Ferias proximas por e-mail',
+            'trigger_key' => 'vacations_due',
+            'channel' => 'email',
+            'recipients' => ['rh@kaique.local'],
+            'threshold_days' => 45,
+            'message_prefix' => 'Acompanhar casos criticos de ferias.',
+            'is_active' => true,
+        ])->assertCreated();
+
+        $emailRuleId = (int) $emailRuleResponse->json('data.id');
+
+        $waRuleResponse = $this->postJson('/api/system/reminders/rules', [
+            'name' => 'SLA de tarefas no WhatsApp',
+            'trigger_key' => 'task_sla_overdue',
+            'channel' => 'whatsapp',
+            'recipients' => ['+5511999999999'],
+            'threshold_days' => 3,
+            'webhook_url' => 'https://wa.example.com/send',
+            'is_active' => true,
+        ])->assertCreated();
+
+        $waRuleId = (int) $waRuleResponse->json('data.id');
+
+        $this->getJson('/api/system/reminders/rules')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->postJson('/api/system/reminders/run', [
+            'rule_id' => $emailRuleId,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.sent', 1)
+            ->assertJsonPath('data.failed', 0);
+
+        $this->postJson('/api/system/reminders/run', [
+            'rule_id' => $waRuleId,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.sent', 1)
+            ->assertJsonPath('data.failed', 0);
+
+        $this->assertDatabaseHas('automated_reminder_rules', [
+            'id' => $emailRuleId,
+            'trigger_key' => 'vacations_due',
+            'channel' => 'email',
+        ]);
+
+        $this->assertDatabaseHas('automated_reminder_deliveries', [
+            'automated_reminder_rule_id' => $emailRuleId,
+            'status' => 'sent',
+            'channel' => 'email',
+        ]);
+
+        $this->assertDatabaseHas('automated_reminder_deliveries', [
+            'automated_reminder_rule_id' => $waRuleId,
+            'status' => 'sent',
+            'channel' => 'whatsapp',
+        ]);
+
+        $this->getJson('/api/system/reminders/deliveries')
+            ->assertOk()
+            ->assertJsonPath('summary.sent_last_24h', 2);
+
+        $this->putJson("/api/system/reminders/rules/{$waRuleId}", [
+            'is_active' => false,
+        ])->assertOk();
+
+        $this->deleteJson("/api/system/reminders/rules/{$waRuleId}")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('automated_reminder_rules', [
+            'id' => $waRuleId,
+        ]);
     }
 
     public function test_master_admin_can_read_vacation_audit_diff_after_update(): void

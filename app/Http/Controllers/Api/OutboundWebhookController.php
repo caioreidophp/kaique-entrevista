@@ -16,14 +16,38 @@ class OutboundWebhookController extends Controller
     {
         abort_unless($request->user()?->isMasterAdmin(), 403);
 
+        $since24h = now()->subDay();
+
         $hooks = OutboundWebhook::query()
             ->with('createdBy:id,name,email')
             ->withCount('deliveries')
+            ->withCount([
+                'deliveries as deliveries_last_24h' => fn ($query) => $query->where('created_at', '>=', $since24h),
+                'deliveries as deliveries_success_last_24h' => fn ($query) => $query
+                    ->where('created_at', '>=', $since24h)
+                    ->where('is_success', true),
+                'deliveries as deliveries_failed_last_24h' => fn ($query) => $query
+                    ->where('created_at', '>=', $since24h)
+                    ->where('is_success', false),
+            ])
             ->orderBy('name')
             ->get();
 
+        $summary = [
+            'hooks_total' => $hooks->count(),
+            'active_hooks' => $hooks->where('is_active', true)->count(),
+            'deliveries_last_24h' => (int) WebhookDelivery::query()
+                ->where('created_at', '>=', $since24h)
+                ->count(),
+            'failed_last_24h' => (int) WebhookDelivery::query()
+                ->where('created_at', '>=', $since24h)
+                ->where('is_success', false)
+                ->count(),
+        ];
+
         return response()->json([
             'data' => $hooks,
+            'summary' => $summary,
         ]);
     }
 
@@ -151,6 +175,34 @@ class OutboundWebhookController extends Controller
             'message' => 'Reenvio enfileirado com sucesso.',
             'delivery_id' => (int) $retry->id,
             'retries_from_delivery_id' => (int) $webhookDelivery->id,
+        ]);
+    }
+
+    public function retryFailed(
+        Request $request,
+        OutboundWebhook $outboundWebhook,
+        OutboundWebhookService $service,
+    ): JsonResponse {
+        abort_unless($request->user()?->isMasterAdmin(), 403);
+
+        $limit = max(1, min(80, (int) $request->integer('limit', 20)));
+
+        $failedRows = $outboundWebhook->deliveries()
+            ->where('is_success', false)
+            ->whereNotNull('dead_lettered_at')
+            ->latest('id')
+            ->limit($limit)
+            ->get();
+
+        $queued = 0;
+        foreach ($failedRows as $failedRow) {
+            $service->retryDelivery($outboundWebhook, $failedRow);
+            $queued++;
+        }
+
+        return response()->json([
+            'message' => 'Reenvios em lote enfileirados com sucesso.',
+            'queued' => $queued,
         ]);
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\AutomatedReminderController;
 use App\Http\Controllers\Api\ApiTelemetryController;
 use App\Http\Controllers\Api\AsyncExportController;
 use App\Http\Controllers\Api\AsyncOperationController;
@@ -106,7 +107,21 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         ->middleware('throttle:transport-heavy');
     Route::post('system/webhooks/{outboundWebhook}/deliveries/{webhookDelivery}/retry', [OutboundWebhookController::class, 'retryDelivery'])
         ->middleware('throttle:transport-heavy');
+    Route::post('system/webhooks/{outboundWebhook}/deliveries/retry-failed', [OutboundWebhookController::class, 'retryFailed'])
+        ->middleware('throttle:transport-heavy');
     Route::post('system/webhooks/{outboundWebhook}/test', [OutboundWebhookController::class, 'test'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/reminders/rules', [AutomatedReminderController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/reminders/rules', [AutomatedReminderController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::put('system/reminders/rules/{automatedReminderRule}', [AutomatedReminderController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('system/reminders/rules/{automatedReminderRule}', [AutomatedReminderController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
+    Route::get('system/reminders/deliveries', [AutomatedReminderController::class, 'deliveries'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('system/reminders/run', [AutomatedReminderController::class, 'run'])
         ->middleware('throttle:transport-heavy');
     Route::get('system/queue', [QueueMonitorController::class, 'overview'])
         ->middleware('throttle:transport-heavy');

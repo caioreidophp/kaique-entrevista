@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Schema;
 
 Artisan::command('inspire', function () {
@@ -19,7 +20,7 @@ Artisan::command('transport:cleanup-simulation {--dry-run : Apenas exibe os tota
     $pensionTable = $resolveTable(['pensoes_colaboradores', 'pensao_colaboradores']);
 
     if (! Schema::hasTable('unidades') || ! Schema::hasTable('colaboradores')) {
-        $this->error('Tabelas base de cadastro não encontradas. Operação cancelada.');
+        $this->error('Tabelas base de cadastro nao encontradas. Operacao cancelada.');
 
         return 1;
     }
@@ -117,7 +118,7 @@ Artisan::command('transport:cleanup-simulation {--dry-run : Apenas exibe os tota
     $this->table(['Item', 'Total'], collect($summary)->map(fn ($value, $key) => [$key, $value])->all());
 
     if ($dryRun) {
-        $this->info('Dry-run concluído. Nenhum registro foi removido.');
+        $this->info('Dry-run concluido. Nenhum registro foi removido.');
 
         return 0;
     }
@@ -159,7 +160,59 @@ Artisan::command('transport:cleanup-simulation {--dry-run : Apenas exibe os tota
         }
     });
 
-    $this->info('Limpeza concluída com sucesso.');
+    $this->info('Limpeza concluida com sucesso.');
 
     return 0;
-})->purpose('Remove dados de simulação e descontos órfãos do ambiente de transporte');
+})->purpose('Remove dados de simulacao e descontos orfaos do ambiente de transporte');
+
+Artisan::command('transport:reminders:run {--rule-id= : Executa somente uma regra especifica}', function () {
+    $service = app(\App\Support\AutomatedReminderService::class);
+    $ruleId = (int) $this->option('rule-id');
+
+    if ($ruleId > 0) {
+        $rule = \App\Models\AutomatedReminderRule::query()->find($ruleId);
+
+        if (! $rule) {
+            $this->error("Regra {$ruleId} nao encontrada.");
+
+            return 1;
+        }
+
+        $result = $service->runRule($rule);
+        $this->info('Regra executada.');
+        $this->table(
+            ['rule_id', 'attempted', 'sent', 'failed', 'skipped'],
+            [[
+                (int) ($result['rule_id'] ?? 0),
+                (int) ($result['attempted'] ?? 0),
+                (int) ($result['sent'] ?? 0),
+                (int) ($result['failed'] ?? 0),
+                (int) ($result['skipped'] ?? 0),
+            ]],
+        );
+
+        return 0;
+    }
+
+    $summary = $service->runActiveRules();
+
+    $this->info('Execucao de lembretes concluida.');
+    $this->table(
+        ['processed_rules', 'attempted', 'sent', 'failed', 'skipped'],
+        [[
+            (int) ($summary['processed_rules'] ?? 0),
+            (int) ($summary['attempted'] ?? 0),
+            (int) ($summary['sent'] ?? 0),
+            (int) ($summary['failed'] ?? 0),
+            (int) ($summary['skipped'] ?? 0),
+        ]],
+    );
+
+    return 0;
+})->purpose('Executa lembretes automaticos por e-mail e WhatsApp');
+
+Schedule::command('transport:reminders:run')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+

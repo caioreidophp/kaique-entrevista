@@ -12,6 +12,7 @@ return [
     'openapi_docs' => (bool) env('TRANSPORT_FEATURE_OPENAPI_DOCS', true),
     'service_accounts' => (bool) env('TRANSPORT_FEATURE_SERVICE_ACCOUNTS', true),
     'outbound_webhooks' => (bool) env('TRANSPORT_FEATURE_OUTBOUND_WEBHOOKS', true),
+    'automated_reminders' => (bool) env('TRANSPORT_FEATURE_AUTOMATED_REMINDERS', true),
     'backup_restore_assistant' => (bool) env('TRANSPORT_FEATURE_BACKUP_RESTORE_ASSISTANT', true),
     'financial_double_approval' => (bool) env('TRANSPORT_FEATURE_FINANCIAL_DOUBLE_APPROVAL', true),
     'financial_double_approval_threshold' => (float) env('TRANSPORT_FINANCIAL_DOUBLE_APPROVAL_THRESHOLD', 15000),
