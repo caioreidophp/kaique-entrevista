@@ -3,7 +3,6 @@ import {
     Briefcase,
     ChevronLeft,
     ChevronRight,
-    Clock3,
     ClipboardCheck,
     Cog,
     LayoutDashboard,
@@ -22,8 +21,6 @@ import {
     Truck,
     CalendarDays,
     Menu,
-    Pin,
-    PinOff,
     Search,
     TrendingUp,
     CircleX,
@@ -1767,7 +1764,7 @@ export function AdminLayout({
                                                             title={shortcut.label}
                                                             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
                                                         >
-                                                            <Pin className="size-3.5 text-muted-foreground" />
+                                                            <PlusSquare className="size-3.5 text-muted-foreground" />
                                                             <span className="truncate">{shortcut.label}</span>
                                                         </Link>
                                                     ))}
@@ -1983,7 +1980,7 @@ export function AdminLayout({
                                                         onClick={() => setMobileMenuOpen(false)}
                                                         className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
                                                     >
-                                                        <Pin className="size-3.5 text-muted-foreground" />
+                                                        <PlusSquare className="size-3.5 text-muted-foreground" />
                                                         <span className="truncate">{shortcut.label}</span>
                                                     </Link>
                                                 ))}
@@ -2192,7 +2189,7 @@ export function AdminLayout({
                                                         title={shortcut.label}
                                                         className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
                                                     >
-                                                        <Pin className="size-3.5 text-muted-foreground" />
+                                                        <PlusSquare className="size-3.5 text-muted-foreground" />
                                                         <span className="truncate">{shortcut.label}</span>
                                                     </Link>
                                                 ))}
@@ -2408,12 +2405,12 @@ export function AdminLayout({
                                                     {shortcut.href}
                                                 </p>
                                             </button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="size-7"
-                                                title={copy.quickSearchUnpin}
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-7"
+                                                    title={copy.quickSearchUnpin}
                                                 onClick={() =>
                                                     void handleQuickAccessToggle({
                                                         title: shortcut.label,
@@ -2423,9 +2420,9 @@ export function AdminLayout({
                                                     })
                                                 }
                                                 disabled={navigationActionBusy === shortcut.href}
-                                            >
-                                                <PinOff className="size-3.5" />
-                                            </Button>
+                                                >
+                                                    <CircleX className="size-3.5" />
+                                                </Button>
                                         </div>
                                     ))}
                                 </div>
@@ -2480,7 +2477,7 @@ export function AdminLayout({
                                                         onClick={() => openQuickNavigation(result.href)}
                                                         title={copy.quickSearchOpen}
                                                     >
-                                                        <Clock3 className="size-3.5" />
+                                                        <List className="size-3.5" />
                                                     </Button>
                                                     <Button
                                                         type="button"
@@ -2503,9 +2500,9 @@ export function AdminLayout({
                                                         disabled={navigationActionBusy === result.href}
                                                     >
                                                         {isPinned ? (
-                                                            <PinOff className="size-3.5" />
+                                                            <CircleX className="size-3.5" />
                                                         ) : (
-                                                            <Pin className="size-3.5" />
+                                                            <PlusSquare className="size-3.5" />
                                                         )}
                                                     </Button>
                                                 </div>
