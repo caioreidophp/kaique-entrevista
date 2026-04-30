@@ -104,4 +104,24 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('message', 'Logout realizado com sucesso.')
             ->assertCookieExpired(TransportPanelGuard::COOKIE_NAME);
     }
+
+    public function test_panel_session_requires_valid_guard_cookie(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'password',
+        ]);
+
+        $login = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertOk();
+
+        $token = (string) $login->json('token');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/panel-session')
+            ->assertStatus(409)
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('reason', 'missing_guard_cookie');
+    }
 }

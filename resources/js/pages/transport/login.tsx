@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiPost, ApiError } from '@/lib/api-client';
+import { apiGet, apiPost, ApiError } from '@/lib/api-client';
 import {
     clearAuthToken,
     getAuthToken,
@@ -71,21 +71,33 @@ export default function TransportLoginPage() {
             return;
         }
 
+        let active = true;
         const stored = getStoredUser();
 
-        if (stored) {
-            router.visit('/transport/home');
-            return;
-        }
+        const validateAndRedirect = async (): Promise<void> => {
+            try {
+                if (stored) {
+                    storeUser(stored);
+                }
 
-        fetchCurrentUser(true)
-            .then(() => {
+                await fetchCurrentUser(true);
+                await apiGet<{ valid: boolean; reason?: string }>('/panel-session');
+
+                if (!active) return;
                 router.visit('/transport/home');
-            })
-            .catch(() => {
+            } catch {
+                if (!active) return;
                 clearAuthToken();
                 clearStoredUser();
-            });
+                setMessage('Sua sessão anterior expirou. Faça login novamente.');
+            }
+        };
+
+        void validateAndRedirect();
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     function handleUseDemo(): void {

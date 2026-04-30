@@ -103,4 +103,33 @@ class AuthController extends Controller
             ],
         ]);
     }
+
+    public function panelSession(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $tokenId = (int) ($user?->currentAccessToken()?->id ?? 0);
+        $cookieValue = (string) $request->cookie(TransportPanelGuard::COOKIE_NAME, '');
+        $parsed = TransportPanelGuard::parseCookieValue($cookieValue);
+
+        if (! is_array($parsed)) {
+            return response()->json([
+                'valid' => false,
+                'reason' => 'missing_guard_cookie',
+            ], 409);
+        }
+
+        if (
+            (int) ($parsed['user_id'] ?? 0) !== (int) ($user?->id ?? 0)
+            || (int) ($parsed['token_id'] ?? 0) !== $tokenId
+        ) {
+            return response()->json([
+                'valid' => false,
+                'reason' => 'guard_mismatch',
+            ], 409)->withCookie(cookie()->forget(TransportPanelGuard::COOKIE_NAME, '/'));
+        }
+
+        return response()->json([
+            'valid' => true,
+        ]);
+    }
 }

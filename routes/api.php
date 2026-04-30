@@ -57,6 +57,7 @@ Route::post('login', [AuthController::class, 'login'])
 Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group(function (): void {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('panel-session', [AuthController::class, 'panelSession']);
     Route::get('settings/sessions', [SessionManagementController::class, 'index'])
         ->middleware('throttle:transport-heavy');
     Route::delete('settings/sessions/{tokenId}', [SessionManagementController::class, 'revoke'])
