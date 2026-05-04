@@ -23,8 +23,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiGet, apiPost } from '@/lib/api-client';
-import { compareTextPtBr } from '@/lib/transport-text';
 import { formatCurrencyBR, formatDateTimeBR } from '@/lib/transport-format';
+import { compareTextPtBr } from '@/lib/transport-text';
 
 interface Unidade {
     id: number;

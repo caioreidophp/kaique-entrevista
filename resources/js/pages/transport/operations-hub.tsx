@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { AlertTriangle, CalendarClock, LoaderCircle, PlusCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
@@ -35,6 +36,18 @@ interface PendingInsightsResponse {
         };
         payroll: {
             pending_collaborators: number;
+        };
+        fines: {
+            notifications_pending: number;
+            overdue_open: number;
+            total: number;
+            pending_notifications: Array<{
+                id: number;
+                title: string;
+                subtitle: string;
+                status: string;
+                href: string;
+            }>;
         };
     };
 }
@@ -115,6 +128,7 @@ interface PendingByUnitResponse {
         active_collaborators: number;
         payroll_pending_collaborators: number;
         freight_canceled_to_receive: number;
+        fines_notifications_pending: number;
         onboarding_open: number;
         onboarding_overdue: number;
     }>;
@@ -247,6 +261,7 @@ export default function TransportOperationsHubPage() {
             + data.vacations.due_2_months
             + data.freight.canceled_to_receive
             + data.payroll.pending_collaborators
+            + data.fines.total
             + (taskSummary?.summary.by_status.open ?? 0)
             + (taskSummary?.summary.by_status.in_progress ?? 0)
         );
@@ -280,6 +295,11 @@ export default function TransportOperationsHubPage() {
                 title: 'Folha sem lancamento',
                 description: 'Colaboradores ativos sem pagamento no mes.',
                 value: data.payroll.pending_collaborators,
+            },
+            {
+                title: 'Multas e notificacoes',
+                description: 'Pendencias de notificacoes e multas em aberto.',
+                value: data.fines.total,
             },
             {
                 title: 'GUEP a fazer',
@@ -319,11 +339,13 @@ export default function TransportOperationsHubPage() {
             const firstTotal =
                 first.payroll_pending_collaborators
                 + first.freight_canceled_to_receive
+                + first.fines_notifications_pending
                 + first.onboarding_open
                 + (first.onboarding_overdue * 2);
             const secondTotal =
                 second.payroll_pending_collaborators
                 + second.freight_canceled_to_receive
+                + second.fines_notifications_pending
                 + second.onboarding_open
                 + (second.onboarding_overdue * 2);
 
@@ -637,6 +659,35 @@ export default function TransportOperationsHubPage() {
 
                             <Card>
                                 <CardHeader>
+                                    <CardTitle>Notificacoes de multas pendentes</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {(data.fines.pending_notifications ?? []).length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">Sem notificacoes pendentes no momento.</p>
+                                    ) : (
+                                        data.fines.pending_notifications.map((item) => (
+                                            <div key={item.id} className="rounded-md border p-3 text-sm">
+                                                <p className="font-medium">{item.title}</p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {item.subtitle || 'Sem contexto adicional.'}
+                                                </p>
+                                                <div className="mt-2 flex items-center justify-between gap-2">
+                                                    <Badge variant="outline">{item.status}</Badge>
+                                                    <Button size="sm" variant="outline" asChild>
+                                                        <Link href={item.href}>Abrir</Link>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    <Button type="button" variant="outline" className="w-full" asChild>
+                                        <Link href="/transport/fines/list">Ir para multas</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
                                     <CardTitle>Tarefas abertas e em execucao</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
@@ -698,6 +749,7 @@ export default function TransportOperationsHubPage() {
                                             const totalPending =
                                                 row.payroll_pending_collaborators
                                                 + row.freight_canceled_to_receive
+                                                + row.fines_notifications_pending
                                                 + row.onboarding_open;
 
                                             return (
@@ -716,6 +768,7 @@ export default function TransportOperationsHubPage() {
                                                     <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground">
                                                         <p>Folha pendente: {formatIntegerBR(row.payroll_pending_collaborators)}</p>
                                                         <p>Cargas a receber: {formatIntegerBR(row.freight_canceled_to_receive)}</p>
+                                                        <p>Notificacoes de multa: {formatIntegerBR(row.fines_notifications_pending)}</p>
                                                         <p>Onboarding em aberto: {formatIntegerBR(row.onboarding_open)}</p>
                                                     </div>
                                                 </div>

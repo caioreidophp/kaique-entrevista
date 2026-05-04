@@ -5,20 +5,19 @@ namespace App\Models;
 use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Unidade extends Model
+class UnitFleetSize extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     /**
      * @var array<int, string>
      */
     protected $fillable = [
-        'nome',
-        'slug',
-        'ativo',
+        'unidade_id',
+        'reference_month',
+        'fleet_size',
     ];
 
     /**
@@ -27,27 +26,23 @@ class Unidade extends Model
     protected function casts(): array
     {
         return [
-            'ativo' => 'boolean',
+            'reference_month' => 'date',
+            'fleet_size' => 'integer',
         ];
     }
 
     protected static function booted(): void
     {
         $bumpCaches = static function (): void {
-            TransportCache::bumpMany(['master-data', 'home', 'registry', 'payroll', 'freight', 'programming', 'fines', 'vacations']);
+            TransportCache::bumpMany(['freight', 'home', 'registry']);
         };
 
         static::saved($bumpCaches);
         static::deleted($bumpCaches);
     }
 
-    public function colaboradores(): HasMany
+    public function unidade(): BelongsTo
     {
-        return $this->hasMany(Colaborador::class);
-    }
-
-    public function pagamentos(): HasMany
-    {
-        return $this->hasMany(Pagamento::class);
+        return $this->belongsTo(Unidade::class, 'unidade_id');
     }
 }

@@ -84,6 +84,44 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Segunda-Feira, 04/05/2026',
+        sections: [
+            {
+                panel: 'Cadastro',
+                items: [
+                    {
+                        title: 'Unidades normalizadas: cadastro sem cidade e status ativo',
+                        details: [
+                            'Cadastro de unidades foi simplificado para usar apenas nome e status (ativa/inativa), removendo o campo de cidade do fluxo.',
+                            'API e frontend foram alinhados para nao ler/enviar cidade nas unidades, eliminando erros de coluna inexistente no banco.',
+                            'Migracao de unidades agora garante coluna `ativo` e reativa todas as unidades existentes para restaurar filtros e dashboards.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        dateLabel: 'Quarta-Feira, 30/04/2026',
+        sections: [
+            {
+                panel: 'Seguranca & Performance',
+                items: [
+                    {
+                        title: 'Endurecimento de seguranca: protecao de rotas, restauracao segura e validacoes em producao',
+                        details: [
+                            'Rotas do painel de transportes agora sao protegidas por middleware de autenticacao que valida cookie assinado e token Sanctum antes de permitir acesso.',
+                            'Sistema de backup/restore foi completamente refatorado para executar SQL em transacoes, bloqueando comandos perigosos (GRANT, DROP, CREATE DATABASE, etc.) e validando hash dos arquivos.',
+                            'Restauracao de dados agora agrupa operacoes em transacoes atomicas com rollback automatico em falhas, eliminando risco de estado inconsistente no banco.',
+                            'Cache de telemetria de excecoes foi adicionado ao bootstrap com limite de 100 ultimas excecoes e TTL de 6 horas para auditoria e debug em producao.',
+                            'TypeScript 7.0 compatibilizado adicionando flag `ignoreDeprecations` para manter funcionalidade de `baseUrl` durante migracao planejada.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Terça-Feira, 28/04/2026',
         sections: [
             {
@@ -1867,26 +1905,6 @@ const updateLogTimeline: UpdateLogDay[] = [
                         details: [
                             'Corrigido erro de backup nas configurações substituindo chamadas de path que falhavam no ambiente por caminhos base estáveis do projeto.',
                             'Removida integralmente a classe/role Demo do sistema e revertida a migration correspondente no banco principal para evitar qualquer risco operacional.',
-                        ],
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        dateLabel: 'Quarta-Feira, 30/04/2026',
-        sections: [
-            {
-                panel: 'Segurança & Performance',
-                items: [
-                    {
-                        title: 'Endurecimento de segurança: proteção de rotas, restauração segura e validações em produção',
-                        details: [
-                            'Rotas do painel de transportes agora são protegidas por middleware de autenticação que valida cookie assinado e token Sanctum antes de permitir acesso.',
-                            'Sistema de backup/restore foi completamente refatorado para executar SQL em transações, bloqueando comandos perigosos (GRANT, DROP, CREATE DATABASE, etc.) e validando hash dos arquivos.',
-                            'Restauração de dados agora agrupa operações em transações atômicas com rollback automático em falhas, eliminando risco de estado inconsistente no banco.',
-                            'Cache de telemetria de exceções foi adicionado ao bootstrap com limite de 100 últimas exceções e TTL de 6 horas para auditoria e debug em produção.',
-                            'TypeScript 7.0 compatibilizado adicionando flag `ignoreDeprecations` para manter funcionalidade de `baseUrl` durante migração planejada.',
                         ],
                     },
                 ],

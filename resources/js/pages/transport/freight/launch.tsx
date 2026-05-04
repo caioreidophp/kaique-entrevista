@@ -428,7 +428,6 @@ export default function TransportFreightLaunchPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
     const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
-    const [kmOutlierConfirmed, setKmOutlierConfirmed] = useState(false);
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
 
     const kaiqueKmAtual = useMemo(() => toNumberOrZero(form.kaique_geral_km), [form.kaique_geral_km]);
@@ -576,10 +575,6 @@ export default function TransportFreightLaunchPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [entries]);
 
-    useEffect(() => {
-        setKmOutlierConfirmed(false);
-    }, [form.kaique_geral_km, form.data, form.unidade_id]);
-
     async function handleSubmit(): Promise<void> {
         if (!form.data || !form.unidade_id || !form.veiculos) {
             setNotification({
@@ -602,16 +597,6 @@ export default function TransportFreightLaunchPage() {
                 message: 'Informe pelo menos uma carga/viagem no lançamento.',
                 variant: 'error',
             });
-            return;
-        }
-
-        if (kmOutlier && !kmOutlierConfirmed) {
-            setKmOutlierConfirmed(true);
-            setNotification({
-                message: `KM fora da faixa de referência (1.000 a 15.000): ${formatDecimalBR(kaiqueKmAtual, 2)} km. Clique em salvar novamente para confirmar o lançamento.`,
-                variant: 'info',
-            });
-
             return;
         }
 
@@ -1233,7 +1218,7 @@ export default function TransportFreightLaunchPage() {
                                         {kmOutlier ? (
                                             <div className="max-w-[360px] rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
                                                 KM fora da faixa de referência (1.000 a 15.000).
-                                                {kmOutlierConfirmed ? ' Clique em salvar para confirmar.' : ''}
+                                                Esse alerta é apenas informativo e não bloqueia o lançamento.
                                             </div>
                                         ) : null}
                                         <Button 

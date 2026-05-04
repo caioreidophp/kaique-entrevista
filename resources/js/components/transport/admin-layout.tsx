@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Briefcase,
+    Building2,
     ChevronLeft,
     ChevronRight,
     ClipboardCheck,
@@ -108,10 +109,12 @@ interface AdminLayoutProps {
         | 'freight-canceled-loads'
         | 'freight-operational-report'
         | 'freight-monthly'
+        | 'freight-fleet-size-config'
         | 'freight-timeline'
         | 'programming-dashboard'
         | 'settings'
         | 'registry-collaborators'
+        | 'registry-units'
         | 'registry-birthdays'
         | 'registry-users'
         | 'registry-functions'
@@ -198,6 +201,7 @@ const adminLayoutCopy = {
         linkOnboarding: 'Onboarding',
         linkProgrammingDashboard: 'Programação de Viagens',
         linkCollaborators: 'Colaboradores',
+        linkUnits: 'Unidades',
         linkUsers: 'Usuários',
         linkFunctions: 'Funções',
         linkPaymentTypes: 'Tipo de Pagamentos',
@@ -214,6 +218,7 @@ const adminLayoutCopy = {
         linkFreightList: 'Lista de Fretes',
         linkSpotFreight: 'Lançar Fretes Spot',
         linkCanceledLoads: 'Cargas Canceladas',
+        linkFleetMonthly: 'Frota mensal',
         linkAnalyticsHub: 'Central Analítica',
         linkFinesDashboard: 'Dashboard de Multas',
         linkFinesLaunch: 'Lançar Multas',
@@ -280,6 +285,7 @@ const adminLayoutCopy = {
         linkOnboarding: 'Onboarding',
         linkProgrammingDashboard: 'Trip scheduling',
         linkCollaborators: 'Collaborators',
+        linkUnits: 'Units',
         linkUsers: 'Users',
         linkFunctions: 'Functions',
         linkPaymentTypes: 'Payment types',
@@ -296,6 +302,7 @@ const adminLayoutCopy = {
         linkFreightList: 'Freight list',
         linkSpotFreight: 'Launch spot freight',
         linkCanceledLoads: 'Canceled loads',
+        linkFleetMonthly: 'Monthly fleet',
         linkAnalyticsHub: 'Analytics hub',
         linkFinesDashboard: 'Fines dashboard',
         linkFinesLaunch: 'Launch fines',
@@ -1249,6 +1256,7 @@ export function AdminLayout({
         'next-steps': 'sidebar.next-steps.view',
         onboarding: 'sidebar.onboarding.view',
         'registry-collaborators': 'sidebar.registry.collaborators.view',
+        'registry-units': 'sidebar.registry.units.view',
         'registry-users': 'sidebar.registry.users.view',
         'registry-functions': 'sidebar.registry.functions.view',
         'registry-payment-types': 'sidebar.registry.payment-types.view',
@@ -1268,6 +1276,7 @@ export function AdminLayout({
         'freight-list': 'sidebar.freight.list.view',
         'freight-spot': 'sidebar.freight.spot.view',
         'freight-canceled-loads': 'sidebar.freight.canceled-loads.view',
+        'freight-fleet-size-config': 'sidebar.freight.list.view',
         'freight-timeline': 'sidebar.freight.timeline.view',
         'programming-dashboard': 'sidebar.programming.dashboard.view',
         'fines-dashboard': 'sidebar.fines.dashboard.view',
@@ -1324,6 +1333,7 @@ export function AdminLayout({
                     href: '/transport/registry/collaborators',
                     icon: Users,
                     children: [
+                        { key: 'registry-units', label: copy.linkUnits, href: '/transport/registry/units' },
                         { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users' },
                         { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions' },
                         { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types' },
@@ -1341,6 +1351,7 @@ export function AdminLayout({
                         { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list' },
                         { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot' },
                         { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads' },
+                        { key: 'freight-fleet-size-config', label: copy.linkFleetMonthly, href: '/transport/freight/fleet-size-config' },
                         { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline' },
                     ],
                 },
@@ -1367,6 +1378,7 @@ export function AdminLayout({
         if (currentModule === 'registry') {
             return [
                 { key: 'registry-collaborators', label: copy.linkCollaborators, href: '/transport/registry/collaborators', icon: Users },
+                { key: 'registry-units', label: copy.linkUnits, href: '/transport/registry/units', icon: Building2 },
                 { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users', icon: UserPlus },
                 { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions', icon: Briefcase },
                 { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types', icon: ReceiptText },
@@ -1401,6 +1413,7 @@ export function AdminLayout({
                 { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list', icon: List },
                 { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot', icon: Truck },
                 { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads', icon: CircleX },
+                { key: 'freight-fleet-size-config', label: copy.linkFleetMonthly, href: '/transport/freight/fleet-size-config', icon: Truck },
                 { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline', icon: TrendingUp },
             ];
         }

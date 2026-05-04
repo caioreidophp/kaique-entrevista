@@ -36,10 +36,7 @@ function normalizeNumberInput(value: string | number | null | undefined): number
         }
 
         if (hasDot) {
-            if (
-                /^-?\d{1,3}(\.\d{3})+$/.test(sanitized)
-                || /^-?\d+\.\d{3}$/.test(sanitized)
-            ) {
+            if (/^-?\d{1,3}(\.\d{3})+$/.test(sanitized)) {
                 return sanitized.replace(/\./g, '');
             }
         }

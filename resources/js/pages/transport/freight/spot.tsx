@@ -1,6 +1,6 @@
+import { router } from '@inertiajs/react';
 import { LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';

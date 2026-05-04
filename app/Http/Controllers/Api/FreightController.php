@@ -12,7 +12,7 @@ use App\Models\AsyncExport;
 use App\Models\FreightCanceledLoad;
 use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
-use App\Models\PlacaFrota;
+use App\Models\UnitFleetSize;
 use App\Models\Unidade;
 use App\Support\AsyncOperationTracker;
 use App\Support\OutboundWebhookService;
@@ -100,11 +100,11 @@ class FreightController extends Controller
 
         $fretePorKm = $totalKm > 0 ? $totalFrete / $totalKm : 0.0;
         $freteLiquidoPorKm = $totalKm > 0 ? $totalFreteLiquido / $totalKm : 0.0;
-        $fretePorCaminhao = $totalVeiculos > 0 ? $totalFrete / $totalVeiculos : 0.0;
+        $freteMedioPorCaminhaoTrabalhado = $totalVeiculos > 0 ? $totalFrete / $totalVeiculos : 0.0;
         $fretePorDiaTrabalhado = $diasTrabalhados > 0 ? $totalFrete / $diasTrabalhados : 0.0;
         $avesPorCarga = $totalCargas > 0 ? $totalAves / $totalCargas : 0.0;
         $freteMedio = $totalCargas > 0 ? $totalFrete / $totalCargas : 0.0;
-        $participacaoTerceiros = $totalFrete > 0 ? ($totalFreteTerceiros / $totalFrete) * 100 : 0.0;
+        $participacaoTerceiros = $this->safePercent($totalFreteTerceiros, $totalFrete + $totalFreteTerceiros);
 
         $kmMuitoAltoCount = (int) ($totals?->km_muito_alto_count ?? 0);
         $kmMuitoBaixoCount = (int) ($totals?->km_muito_baixo_count ?? 0);
@@ -145,19 +145,22 @@ class FreightController extends Controller
             ];
         }
 
-        $frotaPorUnidade = PlacaFrota::query()
-            ->selectRaw('unidade_id, COUNT(*) as total_frota')
-            ->groupBy('unidade_id')
-            ->pluck('total_frota', 'unidade_id')
-            ->map(fn ($value): int => (int) $value)
-            ->all();
-
-        $porUnidade = (clone $query)
+        $porUnidadeRows = (clone $query)
             ->selectRaw('unidade_id, COUNT(*) as total_lancamentos, SUM(frete_total) as total_frete, SUM(frete_liquido) as total_frete_liquido, SUM(km_rodado) as total_km, SUM(veiculos) as total_veiculos, SUM(aves) as total_aves, SUM(cargas_liq) as total_viagens_kaique, SUM(frete_terceiros) as total_frete_terceiros, SUM(frete_programado) as total_frete_programado, COUNT(DISTINCT data) as dias_trabalhados')
             ->with('unidade:id,nome')
             ->groupBy('unidade_id')
-            ->get()
-            ->map(function (FreightEntry $entry) use ($frotaPorUnidade): array {
+            ->get();
+
+        $fleetSizeByUnit = $this->unitFleetSizeMap(
+            $month,
+            $year,
+            $porUnidadeRows->pluck('unidade_id')->map(fn ($value): int => (int) $value)->all(),
+        );
+        $totalFleetSize = array_sum($fleetSizeByUnit);
+        $freteMedioPorCaminhaoFrota = $totalFleetSize > 0 ? $totalFrete / $totalFleetSize : null;
+
+        $porUnidade = $porUnidadeRows
+            ->map(function (FreightEntry $entry) use ($fleetSizeByUnit): array {
                 $totalFrete = (float) ($entry->total_frete ?? 0);
                 $totalFreteLiquido = (float) ($entry->total_frete_liquido ?? 0);
                 $totalKm = (float) ($entry->total_km ?? 0);
@@ -167,14 +170,15 @@ class FreightController extends Controller
                 $totalFreteProgramado = (float) ($entry->total_frete_programado ?? 0);
                 $totalAves = (int) ($entry->total_aves ?? 0);
                 $dias = (int) ($entry->dias_trabalhados ?? 0);
-                $frotaUnidade = (int) ($frotaPorUnidade[(int) $entry->unidade_id] ?? 0);
+                $frotaUnidade = (int) ($fleetSizeByUnit[(int) $entry->unidade_id] ?? 0);
                 $avesPorCarga = $totalViagensKaique > 0 ? $totalAves / $totalViagensKaique : 0.0;
                 $boxDivisor = $this->boxDivisorForUnitName($entry->unidade?->nome);
 
                 $freteKaiquePorDia = $dias > 0 ? $totalFreteLiquido / $dias : 0.0;
                 $freteKaiquePorKm = $totalKm > 0 ? $totalFreteLiquido / $totalKm : 0.0;
                 $freteKaiquePorCarga = $totalViagensKaique > 0 ? $totalFreteLiquido / $totalViagensKaique : 0.0;
-                $freteKaiquePorCaminhao = $frotaUnidade > 0 ? $totalFreteLiquido / $frotaUnidade : 0.0;
+                $freteMedioPorCaminhaoTrabalhado = $totalVeiculos > 0 ? $totalFrete / $totalVeiculos : 0.0;
+                $freteMedioPorCaminhaoFrota = $frotaUnidade > 0 ? $totalFrete / $frotaUnidade : null;
                 $percentualFreteTerceirosSobreProgramado = $this->safePercent($totalFreteTerceiros, $totalFreteProgramado);
                 $avesMediaPorCaixa = $boxDivisor > 0 ? $avesPorCarga / $boxDivisor : 0.0;
 
@@ -189,14 +193,19 @@ class FreightController extends Controller
                     'total_viagens_kaique' => $totalViagensKaique,
                     'total_frete_terceiros' => $totalFreteTerceiros,
                     'total_frete_programado' => $totalFreteProgramado,
-                    'total_frota_unidade' => $frotaUnidade,
+                    'total_frota_unidade' => $frotaUnidade > 0 ? $frotaUnidade : null,
+                    'frota_cadastrada' => $frotaUnidade > 0 ? $frotaUnidade : null,
+                    'frota_informada' => $frotaUnidade > 0,
+                    'total_caminhoes_trabalhados' => $totalVeiculos,
                     'dias_trabalhados' => $dias,
-                    'frete_por_caminhao' => $freteKaiquePorCaminhao,
+                    'frete_por_caminhao' => $freteMedioPorCaminhaoTrabalhado,
+                    'frete_medio_por_caminhao_trabalhado' => $freteMedioPorCaminhaoTrabalhado,
+                    'frete_medio_por_caminhao_frota' => $freteMedioPorCaminhaoFrota,
                     'frete_por_dia_trabalhado' => $dias > 0 ? $totalFrete / $dias : 0.0,
                     'frete_por_km' => $totalKm > 0 ? $totalFrete / $totalKm : 0.0,
                     'frete_liquido_por_km' => $freteKaiquePorKm,
                     'frete_kaique_por_km' => $freteKaiquePorKm,
-                    'frete_kaique_por_caminhao' => $freteKaiquePorCaminhao,
+                    'frete_kaique_por_caminhao' => $freteMedioPorCaminhaoFrota ?? 0.0,
                     'frete_kaique_por_dia' => $freteKaiquePorDia,
                     'aves_por_carga' => $avesPorCarga,
                     'frete_kaique_por_carga' => $freteKaiquePorCarga,
@@ -230,7 +239,10 @@ class FreightController extends Controller
                 'total_viagens_terceiros' => $totalViagensTerceiros,
                 'total_aves' => $totalAves,
                 'dias_trabalhados' => $diasTrabalhados,
-                'frete_por_caminhao' => $fretePorCaminhao,
+                'frota_total_cadastrada' => $totalFleetSize > 0 ? $totalFleetSize : null,
+                'frete_por_caminhao' => $freteMedioPorCaminhaoTrabalhado,
+                'frete_medio_por_caminhao_trabalhado' => $freteMedioPorCaminhaoTrabalhado,
+                'frete_medio_por_caminhao_frota' => $freteMedioPorCaminhaoFrota,
                 'frete_por_dia_trabalhado' => $fretePorDiaTrabalhado,
                 'media_reais_por_km' => $fretePorKm,
                 'media_frete_por_km' => $freteLiquidoPorKm,
@@ -359,18 +371,25 @@ class FreightController extends Controller
             ->get()
             ->keyBy('unidade_origem_id');
 
+        $fleetSizeByUnit = $this->unitFleetSizeMap(
+            $month,
+            $year,
+            isset($validated['unidade_id']) ? [(int) $validated['unidade_id']] : [],
+        );
+
         $report = (clone $query)
             ->selectRaw('unidade_id, COUNT(*) as total_lancamentos, SUM(frete_total) as total_frete, SUM(frete_liquido) as total_frete_liquido, SUM(km_rodado) as total_km, SUM(veiculos) as total_veiculos, SUM(aves) as total_aves, COUNT(DISTINCT data) as dias_trabalhados, SUM(abatedouro_frete) as abatedouro_frete, SUM(abatedouro_km) as abatedouro_km, SUM(abatedouro_aves) as abatedouro_aves, SUM(abatedouro_viagens) as abatedouro_cargas, SUM(terceiros_frete) as terceiros_frete, SUM(km_terceiros) as terceiros_km, SUM(terceiros_viagens) as terceiros_cargas, SUM(terceiros_aves) as terceiros_aves, SUM(programado_frete) as programado_frete, SUM(programado_km) as programado_km, SUM(programado_aves) as programado_aves, SUM(programado_viagens) as programado_cargas, SUM(kaique_geral_frete) as kaique_integracao_frete, SUM(kaique_geral_km) as kaique_integracao_km, SUM(kaique_geral_aves) as kaique_integracao_aves, SUM(kaique_geral_viagens) as kaique_integracao_cargas')
             ->with('unidade:id,nome')
             ->groupBy('unidade_id')
             ->orderBy('unidade_id')
             ->get()
-            ->map(function (FreightEntry $entry) use ($spotByUnit): array {
+            ->map(function (FreightEntry $entry) use ($spotByUnit, $fleetSizeByUnit): array {
                 $totalFrete = (float) ($entry->total_frete ?? 0);
                 $totalFreteLiquido = (float) ($entry->total_frete_liquido ?? 0);
                 $totalKm = (float) ($entry->total_km ?? 0);
                 $totalVeiculos = (int) ($entry->total_veiculos ?? 0);
                 $dias = (int) ($entry->dias_trabalhados ?? 0);
+                $frotaCadastrada = (int) ($fleetSizeByUnit[(int) $entry->unidade_id] ?? 0);
 
                 $programadoFrete = (float) ($entry->programado_frete ?? 0);
                 $programadoKm = (float) ($entry->programado_km ?? 0);
@@ -440,7 +459,12 @@ class FreightController extends Controller
                     'total_frete_liquido' => $totalFreteLiquido,
                     'total_km_rodado' => $totalKm,
                     'total_aves_transportadas' => (int) ($entry->total_aves ?? 0),
+                    'caminhoes_trabalhados' => $totalVeiculos,
+                    'frota_cadastrada' => $frotaCadastrada > 0 ? $frotaCadastrada : null,
+                    'frota_informada' => $frotaCadastrada > 0,
                     'frete_por_caminhao' => $totalVeiculos > 0 ? $totalFrete / $totalVeiculos : 0.0,
+                    'frete_medio_por_caminhao_trabalhado' => $totalVeiculos > 0 ? $totalFrete / $totalVeiculos : 0.0,
+                    'frete_medio_por_caminhao_frota' => $frotaCadastrada > 0 ? $totalFrete / $frotaCadastrada : null,
                     'frete_por_dia_trabalhado' => $dias > 0 ? $totalFrete / $dias : 0.0,
                     'media_reais_por_km' => $totalKm > 0 ? $totalFrete / $totalKm : 0.0,
                     'media_frete_por_km' => $totalKm > 0 ? $totalFreteLiquido / $totalKm : 0.0,
@@ -1993,6 +2017,29 @@ class FreightController extends Controller
         return ($part / $total) * 100;
     }
 
+    /**
+     * @param  array<int, int>  $unitIds
+     * @return array<int, int>
+     */
+    private function unitFleetSizeMap(int $month, int $year, array $unitIds = []): array
+    {
+        $referenceMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+
+        $query = UnitFleetSize::query()->whereDate('reference_month', $referenceMonth);
+
+        if ($unitIds !== []) {
+            $query->whereIn('unidade_id', array_values(array_unique(array_map(
+                static fn (int $unitId): int => (int) $unitId,
+                $unitIds,
+            ))));
+        }
+
+        return $query
+            ->pluck('fleet_size', 'unidade_id')
+            ->map(fn ($value): int => (int) $value)
+            ->all();
+    }
+
     private function boxDivisorForUnitName(?string $unitName): float
     {
         $normalized = Str::of((string) ($unitName ?? ''))
@@ -2042,7 +2089,7 @@ class FreightController extends Controller
             'aves_por_carga' => $avesPorCarga,
             'frete_medio_carga' => $freteMedioCarga,
             'raio_medio' => $raioMedio,
-            'participacao_terceiros_percent' => $this->safePercent($freteTerceiros, $totalFrete),
+            'participacao_terceiros_percent' => $this->safePercent($freteTerceiros, $totalFrete + $freteTerceiros),
             'frete_terceiros' => $freteTerceiros,
             'km_terceiros' => $kmTerceiros,
             'cargas_terceiros' => (int) round($cargasTerceiros),

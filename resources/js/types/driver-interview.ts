@@ -17,6 +17,8 @@ export type GuepStatus =
 
 export type InterviewCurriculumStatus =
     | 'pendente'
+    | 'convocado_entrevista'
+    | 'descartado'
     | 'recusado'
     | 'aguardando_entrevista'
     | 'aprovado_entrevista'
@@ -160,6 +162,15 @@ export interface InterviewCurriculumListItem {
     unit_name: string | null;
     observacao: string | null;
     status: InterviewCurriculumStatus;
+    interview_date: string | null;
+    interview_time: string | null;
+    discard_reason: string | null;
+    treatment_notes: string | null;
+    treated_at: string | null;
+    treated_by: number | null;
+    confirmed_interview_date: string | null;
+    confirmed_interview_time: string | null;
+    confirmation_notes: string | null;
     document_original_name: string;
     document_url: string | null;
     cnh_attachment_original_name: string | null;
@@ -177,6 +188,29 @@ export interface InterviewCurriculumListItem {
     } | null;
     created_at: string;
     updated_at: string;
+}
+
+export interface InterviewCandidateListGroupItem {
+    id: number;
+    full_name: string;
+    phone: string | null;
+    role_name: string | null;
+    unit_name: string | null;
+    status: InterviewCurriculumStatus;
+    interview_date: string | null;
+    interview_time: string | null;
+    confirmed_interview_date: string | null;
+    confirmed_interview_time: string | null;
+    confirmation_notes: string | null;
+    treatment_notes: string | null;
+    observacao: string | null;
+    updated_at: string;
+}
+
+export interface InterviewCandidateListGroup {
+    interview_date: string;
+    total: number;
+    items: InterviewCandidateListGroupItem[];
 }
 
 export interface NextStepDocumentLinks {

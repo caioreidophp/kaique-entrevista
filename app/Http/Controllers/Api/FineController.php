@@ -211,6 +211,7 @@ class FineController extends Controller
 
         $validated = $request->validate([
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'id' => ['nullable', 'integer', 'exists:multas,id'],
             'sort_by' => [
                 'nullable',
                 Rule::in([
@@ -275,6 +276,10 @@ class FineController extends Controller
         }
 
         $query->where('multas.tipo_registro', $tipoRegistro);
+
+        if (! empty($validated['id'])) {
+            $query->where('multas.id', (int) $validated['id']);
+        }
 
         if (! empty($validated['unidade_id'])) {
             abort_unless($user?->canAccessUnit('fines', (int) $validated['unidade_id']), 403);

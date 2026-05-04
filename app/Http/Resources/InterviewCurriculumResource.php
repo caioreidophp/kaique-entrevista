@@ -45,6 +45,15 @@ class InterviewCurriculumResource extends JsonResource
             'unit_name' => $this->unit_name,
             'observacao' => $this->observacao,
             'status' => $this->status?->value,
+            'interview_date' => $this->interview_date?->toDateString(),
+            'interview_time' => $this->interview_time,
+            'discard_reason' => $this->discard_reason,
+            'treatment_notes' => $this->treatment_notes,
+            'treated_at' => $this->treated_at?->toISOString(),
+            'treated_by' => $this->treated_by,
+            'confirmed_interview_date' => $this->confirmed_interview_date?->toDateString(),
+            'confirmed_interview_time' => $this->confirmed_interview_time,
+            'confirmation_notes' => $this->confirmation_notes,
             'document_original_name' => $this->document_original_name,
             'document_url' => $this->document_path
                 ? '/storage/'.ltrim((string) $this->document_path, '/')
