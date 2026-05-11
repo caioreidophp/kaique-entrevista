@@ -272,7 +272,9 @@ export default function TransportInterviewsShowPage({
                                 <AttachmentLink
                                     label="Foto do candidato"
                                     url={item.candidate_photo_url}
-                                    fileName={item.candidate_photo_original_name}
+                                    fileName={
+                                        item.candidate_photo_original_name
+                                    }
                                 />
                                 <AttachmentLink
                                     label="Anexo CNH"
@@ -282,12 +284,17 @@ export default function TransportInterviewsShowPage({
                                 <AttachmentLink
                                     label="Carteira de Trabalho"
                                     url={item.work_card_attachment_url}
-                                    fileName={item.work_card_attachment_original_name}
+                                    fileName={
+                                        item.work_card_attachment_original_name
+                                    }
                                 />
                                 <AttachmentLink
                                     label="Currículo"
                                     url={item.curriculum?.document_url ?? null}
-                                    fileName={item.curriculum?.document_original_name ?? null}
+                                    fileName={
+                                        item.curriculum
+                                            ?.document_original_name ?? null
+                                    }
                                 />
                                 <Item
                                     label="Status currículo"

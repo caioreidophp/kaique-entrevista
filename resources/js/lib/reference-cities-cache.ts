@@ -59,7 +59,10 @@ function writeStorageCache(data: CityOption[]): void {
         data,
     };
 
-    window.localStorage.setItem(CITY_CACHE_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(
+        CITY_CACHE_STORAGE_KEY,
+        JSON.stringify(payload),
+    );
 }
 
 export async function loadReferenceCitiesCached(): Promise<CityOption[]> {
@@ -74,7 +77,8 @@ export async function loadReferenceCitiesCached(): Promise<CityOption[]> {
         return storageCache;
     }
 
-    const response = await apiGet<WrappedResponse<CityOption[]>>('/reference/cities');
+    const response =
+        await apiGet<WrappedResponse<CityOption[]>>('/reference/cities');
     memoryCache = response.data;
     writeStorageCache(response.data);
 

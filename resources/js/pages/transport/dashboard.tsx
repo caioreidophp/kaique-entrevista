@@ -44,7 +44,9 @@ function SummaryCard({
             }`}
         >
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="transport-metric-label">{title}</CardTitle>
+                <CardTitle className="transport-metric-label">
+                    {title}
+                </CardTitle>
                 <span className="transport-kpi-icon">{icon}</span>
             </CardHeader>
             <CardContent>
@@ -96,9 +98,7 @@ export default function TransportDashboardPage() {
     useEffect(() => {
         apiGet<DashboardSummary>('/dashboard/summary')
             .then((response) => setSummary(response))
-            .catch(() =>
-                setError('Não foi possível carregar os indicadores.'),
-            )
+            .catch(() => setError('Não foi possível carregar os indicadores.'))
             .finally(() => setLoading(false));
     }, []);
 
@@ -156,7 +156,9 @@ export default function TransportDashboardPage() {
                     </p>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
 
                 {loading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -241,7 +243,10 @@ export default function TransportDashboardPage() {
                                                 style={{
                                                     width: `${Math.min(
                                                         100,
-                                                        Math.max(0, approvalRate),
+                                                        Math.max(
+                                                            0,
+                                                            approvalRate,
+                                                        ),
                                                     )}%`,
                                                 }}
                                             />
@@ -326,7 +331,10 @@ export default function TransportDashboardPage() {
                                                 GUEP pendente
                                             </p>
                                             <p className="mt-1 text-xl font-semibold">
-                                                {summary.pending_actions.guep_to_do}
+                                                {
+                                                    summary.pending_actions
+                                                        .guep_to_do
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -443,7 +451,10 @@ export default function TransportDashboardPage() {
                                         <div className="flex items-center justify-between rounded-md border border-border/70 bg-muted/15 px-3 py-2">
                                             <span>GUEP a fazer</span>
                                             <Badge variant="secondary">
-                                                {summary.pending_actions.guep_to_do}
+                                                {
+                                                    summary.pending_actions
+                                                        .guep_to_do
+                                                }
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between border-t pt-2">
@@ -470,7 +481,8 @@ export default function TransportDashboardPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        {summary.recent_activity.length === 0 ? (
+                                        {summary.recent_activity.length ===
+                                        0 ? (
                                             <div className="transport-empty-state">
                                                 <strong>
                                                     Sem atividade recente

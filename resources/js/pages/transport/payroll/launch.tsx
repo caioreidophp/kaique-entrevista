@@ -123,9 +123,9 @@ function isLaunchDraftSnapshot(value: unknown): value is LaunchDraftSnapshot {
 
     return Boolean(
         typeof draft.version === 'number' &&
-            typeof draft.updatedAt === 'string' &&
-            draft.data &&
-            typeof draft.data === 'object',
+        typeof draft.updatedAt === 'string' &&
+        draft.data &&
+        typeof draft.data === 'object',
     );
 }
 
@@ -165,14 +165,20 @@ export default function TransportPayrollLaunchPage() {
         Record<number, boolean>
     >({});
     const [values, setValues] = useState<Record<string, string>>({});
-    const [pensionValues, setPensionValues] = useState<Record<string, string>>({});
+    const [pensionValues, setPensionValues] = useState<Record<string, string>>(
+        {},
+    );
     const [, setEditablePaymentIds] = useState<number[]>([]);
     const [defaultWorkDays, setDefaultWorkDays] = useState('0');
     const [defaultVrDaily, setDefaultVrDaily] = useState('0');
     const [defaultVtDaily, setDefaultVtDaily] = useState('0');
     const [defaultCestaBasica, setDefaultCestaBasica] = useState('0');
-    const [workDaysByCollaborator, setWorkDaysByCollaborator] = useState<Record<number, string>>({});
-    const [nameSortDirection, setNameSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [workDaysByCollaborator, setWorkDaysByCollaborator] = useState<
+        Record<number, string>
+    >({});
+    const [nameSortDirection, setNameSortDirection] = useState<'asc' | 'desc'>(
+        'asc',
+    );
     const [benefitAutoFillTouched, setBenefitAutoFillTouched] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
@@ -200,14 +206,19 @@ export default function TransportPayrollLaunchPage() {
     );
 
     const hasSalaryAdvanceTypeSelected = useMemo(
-        () => selectedTipos.some((tipo) => normalizePaymentName(tipo.nome).includes('adiantamento')),
+        () =>
+            selectedTipos.some((tipo) =>
+                normalizePaymentName(tipo.nome).includes('adiantamento'),
+            ),
         [selectedTipos],
     );
 
     const selectedValeRefeicaoTypeIds = useMemo(
         () =>
             selectedTipos
-                .filter((tipo) => normalizePaymentName(tipo.nome).includes('vale refeicao'))
+                .filter((tipo) =>
+                    normalizePaymentName(tipo.nome).includes('vale refeicao'),
+                )
                 .map((tipo) => tipo.id),
         [selectedTipos],
     );
@@ -215,7 +226,9 @@ export default function TransportPayrollLaunchPage() {
     const selectedValeTransporteTypeIds = useMemo(
         () =>
             selectedTipos
-                .filter((tipo) => normalizePaymentName(tipo.nome).includes('vale transporte'))
+                .filter((tipo) =>
+                    normalizePaymentName(tipo.nome).includes('vale transporte'),
+                )
                 .map((tipo) => tipo.id),
         [selectedTipos],
     );
@@ -223,7 +236,9 @@ export default function TransportPayrollLaunchPage() {
     const selectedCestaBasicaTypeIds = useMemo(
         () =>
             selectedTipos
-                .filter((tipo) => normalizePaymentName(tipo.nome).includes('cesta basica'))
+                .filter((tipo) =>
+                    normalizePaymentName(tipo.nome).includes('cesta basica'),
+                )
                 .map((tipo) => tipo.id),
         [selectedTipos],
     );
@@ -234,9 +249,11 @@ export default function TransportPayrollLaunchPage() {
                 .filter((tipo) => {
                     const normalizedName = normalizePaymentName(tipo.nome);
 
-                    return normalizedName.includes('adiantamento')
-                        || normalizedName.includes('decimo terceiro')
-                        || normalizedName.includes('salario mensal');
+                    return (
+                        normalizedName.includes('adiantamento') ||
+                        normalizedName.includes('decimo terceiro') ||
+                        normalizedName.includes('salario mensal')
+                    );
                 })
                 .map((tipo) => tipo.id),
         [tiposPagamento],
@@ -259,9 +276,11 @@ export default function TransportPayrollLaunchPage() {
 
     const hasValeRefeicaoSelected = selectedValeRefeicaoTypeIds.length > 0;
     const hasValeTransporteSelected = selectedValeTransporteTypeIds.length > 0;
-    const hasBenefitDailyAutoFill = hasValeRefeicaoSelected || hasValeTransporteSelected;
+    const hasBenefitDailyAutoFill =
+        hasValeRefeicaoSelected || hasValeTransporteSelected;
     const hasCestaBasicaAutoFill = selectedCestaBasicaTypeIds.length > 0;
-    const hasGlobalTopAutoFill = hasBenefitDailyAutoFill || hasCestaBasicaAutoFill;
+    const hasGlobalTopAutoFill =
+        hasBenefitDailyAutoFill || hasCestaBasicaAutoFill;
 
     const allChecked =
         candidates.length > 0 &&
@@ -298,7 +317,8 @@ export default function TransportPayrollLaunchPage() {
 
             selectedTipoIds.forEach((tipoId) => {
                 const key = valueKey(candidate.id, tipoId);
-                totals[tipoId] = (totals[tipoId] ?? 0) + parseMoneyInput(values[key] ?? '0');
+                totals[tipoId] =
+                    (totals[tipoId] ?? 0) + parseMoneyInput(values[key] ?? '0');
             });
         });
 
@@ -310,7 +330,9 @@ export default function TransportPayrollLaunchPage() {
         try {
             const [unidadesResponse, tiposResponse] = await Promise.all([
                 apiGet<WrappedResponse<Unidade[]>>('/registry/unidades'),
-                apiGet<WrappedResponse<TipoPagamento[]>>('/registry/tipos-pagamento'),
+                apiGet<WrappedResponse<TipoPagamento[]>>(
+                    '/registry/tipos-pagamento',
+                ),
             ]);
 
             const response = unidadesResponse;
@@ -381,7 +403,9 @@ export default function TransportPayrollLaunchPage() {
             return;
         }
 
-        const raw = window.localStorage.getItem(PAYROLL_LAUNCH_DRAFT_STORAGE_KEY);
+        const raw = window.localStorage.getItem(
+            PAYROLL_LAUNCH_DRAFT_STORAGE_KEY,
+        );
 
         if (!raw) {
             setDraftResolved(true);
@@ -392,7 +416,9 @@ export default function TransportPayrollLaunchPage() {
             const parsed = JSON.parse(raw) as unknown;
 
             if (!isLaunchDraftSnapshot(parsed)) {
-                window.localStorage.removeItem(PAYROLL_LAUNCH_DRAFT_STORAGE_KEY);
+                window.localStorage.removeItem(
+                    PAYROLL_LAUNCH_DRAFT_STORAGE_KEY,
+                );
                 setDraftResolved(true);
                 return;
             }
@@ -510,11 +536,16 @@ export default function TransportPayrollLaunchPage() {
                 ? Object.fromEntries(
                       draftSnapshot.data.candidates.map((item) => [
                           item.id,
-                          draftSnapshot.data.workDaysByCollaborator?.[item.id] ?? '0',
+                          draftSnapshot.data.workDaysByCollaborator?.[
+                              item.id
+                          ] ?? '0',
                       ]),
                   )
                 : Object.fromEntries(
-                      draftSnapshot.data.candidates.map((item) => [item.id, '0']),
+                      draftSnapshot.data.candidates.map((item) => [
+                          item.id,
+                          '0',
+                      ]),
                   ),
         );
         setBenefitAutoFillTouched(false);
@@ -591,7 +622,11 @@ export default function TransportPayrollLaunchPage() {
         return `${colaboradorId}:${tipoId}`;
     }
 
-    function setValue(colaboradorId: number, tipoId: number, value: string): void {
+    function setValue(
+        colaboradorId: number,
+        tipoId: number,
+        value: string,
+    ): void {
         setValues((previous) => {
             const key = valueKey(colaboradorId, tipoId);
 
@@ -614,7 +649,11 @@ export default function TransportPayrollLaunchPage() {
         return `p:${colaboradorId}:${pensaoId}`;
     }
 
-    function setPensionValue(colaboradorId: number, pensaoId: number, value: string): void {
+    function setPensionValue(
+        colaboradorId: number,
+        pensaoId: number,
+        value: string,
+    ): void {
         setPensionValues((previous) => {
             const key = pensionValueKey(colaboradorId, pensaoId);
 
@@ -629,7 +668,10 @@ export default function TransportPayrollLaunchPage() {
         });
     }
 
-    function focusAdjacentLaunchInput(currentKey: string, direction: 1 | -1): void {
+    function focusAdjacentLaunchInput(
+        currentKey: string,
+        direction: 1 | -1,
+    ): void {
         const orderedKeys: string[] = [];
 
         sortedCandidates.forEach((candidate) => {
@@ -668,7 +710,9 @@ export default function TransportPayrollLaunchPage() {
         const rows: string[][] = [];
 
         sortedCandidates.forEach((candidate) => {
-            const paymentRow = selectedTipos.map((tipo) => valueKey(candidate.id, tipo.id));
+            const paymentRow = selectedTipos.map((tipo) =>
+                valueKey(candidate.id, tipo.id),
+            );
 
             if (paymentRow.length > 0) {
                 rows.push(paymentRow);
@@ -776,7 +820,9 @@ export default function TransportPayrollLaunchPage() {
                 return previous;
             }
 
-            return Object.fromEntries(candidates.map((candidate) => [candidate.id, value]));
+            return Object.fromEntries(
+                candidates.map((candidate) => [candidate.id, value]),
+            );
         });
     }
 
@@ -814,9 +860,8 @@ export default function TransportPayrollLaunchPage() {
 
                 selectedValeTransporteTypeIds.forEach((tipoId) => {
                     const total = days * vtDaily;
-                    const roundedUpToFive = total > 0
-                        ? Math.ceil(total / 5) * 5
-                        : 0;
+                    const roundedUpToFive =
+                        total > 0 ? Math.ceil(total / 5) * 5 : 0;
                     const amount = roundedUpToFive.toFixed(2);
                     const key = valueKey(candidate.id, tipoId);
 
@@ -844,10 +889,10 @@ export default function TransportPayrollLaunchPage() {
 
     useEffect(() => {
         if (
-            !benefitAutoFillTouched
-            || !hasCestaBasicaAutoFill
-            || selectedTipoIds.length === 0
-            || candidates.length === 0
+            !benefitAutoFillTouched ||
+            !hasCestaBasicaAutoFill ||
+            selectedTipoIds.length === 0 ||
+            candidates.length === 0
         ) {
             return;
         }
@@ -909,7 +954,8 @@ export default function TransportPayrollLaunchPage() {
 
         if (hasAnySalaryAdvance) {
             setNotification({
-                message: 'Adiantamento selecionado: colaboradores com Adiantamento Salarial = S foram marcados automaticamente.',
+                message:
+                    'Adiantamento selecionado: colaboradores com Adiantamento Salarial = S foram marcados automaticamente.',
                 variant: 'info',
             });
         }
@@ -982,7 +1028,10 @@ export default function TransportPayrollLaunchPage() {
                     const target = valueInputRefs.current[firstInputKey];
                     if (target && !target.disabled) {
                         target.focus();
-                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        });
                     }
                 }
             }
@@ -1016,7 +1065,9 @@ export default function TransportPayrollLaunchPage() {
             });
 
             if (typeof window !== 'undefined') {
-                window.localStorage.removeItem(PAYROLL_LAUNCH_DRAFT_STORAGE_KEY);
+                window.localStorage.removeItem(
+                    PAYROLL_LAUNCH_DRAFT_STORAGE_KEY,
+                );
             }
             setDraftSnapshot(null);
 
@@ -1027,7 +1078,10 @@ export default function TransportPayrollLaunchPage() {
                     ? Object.values(error.errors)[0]?.[0]
                     : null;
                 setNotification({
-                    message: firstError ?? error.message ?? 'Não foi possível lançar os pagamentos.',
+                    message:
+                        firstError ??
+                        error.message ??
+                        'Não foi possível lançar os pagamentos.',
                     variant: 'error',
                 });
             } else {
@@ -1058,25 +1112,37 @@ export default function TransportPayrollLaunchPage() {
                 >
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Retomar lançamento em andamento?</DialogTitle>
+                            <DialogTitle>
+                                Retomar lançamento em andamento?
+                            </DialogTitle>
                             <DialogDescription>
-                                Encontramos um rascunho não finalizado do cadastro de pagamento.
+                                Encontramos um rascunho não finalizado do
+                                cadastro de pagamento.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-sm">
                             <p>
                                 <span className="font-medium">Descrição:</span>{' '}
-                                {draftSnapshot?.data.descricao?.trim() || 'Sem descrição'}
+                                {draftSnapshot?.data.descricao?.trim() ||
+                                    'Sem descrição'}
                             </p>
                             <p>
-                                <span className="font-medium">Última edição:</span>{' '}
-                                {draftSnapshot ? formatDraftDate(draftSnapshot.updatedAt) : '-'}
+                                <span className="font-medium">
+                                    Última edição:
+                                </span>{' '}
+                                {draftSnapshot
+                                    ? formatDraftDate(draftSnapshot.updatedAt)
+                                    : '-'}
                             </p>
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={handleDiscardDraft}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDiscardDraft}
+                            >
                                 Não, começar do zero
                             </Button>
                             <Button type="button" onClick={handleResumeDraft}>
@@ -1087,7 +1153,9 @@ export default function TransportPayrollLaunchPage() {
                 </Dialog>
 
                 {!draftResolved ? (
-                    <p className="text-sm text-muted-foreground">Carregando rascunho...</p>
+                    <p className="text-sm text-muted-foreground">
+                        Carregando rascunho...
+                    </p>
                 ) : null}
 
                 <div className="transport-dashboard-header">
@@ -1096,7 +1164,8 @@ export default function TransportPayrollLaunchPage() {
                         Lançar Pagamentos
                     </h2>
                     <p className="transport-dashboard-subtitle">
-                        Informe descrição, unidade, tipos e data para lançar pagamentos em lote.
+                        Informe descrição, unidade, tipos e data para lançar
+                        pagamentos em lote.
                     </p>
                 </div>
 
@@ -1109,7 +1178,9 @@ export default function TransportPayrollLaunchPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Filtros
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-4">
@@ -1161,7 +1232,9 @@ export default function TransportPayrollLaunchPage() {
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            <Label>Tipo de pagamento (pode escolher mais de um)</Label>
+                            <Label>
+                                Tipo de pagamento (pode escolher mais de um)
+                            </Label>
                             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                                 {tiposPagamento.map((tipo) => (
                                     <label
@@ -1173,13 +1246,20 @@ export default function TransportPayrollLaunchPage() {
                                         }`}
                                     >
                                         <Checkbox
-                                            checked={selectedTipoIds.includes(tipo.id)}
+                                            checked={selectedTipoIds.includes(
+                                                tipo.id,
+                                            )}
                                             onCheckedChange={(checked) =>
-                                                toggleTipo(tipo.id, Boolean(checked))
+                                                toggleTipo(
+                                                    tipo.id,
+                                                    Boolean(checked),
+                                                )
                                             }
                                             disabled={isTipoBlocked(tipo.id)}
                                         />
-                                        <span className="text-sm">{tipo.nome}</span>
+                                        <span className="text-sm">
+                                            {tipo.nome}
+                                        </span>
                                     </label>
                                 ))}
                             </div>
@@ -1190,7 +1270,11 @@ export default function TransportPayrollLaunchPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => void loadCandidates()}
-                                disabled={!unidadeId || selectedTipoIds.length === 0 || !dataPagamento}
+                                disabled={
+                                    !unidadeId ||
+                                    selectedTipoIds.length === 0 ||
+                                    !dataPagamento
+                                }
                             >
                                 Carregar colaboradores
                             </Button>
@@ -1200,10 +1284,14 @@ export default function TransportPayrollLaunchPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Colaboradores ativos da unidade</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Colaboradores ativos da unidade
+                        </CardTitle>
                         {hasSalaryTypeSelected ? (
                             <p className="text-xs text-muted-foreground">
-                                Para tipos de salário, informe também os valores de pensão do mês em linhas "Colaborador - Pensão".
+                                Para tipos de salário, informe também os valores
+                                de pensão do mês em linhas "Colaborador -
+                                Pensão".
                             </p>
                         ) : null}
                     </CardHeader>
@@ -1215,8 +1303,11 @@ export default function TransportPayrollLaunchPage() {
                             </div>
                         ) : candidates.length === 0 ? (
                             <div className="transport-empty-state">
-                                <strong>Nenhum colaborador ativo encontrado</strong>
-                                Selecione unidade, data e tipo de pagamento para carregar os colaboradores.
+                                <strong>
+                                    Nenhum colaborador ativo encontrado
+                                </strong>
+                                Selecione unidade, data e tipo de pagamento para
+                                carregar os colaboradores.
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -1235,67 +1326,127 @@ export default function TransportPayrollLaunchPage() {
                                                                 step="1"
                                                                 className="font-normal"
                                                                 title="Dias úteis padrão para auto preenchimento de benefícios."
-                                                                value={defaultWorkDays}
-                                                                onChange={(event) => {
-                                                                    const nextValue = event.target.value;
-                                                                    setDefaultWorkDays(nextValue);
-                                                                    setAllCollaboratorWorkDays(nextValue);
-                                                                    setBenefitAutoFillTouched(true);
+                                                                value={
+                                                                    defaultWorkDays
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) => {
+                                                                    const nextValue =
+                                                                        event
+                                                                            .target
+                                                                            .value;
+                                                                    setDefaultWorkDays(
+                                                                        nextValue,
+                                                                    );
+                                                                    setAllCollaboratorWorkDays(
+                                                                        nextValue,
+                                                                    );
+                                                                    setBenefitAutoFillTouched(
+                                                                        true,
+                                                                    );
                                                                 }}
                                                             />
                                                         </th>
                                                     ) : null}
                                                     <th className="px-2 py-2 text-left" />
-                                                    {selectedTipos.map((tipo) => {
-                                                        const normalizedTipoName = normalizePaymentName(tipo.nome);
-                                                        const isVr = normalizedTipoName.includes('vale refeicao');
-                                                        const isVt = normalizedTipoName.includes('vale transporte');
-                                                        const isCestaBasica = normalizedTipoName.includes('cesta basica');
+                                                    {selectedTipos.map(
+                                                        (tipo) => {
+                                                            const normalizedTipoName =
+                                                                normalizePaymentName(
+                                                                    tipo.nome,
+                                                                );
+                                                            const isVr =
+                                                                normalizedTipoName.includes(
+                                                                    'vale refeicao',
+                                                                );
+                                                            const isVt =
+                                                                normalizedTipoName.includes(
+                                                                    'vale transporte',
+                                                                );
+                                                            const isCestaBasica =
+                                                                normalizedTipoName.includes(
+                                                                    'cesta basica',
+                                                                );
 
-                                                        return (
-                                                            <th key={`global-field-${tipo.id}`} className="px-2 py-2 text-left">
-                                                                {isVr ? (
-                                                                    <Input
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        className="font-normal"
-                                                                        title="Valor diário de Vale Refeição aplicado automaticamente enquanto não houver edição manual por colaborador."
-                                                                        value={defaultVrDaily}
-                                                                        onChange={(event) => {
-                                                                            setDefaultVrDaily(event.target.value);
-                                                                            setBenefitAutoFillTouched(true);
-                                                                        }}
-                                                                    />
-                                                                ) : null}
-                                                                {isVt ? (
-                                                                    <Input
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        className="font-normal"
-                                                                        title="Valor diário de Vale Transporte com arredondamento para cima em múltiplos de 5 no total mensal."
-                                                                        value={defaultVtDaily}
-                                                                        onChange={(event) => {
-                                                                            setDefaultVtDaily(event.target.value);
-                                                                            setBenefitAutoFillTouched(true);
-                                                                        }}
-                                                                    />
-                                                                ) : null}
-                                                                {isCestaBasica ? (
-                                                                    <Input
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        className="font-normal"
-                                                                        title="Valor fixo de Cesta Básica para todos os colaboradores marcados."
-                                                                        value={defaultCestaBasica}
-                                                                        onChange={(event) => {
-                                                                            setDefaultCestaBasica(event.target.value);
-                                                                            setBenefitAutoFillTouched(true);
-                                                                        }}
-                                                                    />
-                                                                ) : null}
-                                                            </th>
-                                                        );
-                                                    })}
+                                                            return (
+                                                                <th
+                                                                    key={`global-field-${tipo.id}`}
+                                                                    className="px-2 py-2 text-left"
+                                                                >
+                                                                    {isVr ? (
+                                                                        <Input
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            className="font-normal"
+                                                                            title="Valor diário de Vale Refeição aplicado automaticamente enquanto não houver edição manual por colaborador."
+                                                                            value={
+                                                                                defaultVrDaily
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setDefaultVrDaily(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setBenefitAutoFillTouched(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    ) : null}
+                                                                    {isVt ? (
+                                                                        <Input
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            className="font-normal"
+                                                                            title="Valor diário de Vale Transporte com arredondamento para cima em múltiplos de 5 no total mensal."
+                                                                            value={
+                                                                                defaultVtDaily
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setDefaultVtDaily(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setBenefitAutoFillTouched(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    ) : null}
+                                                                    {isCestaBasica ? (
+                                                                        <Input
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            className="font-normal"
+                                                                            title="Valor fixo de Cesta Básica para todos os colaboradores marcados."
+                                                                            value={
+                                                                                defaultCestaBasica
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setDefaultCestaBasica(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setBenefitAutoFillTouched(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    ) : null}
+                                                                </th>
+                                                            );
+                                                        },
+                                                    )}
                                                 </tr>
                                             ) : null}
 
@@ -1303,9 +1454,13 @@ export default function TransportPayrollLaunchPage() {
                                                 <th className="w-[40px] px-2 py-2 text-left">
                                                     <Checkbox
                                                         checked={allChecked}
-                                                        onCheckedChange={(checked) =>
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
                                                             setAllCollaborators(
-                                                                Boolean(checked),
+                                                                Boolean(
+                                                                    checked,
+                                                                ),
                                                             )
                                                         }
                                                     />
@@ -1315,13 +1470,18 @@ export default function TransportPayrollLaunchPage() {
                                                         type="button"
                                                         className="inline-flex items-center gap-1"
                                                         onClick={() =>
-                                                            setNameSortDirection((previous) =>
-                                                                previous === 'asc' ? 'desc' : 'asc',
+                                                            setNameSortDirection(
+                                                                (previous) =>
+                                                                    previous ===
+                                                                    'asc'
+                                                                        ? 'desc'
+                                                                        : 'asc',
                                                             )
                                                         }
                                                     >
                                                         Nome
-                                                        {nameSortDirection === 'asc' ? (
+                                                        {nameSortDirection ===
+                                                        'asc' ? (
                                                             <ArrowUpAZ className="size-4" />
                                                         ) : (
                                                             <ArrowDownAZ className="size-4" />
@@ -1352,16 +1512,37 @@ export default function TransportPayrollLaunchPage() {
                                                     <tr className="border-t">
                                                         <td className="px-2 py-2">
                                                             <Checkbox
-                                                                checked={Boolean(selectedCollaborators[item.id])}
-                                                                onCheckedChange={(checked) =>
-                                                                    setCollaboratorSelected(item.id, Boolean(checked))
+                                                                checked={Boolean(
+                                                                    selectedCollaborators[
+                                                                        item.id
+                                                                    ],
+                                                                )}
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) =>
+                                                                    setCollaboratorSelected(
+                                                                        item.id,
+                                                                        Boolean(
+                                                                            checked,
+                                                                        ),
+                                                                    )
                                                                 }
                                                             />
                                                         </td>
                                                         <td className="px-2 py-2">
-                                                            <p className="font-medium">{item.nome}</p>
-                                                            <p className="text-xs text-muted-foreground">CPF: {item.cpf}</p>
-                                                            <p className="text-xs text-muted-foreground">Adiantamento Salarial: {item.adiantamento_salarial ? 'S' : 'N'}</p>
+                                                            <p className="font-medium">
+                                                                {item.nome}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                CPF: {item.cpf}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Adiantamento
+                                                                Salarial:{' '}
+                                                                {item.adiantamento_salarial
+                                                                    ? 'S'
+                                                                    : 'N'}
+                                                            </p>
                                                         </td>
                                                         {hasBenefitDailyAutoFill ? (
                                                             <td className="px-2 py-2">
@@ -1370,125 +1551,290 @@ export default function TransportPayrollLaunchPage() {
                                                                     min="0"
                                                                     step="1"
                                                                     title="Dias úteis do colaborador para cálculo automático de benefícios."
-                                                                    value={workDaysByCollaborator[item.id] ?? defaultWorkDays}
-                                                                    onChange={(event) =>
-                                                                        setWorkDaysByCollaborator((previous) => {
-                                                                            const nextValue = event.target.value;
+                                                                    value={
+                                                                        workDaysByCollaborator[
+                                                                            item
+                                                                                .id
+                                                                        ] ??
+                                                                        defaultWorkDays
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setWorkDaysByCollaborator(
+                                                                            (
+                                                                                previous,
+                                                                            ) => {
+                                                                                const nextValue =
+                                                                                    event
+                                                                                        .target
+                                                                                        .value;
 
-                                                                            if (previous[item.id] === nextValue) {
-                                                                                return previous;
-                                                                            }
+                                                                                if (
+                                                                                    previous[
+                                                                                        item
+                                                                                            .id
+                                                                                    ] ===
+                                                                                    nextValue
+                                                                                ) {
+                                                                                    return previous;
+                                                                                }
 
-                                                                            setBenefitAutoFillTouched(true);
+                                                                                setBenefitAutoFillTouched(
+                                                                                    true,
+                                                                                );
 
-                                                                            return {
-                                                                                ...previous,
-                                                                                [item.id]: nextValue,
-                                                                            };
-                                                                        })
+                                                                                return {
+                                                                                    ...previous,
+                                                                                    [item.id]:
+                                                                                        nextValue,
+                                                                                };
+                                                                            },
+                                                                        )
                                                                     }
                                                                 />
                                                             </td>
                                                         ) : null}
-                                                        <td className="px-2 py-2">{item.unidade?.nome ?? '-'}</td>
-                                                        {selectedTipos.map((tipo) => {
-                                                            const key = valueKey(item.id, tipo.id);
+                                                        <td className="px-2 py-2">
+                                                            {item.unidade
+                                                                ?.nome ?? '-'}
+                                                        </td>
+                                                        {selectedTipos.map(
+                                                            (tipo) => {
+                                                                const key =
+                                                                    valueKey(
+                                                                        item.id,
+                                                                        tipo.id,
+                                                                    );
 
-                                                            return (
-                                                                <td key={`${item.id}-${tipo.id}`} className="px-2 py-2">
-                                                                    <Input
-                                                                        type="text"
-                                                                        inputMode="decimal"
-                                                                        title="Use Enter/Tab/setas para navegar entre células."
-                                                                        value={values[key] ?? ''}
-                                                                        onChange={(event) =>
-                                                                            setValue(item.id, tipo.id, event.target.value)
-                                                                        }
-                                                                        ref={(element) => {
-                                                                            valueInputRefs.current[key] = element;
-                                                                        }}
-                                                                        onKeyDown={(event) => {
-                                                                            if (event.key === 'Enter') {
-                                                                                event.preventDefault();
-                                                                                focusAdjacentLaunchInput(key, 1);
-                                                                                return;
+                                                                return (
+                                                                    <td
+                                                                        key={`${item.id}-${tipo.id}`}
+                                                                        className="px-2 py-2"
+                                                                    >
+                                                                        <Input
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            title="Use Enter/Tab/setas para navegar entre células."
+                                                                            value={
+                                                                                values[
+                                                                                    key
+                                                                                ] ??
+                                                                                ''
                                                                             }
-
-                                                                            if (event.key === 'Tab') {
-                                                                                event.preventDefault();
-                                                                                focusAdjacentLaunchInput(key, event.shiftKey ? -1 : 1);
-                                                                                return;
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) =>
+                                                                                setValue(
+                                                                                    item.id,
+                                                                                    tipo.id,
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                )
                                                                             }
+                                                                            ref={(
+                                                                                element,
+                                                                            ) => {
+                                                                                valueInputRefs.current[
+                                                                                    key
+                                                                                ] =
+                                                                                    element;
+                                                                            }}
+                                                                            onKeyDown={(
+                                                                                event,
+                                                                            ) => {
+                                                                                if (
+                                                                                    event.key ===
+                                                                                    'Enter'
+                                                                                ) {
+                                                                                    event.preventDefault();
+                                                                                    focusAdjacentLaunchInput(
+                                                                                        key,
+                                                                                        1,
+                                                                                    );
+                                                                                    return;
+                                                                                }
 
-                                                                            handleArrowNavigation(event, key);
-                                                                        }}
-                                                                        disabled={
-                                                                            !selectedCollaborators[item.id]
-                                                                        }
-                                                                        placeholder="0,00"
-                                                                    />
-                                                                </td>
-                                                            );
-                                                        })}
+                                                                                if (
+                                                                                    event.key ===
+                                                                                    'Tab'
+                                                                                ) {
+                                                                                    event.preventDefault();
+                                                                                    focusAdjacentLaunchInput(
+                                                                                        key,
+                                                                                        event.shiftKey
+                                                                                            ? -1
+                                                                                            : 1,
+                                                                                    );
+                                                                                    return;
+                                                                                }
+
+                                                                                handleArrowNavigation(
+                                                                                    event,
+                                                                                    key,
+                                                                                );
+                                                                            }}
+                                                                            disabled={
+                                                                                !selectedCollaborators[
+                                                                                    item
+                                                                                        .id
+                                                                                ]
+                                                                            }
+                                                                            placeholder="0,00"
+                                                                        />
+                                                                    </td>
+                                                                );
+                                                            },
+                                                        )}
                                                     </tr>
 
-                                                    {hasSalaryTypeSelected && item.pensoes.length > 0
-                                                        ? item.pensoes.map((pensao) => (
-                                                              <tr key={`${item.id}-pensao-${pensao.id}`} className="border-t bg-muted/20">
-                                                                  <td className="px-2 py-2">
-                                                                      <Checkbox
-                                                                          checked={Boolean(selectedCollaborators[item.id])}
-                                                                          onCheckedChange={(checked) =>
-                                                                              setCollaboratorSelected(item.id, Boolean(checked))
-                                                                          }
-                                                                      />
-                                                                  </td>
-                                                                  <td className="px-2 py-2">
-                                                                      <p className="font-medium">{item.nome} - Pensão</p>
-                                                                      <p className="text-xs text-muted-foreground">
-                                                                          Beneficiária: {pensao.nome_beneficiaria}
-                                                                      </p>
-                                                                  </td>
-                                                                  {hasBenefitDailyAutoFill ? (
-                                                                      <td className="px-2 py-2">-</td>
-                                                                  ) : null}
-                                                                  <td className="px-2 py-2">{item.unidade?.nome ?? '-'}</td>
-                                                                  <td className="px-2 py-2" colSpan={selectedTipos.length}>
-                                                                      <Input
-                                                                          type="text"
-                                                                          inputMode="decimal"
-                                                                          placeholder="0,00"
-                                                                          value={
-                                                                              pensionValues[pensionValueKey(item.id, pensao.id)] ?? ''
-                                                                          }
-                                                                          onChange={(event) =>
-                                                                              setPensionValue(item.id, pensao.id, event.target.value)
-                                                                          }
-                                                                          ref={(element) => {
-                                                                              valueInputRefs.current[pensionInputKey(item.id, pensao.id)] = element;
-                                                                          }}
-                                                                          onKeyDown={(event) => {
-                                                                              const key = pensionInputKey(item.id, pensao.id);
-
-                                                                              if (event.key === 'Enter') {
-                                                                                  event.preventDefault();
-                                                                                  focusAdjacentLaunchInput(key, 1);
-                                                                                  return;
+                                                    {hasSalaryTypeSelected &&
+                                                    item.pensoes.length > 0
+                                                        ? item.pensoes.map(
+                                                              (pensao) => (
+                                                                  <tr
+                                                                      key={`${item.id}-pensao-${pensao.id}`}
+                                                                      className="border-t bg-muted/20"
+                                                                  >
+                                                                      <td className="px-2 py-2">
+                                                                          <Checkbox
+                                                                              checked={Boolean(
+                                                                                  selectedCollaborators[
+                                                                                      item
+                                                                                          .id
+                                                                                  ],
+                                                                              )}
+                                                                              onCheckedChange={(
+                                                                                  checked,
+                                                                              ) =>
+                                                                                  setCollaboratorSelected(
+                                                                                      item.id,
+                                                                                      Boolean(
+                                                                                          checked,
+                                                                                      ),
+                                                                                  )
                                                                               }
-
-                                                                              if (event.key === 'Tab') {
-                                                                                  event.preventDefault();
-                                                                                  focusAdjacentLaunchInput(key, event.shiftKey ? -1 : 1);
-                                                                                  return;
+                                                                          />
+                                                                      </td>
+                                                                      <td className="px-2 py-2">
+                                                                          <p className="font-medium">
+                                                                              {
+                                                                                  item.nome
+                                                                              }{' '}
+                                                                              -
+                                                                              Pensão
+                                                                          </p>
+                                                                          <p className="text-xs text-muted-foreground">
+                                                                              Beneficiária:{' '}
+                                                                              {
+                                                                                  pensao.nome_beneficiaria
                                                                               }
+                                                                          </p>
+                                                                      </td>
+                                                                      {hasBenefitDailyAutoFill ? (
+                                                                          <td className="px-2 py-2">
+                                                                              -
+                                                                          </td>
+                                                                      ) : null}
+                                                                      <td className="px-2 py-2">
+                                                                          {item
+                                                                              .unidade
+                                                                              ?.nome ??
+                                                                              '-'}
+                                                                      </td>
+                                                                      <td
+                                                                          className="px-2 py-2"
+                                                                          colSpan={
+                                                                              selectedTipos.length
+                                                                          }
+                                                                      >
+                                                                          <Input
+                                                                              type="text"
+                                                                              inputMode="decimal"
+                                                                              placeholder="0,00"
+                                                                              value={
+                                                                                  pensionValues[
+                                                                                      pensionValueKey(
+                                                                                          item.id,
+                                                                                          pensao.id,
+                                                                                      )
+                                                                                  ] ??
+                                                                                  ''
+                                                                              }
+                                                                              onChange={(
+                                                                                  event,
+                                                                              ) =>
+                                                                                  setPensionValue(
+                                                                                      item.id,
+                                                                                      pensao.id,
+                                                                                      event
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                              }
+                                                                              ref={(
+                                                                                  element,
+                                                                              ) => {
+                                                                                  valueInputRefs.current[
+                                                                                      pensionInputKey(
+                                                                                          item.id,
+                                                                                          pensao.id,
+                                                                                      )
+                                                                                  ] =
+                                                                                      element;
+                                                                              }}
+                                                                              onKeyDown={(
+                                                                                  event,
+                                                                              ) => {
+                                                                                  const key =
+                                                                                      pensionInputKey(
+                                                                                          item.id,
+                                                                                          pensao.id,
+                                                                                      );
 
-                                                                              handleArrowNavigation(event, key);
-                                                                          }}
-                                                                          disabled={!selectedCollaborators[item.id]}
-                                                                      />
-                                                                  </td>
-                                                              </tr>
-                                                          ))
+                                                                                  if (
+                                                                                      event.key ===
+                                                                                      'Enter'
+                                                                                  ) {
+                                                                                      event.preventDefault();
+                                                                                      focusAdjacentLaunchInput(
+                                                                                          key,
+                                                                                          1,
+                                                                                      );
+                                                                                      return;
+                                                                                  }
+
+                                                                                  if (
+                                                                                      event.key ===
+                                                                                      'Tab'
+                                                                                  ) {
+                                                                                      event.preventDefault();
+                                                                                      focusAdjacentLaunchInput(
+                                                                                          key,
+                                                                                          event.shiftKey
+                                                                                              ? -1
+                                                                                              : 1,
+                                                                                      );
+                                                                                      return;
+                                                                                  }
+
+                                                                                  handleArrowNavigation(
+                                                                                      event,
+                                                                                      key,
+                                                                                  );
+                                                                              }}
+                                                                              disabled={
+                                                                                  !selectedCollaborators[
+                                                                                      item
+                                                                                          .id
+                                                                                  ]
+                                                                              }
+                                                                          />
+                                                                      </td>
+                                                                  </tr>
+                                                              ),
+                                                          )
                                                         : null}
                                                 </Fragment>
                                             ))}
@@ -1496,12 +1842,23 @@ export default function TransportPayrollLaunchPage() {
                                         <tfoot>
                                             <tr className="border-t bg-muted/35 font-semibold">
                                                 <td className="px-2 py-2" />
-                                                <td className="px-2 py-2">Total da coluna</td>
-                                                {hasBenefitDailyAutoFill ? <td className="px-2 py-2" /> : null}
+                                                <td className="px-2 py-2">
+                                                    Total da coluna
+                                                </td>
+                                                {hasBenefitDailyAutoFill ? (
+                                                    <td className="px-2 py-2" />
+                                                ) : null}
                                                 <td className="px-2 py-2" />
                                                 {selectedTipos.map((tipo) => (
-                                                    <td key={`total-col-${tipo.id}`} className="px-2 py-2 font-semibold">
-                                                        {formatCurrencyBR(columnTotalsByTipo[tipo.id] ?? 0)}
+                                                    <td
+                                                        key={`total-col-${tipo.id}`}
+                                                        className="px-2 py-2 font-semibold"
+                                                    >
+                                                        {formatCurrencyBR(
+                                                            columnTotalsByTipo[
+                                                                tipo.id
+                                                            ] ?? 0,
+                                                        )}
                                                     </td>
                                                 ))}
                                             </tr>
@@ -1513,7 +1870,10 @@ export default function TransportPayrollLaunchPage() {
                                     <Button
                                         type="button"
                                         onClick={() => void handleLaunch()}
-                                        disabled={saving || selectedTipoIds.length === 0}
+                                        disabled={
+                                            saving ||
+                                            selectedTipoIds.length === 0
+                                        }
                                     >
                                         {saving ? (
                                             <>

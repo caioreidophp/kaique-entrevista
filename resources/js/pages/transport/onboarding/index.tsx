@@ -1,4 +1,12 @@
-import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, Save, Search, WandSparkles } from 'lucide-react';
+import {
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight,
+    LoaderCircle,
+    Save,
+    Search,
+    WandSparkles,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -78,14 +86,19 @@ function emptyFormState(): FormState {
         documentos: Object.fromEntries(
             DOCUMENT_ITEMS.map((item) => [item.code, false]),
         ),
-        cursos: Object.fromEntries(COURSE_ITEMS.map((item) => [item.code, false])),
+        cursos: Object.fromEntries(
+            COURSE_ITEMS.map((item) => [item.code, false]),
+        ),
         outros: Object.fromEntries(
             OTHER_ITEMS.map((item) => [item.code, '']),
         ) as Record<string, YesNo>,
     };
 }
 
-function itemByCode(onboarding: OnboardingRecord | null, code: string): OnboardingItem | undefined {
+function itemByCode(
+    onboarding: OnboardingRecord | null,
+    code: string,
+): OnboardingItem | undefined {
     return onboarding?.items.find((item) => item.code === code);
 }
 
@@ -124,15 +137,21 @@ function buildForm(onboarding: OnboardingRecord): FormState {
     next.exames = examValue(itemByCode(onboarding, EXAM_CODE));
 
     DOCUMENT_ITEMS.forEach((config) => {
-        next.documentos[config.code] = isApproved(itemByCode(onboarding, config.code));
+        next.documentos[config.code] = isApproved(
+            itemByCode(onboarding, config.code),
+        );
     });
 
     COURSE_ITEMS.forEach((config) => {
-        next.cursos[config.code] = isApproved(itemByCode(onboarding, config.code));
+        next.cursos[config.code] = isApproved(
+            itemByCode(onboarding, config.code),
+        );
     });
 
     OTHER_ITEMS.forEach((config) => {
-        next.outros[config.code] = otherValue(itemByCode(onboarding, config.code));
+        next.outros[config.code] = otherValue(
+            itemByCode(onboarding, config.code),
+        );
     });
 
     return next;
@@ -161,7 +180,11 @@ function formEquals(first: FormState, second: FormState): boolean {
 }
 
 function onboardingDisplayName(item: OnboardingRecord): string {
-    return item.colaborador?.nome ?? item.interview?.full_name ?? `Onboarding #${item.id}`;
+    return (
+        item.colaborador?.nome ??
+        item.interview?.full_name ??
+        `Onboarding #${item.id}`
+    );
 }
 
 export default function TransportOnboardingPage() {
@@ -182,9 +205,8 @@ export default function TransportOnboardingPage() {
     const [selected, setSelected] = useState<OnboardingRecord | null>(null);
     const [selectedFromHistory, setSelectedFromHistory] = useState(false);
     const [formState, setFormState] = useState<FormState>(emptyFormState());
-    const [initialFormState, setInitialFormState] = useState<FormState>(
-        emptyFormState(),
-    );
+    const [initialFormState, setInitialFormState] =
+        useState<FormState>(emptyFormState());
     const [guidedMode, setGuidedMode] = useState(false);
     const [wizardStep, setWizardStep] = useState(0);
 
@@ -207,7 +229,9 @@ export default function TransportOnboardingPage() {
     const canAutoComplete = useMemo(() => {
         const docsOk = Object.values(formState.documentos).every(Boolean);
         const cursosOk = Object.values(formState.cursos).every(Boolean);
-        const outrosOk = Object.values(formState.outros).every((value) => value !== '');
+        const outrosOk = Object.values(formState.outros).every(
+            (value) => value !== '',
+        );
         const examesOk = formState.exames !== '';
 
         return docsOk && cursosOk && outrosOk && examesOk;
@@ -253,8 +277,8 @@ export default function TransportOnboardingPage() {
 
             const wantedId = targetId ?? selected?.id;
             const nextSelected = wantedId
-                ? all.find((item) => item.id === wantedId) ?? null
-                : pendingResponse.data[0] ?? null;
+                ? (all.find((item) => item.id === wantedId) ?? null)
+                : (pendingResponse.data[0] ?? null);
 
             if (!nextSelected) {
                 setSelected(null);
@@ -263,7 +287,12 @@ export default function TransportOnboardingPage() {
                 return;
             }
 
-            await loadDetail(nextSelected.id, historyResponse.data.some((item) => item.id === nextSelected.id));
+            await loadDetail(
+                nextSelected.id,
+                historyResponse.data.some(
+                    (item) => item.id === nextSelected.id,
+                ),
+            );
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
@@ -282,7 +311,9 @@ export default function TransportOnboardingPage() {
         setLoadingDetail(true);
 
         try {
-            const response = await apiGet<{ data: OnboardingRecord }>(`/onboardings/${id}`);
+            const response = await apiGet<{ data: OnboardingRecord }>(
+                `/onboardings/${id}`,
+            );
             const onboarding = response.data;
             const nextForm = buildForm(onboarding);
 
@@ -295,7 +326,8 @@ export default function TransportOnboardingPage() {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
                 setNotification({
-                    message: 'Não foi possível carregar os detalhes do onboarding.',
+                    message:
+                        'Não foi possível carregar os detalhes do onboarding.',
                     variant: 'error',
                 });
             }
@@ -327,7 +359,8 @@ export default function TransportOnboardingPage() {
             const examesItem = itemByCode(selected, EXAM_CODE);
             if (
                 examesItem &&
-                ((formState.exames === '' && examesItem.status !== 'pendente') ||
+                ((formState.exames === '' &&
+                    examesItem.status !== 'pendente') ||
                     (formState.exames !== '' &&
                         (examesItem.status !== 'aprovado' ||
                             (examesItem.notes ?? '') !== formState.exames)))
@@ -354,7 +387,9 @@ export default function TransportOnboardingPage() {
 
             for (const config of COURSE_ITEMS) {
                 const current = itemByCode(selected, config.code);
-                const target = formState.cursos[config.code] ? 'aprovado' : 'pendente';
+                const target = formState.cursos[config.code]
+                    ? 'aprovado'
+                    : 'pendente';
 
                 if (current && current.status !== target) {
                     await patchItem(config.code, {
@@ -371,7 +406,8 @@ export default function TransportOnboardingPage() {
 
                 if (
                     current &&
-                    (current.status !== target || (current.notes ?? '') !== value)
+                    (current.status !== target ||
+                        (current.notes ?? '') !== value)
                 ) {
                     await patchItem(config.code, {
                         status: target,
@@ -383,7 +419,8 @@ export default function TransportOnboardingPage() {
             if (canAutoComplete) {
                 await apiPost(`/onboardings/${selected.id}/complete`);
                 setNotification({
-                    message: 'Onboarding concluído e movido para Onboardings anteriores.',
+                    message:
+                        'Onboarding concluído e movido para Onboardings anteriores.',
                     variant: 'success',
                 });
                 await loadLists();
@@ -426,7 +463,8 @@ export default function TransportOnboardingPage() {
                 <div className="space-y-1">
                     <h2 className="text-2xl font-semibold">Onboarding</h2>
                     <p className="text-sm text-muted-foreground">
-                        Controle simplificado de exames, documentos, cursos e outros.
+                        Controle simplificado de exames, documentos, cursos e
+                        outros.
                     </p>
                 </div>
 
@@ -445,13 +483,16 @@ export default function TransportOnboardingPage() {
                                 Modo guiado de onboarding
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Conduz o preenchimento por etapas para reduzir erros operacionais.
+                                Conduz o preenchimento por etapas para reduzir
+                                erros operacionais.
                             </p>
                         </div>
                         <Button
                             type="button"
                             variant={guidedMode ? 'default' : 'outline'}
-                            onClick={() => setGuidedMode((previous) => !previous)}
+                            onClick={() =>
+                                setGuidedMode((previous) => !previous)
+                            }
                         >
                             {guidedMode ? 'Desativar guia' : 'Ativar guia'}
                         </Button>
@@ -465,7 +506,9 @@ export default function TransportOnboardingPage() {
                                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
                                     className="pl-9"
                                     placeholder="Buscar colaborador"
                                 />
@@ -480,7 +523,9 @@ export default function TransportOnboardingPage() {
                             <Button
                                 type="button"
                                 variant={showHistory ? 'default' : 'outline'}
-                                onClick={() => setShowHistory((previous) => !previous)}
+                                onClick={() =>
+                                    setShowHistory((previous) => !previous)
+                                }
                             >
                                 Onboardings anteriores
                             </Button>
@@ -506,21 +551,29 @@ export default function TransportOnboardingPage() {
                                 </div>
                             ) : (
                                 pendingItems.map((item) => {
-                                    const selectedItem = selected?.id === item.id;
+                                    const selectedItem =
+                                        selected?.id === item.id;
                                     return (
                                         <button
                                             key={item.id}
                                             type="button"
-                                            onClick={() => void loadDetail(item.id, false)}
+                                            onClick={() =>
+                                                void loadDetail(item.id, false)
+                                            }
                                             className={`w-full rounded-md border px-3 py-2 text-left text-sm transition ${
-                                                selectedItem && !selectedFromHistory
+                                                selectedItem &&
+                                                !selectedFromHistory
                                                     ? 'border-primary bg-primary/10'
                                                     : 'hover:bg-muted/40'
                                             }`}
                                         >
-                                            <p className="font-medium">{onboardingDisplayName(item)}</p>
+                                            <p className="font-medium">
+                                                {onboardingDisplayName(item)}
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
-                                                Unidade: {item.colaborador?.unidade_nome ?? '-'}
+                                                Unidade:{' '}
+                                                {item.colaborador
+                                                    ?.unidade_nome ?? '-'}
                                             </p>
                                         </button>
                                     );
@@ -541,7 +594,8 @@ export default function TransportOnboardingPage() {
                                             <div className="space-y-2">
                                                 {historyItems.map((item) => {
                                                     const selectedItem =
-                                                        selected?.id === item.id &&
+                                                        selected?.id ===
+                                                            item.id &&
                                                         selectedFromHistory;
 
                                                     return (
@@ -550,7 +604,9 @@ export default function TransportOnboardingPage() {
                                                             className="rounded-md border p-2"
                                                         >
                                                             <p className="text-sm font-medium">
-                                                                {onboardingDisplayName(item)}
+                                                                {onboardingDisplayName(
+                                                                    item,
+                                                                )}
                                                             </p>
                                                             <div className="mt-2 flex justify-end">
                                                                 <Button
@@ -603,7 +659,9 @@ export default function TransportOnboardingPage() {
                                     <CardHeader>
                                         <CardTitle>{selectedName}</CardTitle>
                                         <p className="text-sm text-muted-foreground">
-                                            Unidade: {selected.colaborador?.unidade_nome ?? '-'}
+                                            Unidade:{' '}
+                                            {selected.colaborador
+                                                ?.unidade_nome ?? '-'}
                                         </p>
                                     </CardHeader>
                                 </Card>
@@ -613,25 +671,33 @@ export default function TransportOnboardingPage() {
                                         <CardContent className="space-y-4 pt-6">
                                             <div className="space-y-2">
                                                 <p className="text-xs text-muted-foreground uppercase">
-                                                    Etapa {wizardStep + 1} de {wizardSteps.length}
+                                                    Etapa {wizardStep + 1} de{' '}
+                                                    {wizardSteps.length}
                                                 </p>
                                                 <p className="text-sm font-medium">
                                                     {wizardSteps[wizardStep]}
                                                 </p>
                                                 <div className="grid grid-cols-5 gap-2">
-                                                    {wizardSteps.map((stepLabel, index) => (
-                                                        <button
-                                                            key={stepLabel}
-                                                            type="button"
-                                                            className={`h-1.5 rounded-full transition ${
-                                                                index <= wizardStep
-                                                                    ? 'bg-primary'
-                                                                    : 'bg-muted'
-                                                            }`}
-                                                            onClick={() => setWizardStep(index)}
-                                                            aria-label={`Ir para etapa ${stepLabel}`}
-                                                        />
-                                                    ))}
+                                                    {wizardSteps.map(
+                                                        (stepLabel, index) => (
+                                                            <button
+                                                                key={stepLabel}
+                                                                type="button"
+                                                                className={`h-1.5 rounded-full transition ${
+                                                                    index <=
+                                                                    wizardStep
+                                                                        ? 'bg-primary'
+                                                                        : 'bg-muted'
+                                                                }`}
+                                                                onClick={() =>
+                                                                    setWizardStep(
+                                                                        index,
+                                                                    )
+                                                                }
+                                                                aria-label={`Ir para etapa ${stepLabel}`}
+                                                            />
+                                                        ),
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between">
@@ -639,8 +705,13 @@ export default function TransportOnboardingPage() {
                                                     type="button"
                                                     variant="outline"
                                                     onClick={() =>
-                                                        setWizardStep((previous) =>
-                                                            Math.max(previous - 1, 0),
+                                                        setWizardStep(
+                                                            (previous) =>
+                                                                Math.max(
+                                                                    previous -
+                                                                        1,
+                                                                    0,
+                                                                ),
                                                         )
                                                     }
                                                     disabled={wizardStep <= 0}
@@ -652,14 +723,20 @@ export default function TransportOnboardingPage() {
                                                     type="button"
                                                     variant="outline"
                                                     onClick={() =>
-                                                        setWizardStep((previous) =>
-                                                            Math.min(
-                                                                previous + 1,
-                                                                wizardSteps.length - 1,
-                                                            ),
+                                                        setWizardStep(
+                                                            (previous) =>
+                                                                Math.min(
+                                                                    previous +
+                                                                        1,
+                                                                    wizardSteps.length -
+                                                                        1,
+                                                                ),
                                                         )
                                                     }
-                                                    disabled={wizardStep >= wizardSteps.length - 1}
+                                                    disabled={
+                                                        wizardStep >=
+                                                        wizardSteps.length - 1
+                                                    }
                                                 >
                                                     Próxima etapa
                                                     <ChevronRight className="size-4" />
@@ -671,147 +748,29 @@ export default function TransportOnboardingPage() {
 
                                 {!guidedMode || wizardStep === 0 ? (
                                     <Card>
-                                    <CardHeader>
-                                        <CardTitle>Exames</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-2">
-                                            <Label>Status</Label>
-                                            <Select
-                                                value={
-                                                    formState.exames === ''
-                                                        ? '__empty'
-                                                        : formState.exames
-                                                }
-                                                onValueChange={(value) =>
-                                                    setFormState((previous) => ({
-                                                        ...previous,
-                                                        exames:
-                                                            value === '__empty'
-                                                                ? ''
-                                                                : (value as ExamStatus),
-                                                    }))
-                                                }
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="__empty">
-                                                        Selecione
-                                                    </SelectItem>
-                                                    <SelectItem value="a_agendar">
-                                                        A agendar
-                                                    </SelectItem>
-                                                    <SelectItem value="agendado">
-                                                        Agendado
-                                                    </SelectItem>
-                                                    <SelectItem value="realizado">
-                                                        Realizado
-                                                    </SelectItem>
-                                                    <SelectItem value="ok">OK</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </CardContent>
-                                    </Card>
-                                ) : null}
-
-                                {!guidedMode || wizardStep === 1 ? (
-                                    <Card>
-                                    <CardHeader>
-                                        <CardTitle>Documentos</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-3 md:grid-cols-2">
-                                        {DOCUMENT_ITEMS.map((config) => (
-                                            <label
-                                                key={config.code}
-                                                className="flex items-center gap-2 text-sm"
-                                            >
-                                                <Checkbox
-                                                    className="border-2 border-muted-foreground/70 data-[state=checked]:border-primary"
-                                                    checked={formState.documentos[config.code]}
-                                                    onCheckedChange={(checked) =>
-                                                        setFormState((previous) => ({
-                                                            ...previous,
-                                                            documentos: {
-                                                                ...previous.documentos,
-                                                                [config.code]:
-                                                                    checked === true,
-                                                            },
-                                                        }))
-                                                    }
-                                                />
-                                                {config.label}
-                                            </label>
-                                        ))}
-                                    </CardContent>
-                                    </Card>
-                                ) : null}
-
-                                {!guidedMode || wizardStep === 2 ? (
-                                    <Card>
-                                    <CardHeader>
-                                        <CardTitle>Cursos</CardTitle>
-                                        <p className="text-sm text-muted-foreground">
-                                            Status: {cursosStatus}
-                                        </p>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        {COURSE_ITEMS.map((config) => (
-                                            <label
-                                                key={config.code}
-                                                className="flex items-center gap-2 text-sm"
-                                            >
-                                                <Checkbox
-                                                    className="border-2 border-muted-foreground/70 data-[state=checked]:border-primary"
-                                                    checked={formState.cursos[config.code]}
-                                                    onCheckedChange={(checked) =>
-                                                        setFormState((previous) => ({
-                                                            ...previous,
-                                                            cursos: {
-                                                                ...previous.cursos,
-                                                                [config.code]:
-                                                                    checked === true,
-                                                            },
-                                                        }))
-                                                    }
-                                                />
-                                                {config.label}
-                                            </label>
-                                        ))}
-                                    </CardContent>
-                                    </Card>
-                                ) : null}
-
-                                {!guidedMode || wizardStep === 3 ? (
-                                    <Card>
-                                    <CardHeader>
-                                        <CardTitle>Outros</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-4 md:grid-cols-2">
-                                        {OTHER_ITEMS.map((config) => (
-                                            <div key={config.code} className="space-y-2">
-                                                <Label>{config.label}</Label>
+                                        <CardHeader>
+                                            <CardTitle>Exames</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                <Label>Status</Label>
                                                 <Select
                                                     value={
-                                                        formState.outros[config.code] === ''
+                                                        formState.exames === ''
                                                             ? '__empty'
-                                                            : formState.outros[
-                                                                  config.code
-                                                              ]
+                                                            : formState.exames
                                                     }
                                                     onValueChange={(value) =>
-                                                        setFormState((previous) => ({
-                                                            ...previous,
-                                                            outros: {
-                                                                ...previous.outros,
-                                                                [config.code]:
-                                                                    value === '__empty'
+                                                        setFormState(
+                                                            (previous) => ({
+                                                                ...previous,
+                                                                exames:
+                                                                    value ===
+                                                                    '__empty'
                                                                         ? ''
-                                                                        : (value as YesNo),
-                                                            },
-                                                        }))
+                                                                        : (value as ExamStatus),
+                                                            }),
+                                                        )
                                                     }
                                                 >
                                                     <SelectTrigger>
@@ -821,48 +780,235 @@ export default function TransportOnboardingPage() {
                                                         <SelectItem value="__empty">
                                                             Selecione
                                                         </SelectItem>
-                                                        <SelectItem value="sim">
-                                                            Sim
+                                                        <SelectItem value="a_agendar">
+                                                            A agendar
                                                         </SelectItem>
-                                                        <SelectItem value="nao">
-                                                            Não
+                                                        <SelectItem value="agendado">
+                                                            Agendado
+                                                        </SelectItem>
+                                                        <SelectItem value="realizado">
+                                                            Realizado
+                                                        </SelectItem>
+                                                        <SelectItem value="ok">
+                                                            OK
                                                         </SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                        ))}
-                                    </CardContent>
+                                        </CardContent>
+                                    </Card>
+                                ) : null}
+
+                                {!guidedMode || wizardStep === 1 ? (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Documentos</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid gap-3 md:grid-cols-2">
+                                            {DOCUMENT_ITEMS.map((config) => (
+                                                <label
+                                                    key={config.code}
+                                                    className="flex items-center gap-2 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        className="border-2 border-muted-foreground/70 data-[state=checked]:border-primary"
+                                                        checked={
+                                                            formState
+                                                                .documentos[
+                                                                config.code
+                                                            ]
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setFormState(
+                                                                (previous) => ({
+                                                                    ...previous,
+                                                                    documentos:
+                                                                        {
+                                                                            ...previous.documentos,
+                                                                            [config.code]:
+                                                                                checked ===
+                                                                                true,
+                                                                        },
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                    {config.label}
+                                                </label>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                ) : null}
+
+                                {!guidedMode || wizardStep === 2 ? (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Cursos</CardTitle>
+                                            <p className="text-sm text-muted-foreground">
+                                                Status: {cursosStatus}
+                                            </p>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            {COURSE_ITEMS.map((config) => (
+                                                <label
+                                                    key={config.code}
+                                                    className="flex items-center gap-2 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        className="border-2 border-muted-foreground/70 data-[state=checked]:border-primary"
+                                                        checked={
+                                                            formState.cursos[
+                                                                config.code
+                                                            ]
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setFormState(
+                                                                (previous) => ({
+                                                                    ...previous,
+                                                                    cursos: {
+                                                                        ...previous.cursos,
+                                                                        [config.code]:
+                                                                            checked ===
+                                                                            true,
+                                                                    },
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                    {config.label}
+                                                </label>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                ) : null}
+
+                                {!guidedMode || wizardStep === 3 ? (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Outros</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid gap-4 md:grid-cols-2">
+                                            {OTHER_ITEMS.map((config) => (
+                                                <div
+                                                    key={config.code}
+                                                    className="space-y-2"
+                                                >
+                                                    <Label>
+                                                        {config.label}
+                                                    </Label>
+                                                    <Select
+                                                        value={
+                                                            formState.outros[
+                                                                config.code
+                                                            ] === ''
+                                                                ? '__empty'
+                                                                : formState
+                                                                      .outros[
+                                                                      config
+                                                                          .code
+                                                                  ]
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            setFormState(
+                                                                (previous) => ({
+                                                                    ...previous,
+                                                                    outros: {
+                                                                        ...previous.outros,
+                                                                        [config.code]:
+                                                                            value ===
+                                                                            '__empty'
+                                                                                ? ''
+                                                                                : (value as YesNo),
+                                                                    },
+                                                                }),
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="__empty">
+                                                                Selecione
+                                                            </SelectItem>
+                                                            <SelectItem value="sim">
+                                                                Sim
+                                                            </SelectItem>
+                                                            <SelectItem value="nao">
+                                                                Não
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            ))}
+                                        </CardContent>
                                     </Card>
                                 ) : null}
 
                                 {guidedMode && wizardStep === 4 ? (
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle>Revisão antes de salvar</CardTitle>
+                                            <CardTitle>
+                                                Revisão antes de salvar
+                                            </CardTitle>
                                         </CardHeader>
                                         <CardContent className="grid gap-3 md:grid-cols-2">
                                             <div className="rounded-md border px-3 py-2">
-                                                <p className="text-xs text-muted-foreground uppercase">Exames</p>
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Exames
+                                                </p>
                                                 <p className="text-sm font-medium">
-                                                    {formState.exames === '' ? 'Pendente' : formState.exames}
+                                                    {formState.exames === ''
+                                                        ? 'Pendente'
+                                                        : formState.exames}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border px-3 py-2">
-                                                <p className="text-xs text-muted-foreground uppercase">Documentos aprovados</p>
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Documentos aprovados
+                                                </p>
                                                 <p className="text-sm font-medium">
-                                                    {Object.values(formState.documentos).filter(Boolean).length} de {DOCUMENT_ITEMS.length}
+                                                    {
+                                                        Object.values(
+                                                            formState.documentos,
+                                                        ).filter(Boolean).length
+                                                    }{' '}
+                                                    de {DOCUMENT_ITEMS.length}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border px-3 py-2">
-                                                <p className="text-xs text-muted-foreground uppercase">Cursos concluídos</p>
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Cursos concluídos
+                                                </p>
                                                 <p className="text-sm font-medium">
-                                                    {Object.values(formState.cursos).filter(Boolean).length} de {COURSE_ITEMS.length}
+                                                    {
+                                                        Object.values(
+                                                            formState.cursos,
+                                                        ).filter(Boolean).length
+                                                    }{' '}
+                                                    de {COURSE_ITEMS.length}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border px-3 py-2">
-                                                <p className="text-xs text-muted-foreground uppercase">Outros itens preenchidos</p>
+                                                <p className="text-xs text-muted-foreground uppercase">
+                                                    Outros itens preenchidos
+                                                </p>
                                                 <p className="text-sm font-medium">
-                                                    {Object.values(formState.outros).filter((value) => value !== '').length} de {OTHER_ITEMS.length}
+                                                    {
+                                                        Object.values(
+                                                            formState.outros,
+                                                        ).filter(
+                                                            (value) =>
+                                                                value !== '',
+                                                        ).length
+                                                    }{' '}
+                                                    de {OTHER_ITEMS.length}
                                                 </p>
                                             </div>
                                         </CardContent>

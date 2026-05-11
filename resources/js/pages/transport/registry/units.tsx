@@ -94,7 +94,9 @@ export default function TransportRegistryUnitsPage() {
         setFormOpen(true);
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -150,7 +152,9 @@ export default function TransportRegistryUnitsPage() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-2xl font-semibold">Cadastro de Unidades</h2>
+                        <h2 className="text-2xl font-semibold">
+                            Cadastro de Unidades
+                        </h2>
                         <p className="text-sm text-muted-foreground">
                             Gerencie nome e status operacional das unidades.
                         </p>
@@ -162,7 +166,10 @@ export default function TransportRegistryUnitsPage() {
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <Card>
@@ -184,22 +191,39 @@ export default function TransportRegistryUnitsPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-2 pr-3 font-medium">Nome</th>
-                                            <th className="py-2 pr-3 font-medium">Slug</th>
-                                            <th className="py-2 pr-3 font-medium">Status</th>
-                                            <th className="py-2 text-right font-medium">Ações</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Nome
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Slug
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Status
+                                            </th>
+                                            <th className="py-2 text-right font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((item) => (
-                                            <tr key={item.id} className="border-b last:border-b-0">
-                                                <td className="py-2 pr-3 font-medium">{item.nome}</td>
-                                                <td className="py-2 pr-3">{item.slug}</td>
+                                            <tr
+                                                key={item.id}
+                                                className="border-b last:border-b-0"
+                                            >
+                                                <td className="py-2 pr-3 font-medium">
+                                                    {item.nome}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.slug}
+                                                </td>
                                                 <td className="py-2 pr-3">
                                                     <span
                                                         className={`transport-status-badge ${item.ativo ? 'transport-status-success' : 'transport-status-danger'}`}
                                                     >
-                                                        {item.ativo ? 'Ativa' : 'Inativa'}
+                                                        {item.ativo
+                                                            ? 'Ativa'
+                                                            : 'Inativa'}
                                                     </span>
                                                 </td>
                                                 <td className="py-2">
@@ -210,7 +234,11 @@ export default function TransportRegistryUnitsPage() {
                                                             size="sm"
                                                             title="Editar"
                                                             aria-label="Editar"
-                                                            onClick={() => openEditDialog(item)}
+                                                            onClick={() =>
+                                                                openEditDialog(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <PencilLine className="size-4" />
                                                         </Button>
@@ -239,14 +267,19 @@ export default function TransportRegistryUnitsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingItem ? 'Editar unidade' : 'Cadastrar unidade'}
+                            {editingItem
+                                ? 'Editar unidade'
+                                : 'Cadastrar unidade'}
                         </DialogTitle>
                         <DialogDescription>
                             Defina os dados principais da unidade.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void handleSubmit(event)}
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="unit-name">Nome *</Label>
                             <Input

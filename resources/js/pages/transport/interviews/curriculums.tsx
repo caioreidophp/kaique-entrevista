@@ -1,5 +1,13 @@
 import { Link } from '@inertiajs/react';
-import { LoaderCircle, PencilLine, Plus, Printer, Search, Trash2, XCircle } from 'lucide-react';
+import {
+    LoaderCircle,
+    PencilLine,
+    Plus,
+    Printer,
+    Search,
+    Trash2,
+    XCircle,
+} from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
@@ -24,7 +32,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from '@/lib/api-client';
+import {
+    ApiError,
+    apiDelete,
+    apiGet,
+    apiPatch,
+    apiPost,
+    apiPut,
+} from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
 import type {
     ApiPaginatedResponse,
@@ -77,8 +92,16 @@ function formatPhoneInput(value: string): string {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-function normalizeTreatmentStatus(status: InterviewCurriculumStatus): 'pendente' | 'convocado_entrevista' | 'descartado' {
-    if (['convocado_entrevista', 'aguardando_entrevista', 'aprovado_entrevista'].includes(status)) {
+function normalizeTreatmentStatus(
+    status: InterviewCurriculumStatus,
+): 'pendente' | 'convocado_entrevista' | 'descartado' {
+    if (
+        [
+            'convocado_entrevista',
+            'aguardando_entrevista',
+            'aprovado_entrevista',
+        ].includes(status)
+    ) {
         return 'convocado_entrevista';
     }
 
@@ -90,7 +113,13 @@ function normalizeTreatmentStatus(status: InterviewCurriculumStatus): 'pendente'
 }
 
 function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
-    if (['convocado_entrevista', 'aguardando_entrevista', 'aprovado_entrevista'].includes(status)) {
+    if (
+        [
+            'convocado_entrevista',
+            'aguardando_entrevista',
+            'aprovado_entrevista',
+        ].includes(status)
+    ) {
         return 'Convocado para entrevista';
     }
 
@@ -102,7 +131,13 @@ function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
 }
 
 function curriculumStatusBadgeClass(status: InterviewCurriculumStatus): string {
-    if (['convocado_entrevista', 'aguardando_entrevista', 'aprovado_entrevista'].includes(status)) {
+    if (
+        [
+            'convocado_entrevista',
+            'aguardando_entrevista',
+            'aprovado_entrevista',
+        ].includes(status)
+    ) {
         return 'transport-status-info';
     }
 
@@ -124,7 +159,9 @@ export default function TransportInterviewCurriculumsPage() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
-    const [candidateGroups, setCandidateGroups] = useState<InterviewCandidateListGroup[]>([]);
+    const [candidateGroups, setCandidateGroups] = useState<
+        InterviewCandidateListGroup[]
+    >([]);
     const [candidateTotal, setCandidateTotal] = useState(0);
     const [candidateLoading, setCandidateLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -145,31 +182,40 @@ export default function TransportInterviewCurriculumsPage() {
     const [createUnitName, setCreateUnitName] = useState('none');
     const [createFile, setCreateFile] = useState<File | null>(null);
     const [createCnhFile, setCreateCnhFile] = useState<File | null>(null);
-    const [createWorkCardFile, setCreateWorkCardFile] = useState<File | null>(null);
+    const [createWorkCardFile, setCreateWorkCardFile] = useState<File | null>(
+        null,
+    );
     const [createError, setCreateError] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
     const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
     const [funcoes, setFuncoes] = useState<FuncaoOption[]>([]);
 
-    const [refuseTarget, setRefuseTarget] = useState<InterviewCurriculumListItem | null>(null);
+    const [refuseTarget, setRefuseTarget] =
+        useState<InterviewCurriculumListItem | null>(null);
     const [refusing, setRefusing] = useState(false);
-    const [editTarget, setEditTarget] = useState<InterviewCurriculumListItem | null>(null);
+    const [editTarget, setEditTarget] =
+        useState<InterviewCurriculumListItem | null>(null);
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editRoleName, setEditRoleName] = useState('none');
     const [editUnitName, setEditUnitName] = useState('none');
     const [editObservation, setEditObservation] = useState('');
-    const [editStatus, setEditStatus] = useState<'pendente' | 'convocado_entrevista' | 'descartado'>('pendente');
+    const [editStatus, setEditStatus] = useState<
+        'pendente' | 'convocado_entrevista' | 'descartado'
+    >('pendente');
     const [editInterviewDate, setEditInterviewDate] = useState('');
     const [editInterviewTime, setEditInterviewTime] = useState('');
     const [editDiscardReason, setEditDiscardReason] = useState('');
     const [editTreatmentNotes, setEditTreatmentNotes] = useState('');
-    const [editConfirmedInterviewDate, setEditConfirmedInterviewDate] = useState('');
-    const [editConfirmedInterviewTime, setEditConfirmedInterviewTime] = useState('');
+    const [editConfirmedInterviewDate, setEditConfirmedInterviewDate] =
+        useState('');
+    const [editConfirmedInterviewTime, setEditConfirmedInterviewTime] =
+        useState('');
     const [editConfirmationNotes, setEditConfirmationNotes] = useState('');
     const [editError, setEditError] = useState<string | null>(null);
     const [editing, setEditing] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<InterviewCurriculumListItem | null>(null);
+    const [deleteTarget, setDeleteTarget] =
+        useState<InterviewCurriculumListItem | null>(null);
     const [deleting, setDeleting] = useState(false);
 
     const unitNames = useMemo(
@@ -209,7 +255,10 @@ export default function TransportInterviewCurriculumsPage() {
 
         try {
             const query = new URLSearchParams();
-            query.set('tab', activeTab === 'pendentes' ? 'pendentes' : 'passados');
+            query.set(
+                'tab',
+                activeTab === 'pendentes' ? 'pendentes' : 'passados',
+            );
             query.set('page', String(page));
             query.set('per_page', '10');
 
@@ -230,9 +279,9 @@ export default function TransportInterviewCurriculumsPage() {
                 query.set('interview_date_to', interviewDateFilter);
             }
 
-            const response = await apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
-                `/interview-curriculums?${query.toString()}`,
-            );
+            const response = await apiGet<
+                ApiPaginatedResponse<InterviewCurriculumListItem>
+            >(`/interview-curriculums?${query.toString()}`);
 
             setItems(response.data);
             setCurrentPage(response.meta.current_page);
@@ -273,7 +322,8 @@ export default function TransportInterviewCurriculumsPage() {
             setCandidateTotal(response.total_candidates ?? 0);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar a lista de candidatos convocados.',
+                message:
+                    'Não foi possível carregar a lista de candidatos convocados.',
                 variant: 'error',
             });
         } finally {
@@ -284,8 +334,12 @@ export default function TransportInterviewCurriculumsPage() {
     async function loadOptions(): Promise<void> {
         try {
             const [unidadesResponse, funcoesResponse] = await Promise.all([
-                apiGet<WrappedResponse<UnidadeOption[]>>('/registry/unidades?include_inactive=1'),
-                apiGet<WrappedResponse<FuncaoOption[]>>('/registry/funcoes?active=1'),
+                apiGet<WrappedResponse<UnidadeOption[]>>(
+                    '/registry/unidades?include_inactive=1',
+                ),
+                apiGet<WrappedResponse<FuncaoOption[]>>(
+                    '/registry/funcoes?active=1',
+                ),
             ]);
 
             setUnidades(unidadesResponse.data ?? []);
@@ -310,7 +364,13 @@ export default function TransportInterviewCurriculumsPage() {
 
         void load(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, debouncedSearch, functionFilter, unitFilter, interviewDateFilter]);
+    }, [
+        activeTab,
+        debouncedSearch,
+        functionFilter,
+        unitFilter,
+        interviewDateFilter,
+    ]);
 
     function resetCreateForm(): void {
         setCreateName('');
@@ -323,7 +383,9 @@ export default function TransportInterviewCurriculumsPage() {
         setCreateError(null);
     }
 
-    async function handleCreate(event: FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleCreate(
+        event: FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
 
         const trimmedName = createName.trim();
@@ -339,7 +401,11 @@ export default function TransportInterviewCurriculumsPage() {
             return;
         }
 
-        if (!trimmedPhone || createRoleName === 'none' || createUnitName === 'none') {
+        if (
+            !trimmedPhone ||
+            createRoleName === 'none' ||
+            createUnitName === 'none'
+        ) {
             setCreateError('Preencha telefone, função e unidade.');
             return;
         }
@@ -360,7 +426,10 @@ export default function TransportInterviewCurriculumsPage() {
             }
 
             if (createWorkCardFile) {
-                formData.append('work_card_attachment_file', createWorkCardFile);
+                formData.append(
+                    'work_card_attachment_file',
+                    createWorkCardFile,
+                );
             }
 
             await apiPost('/interview-curriculums', formData);
@@ -424,18 +493,24 @@ export default function TransportInterviewCurriculumsPage() {
         setEditObservation(item.observacao ?? '');
         setEditStatus(normalizeTreatmentStatus(item.status));
         setEditInterviewDate(item.interview_date ?? '');
-        setEditInterviewTime(item.interview_time ? item.interview_time.slice(0, 5) : '');
+        setEditInterviewTime(
+            item.interview_time ? item.interview_time.slice(0, 5) : '',
+        );
         setEditDiscardReason(item.discard_reason ?? '');
         setEditTreatmentNotes(item.treatment_notes ?? '');
         setEditConfirmedInterviewDate(item.confirmed_interview_date ?? '');
         setEditConfirmedInterviewTime(
-            item.confirmed_interview_time ? item.confirmed_interview_time.slice(0, 5) : '',
+            item.confirmed_interview_time
+                ? item.confirmed_interview_time.slice(0, 5)
+                : '',
         );
         setEditConfirmationNotes(item.confirmation_notes ?? '');
         setEditError(null);
     }
 
-    async function handleSaveEdit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSaveEdit(
+        event: FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
 
         if (!editTarget) {
@@ -449,22 +524,41 @@ export default function TransportInterviewCurriculumsPage() {
             unit_name: editUnitName === 'none' ? '' : editUnitName.trim(),
             observacao: editObservation.trim() || null,
             status: editStatus,
-            interview_date: editStatus === 'convocado_entrevista' ? (editInterviewDate || null) : null,
-            interview_time: editStatus === 'convocado_entrevista' ? (editInterviewTime || null) : null,
-            discard_reason: editStatus === 'descartado' ? (editDiscardReason.trim() || null) : null,
+            interview_date:
+                editStatus === 'convocado_entrevista'
+                    ? editInterviewDate || null
+                    : null,
+            interview_time:
+                editStatus === 'convocado_entrevista'
+                    ? editInterviewTime || null
+                    : null,
+            discard_reason:
+                editStatus === 'descartado'
+                    ? editDiscardReason.trim() || null
+                    : null,
             treatment_notes: editTreatmentNotes.trim() || null,
             confirmed_interview_date: editConfirmedInterviewDate || null,
             confirmed_interview_time: editConfirmedInterviewTime || null,
             confirmation_notes: editConfirmationNotes.trim() || null,
         };
 
-        if (!payload.full_name || !payload.phone || !payload.role_name || !payload.unit_name) {
+        if (
+            !payload.full_name ||
+            !payload.phone ||
+            !payload.role_name ||
+            !payload.unit_name
+        ) {
             setEditError('Preencha nome, telefone, função e unidade.');
             return;
         }
 
-        if (payload.status === 'convocado_entrevista' && !payload.interview_date) {
-            setEditError('Informe a data da entrevista para candidatos convocados.');
+        if (
+            payload.status === 'convocado_entrevista' &&
+            !payload.interview_date
+        ) {
+            setEditError(
+                'Informe a data da entrevista para candidatos convocados.',
+            );
             return;
         }
 
@@ -548,12 +642,17 @@ export default function TransportInterviewCurriculumsPage() {
                     <div>
                         <h2 className="text-2xl font-semibold">Currículos</h2>
                         <p className="text-sm text-muted-foreground">
-                            Trate candidatos por status, convoque para entrevista e organize a lista por data.
+                            Trate candidatos por status, convoque para
+                            entrevista e organize a lista por data.
                         </p>
                     </div>
                     <div className="flex gap-2 print:hidden">
                         {activeTab === 'lista-candidatos' ? (
-                            <Button type="button" variant="outline" onClick={() => window.print()}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => window.print()}
+                            >
                                 <Printer className="size-4" />
                                 Imprimir lista
                             </Button>
@@ -571,7 +670,12 @@ export default function TransportInterviewCurriculumsPage() {
                     </div>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-5 print:hidden">
                     <div className="relative md:col-span-2">
@@ -583,14 +687,22 @@ export default function TransportInterviewCurriculumsPage() {
                             className="pl-9"
                         />
                     </div>
-                    <Select value={functionFilter} onValueChange={setFunctionFilter}>
+                    <Select
+                        value={functionFilter}
+                        onValueChange={setFunctionFilter}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Todas as funções" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Todas as funções</SelectItem>
+                            <SelectItem value="all">
+                                Todas as funções
+                            </SelectItem>
                             {roleNames.map((roleName) => (
-                                <SelectItem key={`filter-role-${roleName}`} value={roleName}>
+                                <SelectItem
+                                    key={`filter-role-${roleName}`}
+                                    value={roleName}
+                                >
                                     {roleName}
                                 </SelectItem>
                             ))}
@@ -601,9 +713,14 @@ export default function TransportInterviewCurriculumsPage() {
                             <SelectValue placeholder="Todas as unidades" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Todas as unidades</SelectItem>
+                            <SelectItem value="all">
+                                Todas as unidades
+                            </SelectItem>
                             {unitNames.map((unitName) => (
-                                <SelectItem key={`filter-unit-${unitName}`} value={unitName}>
+                                <SelectItem
+                                    key={`filter-unit-${unitName}`}
+                                    value={unitName}
+                                >
                                     {unitName}
                                 </SelectItem>
                             ))}
@@ -612,7 +729,9 @@ export default function TransportInterviewCurriculumsPage() {
                     <Input
                         type="date"
                         value={interviewDateFilter}
-                        onChange={(event) => setInterviewDateFilter(event.target.value)}
+                        onChange={(event) =>
+                            setInterviewDateFilter(event.target.value)
+                        }
                         placeholder="Data da entrevista"
                     />
                 </div>
@@ -620,26 +739,38 @@ export default function TransportInterviewCurriculumsPage() {
                 <div className="flex flex-wrap gap-2 print:hidden">
                     <Button
                         type="button"
-                        variant={activeTab === 'pendentes' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'pendentes' ? 'default' : 'outline'
+                        }
                         onClick={() => setActiveTab('pendentes')}
                     >
                         Pendentes
                     </Button>
                     <Button
                         type="button"
-                        variant={activeTab === 'passados' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'passados' ? 'default' : 'outline'
+                        }
                         onClick={() => setActiveTab('passados')}
                     >
                         Passados
                     </Button>
                     <Button
                         type="button"
-                        variant={activeTab === 'lista-candidatos' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'lista-candidatos'
+                                ? 'default'
+                                : 'outline'
+                        }
                         onClick={() => setActiveTab('lista-candidatos')}
                     >
                         Lista de candidatos
                     </Button>
-                    <Button type="button" variant="outline" onClick={clearFilters}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearFilters}
+                    >
                         Limpar filtros
                     </Button>
                 </div>
@@ -650,24 +781,51 @@ export default function TransportInterviewCurriculumsPage() {
                             <table className="w-full min-w-[1650px] text-sm">
                                 <thead className="bg-muted/40">
                                     <tr>
-                                        <th className="px-4 py-3 text-left font-medium">Nome</th>
-                                        <th className="px-4 py-3 text-left font-medium">Telefone</th>
-                                        <th className="px-4 py-3 text-left font-medium">Função</th>
-                                        <th className="px-4 py-3 text-left font-medium">Unidade</th>
-                                        <th className="px-4 py-3 text-left font-medium">Status</th>
-                                        <th className="px-4 py-3 text-left font-medium">Data entrevista</th>
-                                        <th className="px-4 py-3 text-left font-medium">Motivo descarte</th>
-                                        <th className="px-4 py-3 text-left font-medium">Observações</th>
-                                        <th className="px-4 py-3 text-left font-medium">Anexos</th>
-                                        <th className="px-4 py-3 text-left font-medium">Entrevista</th>
-                                        <th className="px-4 py-3 text-left font-medium">Cadastro</th>
-                                        <th className="px-4 py-3 text-right font-medium">Ações</th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Nome
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Telefone
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Função
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Unidade
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Data entrevista
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Motivo descarte
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Observações
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Anexos
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Entrevista
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Cadastro
+                                        </th>
+                                        <th className="px-4 py-3 text-right font-medium">
+                                            Ações
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={12} className="px-4 py-8 text-center text-muted-foreground">
+                                            <td
+                                                colSpan={12}
+                                                className="px-4 py-8 text-center text-muted-foreground"
+                                            >
                                                 <span className="inline-flex items-center gap-2">
                                                     <LoaderCircle className="size-4 animate-spin" />
                                                     Carregando...
@@ -676,86 +834,149 @@ export default function TransportInterviewCurriculumsPage() {
                                         </tr>
                                     ) : items.length === 0 ? (
                                         <tr>
-                                            <td colSpan={12} className="px-4 py-8 text-center text-muted-foreground">
-                                                Nenhum currículo encontrado para este filtro.
+                                            <td
+                                                colSpan={12}
+                                                className="px-4 py-8 text-center text-muted-foreground"
+                                            >
+                                                Nenhum currículo encontrado para
+                                                este filtro.
                                             </td>
                                         </tr>
                                     ) : (
                                         items.map((item) => (
-                                            <tr key={item.id} className="border-t">
-                                                <td className="px-4 py-3 font-medium">{item.full_name}</td>
-                                                <td className="px-4 py-3 whitespace-nowrap">{item.phone ?? '-'}</td>
-                                                <td className="px-4 py-3">{item.role_name ?? '-'}</td>
-                                                <td className="px-4 py-3">{item.unit_name ?? '-'}</td>
+                                            <tr
+                                                key={item.id}
+                                                className="border-t"
+                                            >
+                                                <td className="px-4 py-3 font-medium">
+                                                    {item.full_name}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    {item.phone ?? '-'}
+                                                </td>
                                                 <td className="px-4 py-3">
-                                                    <Badge className={`transport-status-badge ${curriculumStatusBadgeClass(item.status)}`}>
-                                                        {curriculumStatusLabel(item.status)}
+                                                    {item.role_name ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {item.unit_name ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Badge
+                                                        className={`transport-status-badge ${curriculumStatusBadgeClass(item.status)}`}
+                                                    >
+                                                        {curriculumStatusLabel(
+                                                            item.status,
+                                                        )}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3 whitespace-nowrap">
-                                                    {item.interview_date ? `${formatDateBR(item.interview_date)} ${formatInterviewTime(item.interview_time)}` : '-'}
+                                                    {item.interview_date
+                                                        ? `${formatDateBR(item.interview_date)} ${formatInterviewTime(item.interview_time)}`
+                                                        : '-'}
                                                 </td>
-                                                <td className="px-4 py-3">{item.discard_reason?.trim() || '-'}</td>
-                                                <td className="px-4 py-3">{item.observacao?.trim() || '-'}</td>
+                                                <td className="px-4 py-3">
+                                                    {item.discard_reason?.trim() ||
+                                                        '-'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {item.observacao?.trim() ||
+                                                        '-'}
+                                                </td>
                                                 <td className="px-4 py-3 whitespace-nowrap">
                                                     <div className="flex flex-wrap items-center gap-1">
                                                         {item.document_url ? (
                                                             <a
-                                                                href={item.document_url}
+                                                                href={
+                                                                    item.document_url
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                                 className="text-primary hover:underline"
-                                                                title={item.document_original_name}
+                                                                title={
+                                                                    item.document_original_name
+                                                                }
                                                             >
                                                                 Currículo
                                                             </a>
                                                         ) : null}
                                                         {item.cnh_attachment_url ? (
                                                             <a
-                                                                href={item.cnh_attachment_url}
+                                                                href={
+                                                                    item.cnh_attachment_url
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                                 className="text-primary hover:underline"
-                                                                title={item.cnh_attachment_original_name ?? 'CNH'}
+                                                                title={
+                                                                    item.cnh_attachment_original_name ??
+                                                                    'CNH'
+                                                                }
                                                             >
                                                                 CNH
                                                             </a>
                                                         ) : null}
                                                         {item.work_card_attachment_url ? (
                                                             <a
-                                                                href={item.work_card_attachment_url}
+                                                                href={
+                                                                    item.work_card_attachment_url
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                                 className="text-primary hover:underline"
-                                                                title={item.work_card_attachment_original_name ?? 'Carteira de Trabalho'}
+                                                                title={
+                                                                    item.work_card_attachment_original_name ??
+                                                                    'Carteira de Trabalho'
+                                                                }
                                                             >
                                                                 CT
                                                             </a>
                                                         ) : null}
-                                                        {!item.document_url && !item.cnh_attachment_url && !item.work_card_attachment_url ? (
-                                                            <span className="text-muted-foreground">-</span>
+                                                        {!item.document_url &&
+                                                        !item.cnh_attachment_url &&
+                                                        !item.work_card_attachment_url ? (
+                                                            <span className="text-muted-foreground">
+                                                                -
+                                                            </span>
                                                         ) : null}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {item.linked_interview ? (
-                                                        <Link href={`/transport/interviews/${item.linked_interview.id}`} className="text-primary hover:underline">
-                                                            {item.linked_interview.full_name}
+                                                        <Link
+                                                            href={`/transport/interviews/${item.linked_interview.id}`}
+                                                            className="text-primary hover:underline"
+                                                        >
+                                                            {
+                                                                item
+                                                                    .linked_interview
+                                                                    .full_name
+                                                            }
                                                         </Link>
                                                     ) : (
-                                                        <span className="text-muted-foreground">-</span>
+                                                        <span className="text-muted-foreground">
+                                                            -
+                                                        </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap">{formatDateBR(item.created_at)}</td>
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    {formatDateBR(
+                                                        item.created_at,
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="inline-flex items-center gap-1.5">
-                                                        {activeTab === 'pendentes' ? (
+                                                        {activeTab ===
+                                                        'pendentes' ? (
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
                                                                 size="icon"
                                                                 title="Recusar"
-                                                                onClick={() => setRefuseTarget(item)}
+                                                                onClick={() =>
+                                                                    setRefuseTarget(
+                                                                        item,
+                                                                    )
+                                                                }
                                                             >
                                                                 <XCircle className="size-4" />
                                                             </Button>
@@ -765,7 +986,11 @@ export default function TransportInterviewCurriculumsPage() {
                                                             variant="outline"
                                                             size="icon"
                                                             title="Editar"
-                                                            onClick={() => openEditDialog(item)}
+                                                            onClick={() =>
+                                                                openEditDialog(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <PencilLine className="size-4" />
                                                         </Button>
@@ -774,7 +999,11 @@ export default function TransportInterviewCurriculumsPage() {
                                                             variant="destructive"
                                                             size="icon"
                                                             title="Excluir"
-                                                            onClick={() => setDeleteTarget(item)}
+                                                            onClick={() =>
+                                                                setDeleteTarget(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <Trash2 className="size-4" />
                                                         </Button>
@@ -814,9 +1043,13 @@ export default function TransportInterviewCurriculumsPage() {
                 ) : (
                     <div className="space-y-4">
                         <div className="rounded-lg border bg-muted/10 px-4 py-3 text-sm">
-                            <strong className="font-semibold">Lista de Candidatos para Entrevista</strong>
+                            <strong className="font-semibold">
+                                Lista de Candidatos para Entrevista
+                            </strong>
                             <p className="text-muted-foreground">
-                                Total filtrado: {candidateLoading ? '...' : candidateTotal} candidato(s).
+                                Total filtrado:{' '}
+                                {candidateLoading ? '...' : candidateTotal}{' '}
+                                candidato(s).
                             </p>
                         </div>
 
@@ -827,51 +1060,107 @@ export default function TransportInterviewCurriculumsPage() {
                             </div>
                         ) : filteredCandidateGroups.length === 0 ? (
                             <div className="rounded-lg border px-4 py-8 text-center text-sm text-muted-foreground">
-                                Nenhum candidato convocado para os filtros selecionados.
+                                Nenhum candidato convocado para os filtros
+                                selecionados.
                             </div>
                         ) : (
                             filteredCandidateGroups.map((group) => (
-                                <div key={group.interview_date} className="rounded-lg border">
+                                <div
+                                    key={group.interview_date}
+                                    className="rounded-lg border"
+                                >
                                     <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
                                         <h3 className="font-semibold">
-                                            Lista de {formatDateBR(group.interview_date)}
+                                            Lista de{' '}
+                                            {formatDateBR(group.interview_date)}
                                         </h3>
-                                        <Badge variant="secondary">{group.total} candidato(s)</Badge>
+                                        <Badge variant="secondary">
+                                            {group.total} candidato(s)
+                                        </Badge>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full min-w-[1120px] text-sm">
                                             <thead className="bg-muted/20">
                                                 <tr>
-                                                    <th className="px-3 py-2 text-left font-medium">Nome</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Função</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Unidade</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Telefone</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Data</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Horário</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Confirmação data</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Confirmação horário</th>
-                                                    <th className="px-3 py-2 text-left font-medium">Observações</th>
-                                                    <th className="px-3 py-2 text-right font-medium print:hidden">Ações</th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Nome
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Função
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Unidade
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Telefone
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Data
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Horário
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Confirmação data
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Confirmação horário
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left font-medium">
+                                                        Observações
+                                                    </th>
+                                                    <th className="px-3 py-2 text-right font-medium print:hidden">
+                                                        Ações
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {group.items.map((item) => (
-                                                    <tr key={item.id} className="border-t">
-                                                        <td className="px-3 py-2 font-medium">{item.full_name}</td>
-                                                        <td className="px-3 py-2">{item.role_name ?? '-'}</td>
-                                                        <td className="px-3 py-2">{item.unit_name ?? '-'}</td>
-                                                        <td className="px-3 py-2">{item.phone ?? '-'}</td>
-                                                        <td className="px-3 py-2">{formatDateBR(item.interview_date)}</td>
-                                                        <td className="px-3 py-2">{formatInterviewTime(item.interview_time)}</td>
-                                                        <td className="px-3 py-2">
-                                                            {item.confirmed_interview_date ? formatDateBR(item.confirmed_interview_date) : '-'}
+                                                    <tr
+                                                        key={item.id}
+                                                        className="border-t"
+                                                    >
+                                                        <td className="px-3 py-2 font-medium">
+                                                            {item.full_name}
                                                         </td>
-                                                        <td className="px-3 py-2">{formatInterviewTime(item.confirmed_interview_time)}</td>
                                                         <td className="px-3 py-2">
-                                                            {item.confirmation_notes?.trim()
-                                                                || item.treatment_notes?.trim()
-                                                                || item.observacao?.trim()
-                                                                || '-'}
+                                                            {item.role_name ??
+                                                                '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.unit_name ??
+                                                                '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.phone ?? '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {formatDateBR(
+                                                                item.interview_date,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {formatInterviewTime(
+                                                                item.interview_time,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.confirmed_interview_date
+                                                                ? formatDateBR(
+                                                                      item.confirmed_interview_date,
+                                                                  )
+                                                                : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {formatInterviewTime(
+                                                                item.confirmed_interview_time,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {item.confirmation_notes?.trim() ||
+                                                                item.treatment_notes?.trim() ||
+                                                                item.observacao?.trim() ||
+                                                                '-'}
                                                         </td>
                                                         <td className="px-3 py-2 text-right print:hidden">
                                                             <Button
@@ -879,7 +1168,9 @@ export default function TransportInterviewCurriculumsPage() {
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() =>
-                                                                    openEditDialog(item as unknown as InterviewCurriculumListItem)
+                                                                    openEditDialog(
+                                                                        item as unknown as InterviewCurriculumListItem,
+                                                                    )
                                                                 }
                                                             >
                                                                 Editar
@@ -910,40 +1201,64 @@ export default function TransportInterviewCurriculumsPage() {
                     <DialogHeader>
                         <DialogTitle>Novo currículo</DialogTitle>
                         <DialogDescription>
-                            Informe nome, telefone, função, unidade e o arquivo do currículo.
+                            Informe nome, telefone, função, unidade e o arquivo
+                            do currículo.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void handleCreate(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void handleCreate(event)}
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="curriculum-name">Nome do candidato</Label>
+                            <Label htmlFor="curriculum-name">
+                                Nome do candidato
+                            </Label>
                             <Input
                                 id="curriculum-name"
                                 value={createName}
-                                onChange={(event) => setCreateName(event.target.value)}
+                                onChange={(event) =>
+                                    setCreateName(event.target.value)
+                                }
                                 placeholder="Ex.: João da Silva"
                             />
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="curriculum-phone">Telefone</Label>
+                                <Label htmlFor="curriculum-phone">
+                                    Telefone
+                                </Label>
                                 <Input
                                     id="curriculum-phone"
                                     value={createPhone}
-                                    onChange={(event) => setCreatePhone(formatPhoneInput(event.target.value))}
+                                    onChange={(event) =>
+                                        setCreatePhone(
+                                            formatPhoneInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
                                     placeholder="Ex.: (11) 99999-9999"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label>Função</Label>
-                                <Select value={createRoleName} onValueChange={setCreateRoleName}>
+                                <Select
+                                    value={createRoleName}
+                                    onValueChange={setCreateRoleName}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Selecione</SelectItem>
+                                        <SelectItem value="none">
+                                            Selecione
+                                        </SelectItem>
                                         {roleNames.map((roleName) => (
-                                            <SelectItem key={`create-role-${roleName}`} value={roleName}>
+                                            <SelectItem
+                                                key={`create-role-${roleName}`}
+                                                value={roleName}
+                                            >
                                                 {roleName}
                                             </SelectItem>
                                         ))}
@@ -953,14 +1268,22 @@ export default function TransportInterviewCurriculumsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label>Unidade</Label>
-                            <Select value={createUnitName} onValueChange={setCreateUnitName}>
+                            <Select
+                                value={createUnitName}
+                                onValueChange={setCreateUnitName}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="none">Selecione</SelectItem>
+                                    <SelectItem value="none">
+                                        Selecione
+                                    </SelectItem>
                                     {unitNames.map((unitName) => (
-                                        <SelectItem key={`create-unit-${unitName}`} value={unitName}>
+                                        <SelectItem
+                                            key={`create-unit-${unitName}`}
+                                            value={unitName}
+                                        >
                                             {unitName}
                                         </SelectItem>
                                     ))}
@@ -968,43 +1291,72 @@ export default function TransportInterviewCurriculumsPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="curriculum-file">Arquivo do currículo</Label>
+                            <Label htmlFor="curriculum-file">
+                                Arquivo do currículo
+                            </Label>
                             <Input
                                 id="curriculum-file"
                                 type="file"
                                 accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/jpg"
-                                onChange={(event) => setCreateFile(event.target.files?.[0] ?? null)}
+                                onChange={(event) =>
+                                    setCreateFile(
+                                        event.target.files?.[0] ?? null,
+                                    )
+                                }
                             />
                             <p className="text-xs text-muted-foreground">
-                                Formatos aceitos: PDF, DOC, DOCX e JPEG (máx. 10 MB).
+                                Formatos aceitos: PDF, DOC, DOCX e JPEG (máx. 10
+                                MB).
                             </p>
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="curriculum-cnh-file">Anexo CNH (opcional)</Label>
+                                <Label htmlFor="curriculum-cnh-file">
+                                    Anexo CNH (opcional)
+                                </Label>
                                 <Input
                                     id="curriculum-cnh-file"
                                     type="file"
                                     accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
-                                    onChange={(event) => setCreateCnhFile(event.target.files?.[0] ?? null)}
+                                    onChange={(event) =>
+                                        setCreateCnhFile(
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="curriculum-work-card-file">Carteira de Trabalho (opcional)</Label>
+                                <Label htmlFor="curriculum-work-card-file">
+                                    Carteira de Trabalho (opcional)
+                                </Label>
                                 <Input
                                     id="curriculum-work-card-file"
                                     type="file"
                                     accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
-                                    onChange={(event) => setCreateWorkCardFile(event.target.files?.[0] ?? null)}
+                                    onChange={(event) =>
+                                        setCreateWorkCardFile(
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
                                 />
                             </div>
                         </div>
 
-                        {createError ? <Notification message={createError} variant="error" /> : null}
+                        {createError ? (
+                            <Notification
+                                message={createError}
+                                variant="error"
+                            />
+                        ) : null}
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setCreateOpen(false)}
+                                disabled={creating}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={creating}>
@@ -1034,14 +1386,26 @@ export default function TransportInterviewCurriculumsPage() {
                     <DialogHeader>
                         <DialogTitle>Confirmar recusa</DialogTitle>
                         <DialogDescription>
-                            Deseja mover o currículo de <strong>{refuseTarget?.full_name}</strong> para passados como recusado?
+                            Deseja mover o currículo de{' '}
+                            <strong>{refuseTarget?.full_name}</strong> para
+                            passados como recusado?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setRefuseTarget(null)} disabled={refusing}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setRefuseTarget(null)}
+                            disabled={refusing}
+                        >
                             Cancelar
                         </Button>
-                        <Button type="button" variant="destructive" onClick={() => void handleConfirmRefuse()} disabled={refusing}>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void handleConfirmRefuse()}
+                            disabled={refusing}
+                        >
                             {refusing ? (
                                 <>
                                     <LoaderCircle className="size-4 animate-spin" />
@@ -1068,35 +1432,63 @@ export default function TransportInterviewCurriculumsPage() {
                     <DialogHeader>
                         <DialogTitle>Editar currículo</DialogTitle>
                         <DialogDescription>
-                            Atualize os dados do candidato e o status de tratamento.
+                            Atualize os dados do candidato e o status de
+                            tratamento.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void handleSaveEdit(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void handleSaveEdit(event)}
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="edit-curriculum-name">Nome do candidato</Label>
-                            <Input id="edit-curriculum-name" value={editName} onChange={(event) => setEditName(event.target.value)} />
+                            <Label htmlFor="edit-curriculum-name">
+                                Nome do candidato
+                            </Label>
+                            <Input
+                                id="edit-curriculum-name"
+                                value={editName}
+                                onChange={(event) =>
+                                    setEditName(event.target.value)
+                                }
+                            />
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="edit-curriculum-phone">Telefone</Label>
+                                <Label htmlFor="edit-curriculum-phone">
+                                    Telefone
+                                </Label>
                                 <Input
                                     id="edit-curriculum-phone"
                                     value={editPhone}
-                                    onChange={(event) => setEditPhone(formatPhoneInput(event.target.value))}
+                                    onChange={(event) =>
+                                        setEditPhone(
+                                            formatPhoneInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label>Função</Label>
-                                <Select value={editRoleName} onValueChange={setEditRoleName}>
+                                <Select
+                                    value={editRoleName}
+                                    onValueChange={setEditRoleName}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Selecione</SelectItem>
+                                        <SelectItem value="none">
+                                            Selecione
+                                        </SelectItem>
                                         {roleNames.map((roleName) => (
-                                            <SelectItem key={`edit-role-${roleName}`} value={roleName}>
+                                            <SelectItem
+                                                key={`edit-role-${roleName}`}
+                                                value={roleName}
+                                            >
                                                 {roleName}
                                             </SelectItem>
                                         ))}
@@ -1107,14 +1499,22 @@ export default function TransportInterviewCurriculumsPage() {
 
                         <div className="space-y-2">
                             <Label>Unidade</Label>
-                            <Select value={editUnitName} onValueChange={setEditUnitName}>
+                            <Select
+                                value={editUnitName}
+                                onValueChange={setEditUnitName}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="none">Selecione</SelectItem>
+                                    <SelectItem value="none">
+                                        Selecione
+                                    </SelectItem>
                                     {unitNames.map((unitName) => (
-                                        <SelectItem key={`edit-unit-${unitName}`} value={unitName}>
+                                        <SelectItem
+                                            key={`edit-unit-${unitName}`}
+                                            value={unitName}
+                                        >
                                             {unitName}
                                         </SelectItem>
                                     ))}
@@ -1126,15 +1526,26 @@ export default function TransportInterviewCurriculumsPage() {
                             <Label>Status do tratamento</Label>
                             <Select
                                 value={editStatus}
-                                onValueChange={(value: 'pendente' | 'convocado_entrevista' | 'descartado') => setEditStatus(value)}
+                                onValueChange={(
+                                    value:
+                                        | 'pendente'
+                                        | 'convocado_entrevista'
+                                        | 'descartado',
+                                ) => setEditStatus(value)}
                             >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="pendente">Pendente</SelectItem>
-                                    <SelectItem value="convocado_entrevista">Convocado para entrevista</SelectItem>
-                                    <SelectItem value="descartado">Descartado</SelectItem>
+                                    <SelectItem value="pendente">
+                                        Pendente
+                                    </SelectItem>
+                                    <SelectItem value="convocado_entrevista">
+                                        Convocado para entrevista
+                                    </SelectItem>
+                                    <SelectItem value="descartado">
+                                        Descartado
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1142,21 +1553,33 @@ export default function TransportInterviewCurriculumsPage() {
                         {editStatus === 'convocado_entrevista' ? (
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="edit-interview-date">Data da entrevista</Label>
+                                    <Label htmlFor="edit-interview-date">
+                                        Data da entrevista
+                                    </Label>
                                     <Input
                                         id="edit-interview-date"
                                         type="date"
                                         value={editInterviewDate}
-                                        onChange={(event) => setEditInterviewDate(event.target.value)}
+                                        onChange={(event) =>
+                                            setEditInterviewDate(
+                                                event.target.value,
+                                            )
+                                        }
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="edit-interview-time">Horário da entrevista (opcional)</Label>
+                                    <Label htmlFor="edit-interview-time">
+                                        Horário da entrevista (opcional)
+                                    </Label>
                                     <Input
                                         id="edit-interview-time"
                                         type="time"
                                         value={editInterviewTime}
-                                        onChange={(event) => setEditInterviewTime(event.target.value)}
+                                        onChange={(event) =>
+                                            setEditInterviewTime(
+                                                event.target.value,
+                                            )
+                                        }
                                     />
                                 </div>
                             </div>
@@ -1164,71 +1587,106 @@ export default function TransportInterviewCurriculumsPage() {
 
                         {editStatus === 'descartado' ? (
                             <div className="space-y-2">
-                                <Label htmlFor="edit-discard-reason">Motivo do descarte</Label>
+                                <Label htmlFor="edit-discard-reason">
+                                    Motivo do descarte
+                                </Label>
                                 <Input
                                     id="edit-discard-reason"
                                     value={editDiscardReason}
-                                    onChange={(event) => setEditDiscardReason(event.target.value)}
+                                    onChange={(event) =>
+                                        setEditDiscardReason(event.target.value)
+                                    }
                                     placeholder="Ex.: perfil não aderente para a vaga"
                                 />
                             </div>
                         ) : null}
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-observation">Observação geral</Label>
+                            <Label htmlFor="edit-observation">
+                                Observação geral
+                            </Label>
                             <Input
                                 id="edit-observation"
                                 value={editObservation}
-                                onChange={(event) => setEditObservation(event.target.value)}
+                                onChange={(event) =>
+                                    setEditObservation(event.target.value)
+                                }
                                 placeholder="Observações complementares"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-treatment-notes">Notas do tratamento</Label>
+                            <Label htmlFor="edit-treatment-notes">
+                                Notas do tratamento
+                            </Label>
                             <Input
                                 id="edit-treatment-notes"
                                 value={editTreatmentNotes}
-                                onChange={(event) => setEditTreatmentNotes(event.target.value)}
+                                onChange={(event) =>
+                                    setEditTreatmentNotes(event.target.value)
+                                }
                                 placeholder="Anotações internas"
                             />
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="edit-confirmed-date">Confirmação de data (opcional)</Label>
+                                <Label htmlFor="edit-confirmed-date">
+                                    Confirmação de data (opcional)
+                                </Label>
                                 <Input
                                     id="edit-confirmed-date"
                                     type="date"
                                     value={editConfirmedInterviewDate}
-                                    onChange={(event) => setEditConfirmedInterviewDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setEditConfirmedInterviewDate(
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="edit-confirmed-time">Confirmação de horário (opcional)</Label>
+                                <Label htmlFor="edit-confirmed-time">
+                                    Confirmação de horário (opcional)
+                                </Label>
                                 <Input
                                     id="edit-confirmed-time"
                                     type="time"
                                     value={editConfirmedInterviewTime}
-                                    onChange={(event) => setEditConfirmedInterviewTime(event.target.value)}
+                                    onChange={(event) =>
+                                        setEditConfirmedInterviewTime(
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-confirmation-notes">Observação da confirmação</Label>
+                            <Label htmlFor="edit-confirmation-notes">
+                                Observação da confirmação
+                            </Label>
                             <Input
                                 id="edit-confirmation-notes"
                                 value={editConfirmationNotes}
-                                onChange={(event) => setEditConfirmationNotes(event.target.value)}
+                                onChange={(event) =>
+                                    setEditConfirmationNotes(event.target.value)
+                                }
                                 placeholder="Ex.: candidato confirmou via WhatsApp"
                             />
                         </div>
 
-                        {editError ? <Notification message={editError} variant="error" /> : null}
+                        {editError ? (
+                            <Notification message={editError} variant="error" />
+                        ) : null}
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setEditTarget(null)} disabled={editing}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditTarget(null)}
+                                disabled={editing}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={editing}>
@@ -1258,14 +1716,25 @@ export default function TransportInterviewCurriculumsPage() {
                     <DialogHeader>
                         <DialogTitle>Excluir currículo</DialogTitle>
                         <DialogDescription>
-                            Confirmar exclusão do currículo de <strong>{deleteTarget?.full_name}</strong>?
+                            Confirmar exclusão do currículo de{' '}
+                            <strong>{deleteTarget?.full_name}</strong>?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteTarget(null)}
+                            disabled={deleting}
+                        >
                             Cancelar
                         </Button>
-                        <Button type="button" variant="destructive" onClick={() => void handleConfirmDelete()} disabled={deleting}>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void handleConfirmDelete()}
+                            disabled={deleting}
+                        >
                             {deleting ? (
                                 <>
                                     <LoaderCircle className="size-4 animate-spin" />

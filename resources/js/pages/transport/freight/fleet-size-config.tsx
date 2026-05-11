@@ -55,8 +55,23 @@ function monthLabel(referenceMonth: string | null): string {
         return '-';
     }
 
-    const [year, month] = referenceMonth.split('-').map((value) => Number(value));
-    const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const [year, month] = referenceMonth
+        .split('-')
+        .map((value) => Number(value));
+    const labels = [
+        'Jan',
+        'Fev',
+        'Mar',
+        'Abr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Set',
+        'Out',
+        'Nov',
+        'Dez',
+    ];
     const monthIndex = Math.max(1, Math.min(12, month)) - 1;
 
     return `${labels[monthIndex] ?? 'Mes'}/${year}`;
@@ -79,10 +94,14 @@ export default function TransportFreightFleetSizeConfigPage() {
     const [formOpen, setFormOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<FleetSizeItem | null>(null);
     const [formUnitId, setFormUnitId] = useState('none');
-    const [formReferenceMonth, setFormReferenceMonth] = useState(monthValue(now.getFullYear(), now.getMonth() + 1));
+    const [formReferenceMonth, setFormReferenceMonth] = useState(
+        monthValue(now.getFullYear(), now.getMonth() + 1),
+    );
     const [formFleetSize, setFormFleetSize] = useState('');
 
-    const [deleteTarget, setDeleteTarget] = useState<FleetSizeItem | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<FleetSizeItem | null>(
+        null,
+    );
 
     const yearOptions = useMemo(() => {
         const current = now.getFullYear();
@@ -90,7 +109,9 @@ export default function TransportFreightFleetSizeConfigPage() {
     }, [now]);
 
     async function loadUnits(): Promise<void> {
-        const response = await apiGet<WrappedResponse<UnidadeOption[]>>('/registry/unidades?active=1');
+        const response = await apiGet<WrappedResponse<UnidadeOption[]>>(
+            '/registry/unidades?active=1',
+        );
         setUnidades(response.data ?? []);
     }
 
@@ -103,7 +124,9 @@ export default function TransportFreightFleetSizeConfigPage() {
                 competencia_mes: month,
                 competencia_ano: year,
             });
-            const response = await apiGet<FleetSizeResponse>(`/freight/fleet-sizes?${params.toString()}`);
+            const response = await apiGet<FleetSizeResponse>(
+                `/freight/fleet-sizes?${params.toString()}`,
+            );
             setRows(response.data ?? []);
         } catch {
             setNotification({
@@ -135,12 +158,16 @@ export default function TransportFreightFleetSizeConfigPage() {
     function openEdit(row: FleetSizeItem): void {
         setEditTarget(row);
         setFormUnitId(String(row.unidade_id));
-        setFormReferenceMonth(row.reference_month ?? monthValue(Number(year), Number(month)));
+        setFormReferenceMonth(
+            row.reference_month ?? monthValue(Number(year), Number(month)),
+        );
         setFormFleetSize(String(row.fleet_size));
         setFormOpen(true);
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -160,7 +187,10 @@ export default function TransportFreightFleetSizeConfigPage() {
                 return;
             }
 
-            if (!payload.reference_month || !/^\d{4}-\d{2}$/.test(payload.reference_month)) {
+            if (
+                !payload.reference_month ||
+                !/^\d{4}-\d{2}$/.test(payload.reference_month)
+            ) {
                 setNotification({
                     message: 'Informe o mes de referencia no formato YYYY-MM.',
                     variant: 'error',
@@ -168,7 +198,11 @@ export default function TransportFreightFleetSizeConfigPage() {
                 return;
             }
 
-            if (!payload.fleet_size || payload.fleet_size <= 0 || Number.isNaN(payload.fleet_size)) {
+            if (
+                !payload.fleet_size ||
+                payload.fleet_size <= 0 ||
+                Number.isNaN(payload.fleet_size)
+            ) {
                 setNotification({
                     message: 'Informe uma quantidade valida de caminhoes.',
                     variant: 'error',
@@ -195,7 +229,9 @@ export default function TransportFreightFleetSizeConfigPage() {
             await loadFleet();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
                 setNotification({
                     message: firstError ?? error.message,
                     variant: 'error',
@@ -251,9 +287,12 @@ export default function TransportFreightFleetSizeConfigPage() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-2xl font-semibold">Frota mensal por unidade</h2>
+                        <h2 className="text-2xl font-semibold">
+                            Frota mensal por unidade
+                        </h2>
                         <p className="text-sm text-muted-foreground">
-                            Configure a frota total do mes para calcular "Frete medio por caminhao da frota".
+                            Configure a frota total do mes para calcular "Frete
+                            medio por caminhao da frota".
                         </p>
                     </div>
                     <Button type="button" onClick={openCreate}>
@@ -263,7 +302,10 @@ export default function TransportFreightFleetSizeConfigPage() {
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <Card>
@@ -281,8 +323,14 @@ export default function TransportFreightFleetSizeConfigPage() {
                                     {Array.from({ length: 12 }, (_, index) => {
                                         const value = String(index + 1);
                                         return (
-                                            <SelectItem key={value} value={value}>
-                                                {String(index + 1).padStart(2, '0')}
+                                            <SelectItem
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {String(index + 1).padStart(
+                                                    2,
+                                                    '0',
+                                                )}
                                             </SelectItem>
                                         );
                                     })}
@@ -309,7 +357,9 @@ export default function TransportFreightFleetSizeConfigPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Registros de frota ({rows.length})</CardTitle>
+                        <CardTitle>
+                            Registros de frota ({rows.length})
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
@@ -326,25 +376,46 @@ export default function TransportFreightFleetSizeConfigPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-2 pr-3 font-medium">Unidade</th>
-                                            <th className="py-2 pr-3 font-medium">Referencia</th>
-                                            <th className="py-2 pr-3 font-medium">Frota total</th>
-                                            <th className="py-2 text-right font-medium">Acoes</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Unidade
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Referencia
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Frota total
+                                            </th>
+                                            <th className="py-2 text-right font-medium">
+                                                Acoes
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {rows.map((row) => (
-                                            <tr key={row.id} className="border-b last:border-b-0">
-                                                <td className="py-2 pr-3 font-medium">{row.unidade_nome ?? '-'}</td>
-                                                <td className="py-2 pr-3">{monthLabel(row.reference_month)}</td>
-                                                <td className="py-2 pr-3">{row.fleet_size}</td>
+                                            <tr
+                                                key={row.id}
+                                                className="border-b last:border-b-0"
+                                            >
+                                                <td className="py-2 pr-3 font-medium">
+                                                    {row.unidade_nome ?? '-'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {monthLabel(
+                                                        row.reference_month,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {row.fleet_size}
+                                                </td>
                                                 <td className="py-2">
                                                     <div className="flex justify-end gap-2">
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => openEdit(row)}
+                                                            onClick={() =>
+                                                                openEdit(row)
+                                                            }
                                                         >
                                                             <PencilLine className="size-4" />
                                                         </Button>
@@ -353,7 +424,11 @@ export default function TransportFreightFleetSizeConfigPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="text-destructive hover:text-destructive"
-                                                            onClick={() => setDeleteTarget(row)}
+                                                            onClick={() =>
+                                                                setDeleteTarget(
+                                                                    row,
+                                                                )
+                                                            }
                                                         >
                                                             <Trash2 className="size-4" />
                                                         </Button>
@@ -380,13 +455,21 @@ export default function TransportFreightFleetSizeConfigPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editTarget ? 'Editar frota mensal' : 'Cadastrar frota mensal'}</DialogTitle>
+                        <DialogTitle>
+                            {editTarget
+                                ? 'Editar frota mensal'
+                                : 'Cadastrar frota mensal'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Informe unidade, mes de referencia e quantidade total de caminhoes da frota.
+                            Informe unidade, mes de referencia e quantidade
+                            total de caminhoes da frota.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void handleSubmit(event)}
+                    >
                         <div className="space-y-2">
                             <Label>Unidade</Label>
                             <Select
@@ -398,9 +481,14 @@ export default function TransportFreightFleetSizeConfigPage() {
                                     <SelectValue placeholder="Selecione" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="none">Selecione</SelectItem>
+                                    <SelectItem value="none">
+                                        Selecione
+                                    </SelectItem>
                                     {unidades.map((unit) => (
-                                        <SelectItem key={unit.id} value={String(unit.id)}>
+                                        <SelectItem
+                                            key={unit.id}
+                                            value={String(unit.id)}
+                                        >
                                             {unit.nome}
                                         </SelectItem>
                                     ))}
@@ -409,30 +497,42 @@ export default function TransportFreightFleetSizeConfigPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="fleet-reference-month">Referencia (YYYY-MM)</Label>
+                            <Label htmlFor="fleet-reference-month">
+                                Referencia (YYYY-MM)
+                            </Label>
                             <Input
                                 id="fleet-reference-month"
                                 value={formReferenceMonth}
-                                onChange={(event) => setFormReferenceMonth(event.target.value)}
+                                onChange={(event) =>
+                                    setFormReferenceMonth(event.target.value)
+                                }
                                 placeholder="2026-05"
                                 disabled={Boolean(editTarget)}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="fleet-size">Quantidade da frota</Label>
+                            <Label htmlFor="fleet-size">
+                                Quantidade da frota
+                            </Label>
                             <Input
                                 id="fleet-size"
                                 type="number"
                                 min={1}
                                 value={formFleetSize}
-                                onChange={(event) => setFormFleetSize(event.target.value)}
+                                onChange={(event) =>
+                                    setFormFleetSize(event.target.value)
+                                }
                                 placeholder="Ex.: 30"
                             />
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setFormOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={saving}>
@@ -464,7 +564,12 @@ export default function TransportFreightFleetSizeConfigPage() {
                         <DialogDescription>
                             Esta acao remove o cadastro de frota de{' '}
                             <strong>{deleteTarget?.unidade_nome}</strong> em{' '}
-                            <strong>{monthLabel(deleteTarget?.reference_month ?? null)}</strong>.
+                            <strong>
+                                {monthLabel(
+                                    deleteTarget?.reference_month ?? null,
+                                )}
+                            </strong>
+                            .
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

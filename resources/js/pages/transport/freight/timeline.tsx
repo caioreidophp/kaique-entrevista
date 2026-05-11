@@ -13,7 +13,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
-import { formatCurrencyBR, formatDateBR, formatIntegerBR } from '@/lib/transport-format';
+import {
+    formatCurrencyBR,
+    formatDateBR,
+    formatIntegerBR,
+} from '@/lib/transport-format';
 import type {
     FreightExecutionMetrics,
     FreightMonthlyResponse,
@@ -33,7 +37,14 @@ type KaiqueViewMode = 'integracao' | 'spot';
 
 type RangePresetKey = '1w' | '1m' | '1a' | '3a' | '5a';
 
-const palette = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#0891b2', '#dc2626'];
+const palette = [
+    '#2563eb',
+    '#16a34a',
+    '#ea580c',
+    '#9333ea',
+    '#0891b2',
+    '#dc2626',
+];
 
 const monthOptions = [
     { value: '1', label: 'Janeiro' },
@@ -58,7 +69,11 @@ function buildDateAxis(start: string, end: string): string[] {
     const startDate = new Date(`${start}T00:00:00`);
     const endDate = new Date(`${end}T00:00:00`);
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+    if (
+        isNaN(startDate.getTime()) ||
+        isNaN(endDate.getTime()) ||
+        startDate > endDate
+    ) {
         return [];
     }
 
@@ -77,7 +92,11 @@ function buildMonthAxis(start: string, end: string): string[] {
     const startDate = new Date(`${start}T00:00:00`);
     const endDate = new Date(`${end}T00:00:00`);
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+    if (
+        isNaN(startDate.getTime()) ||
+        isNaN(endDate.getTime()) ||
+        startDate > endDate
+    ) {
         return [];
     }
 
@@ -95,7 +114,10 @@ function buildMonthAxis(start: string, end: string): string[] {
     return result;
 }
 
-function rangeFromPreset(preset: RangePresetKey, mode: TrendMode): { start: string; end: string } {
+function rangeFromPreset(
+    preset: RangePresetKey,
+    mode: TrendMode,
+): { start: string; end: string } {
     const end = new Date();
     const start = new Date(end);
 
@@ -128,30 +150,40 @@ export default function TransportFreightTimelinePage() {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
     const defaultMonthStart = toIsoDate(new Date(currentYear, currentMonth, 1));
-    const defaultMonthEnd = toIsoDate(new Date(currentYear, currentMonth + 1, 0));
+    const defaultMonthEnd = toIsoDate(
+        new Date(currentYear, currentMonth + 1, 0),
+    );
 
-    const [activeView, setActiveView] = useState<FreightAnalyticsView>('timeline');
+    const [activeView, setActiveView] =
+        useState<FreightAnalyticsView>('timeline');
     const [trendMode, setTrendMode] = useState<TrendMode>('daily');
 
     const [startDate, setStartDate] = useState(defaultMonthStart);
     const [endDate, setEndDate] = useState(defaultMonthEnd);
-    const [activePreset, setActivePreset] = useState<RangePresetKey | null>('1m');
+    const [activePreset, setActivePreset] = useState<RangePresetKey | null>(
+        '1m',
+    );
 
     const [unidades, setUnidades] = useState<FreightUnit[]>([]);
     const [selectedUnidades, setSelectedUnidades] = useState<number[]>([]);
 
-    const [timeline, setTimeline] = useState<FreightTimelineResponse | null>(null);
+    const [timeline, setTimeline] = useState<FreightTimelineResponse | null>(
+        null,
+    );
 
     const [opMonth, setOpMonth] = useState(String(currentMonth + 1));
     const [opYear, setOpYear] = useState(String(currentYear));
     const [opUnidadeId, setOpUnidadeId] = useState('all');
-    const [kaiqueViewMode, setKaiqueViewMode] = useState<KaiqueViewMode>('integracao');
-    const [operationalReport, setOperationalReport] = useState<FreightOperationalReportResponse | null>(null);
+    const [kaiqueViewMode, setKaiqueViewMode] =
+        useState<KaiqueViewMode>('integracao');
+    const [operationalReport, setOperationalReport] =
+        useState<FreightOperationalReportResponse | null>(null);
 
     const [monthlyMonth, setMonthlyMonth] = useState(String(currentMonth + 1));
     const [monthlyYear, setMonthlyYear] = useState(String(currentYear));
     const [monthlyUnidadeId, setMonthlyUnidadeId] = useState('all');
-    const [monthlyReport, setMonthlyReport] = useState<FreightMonthlyResponse | null>(null);
+    const [monthlyReport, setMonthlyReport] =
+        useState<FreightMonthlyResponse | null>(null);
 
     const [loadingTimeline, setLoadingTimeline] = useState(true);
     const [loadingOperational, setLoadingOperational] = useState(false);
@@ -166,7 +198,20 @@ export default function TransportFreightTimelinePage() {
     } | null>(null);
 
     const monthLabelMap = useMemo(
-        () => ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+        () => [
+            'Jan',
+            'Fev',
+            'Mar',
+            'Abr',
+            'Mai',
+            'Jun',
+            'Jul',
+            'Ago',
+            'Set',
+            'Out',
+            'Nov',
+            'Dez',
+        ],
         [],
     );
 
@@ -179,7 +224,12 @@ export default function TransportFreightTimelinePage() {
 
     const yearOptions = useMemo(() => {
         const current = currentYear;
-        return [String(current - 2), String(current - 1), String(current), String(current + 1)];
+        return [
+            String(current - 2),
+            String(current - 1),
+            String(current),
+            String(current + 1),
+        ];
     }, [currentYear]);
 
     useEffect(() => {
@@ -200,7 +250,9 @@ export default function TransportFreightTimelinePage() {
             end_date: endDate,
         });
 
-        selectedUnidades.forEach((id) => params.append('unidade_ids[]', String(id)));
+        selectedUnidades.forEach((id) =>
+            params.append('unidade_ids[]', String(id)),
+        );
 
         try {
             const timelineResponse = await apiGet<FreightTimelineResponse>(
@@ -284,8 +336,14 @@ export default function TransportFreightTimelinePage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeView, monthlyMonth, monthlyYear, monthlyUnidadeId]);
 
-    const dateAxis = useMemo(() => buildDateAxis(startDate, endDate), [startDate, endDate]);
-    const monthAxis = useMemo(() => buildMonthAxis(startDate, endDate), [startDate, endDate]);
+    const dateAxis = useMemo(
+        () => buildDateAxis(startDate, endDate),
+        [startDate, endDate],
+    );
+    const monthAxis = useMemo(
+        () => buildMonthAxis(startDate, endDate),
+        [startDate, endDate],
+    );
 
     const trendAxis = trendMode === 'daily' ? dateAxis : monthAxis;
 
@@ -300,8 +358,12 @@ export default function TransportFreightTimelinePage() {
             const unitMap = new Map<string, number>();
 
             series.points.forEach((point) => {
-                const bucketKey = trendMode === 'daily' ? point.data : point.data.slice(0, 7);
-                unitMap.set(bucketKey, (unitMap.get(bucketKey) ?? 0) + point.frete_total);
+                const bucketKey =
+                    trendMode === 'daily' ? point.data : point.data.slice(0, 7);
+                unitMap.set(
+                    bucketKey,
+                    (unitMap.get(bucketKey) ?? 0) + point.frete_total,
+                );
             });
 
             valuesByUnit.set(series.unidade_id, unitMap);
@@ -318,20 +380,27 @@ export default function TransportFreightTimelinePage() {
     );
 
     function bucketLabel(value: string): string {
-        return trendMode === 'daily' ? formatDateBR(value) : formatMonthKeyLabel(value);
+        return trendMode === 'daily'
+            ? formatDateBR(value)
+            : formatMonthKeyLabel(value);
     }
 
     const allValues = useMemo(() => {
         if (!timeline) return [] as number[];
 
         return timeline.series.flatMap((series) =>
-            trendAxis.map((bucket) => valueForBucket(series.unidade_id, bucket)),
+            trendAxis.map((bucket) =>
+                valueForBucket(series.unidade_id, bucket),
+            ),
         );
     }, [timeline, trendAxis, valueForBucket]);
 
     const maxValue = useMemo(() => Math.max(1, ...allValues), [allValues]);
 
-    const totalValue = useMemo(() => allValues.reduce((sum, value) => sum + value, 0), [allValues]);
+    const totalValue = useMemo(
+        () => allValues.reduce((sum, value) => sum + value, 0),
+        [allValues],
+    );
 
     const valuesPerBucket = useMemo(() => {
         if (!timeline || trendAxis.length === 0) return [] as number[];
@@ -343,7 +412,10 @@ export default function TransportFreightTimelinePage() {
         );
     }, [timeline, trendAxis, valueForBucket]);
 
-    const maxTrendValue = useMemo(() => Math.max(0, ...valuesPerBucket), [valuesPerBucket]);
+    const maxTrendValue = useMemo(
+        () => Math.max(0, ...valuesPerBucket),
+        [valuesPerBucket],
+    );
 
     const yAxisTicks = useMemo(() => [1, 0.75, 0.5, 0.25, 0], []);
 
@@ -386,12 +458,16 @@ export default function TransportFreightTimelinePage() {
 
     function toggleUnidade(id: number): void {
         setSelectedUnidades((previous) => {
-            if (previous.includes(id)) return previous.filter((item) => item !== id);
+            if (previous.includes(id))
+                return previous.filter((item) => item !== id);
             return [...previous, id];
         });
     }
 
-    function applyPreset(preset: RangePresetKey, mode: TrendMode = trendMode): void {
+    function applyPreset(
+        preset: RangePresetKey,
+        mode: TrendMode = trendMode,
+    ): void {
         const range = rangeFromPreset(preset, mode);
         setActivePreset(preset);
         setStartDate(range.start);
@@ -404,7 +480,10 @@ export default function TransportFreightTimelinePage() {
         applyPreset(defaultPreset, mode);
     }
 
-    function handleManualDateChange(type: 'start' | 'end', value: string): void {
+    function handleManualDateChange(
+        type: 'start' | 'end',
+        value: string,
+    ): void {
         setActivePreset(null);
         if (type === 'start') {
             setStartDate(value);
@@ -413,7 +492,10 @@ export default function TransportFreightTimelinePage() {
         }
     }
 
-    function renderExecutionMetricsCard(title: string, metrics: FreightExecutionMetrics) {
+    function renderExecutionMetricsCard(
+        title: string,
+        metrics: FreightExecutionMetrics,
+    ) {
         return (
             <Card>
                 <CardHeader>
@@ -422,68 +504,151 @@ export default function TransportFreightTimelinePage() {
                 <CardContent>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Dias de abate</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.dias_abate)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Dias de abate
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.dias_abate)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Frete total</p>
-                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.total_frete)}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.frete)}% do programado</p>
+                            <p className="text-xs text-muted-foreground">
+                                Frete total
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatCurrencyBR(metrics.total_frete)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                {formatIntegerBR(
+                                    metrics.percentual_realizado.frete,
+                                )}
+                                % do programado
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">KM rodado</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.km_rodado)}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.km)}% do programado</p>
+                            <p className="text-xs text-muted-foreground">
+                                KM rodado
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.km_rodado)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                {formatIntegerBR(
+                                    metrics.percentual_realizado.km,
+                                )}
+                                % do programado
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Aves abatidas</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_abatidas)}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.aves)}% do programado</p>
+                            <p className="text-xs text-muted-foreground">
+                                Aves abatidas
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.aves_abatidas)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                {formatIntegerBR(
+                                    metrics.percentual_realizado.aves,
+                                )}
+                                % do programado
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Cargas</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.cargas)}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metrics.percentual_realizado.cargas)}% do programado</p>
+                            <p className="text-xs text-muted-foreground">
+                                Cargas
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.cargas)}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                                {formatIntegerBR(
+                                    metrics.percentual_realizado.cargas,
+                                )}
+                                % do programado
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Frete/KM</p>
-                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_por_km)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Frete/KM
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatCurrencyBR(metrics.frete_por_km)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Aves por carga</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_por_carga)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Aves por carga
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.aves_por_carga)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Frete médio por carga</p>
-                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_medio_carga)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Frete médio por carga
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatCurrencyBR(metrics.frete_medio_carga)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Raio médio</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.raio_medio)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Raio médio
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.raio_medio)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Participação terceiros</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.participacao_terceiros_percent)}%</p>
+                            <p className="text-xs text-muted-foreground">
+                                Participação terceiros
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(
+                                    metrics.participacao_terceiros_percent,
+                                )}
+                                %
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Frete terceiros</p>
-                            <p className="text-base font-semibold">{formatCurrencyBR(metrics.frete_terceiros)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Frete terceiros
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatCurrencyBR(metrics.frete_terceiros)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Cargas terceiros</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.cargas_terceiros)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Cargas terceiros
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.cargas_terceiros)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">KM terceiros</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.km_terceiros)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                KM terceiros
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.km_terceiros)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Aves terceiros</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.aves_terceiros)}</p>
+                            <p className="text-xs text-muted-foreground">
+                                Aves terceiros
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.aves_terceiros)}
+                            </p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">% Spot</p>
-                            <p className="text-base font-semibold">{formatIntegerBR(metrics.percentual_spot)}%</p>
+                            <p className="text-xs text-muted-foreground">
+                                % Spot
+                            </p>
+                            <p className="text-base font-semibold">
+                                {formatIntegerBR(metrics.percentual_spot)}%
+                            </p>
                         </div>
                     </div>
                 </CardContent>
@@ -499,13 +664,18 @@ export default function TransportFreightTimelinePage() {
         >
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Central Analítica de Fretes</h2>
+                    <h2 className="text-2xl font-semibold">
+                        Central Analítica de Fretes
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                        Visão unificada de tendência, operação e análise mensal na mesma tela.
+                        Visão unificada de tendência, operação e análise mensal
+                        na mesma tela.
                     </p>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
 
                 <Card>
                     <CardHeader>
@@ -515,21 +685,33 @@ export default function TransportFreightTimelinePage() {
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 type="button"
-                                variant={activeView === 'timeline' ? 'default' : 'outline'}
+                                variant={
+                                    activeView === 'timeline'
+                                        ? 'default'
+                                        : 'outline'
+                                }
                                 onClick={() => setActiveView('timeline')}
                             >
                                 Tendência
                             </Button>
                             <Button
                                 type="button"
-                                variant={activeView === 'operational' ? 'default' : 'outline'}
+                                variant={
+                                    activeView === 'operational'
+                                        ? 'default'
+                                        : 'outline'
+                                }
                                 onClick={() => setActiveView('operational')}
                             >
                                 Operacional
                             </Button>
                             <Button
                                 type="button"
-                                variant={activeView === 'monthly' ? 'default' : 'outline'}
+                                variant={
+                                    activeView === 'monthly'
+                                        ? 'default'
+                                        : 'outline'
+                                }
                                 onClick={() => setActiveView('monthly')}
                             >
                                 Análise mensal
@@ -548,15 +730,27 @@ export default function TransportFreightTimelinePage() {
                                 <div className="flex flex-wrap gap-2">
                                     <Button
                                         type="button"
-                                        variant={trendMode === 'daily' ? 'default' : 'outline'}
-                                        onClick={() => handleTrendModeChange('daily')}
+                                        variant={
+                                            trendMode === 'daily'
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        onClick={() =>
+                                            handleTrendModeChange('daily')
+                                        }
                                     >
                                         Diário
                                     </Button>
                                     <Button
                                         type="button"
-                                        variant={trendMode === 'monthly' ? 'default' : 'outline'}
-                                        onClick={() => handleTrendModeChange('monthly')}
+                                        variant={
+                                            trendMode === 'monthly'
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        onClick={() =>
+                                            handleTrendModeChange('monthly')
+                                        }
                                     >
                                         Mês
                                     </Button>
@@ -567,22 +761,40 @@ export default function TransportFreightTimelinePage() {
                                         <>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '1w' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('1w')}
+                                                variant={
+                                                    activePreset === '1w'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('1w')
+                                                }
                                             >
                                                 1S
                                             </Button>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '1m' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('1m')}
+                                                variant={
+                                                    activePreset === '1m'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('1m')
+                                                }
                                             >
                                                 1M
                                             </Button>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '1a' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('1a')}
+                                                variant={
+                                                    activePreset === '1a'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('1a')
+                                                }
                                             >
                                                 1A
                                             </Button>
@@ -591,22 +803,40 @@ export default function TransportFreightTimelinePage() {
                                         <>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '1a' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('1a')}
+                                                variant={
+                                                    activePreset === '1a'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('1a')
+                                                }
                                             >
                                                 1A
                                             </Button>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '3a' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('3a')}
+                                                variant={
+                                                    activePreset === '3a'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('3a')
+                                                }
                                             >
                                                 3A
                                             </Button>
                                             <Button
                                                 type="button"
-                                                variant={activePreset === '5a' ? 'default' : 'outline'}
-                                                onClick={() => applyPreset('5a')}
+                                                variant={
+                                                    activePreset === '5a'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    applyPreset('5a')
+                                                }
                                             >
                                                 5A
                                             </Button>
@@ -616,38 +846,67 @@ export default function TransportFreightTimelinePage() {
 
                                 <div className="grid gap-3 md:grid-cols-2">
                                     <div>
-                                        <p className="mb-2 text-sm text-muted-foreground">Data inicial</p>
+                                        <p className="mb-2 text-sm text-muted-foreground">
+                                            Data inicial
+                                        </p>
                                         <Input
                                             type="date"
                                             value={startDate}
-                                            onChange={(event) => handleManualDateChange('start', event.target.value)}
+                                            onChange={(event) =>
+                                                handleManualDateChange(
+                                                    'start',
+                                                    event.target.value,
+                                                )
+                                            }
                                         />
                                     </div>
                                     <div>
-                                        <p className="mb-2 text-sm text-muted-foreground">Data final</p>
+                                        <p className="mb-2 text-sm text-muted-foreground">
+                                            Data final
+                                        </p>
                                         <Input
                                             type="date"
                                             value={endDate}
-                                            onChange={(event) => handleManualDateChange('end', event.target.value)}
+                                            onChange={(event) =>
+                                                handleManualDateChange(
+                                                    'end',
+                                                    event.target.value,
+                                                )
+                                            }
                                         />
                                     </div>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
                                     {unidades.map((unidade, index) => {
-                                        const isSelected = selectedUnidades.includes(unidade.id);
+                                        const isSelected =
+                                            selectedUnidades.includes(
+                                                unidade.id,
+                                            );
 
                                         return (
                                             <Button
                                                 key={unidade.id}
                                                 type="button"
-                                                variant={isSelected ? 'default' : 'outline'}
-                                                onClick={() => toggleUnidade(unidade.id)}
+                                                variant={
+                                                    isSelected
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    toggleUnidade(unidade.id)
+                                                }
                                                 className="gap-2"
                                             >
                                                 <span
                                                     className="inline-block size-2 rounded-full"
-                                                    style={{ backgroundColor: palette[index % palette.length] }}
+                                                    style={{
+                                                        backgroundColor:
+                                                            palette[
+                                                                index %
+                                                                    palette.length
+                                                            ],
+                                                    }}
                                                 />
                                                 {unidade.nome}
                                             </Button>
@@ -667,7 +926,9 @@ export default function TransportFreightTimelinePage() {
                                         <LoaderCircle className="size-4 animate-spin" />
                                         Carregando gráfico...
                                     </div>
-                                ) : !timeline || timeline.series.length === 0 || trendAxis.length === 0 ? (
+                                ) : !timeline ||
+                                  timeline.series.length === 0 ||
+                                  trendAxis.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
                                         Sem dados para o período selecionado.
                                     </p>
@@ -675,25 +936,50 @@ export default function TransportFreightTimelinePage() {
                                     <div className="space-y-4">
                                         <div className="grid gap-3 md:grid-cols-4">
                                             <div className="rounded-md border p-3">
-                                                <p className="text-xs text-muted-foreground">Total frete no período</p>
-                                                <p className="mt-1 text-base font-semibold">{formatCurrencyBR(totalValue)}</p>
-                                            </div>
-                                            <div className="rounded-md border p-3">
-                                                <p className="text-xs text-muted-foreground">Períodos no recorte</p>
-                                                <p className="mt-1 text-base font-semibold">{formatIntegerBR(trendAxis.length)}</p>
-                                            </div>
-                                            <div className="rounded-md border p-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    {trendMode === 'daily' ? 'Maior valor diário' : 'Maior valor mensal'}
-                                                </p>
-                                                <p className="mt-1 text-base font-semibold">{formatCurrencyBR(maxTrendValue)}</p>
-                                            </div>
-                                            <div className="rounded-md border p-3">
-                                                <p className="text-xs text-muted-foreground">
-                                                    {trendMode === 'daily' ? 'Média diária geral' : 'Média mensal geral'}
+                                                    Total frete no período
                                                 </p>
                                                 <p className="mt-1 text-base font-semibold">
-                                                    {formatCurrencyBR(trendAxis.length > 0 ? totalValue / trendAxis.length : 0)}
+                                                    {formatCurrencyBR(
+                                                        totalValue,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Períodos no recorte
+                                                </p>
+                                                <p className="mt-1 text-base font-semibold">
+                                                    {formatIntegerBR(
+                                                        trendAxis.length,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {trendMode === 'daily'
+                                                        ? 'Maior valor diário'
+                                                        : 'Maior valor mensal'}
+                                                </p>
+                                                <p className="mt-1 text-base font-semibold">
+                                                    {formatCurrencyBR(
+                                                        maxTrendValue,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {trendMode === 'daily'
+                                                        ? 'Média diária geral'
+                                                        : 'Média mensal geral'}
+                                                </p>
+                                                <p className="mt-1 text-base font-semibold">
+                                                    {formatCurrencyBR(
+                                                        trendAxis.length > 0
+                                                            ? totalValue /
+                                                                  trendAxis.length
+                                                            : 0,
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>
@@ -702,7 +988,7 @@ export default function TransportFreightTimelinePage() {
                                             <div className="relative h-full min-w-[980px]">
                                                 {hoveredPoint ? (
                                                     <div
-                                                        className="bg-popover text-popover-foreground pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
+                                                        className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow"
                                                         style={{
                                                             left: `${hoveredPoint.xPercent}%`,
                                                             top: `${hoveredPoint.yPercent}%`,
@@ -712,121 +998,251 @@ export default function TransportFreightTimelinePage() {
                                                     </div>
                                                 ) : null}
 
-                                                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full w-full">
+                                                <svg
+                                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                                                    className="h-full w-full"
+                                                >
                                                     {yAxisTicks.map((step) => {
-                                                        const y = paddingY + innerHeight * step;
-                                                        const tickValue = maxValue * (1 - step);
+                                                        const y =
+                                                            paddingY +
+                                                            innerHeight * step;
+                                                        const tickValue =
+                                                            maxValue *
+                                                            (1 - step);
                                                         return (
                                                             <g key={step}>
                                                                 <line
-                                                                    x1={paddingX}
+                                                                    x1={
+                                                                        paddingX
+                                                                    }
                                                                     y1={y}
-                                                                    x2={chartWidth - paddingX}
+                                                                    x2={
+                                                                        chartWidth -
+                                                                        paddingX
+                                                                    }
                                                                     y2={y}
                                                                     stroke="hsl(var(--border))"
                                                                     strokeWidth="1"
                                                                 />
                                                                 <text
-                                                                    x={paddingX - 14}
+                                                                    x={
+                                                                        paddingX -
+                                                                        14
+                                                                    }
                                                                     y={y + 4}
                                                                     textAnchor="end"
                                                                     fontSize="11"
                                                                     fill="hsl(var(--muted-foreground))"
                                                                 >
-                                                                    {formatCurrencyBR(tickValue)}
+                                                                    {formatCurrencyBR(
+                                                                        tickValue,
+                                                                    )}
                                                                 </text>
                                                             </g>
                                                         );
                                                     })}
 
-                                                    {xAxisLabelIndexes.map((index) => {
-                                                        const bucket = trendAxis[index];
-                                                        const x = xForIndex(index);
+                                                    {xAxisLabelIndexes.map(
+                                                        (index) => {
+                                                            const bucket =
+                                                                trendAxis[
+                                                                    index
+                                                                ];
+                                                            const x =
+                                                                xForIndex(
+                                                                    index,
+                                                                );
 
-                                                        if (!bucket) return null;
+                                                            if (!bucket)
+                                                                return null;
 
-                                                        return (
-                                                            <text
-                                                                key={`x-label-${bucket}-${index}`}
-                                                                x={x}
-                                                                y={chartHeight - 6}
-                                                                textAnchor="middle"
-                                                                fontSize="11"
-                                                                fill="hsl(var(--muted-foreground))"
-                                                            >
-                                                                {trendMode === 'daily'
-                                                                    ? bucket.slice(5).replace('-', '/')
-                                                                    : formatMonthKeyLabel(bucket)}
-                                                            </text>
-                                                        );
-                                                    })}
+                                                            return (
+                                                                <text
+                                                                    key={`x-label-${bucket}-${index}`}
+                                                                    x={x}
+                                                                    y={
+                                                                        chartHeight -
+                                                                        6
+                                                                    }
+                                                                    textAnchor="middle"
+                                                                    fontSize="11"
+                                                                    fill="hsl(var(--muted-foreground))"
+                                                                >
+                                                                    {trendMode ===
+                                                                    'daily'
+                                                                        ? bucket
+                                                                              .slice(
+                                                                                  5,
+                                                                              )
+                                                                              .replace(
+                                                                                  '-',
+                                                                                  '/',
+                                                                              )
+                                                                        : formatMonthKeyLabel(
+                                                                              bucket,
+                                                                          )}
+                                                                </text>
+                                                            );
+                                                        },
+                                                    )}
 
-                                                    {timeline.series.map((series, seriesIndex) => {
-                                                        const color = palette[seriesIndex % palette.length];
-                                                        const points = trendAxis
-                                                            .map((bucket, index) => {
-                                                                const value = valueForBucket(series.unidade_id, bucket);
-                                                                return `${xForIndex(index)},${yForValue(value)}`;
-                                                            })
-                                                            .join(' ');
+                                                    {timeline.series.map(
+                                                        (
+                                                            series,
+                                                            seriesIndex,
+                                                        ) => {
+                                                            const color =
+                                                                palette[
+                                                                    seriesIndex %
+                                                                        palette.length
+                                                                ];
+                                                            const points =
+                                                                trendAxis
+                                                                    .map(
+                                                                        (
+                                                                            bucket,
+                                                                            index,
+                                                                        ) => {
+                                                                            const value =
+                                                                                valueForBucket(
+                                                                                    series.unidade_id,
+                                                                                    bucket,
+                                                                                );
+                                                                            return `${xForIndex(index)},${yForValue(value)}`;
+                                                                        },
+                                                                    )
+                                                                    .join(' ');
 
-                                                        return (
-                                                            <g key={series.unidade_id}>
-                                                                <polyline
-                                                                    fill="none"
-                                                                    stroke={color}
-                                                                    strokeWidth="2"
-                                                                    points={points}
-                                                                    vectorEffect="non-scaling-stroke"
-                                                                />
+                                                            return (
+                                                                <g
+                                                                    key={
+                                                                        series.unidade_id
+                                                                    }
+                                                                >
+                                                                    <polyline
+                                                                        fill="none"
+                                                                        stroke={
+                                                                            color
+                                                                        }
+                                                                        strokeWidth="2"
+                                                                        points={
+                                                                            points
+                                                                        }
+                                                                        vectorEffect="non-scaling-stroke"
+                                                                    />
 
-                                                                {trendAxis.map((bucket, index) => {
-                                                                    const value = valueForBucket(series.unidade_id, bucket);
-                                                                    const x = xForIndex(index);
-                                                                    const y = yForValue(value);
+                                                                    {trendAxis.map(
+                                                                        (
+                                                                            bucket,
+                                                                            index,
+                                                                        ) => {
+                                                                            const value =
+                                                                                valueForBucket(
+                                                                                    series.unidade_id,
+                                                                                    bucket,
+                                                                                );
+                                                                            const x =
+                                                                                xForIndex(
+                                                                                    index,
+                                                                                );
+                                                                            const y =
+                                                                                yForValue(
+                                                                                    value,
+                                                                                );
 
-                                                                    return (
-                                                                        <circle
-                                                                            key={`${series.unidade_id}-${bucket}`}
-                                                                            cx={x}
-                                                                            cy={y}
-                                                                            r="4"
-                                                                            fill={color}
-                                                                            onMouseEnter={() =>
-                                                                                setHoveredPoint({
-                                                                                    xPercent: (x / chartWidth) * 100,
-                                                                                    yPercent: (y / chartHeight) * 100,
-                                                                                    label: `${series.unidade_nome ?? 'Sem unidade'} • ${bucketLabel(bucket)} • ${formatCurrencyBR(value)}`,
-                                                                                })
-                                                                            }
-                                                                            onMouseLeave={() => setHoveredPoint(null)}
-                                                                        />
-                                                                    );
-                                                                })}
-                                                            </g>
-                                                        );
-                                                    })}
+                                                                            return (
+                                                                                <circle
+                                                                                    key={`${series.unidade_id}-${bucket}`}
+                                                                                    cx={
+                                                                                        x
+                                                                                    }
+                                                                                    cy={
+                                                                                        y
+                                                                                    }
+                                                                                    r="4"
+                                                                                    fill={
+                                                                                        color
+                                                                                    }
+                                                                                    onMouseEnter={() =>
+                                                                                        setHoveredPoint(
+                                                                                            {
+                                                                                                xPercent:
+                                                                                                    (x /
+                                                                                                        chartWidth) *
+                                                                                                    100,
+                                                                                                yPercent:
+                                                                                                    (y /
+                                                                                                        chartHeight) *
+                                                                                                    100,
+                                                                                                label: `${series.unidade_nome ?? 'Sem unidade'} • ${bucketLabel(bucket)} • ${formatCurrencyBR(value)}`,
+                                                                                            },
+                                                                                        )
+                                                                                    }
+                                                                                    onMouseLeave={() =>
+                                                                                        setHoveredPoint(
+                                                                                            null,
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            );
+                                                                        },
+                                                                    )}
+                                                                </g>
+                                                            );
+                                                        },
+                                                    )}
                                                 </svg>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-3">
-                                            {timeline.series.map((series, index) => {
-                                                const total = trendAxis.reduce((sum, bucket) => {
-                                                    return sum + valueForBucket(series.unidade_id, bucket);
-                                                }, 0);
+                                            {timeline.series.map(
+                                                (series, index) => {
+                                                    const total =
+                                                        trendAxis.reduce(
+                                                            (sum, bucket) => {
+                                                                return (
+                                                                    sum +
+                                                                    valueForBucket(
+                                                                        series.unidade_id,
+                                                                        bucket,
+                                                                    )
+                                                                );
+                                                            },
+                                                            0,
+                                                        );
 
-                                                return (
-                                                    <div key={series.unidade_id} className="flex items-center gap-2 text-sm">
-                                                        <span
-                                                            className="inline-block size-2.5 rounded-full"
-                                                            style={{ backgroundColor: palette[index % palette.length] }}
-                                                        />
-                                                        <span className="font-medium">{series.unidade_nome ?? 'Sem unidade'}</span>
-                                                        <span className="text-muted-foreground">— {formatCurrencyBR(total)}</span>
-                                                    </div>
-                                                );
-                                            })}
+                                                    return (
+                                                        <div
+                                                            key={
+                                                                series.unidade_id
+                                                            }
+                                                            className="flex items-center gap-2 text-sm"
+                                                        >
+                                                            <span
+                                                                className="inline-block size-2.5 rounded-full"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        palette[
+                                                                            index %
+                                                                                palette.length
+                                                                        ],
+                                                                }}
+                                                            />
+                                                            <span className="font-medium">
+                                                                {series.unidade_nome ??
+                                                                    'Sem unidade'}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                —{' '}
+                                                                {formatCurrencyBR(
+                                                                    total,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                },
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -842,19 +1258,28 @@ export default function TransportFreightTimelinePage() {
                                 <CardTitle>Competência</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-3 md:grid-cols-3">
-                                <Select value={opMonth} onValueChange={setOpMonth}>
+                                <Select
+                                    value={opMonth}
+                                    onValueChange={setOpMonth}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {monthOptions.map((item) => (
-                                            <SelectItem key={item.value} value={item.value}>
+                                            <SelectItem
+                                                key={item.value}
+                                                value={item.value}
+                                            >
                                                 {item.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Select value={opYear} onValueChange={setOpYear}>
+                                <Select
+                                    value={opYear}
+                                    onValueChange={setOpYear}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -866,14 +1291,22 @@ export default function TransportFreightTimelinePage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Select value={opUnidadeId} onValueChange={setOpUnidadeId}>
+                                <Select
+                                    value={opUnidadeId}
+                                    onValueChange={setOpUnidadeId}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todas as unidades</SelectItem>
+                                        <SelectItem value="all">
+                                            Todas as unidades
+                                        </SelectItem>
                                         {unidades.map((unidade) => (
-                                            <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                            <SelectItem
+                                                key={unidade.id}
+                                                value={String(unidade.id)}
+                                            >
                                                 {unidade.nome}
                                             </SelectItem>
                                         ))}
@@ -889,37 +1322,91 @@ export default function TransportFreightTimelinePage() {
                             </div>
                         ) : operationalReport ? (
                             <div className="space-y-4">
-                                {renderExecutionMetricsCard('Abatedouro consolidado', operationalReport.abatedouro.resumo)}
+                                {renderExecutionMetricsCard(
+                                    'Abatedouro consolidado',
+                                    operationalReport.abatedouro.resumo,
+                                )}
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Abatedouro por unidade</CardTitle>
+                                        <CardTitle>
+                                            Abatedouro por unidade
+                                        </CardTitle>
                                     </CardHeader>
                                     <CardContent className="overflow-x-auto">
                                         <table className="w-full min-w-[900px] text-sm">
                                             <thead>
                                                 <tr className="border-b text-left text-muted-foreground">
-                                                    <th className="py-2 pr-3 font-medium">Unidade</th>
-                                                    <th className="py-2 pr-3 font-medium">Frete</th>
-                                                    <th className="py-2 pr-3 font-medium">KM</th>
-                                                    <th className="py-2 pr-3 font-medium">Aves</th>
-                                                    <th className="py-2 pr-3 font-medium">Cargas</th>
-                                                    <th className="py-2 pr-3 font-medium">Frete/KM</th>
-                                                    <th className="py-2 pr-3 font-medium">% terceiros</th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Unidade
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Frete
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        KM
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Aves
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Cargas
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Frete/KM
+                                                    </th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        % terceiros
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {operationalReport.abatedouro.por_unidade.map((item) => (
-                                                    <tr key={item.unidade_id} className="border-b last:border-b-0">
-                                                        <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.total_frete)}</td>
-                                                        <td className="py-2 pr-3">{formatIntegerBR(item.km_rodado)}</td>
-                                                        <td className="py-2 pr-3">{formatIntegerBR(item.aves_abatidas)}</td>
-                                                        <td className="py-2 pr-3">{formatIntegerBR(item.cargas)}</td>
-                                                        <td className="py-2 pr-3">{formatCurrencyBR(item.frete_por_km)}</td>
-                                                        <td className="py-2 pr-3">{formatIntegerBR(item.participacao_terceiros_percent)}%</td>
-                                                    </tr>
-                                                ))}
+                                                {operationalReport.abatedouro.por_unidade.map(
+                                                    (item) => (
+                                                        <tr
+                                                            key={
+                                                                item.unidade_id
+                                                            }
+                                                            className="border-b last:border-b-0"
+                                                        >
+                                                            <td className="py-2 pr-3">
+                                                                {item.unidade_nome ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatCurrencyBR(
+                                                                    item.total_frete,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.km_rodado,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.aves_abatidas,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.cargas,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatCurrencyBR(
+                                                                    item.frete_por_km,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.participacao_terceiros_percent,
+                                                                )}
+                                                                %
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
                                             </tbody>
                                         </table>
                                     </CardContent>
@@ -927,58 +1414,141 @@ export default function TransportFreightTimelinePage() {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Kaique consolidado</CardTitle>
+                                        <CardTitle>
+                                            Kaique consolidado
+                                        </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
                                         <div className="flex flex-wrap gap-2">
                                             <Button
                                                 type="button"
-                                                variant={kaiqueViewMode === 'integracao' ? 'default' : 'outline'}
-                                                onClick={() => setKaiqueViewMode('integracao')}
+                                                variant={
+                                                    kaiqueViewMode ===
+                                                    'integracao'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    setKaiqueViewMode(
+                                                        'integracao',
+                                                    )
+                                                }
                                             >
                                                 Integração
                                             </Button>
                                             <Button
                                                 type="button"
-                                                variant={kaiqueViewMode === 'spot' ? 'default' : 'outline'}
-                                                onClick={() => setKaiqueViewMode('spot')}
+                                                variant={
+                                                    kaiqueViewMode === 'spot'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                onClick={() =>
+                                                    setKaiqueViewMode('spot')
+                                                }
                                             >
                                                 Spot
                                             </Button>
                                             <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
-                                                Spot no total Kaique: {formatIntegerBR(operationalReport.kaique.percentual_spot_total)}%
+                                                Spot no total Kaique:{' '}
+                                                {formatIntegerBR(
+                                                    operationalReport.kaique
+                                                        .percentual_spot_total,
+                                                )}
+                                                %
                                             </div>
                                         </div>
 
                                         {kaiqueViewMode === 'integracao'
-                                            ? renderExecutionMetricsCard('Kaique Integração', operationalReport.kaique.integracao.resumo)
-                                            : renderExecutionMetricsCard('Kaique Spot', operationalReport.kaique.spot.resumo)}
+                                            ? renderExecutionMetricsCard(
+                                                  'Kaique Integração',
+                                                  operationalReport.kaique
+                                                      .integracao.resumo,
+                                              )
+                                            : renderExecutionMetricsCard(
+                                                  'Kaique Spot',
+                                                  operationalReport.kaique.spot
+                                                      .resumo,
+                                              )}
 
                                         <div className="overflow-x-auto">
                                             <table className="w-full min-w-[900px] text-sm">
                                                 <thead>
                                                     <tr className="border-b text-left text-muted-foreground">
-                                                        <th className="py-2 pr-3 font-medium">Unidade</th>
-                                                        <th className="py-2 pr-3 font-medium">Frete</th>
-                                                        <th className="py-2 pr-3 font-medium">KM</th>
-                                                        <th className="py-2 pr-3 font-medium">Aves</th>
-                                                        <th className="py-2 pr-3 font-medium">Cargas</th>
-                                                        <th className="py-2 pr-3 font-medium">Frete/KM</th>
-                                                        <th className="py-2 pr-3 font-medium">% Spot</th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            Unidade
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            Frete
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            KM
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            Aves
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            Cargas
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            Frete/KM
+                                                        </th>
+                                                        <th className="py-2 pr-3 font-medium">
+                                                            % Spot
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {(kaiqueViewMode === 'integracao'
-                                                        ? operationalReport.kaique.integracao.por_unidade
-                                                        : operationalReport.kaique.spot.por_unidade).map((item) => (
-                                                        <tr key={item.unidade_id} className="border-b last:border-b-0">
-                                                            <td className="py-2 pr-3">{item.unidade_nome ?? '-'}</td>
-                                                            <td className="py-2 pr-3">{formatCurrencyBR(item.total_frete)}</td>
-                                                            <td className="py-2 pr-3">{formatIntegerBR(item.km_rodado)}</td>
-                                                            <td className="py-2 pr-3">{formatIntegerBR(item.aves_abatidas)}</td>
-                                                            <td className="py-2 pr-3">{formatIntegerBR(item.cargas)}</td>
-                                                            <td className="py-2 pr-3">{formatCurrencyBR(item.frete_por_km)}</td>
-                                                            <td className="py-2 pr-3">{formatIntegerBR(item.percentual_spot)}%</td>
+                                                    {(kaiqueViewMode ===
+                                                    'integracao'
+                                                        ? operationalReport
+                                                              .kaique.integracao
+                                                              .por_unidade
+                                                        : operationalReport
+                                                              .kaique.spot
+                                                              .por_unidade
+                                                    ).map((item) => (
+                                                        <tr
+                                                            key={
+                                                                item.unidade_id
+                                                            }
+                                                            className="border-b last:border-b-0"
+                                                        >
+                                                            <td className="py-2 pr-3">
+                                                                {item.unidade_nome ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatCurrencyBR(
+                                                                    item.total_frete,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.km_rodado,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.aves_abatidas,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.cargas,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatCurrencyBR(
+                                                                    item.frete_por_km,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-2 pr-3">
+                                                                {formatIntegerBR(
+                                                                    item.percentual_spot,
+                                                                )}
+                                                                %
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -998,19 +1568,28 @@ export default function TransportFreightTimelinePage() {
                                 <CardTitle>Filtros mensais</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-3 md:grid-cols-3">
-                                <Select value={monthlyMonth} onValueChange={setMonthlyMonth}>
+                                <Select
+                                    value={monthlyMonth}
+                                    onValueChange={setMonthlyMonth}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {monthOptions.map((item) => (
-                                            <SelectItem key={item.value} value={item.value}>
+                                            <SelectItem
+                                                key={item.value}
+                                                value={item.value}
+                                            >
                                                 {item.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Select value={monthlyYear} onValueChange={setMonthlyYear}>
+                                <Select
+                                    value={monthlyYear}
+                                    onValueChange={setMonthlyYear}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -1022,14 +1601,22 @@ export default function TransportFreightTimelinePage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Select value={monthlyUnidadeId} onValueChange={setMonthlyUnidadeId}>
+                                <Select
+                                    value={monthlyUnidadeId}
+                                    onValueChange={setMonthlyUnidadeId}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
+                                        <SelectItem value="all">
+                                            Todas
+                                        </SelectItem>
                                         {unidades.map((unidade) => (
-                                            <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                            <SelectItem
+                                                key={unidade.id}
+                                                value={String(unidade.id)}
+                                            >
                                                 {unidade.nome}
                                             </SelectItem>
                                         ))}
@@ -1040,7 +1627,9 @@ export default function TransportFreightTimelinePage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Análise mensal por unidade</CardTitle>
+                                <CardTitle>
+                                    Análise mensal por unidade
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {loadingMonthly ? (
@@ -1048,106 +1637,350 @@ export default function TransportFreightTimelinePage() {
                                         <LoaderCircle className="size-4 animate-spin" />
                                         Carregando análise mensal...
                                     </div>
-                                ) : !monthlyReport || monthlyReport.data.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Sem dados para os filtros selecionados.</p>
+                                ) : !monthlyReport ||
+                                  monthlyReport.data.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Sem dados para os filtros selecionados.
+                                    </p>
                                 ) : (
                                     <div className="space-y-3">
                                         {monthlyReport.data.map((item) => (
-                                            <div key={item.unidade_id} className="rounded-lg border p-4">
+                                            <div
+                                                key={item.unidade_id}
+                                                className="rounded-lg border p-4"
+                                            >
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="text-xl font-semibold">{item.unidade_nome ?? 'Sem unidade'}</p>
-                                                    <p className="text-sm text-muted-foreground">{formatIntegerBR(item.dias_trabalhados)} dia(s)</p>
+                                                    <p className="text-xl font-semibold">
+                                                        {item.unidade_nome ??
+                                                            'Sem unidade'}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {formatIntegerBR(
+                                                            item.dias_trabalhados,
+                                                        )}{' '}
+                                                        dia(s)
+                                                    </p>
                                                 </div>
                                                 <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Frete total</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.total_frete)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Frete total
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.total_frete,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Frete líquido</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.total_frete_liquido)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Frete líquido
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.total_frete_liquido,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Total KM</p>
-                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.total_km_rodado)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Total KM
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatIntegerBR(
+                                                                item.total_km_rodado,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Aves transportadas</p>
-                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.total_aves_transportadas)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Aves transportadas
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatIntegerBR(
+                                                                item.total_aves_transportadas,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Frete por caminhão</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.frete_por_caminhao)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Frete por caminhão
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.frete_por_caminhao,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Frete por dia trabalhado</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.frete_por_dia_trabalhado)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Frete por dia
+                                                            trabalhado
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.frete_por_dia_trabalhado,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Média R$/KM</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.media_reais_por_km)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Média R$/KM
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.media_reais_por_km,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Média frete/KM</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.media_frete_por_km)}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Média frete/KM
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.media_frete_por_km,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Abatedouro - Frete</p>
-                                                        <p className="text-xl font-semibold">{formatCurrencyBR(item.abatedouro.total_frete)}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.frete)}% programado</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Abatedouro - Frete
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.abatedouro
+                                                                    .total_frete,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .percentual_realizado
+                                                                    .frete,
+                                                            )}
+                                                            % programado
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Abatedouro - KM</p>
-                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.km_rodado)}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.km)}% programado</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Abatedouro - KM
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .km_rodado,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .percentual_realizado
+                                                                    .km,
+                                                            )}
+                                                            % programado
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Abatedouro - Aves</p>
-                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.aves_abatidas)}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.aves)}% programado</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Abatedouro - Aves
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .aves_abatidas,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .percentual_realizado
+                                                                    .aves,
+                                                            )}
+                                                            % programado
+                                                        </p>
                                                     </div>
                                                     <div className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-xs text-muted-foreground">Abatedouro - Cargas</p>
-                                                        <p className="text-xl font-semibold">{formatIntegerBR(item.abatedouro.cargas)}</p>
-                                                        <p className="text-[11px] text-muted-foreground">{formatIntegerBR(item.abatedouro.percentual_realizado.cargas)}% programado</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Abatedouro - Cargas
+                                                        </p>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .cargas,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {formatIntegerBR(
+                                                                item.abatedouro
+                                                                    .percentual_realizado
+                                                                    .cargas,
+                                                            )}
+                                                            % programado
+                                                        </p>
                                                     </div>
                                                 </div>
 
                                                 <div className="mt-3 flex flex-wrap items-center gap-2">
                                                     <Button
                                                         type="button"
-                                                        variant={kaiqueViewMode === 'integracao' ? 'default' : 'outline'}
-                                                        onClick={() => setKaiqueViewMode('integracao')}
+                                                        variant={
+                                                            kaiqueViewMode ===
+                                                            'integracao'
+                                                                ? 'default'
+                                                                : 'outline'
+                                                        }
+                                                        onClick={() =>
+                                                            setKaiqueViewMode(
+                                                                'integracao',
+                                                            )
+                                                        }
                                                     >
                                                         Kaique Integração
                                                     </Button>
                                                     <Button
                                                         type="button"
-                                                        variant={kaiqueViewMode === 'spot' ? 'default' : 'outline'}
-                                                        onClick={() => setKaiqueViewMode('spot')}
+                                                        variant={
+                                                            kaiqueViewMode ===
+                                                            'spot'
+                                                                ? 'default'
+                                                                : 'outline'
+                                                        }
+                                                        onClick={() =>
+                                                            setKaiqueViewMode(
+                                                                'spot',
+                                                            )
+                                                        }
                                                     >
                                                         Kaique Spot
                                                     </Button>
                                                 </div>
 
                                                 <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                                    {(kaiqueViewMode === 'integracao'
+                                                    {(kaiqueViewMode ===
+                                                    'integracao'
                                                         ? [
-                                                            { label: 'Frete', value: formatCurrencyBR(item.kaique_integracao.total_frete), pct: item.kaique_integracao.percentual_realizado.frete },
-                                                            { label: 'KM', value: formatIntegerBR(item.kaique_integracao.km_rodado), pct: item.kaique_integracao.percentual_realizado.km },
-                                                            { label: 'Aves', value: formatIntegerBR(item.kaique_integracao.aves_abatidas), pct: item.kaique_integracao.percentual_realizado.aves },
-                                                            { label: 'Cargas', value: formatIntegerBR(item.kaique_integracao.cargas), pct: item.kaique_integracao.percentual_realizado.cargas },
-                                                        ]
+                                                              {
+                                                                  label: 'Frete',
+                                                                  value: formatCurrencyBR(
+                                                                      item
+                                                                          .kaique_integracao
+                                                                          .total_frete,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_integracao
+                                                                      .percentual_realizado
+                                                                      .frete,
+                                                              },
+                                                              {
+                                                                  label: 'KM',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_integracao
+                                                                          .km_rodado,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_integracao
+                                                                      .percentual_realizado
+                                                                      .km,
+                                                              },
+                                                              {
+                                                                  label: 'Aves',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_integracao
+                                                                          .aves_abatidas,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_integracao
+                                                                      .percentual_realizado
+                                                                      .aves,
+                                                              },
+                                                              {
+                                                                  label: 'Cargas',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_integracao
+                                                                          .cargas,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_integracao
+                                                                      .percentual_realizado
+                                                                      .cargas,
+                                                              },
+                                                          ]
                                                         : [
-                                                            { label: 'Frete', value: formatCurrencyBR(item.kaique_spot.total_frete), pct: item.kaique_spot.percentual_realizado.frete },
-                                                            { label: 'KM', value: formatIntegerBR(item.kaique_spot.km_rodado), pct: item.kaique_spot.percentual_realizado.km },
-                                                            { label: 'Aves', value: formatIntegerBR(item.kaique_spot.aves_abatidas), pct: item.kaique_spot.percentual_realizado.aves },
-                                                            { label: 'Cargas', value: formatIntegerBR(item.kaique_spot.cargas), pct: item.kaique_spot.percentual_realizado.cargas },
-                                                        ]).map((metric) => (
-                                                        <div key={`${item.unidade_id}-${metric.label}`} className="rounded-md border bg-muted/20 p-3">
-                                                            <p className="text-xs text-muted-foreground">Kaique {kaiqueViewMode === 'integracao' ? 'Integração' : 'Spot'} - {metric.label}</p>
-                                                            <p className="text-xl font-semibold">{metric.value}</p>
-                                                            <p className="text-[11px] text-muted-foreground">{formatIntegerBR(metric.pct)}% programado</p>
+                                                              {
+                                                                  label: 'Frete',
+                                                                  value: formatCurrencyBR(
+                                                                      item
+                                                                          .kaique_spot
+                                                                          .total_frete,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_spot
+                                                                      .percentual_realizado
+                                                                      .frete,
+                                                              },
+                                                              {
+                                                                  label: 'KM',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_spot
+                                                                          .km_rodado,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_spot
+                                                                      .percentual_realizado
+                                                                      .km,
+                                                              },
+                                                              {
+                                                                  label: 'Aves',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_spot
+                                                                          .aves_abatidas,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_spot
+                                                                      .percentual_realizado
+                                                                      .aves,
+                                                              },
+                                                              {
+                                                                  label: 'Cargas',
+                                                                  value: formatIntegerBR(
+                                                                      item
+                                                                          .kaique_spot
+                                                                          .cargas,
+                                                                  ),
+                                                                  pct: item
+                                                                      .kaique_spot
+                                                                      .percentual_realizado
+                                                                      .cargas,
+                                                              },
+                                                          ]
+                                                    ).map((metric) => (
+                                                        <div
+                                                            key={`${item.unidade_id}-${metric.label}`}
+                                                            className="rounded-md border bg-muted/20 p-3"
+                                                        >
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Kaique{' '}
+                                                                {kaiqueViewMode ===
+                                                                'integracao'
+                                                                    ? 'Integração'
+                                                                    : 'Spot'}{' '}
+                                                                - {metric.label}
+                                                            </p>
+                                                            <p className="text-xl font-semibold">
+                                                                {metric.value}
+                                                            </p>
+                                                            <p className="text-[11px] text-muted-foreground">
+                                                                {formatIntegerBR(
+                                                                    metric.pct,
+                                                                )}
+                                                                % programado
+                                                            </p>
                                                         </div>
                                                     ))}
                                                 </div>

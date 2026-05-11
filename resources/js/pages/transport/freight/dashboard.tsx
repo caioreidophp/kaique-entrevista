@@ -27,7 +27,11 @@ import {
     formatIntegerBR,
     formatPercentBR,
 } from '@/lib/transport-format';
-import type { FreightDashboardResponse, FreightEntry, FreightUnit } from '@/types/freight';
+import type {
+    FreightDashboardResponse,
+    FreightEntry,
+    FreightUnit,
+} from '@/types/freight';
 
 interface FreightEntryPaginatedResponse {
     data: FreightEntry[];
@@ -122,11 +126,7 @@ function Sparkline({ values }: { values: number[] }) {
     });
 
     return (
-        <svg
-            viewBox="0 0 120 32"
-            className="h-8 w-[120px]"
-            aria-hidden="true"
-        >
+        <svg viewBox="0 0 120 32" className="h-8 w-[120px]" aria-hidden="true">
             <polyline
                 fill="none"
                 stroke="currentColor"
@@ -178,14 +178,23 @@ function UnitMetricChartCard({
                                         {rows.map((item, index) => {
                                             const rawHeight =
                                                 maxValue > 0
-                                                    ? (item.value / maxValue) * 100
+                                                    ? (item.value / maxValue) *
+                                                      100
                                                     : 0;
                                             const height =
                                                 item.value <= 0
                                                     ? 5
-                                                    : Math.min(100, Math.max(14, rawHeight));
-                                            const toneClass =
-                                                resolveUnitTone(item.label, index).bar;
+                                                    : Math.min(
+                                                          100,
+                                                          Math.max(
+                                                              14,
+                                                              rawHeight,
+                                                          ),
+                                                      );
+                                            const toneClass = resolveUnitTone(
+                                                item.label,
+                                                index,
+                                            ).bar;
 
                                             return (
                                                 <div
@@ -195,7 +204,9 @@ function UnitMetricChartCard({
                                                     <div className="flex flex-1 items-end">
                                                         <div
                                                             className={`w-full rounded-t-md ${toneClass} transition-[height] duration-300`}
-                                                            style={{ height: `${height}%` }}
+                                                            style={{
+                                                                height: `${height}%`,
+                                                            }}
                                                         />
                                                     </div>
                                                     <p
@@ -249,7 +260,11 @@ interface UnitComparisonCardProps {
     formatValue: (value: number) => string;
 }
 
-function UnitComparisonBarCard({ title, rows, formatValue }: UnitComparisonCardProps) {
+function UnitComparisonBarCard({
+    title,
+    rows,
+    formatValue,
+}: UnitComparisonCardProps) {
     const maxValue = useMemo(
         () => Math.max(0, ...rows.map((item) => item.value)),
         [rows],
@@ -263,12 +278,20 @@ function UnitComparisonBarCard({ title, rows, formatValue }: UnitComparisonCardP
             <CardContent className="space-y-3 px-3 pb-3">
                 {rows.map((item, index) => {
                     const tone = resolveUnitTone(item.label, index);
-                    const width = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+                    const width =
+                        maxValue > 0 ? (item.value / maxValue) * 100 : 0;
 
                     return (
-                        <div key={`${title}-${item.label}`} className="space-y-1">
+                        <div
+                            key={`${title}-${item.label}`}
+                            className="space-y-1"
+                        >
                             <div className="flex items-center justify-between text-[11px]">
-                                <span className={`truncate font-medium ${tone.text}`}>{item.label}</span>
+                                <span
+                                    className={`truncate font-medium ${tone.text}`}
+                                >
+                                    {item.label}
+                                </span>
                                 <span className="font-semibold text-foreground">
                                     {formatValue(item.value)}
                                 </span>
@@ -287,7 +310,13 @@ function UnitComparisonBarCard({ title, rows, formatValue }: UnitComparisonCardP
     );
 }
 
-function UnitRatioCard({ title, rows }: { title: string; rows: Array<{ label: string; value: number }> }) {
+function UnitRatioCard({
+    title,
+    rows,
+}: {
+    title: string;
+    rows: Array<{ label: string; value: number }>;
+}) {
     return (
         <Card className="h-full border-border/80">
             <CardHeader className="px-3 pt-2.5 pb-1">
@@ -299,9 +328,16 @@ function UnitRatioCard({ title, rows }: { title: string; rows: Array<{ label: st
                     const clamped = Math.max(0, Math.min(100, item.value));
 
                     return (
-                        <div key={`${title}-${item.label}`} className="space-y-1">
+                        <div
+                            key={`${title}-${item.label}`}
+                            className="space-y-1"
+                        >
                             <div className="flex items-center justify-between text-[11px]">
-                                <span className={`truncate font-medium ${tone.text}`}>{item.label}</span>
+                                <span
+                                    className={`truncate font-medium ${tone.text}`}
+                                >
+                                    {item.label}
+                                </span>
                                 <span className="font-semibold text-foreground">
                                     {formatPercentBR(item.value)}
                                 </span>
@@ -309,7 +345,9 @@ function UnitRatioCard({ title, rows }: { title: string; rows: Array<{ label: st
                             <div className="h-2 rounded-full bg-muted/40">
                                 <div
                                     className={`h-2 rounded-full ${tone.bar}`}
-                                    style={{ width: `${Math.max(6, clamped)}%` }}
+                                    style={{
+                                        width: `${Math.max(6, clamped)}%`,
+                                    }}
                                 />
                             </div>
                         </div>
@@ -320,7 +358,11 @@ function UnitRatioCard({ title, rows }: { title: string; rows: Array<{ label: st
     );
 }
 
-function UnitMetricListCard({ title, rows, formatValue }: UnitComparisonCardProps) {
+function UnitMetricListCard({
+    title,
+    rows,
+    formatValue,
+}: UnitComparisonCardProps) {
     return (
         <Card className="h-full border-border/80">
             <CardHeader className="px-3 pt-2.5 pb-1">
@@ -336,8 +378,12 @@ function UnitMetricListCard({ title, rows, formatValue }: UnitComparisonCardProp
                             className="flex items-center justify-between text-[11px]"
                         >
                             <div className="flex min-w-0 items-center gap-2">
-                                <span className={`size-2 rounded-full ${tone.dot}`} />
-                                <span className="truncate text-muted-foreground">{item.label}</span>
+                                <span
+                                    className={`size-2 rounded-full ${tone.dot}`}
+                                />
+                                <span className="truncate text-muted-foreground">
+                                    {item.label}
+                                </span>
                             </div>
                             <span className="font-semibold text-foreground">
                                 {formatValue(item.value)}
@@ -396,7 +442,8 @@ const unitMetricDefinitions: UnitMetricDefinition[] = [
     {
         key: 'percentual-terceiros-programado',
         title: '% Frete Terceiros / Frete Programado',
-        value: (row) => Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
+        value: (row) =>
+            Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
         format: (value) => formatPercentBR(value),
     },
     {
@@ -627,7 +674,8 @@ export default function TransportFreightDashboardPage() {
                 value: formatIntegerBR(viagensTotal),
                 detail: `${formatIntegerBR(data.kpis.dias_trabalhados)} dias trabalhados`,
                 series: trendSeries.viagens,
-                rowValue: (row: UnitMetricRow) => Number(row.total_viagens_kaique ?? 0),
+                rowValue: (row: UnitMetricRow) =>
+                    Number(row.total_viagens_kaique ?? 0),
                 formatRow: formatIntegerBR,
             },
             {
@@ -663,9 +711,12 @@ export default function TransportFreightDashboardPage() {
         >
             <div className="space-y-5">
                 <div>
-                    <h2 className="text-2xl font-semibold">Dashboard de Fretes</h2>
+                    <h2 className="text-2xl font-semibold">
+                        Dashboard de Fretes
+                    </h2>
                     <p className="text-xs text-muted-foreground">
-                        Visão consolidada do período com indicadores por unidade.
+                        Visão consolidada do período com indicadores por
+                        unidade.
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                         <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
@@ -677,34 +728,50 @@ export default function TransportFreightDashboardPage() {
                     </div>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
 
                 <Card>
                     <CardContent className="px-3 py-3">
                         <div className="flex flex-wrap items-end gap-2">
                             <div className="min-w-[220px] flex-1">
-                                <p className="mb-1 text-xs text-muted-foreground">Competência</p>
+                                <p className="mb-1 text-xs text-muted-foreground">
+                                    Competência
+                                </p>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <Select value={month} onValueChange={setMonth}>
+                                    <Select
+                                        value={month}
+                                        onValueChange={setMonth}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {monthOptions.map((item) => (
-                                                <SelectItem key={item.value} value={item.value}>
+                                                <SelectItem
+                                                    key={item.value}
+                                                    value={item.value}
+                                                >
                                                     {item.label}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
 
-                                    <Select value={year} onValueChange={setYear}>
+                                    <Select
+                                        value={year}
+                                        onValueChange={setYear}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {yearOptions.map((item) => (
-                                                <SelectItem key={item} value={item}>
+                                                <SelectItem
+                                                    key={item}
+                                                    value={item}
+                                                >
                                                     {item}
                                                 </SelectItem>
                                             ))}
@@ -714,15 +781,25 @@ export default function TransportFreightDashboardPage() {
                             </div>
 
                             <div className="min-w-[180px]">
-                                <p className="mb-1 text-xs text-muted-foreground">Unidade</p>
-                                <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                                <p className="mb-1 text-xs text-muted-foreground">
+                                    Unidade
+                                </p>
+                                <Select
+                                    value={selectedUnitId}
+                                    onValueChange={setSelectedUnitId}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Todas as unidades" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todas as unidades</SelectItem>
+                                        <SelectItem value="all">
+                                            Todas as unidades
+                                        </SelectItem>
                                         {units.map((unit) => (
-                                            <SelectItem key={unit.id} value={String(unit.id)}>
+                                            <SelectItem
+                                                key={unit.id}
+                                                value={String(unit.id)}
+                                            >
                                                 {unit.nome}
                                             </SelectItem>
                                         ))}
@@ -731,20 +808,28 @@ export default function TransportFreightDashboardPage() {
                             </div>
 
                             <div className="min-w-[170px]">
-                                <p className="mb-1 text-xs text-muted-foreground">Data inicial</p>
+                                <p className="mb-1 text-xs text-muted-foreground">
+                                    Data inicial
+                                </p>
                                 <Input
                                     type="date"
                                     value={startDate}
-                                    onChange={(event) => setStartDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setStartDate(event.target.value)
+                                    }
                                 />
                             </div>
 
                             <div className="min-w-[170px]">
-                                <p className="mb-1 text-xs text-muted-foreground">Data final</p>
+                                <p className="mb-1 text-xs text-muted-foreground">
+                                    Data final
+                                </p>
                                 <Input
                                     type="date"
                                     value={endDate}
-                                    onChange={(event) => setEndDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setEndDate(event.target.value)
+                                    }
                                 />
                             </div>
 
@@ -775,28 +860,39 @@ export default function TransportFreightDashboardPage() {
                                     if (unitRows.length < 2) return null;
 
                                     const sorted = [...unitRows].sort(
-                                        (a, b) => kpi.rowValue(b) - kpi.rowValue(a),
+                                        (a, b) =>
+                                            kpi.rowValue(b) - kpi.rowValue(a),
                                     );
                                     const leader = sorted[0];
                                     const runner = sorted[1];
-                                    const diff = kpi.rowValue(leader) - kpi.rowValue(runner);
+                                    const diff =
+                                        kpi.rowValue(leader) -
+                                        kpi.rowValue(runner);
                                     return {
-                                        leader: leader.unidade_nome ?? 'Unidade A',
-                                        runner: runner.unidade_nome ?? 'Unidade B',
+                                        leader:
+                                            leader.unidade_nome ?? 'Unidade A',
+                                        runner:
+                                            runner.unidade_nome ?? 'Unidade B',
                                         diff,
                                     };
                                 })();
 
-                                const diffIsPositive = (diffMeta?.diff ?? 0) >= 0;
-                                const diffIcon = diffIsPositive ? ArrowUpRight : ArrowDownRight;
+                                const diffIsPositive =
+                                    (diffMeta?.diff ?? 0) >= 0;
+                                const diffIcon = diffIsPositive
+                                    ? ArrowUpRight
+                                    : ArrowDownRight;
                                 const DiffIcon = diffIcon;
 
                                 return (
-                                    <Card key={kpi.key} className="transport-kpi-card">
+                                    <Card
+                                        key={kpi.key}
+                                        className="transport-kpi-card"
+                                    >
                                         <CardContent className="flex h-full flex-col gap-3 px-4 py-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                                         {kpi.label}
                                                     </p>
                                                     <p className="mt-1 text-2xl font-semibold text-foreground">
@@ -806,26 +902,40 @@ export default function TransportFreightDashboardPage() {
                                                         {kpi.detail}
                                                     </p>
                                                 </div>
-                                                <Sparkline values={kpi.series} />
+                                                <Sparkline
+                                                    values={kpi.series}
+                                                />
                                             </div>
 
                                             <div className="space-y-1 text-[11px]">
                                                 {unitRows.map((row, index) => {
-                                                    const label = row.unidade_nome ?? 'Sem unidade';
-                                                    const tone = resolveUnitTone(label, index);
+                                                    const label =
+                                                        row.unidade_nome ??
+                                                        'Sem unidade';
+                                                    const tone =
+                                                        resolveUnitTone(
+                                                            label,
+                                                            index,
+                                                        );
                                                     return (
                                                         <div
                                                             key={`${kpi.key}-${label}`}
                                                             className="flex items-center justify-between"
                                                         >
                                                             <div className="flex min-w-0 items-center gap-2">
-                                                                <span className={`size-2 rounded-full ${tone.dot}`} />
+                                                                <span
+                                                                    className={`size-2 rounded-full ${tone.dot}`}
+                                                                />
                                                                 <span className="truncate text-muted-foreground">
                                                                     {label}
                                                                 </span>
                                                             </div>
                                                             <span className="font-semibold text-foreground">
-                                                                {kpi.formatRow(kpi.rowValue(row))}
+                                                                {kpi.formatRow(
+                                                                    kpi.rowValue(
+                                                                        row,
+                                                                    ),
+                                                                )}
                                                             </span>
                                                         </div>
                                                     );
@@ -835,12 +945,21 @@ export default function TransportFreightDashboardPage() {
                                             {diffMeta ? (
                                                 <div
                                                     className={`inline-flex items-center gap-1 text-[11px] font-medium ${
-                                                        diffIsPositive ? 'text-emerald-700' : 'text-rose-700'
+                                                        diffIsPositive
+                                                            ? 'text-emerald-700'
+                                                            : 'text-rose-700'
                                                     }`}
                                                 >
                                                     <DiffIcon className="size-3.5" />
-                                                    {diffMeta.leader} {diffIsPositive ? 'acima' : 'abaixo'} de{' '}
-                                                    {diffMeta.runner} ({kpi.formatRow(Math.abs(diffMeta.diff))})
+                                                    {diffMeta.leader}{' '}
+                                                    {diffIsPositive
+                                                        ? 'acima'
+                                                        : 'abaixo'}{' '}
+                                                    de {diffMeta.runner} (
+                                                    {kpi.formatRow(
+                                                        Math.abs(diffMeta.diff),
+                                                    )}
+                                                    )
                                                 </div>
                                             ) : null}
                                         </CardContent>
@@ -851,9 +970,12 @@ export default function TransportFreightDashboardPage() {
 
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-sm font-semibold">Comparativo geral</h3>
+                                <h3 className="text-sm font-semibold">
+                                    Comparativo geral
+                                </h3>
                                 <p className="text-xs text-muted-foreground">
-                                    {formatIntegerBR(unitRows.length)} unidade(s) comparadas
+                                    {formatIntegerBR(unitRows.length)}{' '}
+                                    unidade(s) comparadas
                                 </p>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -862,7 +984,9 @@ export default function TransportFreightDashboardPage() {
                                         key={metric.key}
                                         title={metric.title}
                                         rows={unitRows.map((row) => ({
-                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            label:
+                                                row.unidade_nome ??
+                                                'Sem unidade',
                                             value: metric.value(row),
                                         }))}
                                         formatValue={metric.format}
@@ -873,7 +997,9 @@ export default function TransportFreightDashboardPage() {
 
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-sm font-semibold">Desempenho operacional</h3>
+                                <h3 className="text-sm font-semibold">
+                                    Desempenho operacional
+                                </h3>
                                 <p className="text-xs text-muted-foreground">
                                     Comparação direta entre unidades
                                 </p>
@@ -884,7 +1010,9 @@ export default function TransportFreightDashboardPage() {
                                         key={metric.key}
                                         title={metric.title}
                                         rows={unitRows.map((row) => ({
-                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            label:
+                                                row.unidade_nome ??
+                                                'Sem unidade',
                                             value: metric.value(row),
                                         }))}
                                         formatValue={metric.format}
@@ -895,7 +1023,9 @@ export default function TransportFreightDashboardPage() {
 
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-sm font-semibold">Proporções e eficiência</h3>
+                                <h3 className="text-sm font-semibold">
+                                    Proporções e eficiência
+                                </h3>
                                 <p className="text-xs text-muted-foreground">
                                     Indicadores relativos do período
                                 </p>
@@ -904,8 +1034,12 @@ export default function TransportFreightDashboardPage() {
                                 <UnitRatioCard
                                     title="% Frete Terceiros / Frete Programado"
                                     rows={unitRows.map((row) => ({
-                                        label: row.unidade_nome ?? 'Sem unidade',
-                                        value: Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
+                                        label:
+                                            row.unidade_nome ?? 'Sem unidade',
+                                        value: Number(
+                                            row.percentual_frete_terceiros_sobre_programado ??
+                                                0,
+                                        ),
                                     }))}
                                 />
                                 {efficiencyMetrics.map((metric) => (
@@ -913,7 +1047,9 @@ export default function TransportFreightDashboardPage() {
                                         key={metric.key}
                                         title={metric.title}
                                         rows={unitRows.map((row) => ({
-                                            label: row.unidade_nome ?? 'Sem unidade',
+                                            label:
+                                                row.unidade_nome ??
+                                                'Sem unidade',
                                             value: metric.value(row),
                                         }))}
                                         formatValue={metric.format}
@@ -929,10 +1065,15 @@ export default function TransportFreightDashboardPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {data.alerts.map((alert) => (
-                                        <div key={alert.key} className="rounded-md border p-3">
+                                        <div
+                                            key={alert.key}
+                                            className="rounded-md border p-3"
+                                        >
                                             <p className="inline-flex items-center gap-2 text-sm font-medium">
                                                 <AlertTriangle className="size-4 text-amber-600" />
-                                                {alert.level === 'warning' ? 'Atenção' : 'Informação'}
+                                                {alert.level === 'warning'
+                                                    ? 'Atenção'
+                                                    : 'Informação'}
                                             </p>
                                             <p className="mt-1 text-sm text-muted-foreground">
                                                 {alert.message}
@@ -952,47 +1093,68 @@ export default function TransportFreightDashboardPage() {
                             </CardHeader>
                             <CardContent className="space-y-2 px-4 pb-3">
                                 {data.por_unidade.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Sem dados para o período.</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Sem dados para o período.
+                                    </p>
                                 ) : (
                                     data.por_unidade.map((item) => (
-                                        <div key={item.unidade_id} className="rounded-lg border p-2">
+                                        <div
+                                            key={item.unidade_id}
+                                            className="rounded-lg border p-2"
+                                        >
                                             <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
                                                 <p className="text-sm font-semibold">
-                                                    {item.unidade_nome ?? 'Sem unidade'}
+                                                    {item.unidade_nome ??
+                                                        'Sem unidade'}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {item.total_lancamentos} lançamento(s)
+                                                    {item.total_lancamentos}{' '}
+                                                    lançamento(s)
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-1.5 text-sm sm:grid-cols-4 xl:grid-cols-7">
                                                 {[
                                                     {
                                                         label: 'Dias trabalhados',
-                                                        value: formatIntegerBR(item.dias_trabalhados),
+                                                        value: formatIntegerBR(
+                                                            item.dias_trabalhados,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Frete total',
-                                                        value: formatCurrencyBR(item.total_frete),
+                                                        value: formatCurrencyBR(
+                                                            item.total_frete,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Frete p/ caminhão',
-                                                        value: formatCurrencyBR(item.frete_por_caminhao),
+                                                        value: formatCurrencyBR(
+                                                            item.frete_por_caminhao,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Frete p/ dia',
-                                                        value: formatCurrencyBR(item.frete_por_dia_trabalhado),
+                                                        value: formatCurrencyBR(
+                                                            item.frete_por_dia_trabalhado,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Total KM',
-                                                        value: formatIntegerBR(item.total_km),
+                                                        value: formatIntegerBR(
+                                                            item.total_km,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Aves transp.',
-                                                        value: formatIntegerBR(item.total_aves),
+                                                        value: formatIntegerBR(
+                                                            item.total_aves,
+                                                        ),
                                                     },
                                                     {
                                                         label: 'Média R$/KM',
-                                                        value: formatCurrencyBR(item.frete_por_km),
+                                                        value: formatCurrencyBR(
+                                                            item.frete_por_km,
+                                                        ),
                                                     },
                                                 ].map(({ label, value }) => (
                                                     <div
@@ -1002,7 +1164,9 @@ export default function TransportFreightDashboardPage() {
                                                         <p className="text-[10px] leading-tight text-muted-foreground">
                                                             {label}
                                                         </p>
-                                                        <p className="mt-0.5 text-xs font-semibold">{value}</p>
+                                                        <p className="mt-0.5 text-xs font-semibold">
+                                                            {value}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1016,57 +1180,144 @@ export default function TransportFreightDashboardPage() {
                             <CardHeader>
                                 <CardTitle className="inline-flex items-center gap-2">
                                     <Table2 className="size-4" />
-                                    Tabela diária de fretes ({formatIntegerBR(entriesTotal)})
+                                    Tabela diária de fretes (
+                                    {formatIntegerBR(entriesTotal)})
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {dailyEntriesSorted.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
-                                        Sem lançamentos diários para a competência selecionada.
+                                        Sem lançamentos diários para a
+                                        competência selecionada.
                                     </p>
                                 ) : (
                                     <div className="overflow-x-auto rounded-md border">
                                         <table className="w-full min-w-[1200px] text-xs tabular-nums">
                                             <thead className="bg-muted/40 text-muted-foreground">
                                                 <tr>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">Data</th>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">Dia</th>
-                                                    <th className="px-2.5 py-1.5 text-left font-medium">Unidade</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Cargas</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Veículos</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">KM rodado</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete 3º</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Viagens 3º</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves 3º</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Frete Líq.</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Cargas Líq.</th>
-                                                    <th className="px-2.5 py-1.5 text-right font-medium">Aves Líq.</th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">
+                                                        Data
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">
+                                                        Dia
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-left font-medium">
+                                                        Unidade
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Frete
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Cargas
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Aves
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Veículos
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        KM rodado
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Frete 3º
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Viagens 3º
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Aves 3º
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Frete Líq.
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Cargas Líq.
+                                                    </th>
+                                                    <th className="px-2.5 py-1.5 text-right font-medium">
+                                                        Aves Líq.
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {dailyEntriesSorted.map((entry) => (
-                                                    <tr
-                                                        key={entry.id}
-                                                        className="border-t transition-colors hover:bg-muted/20"
-                                                    >
-                                                        <td className="px-2.5 py-1.5">{formatDateBR(entry.data)}</td>
-                                                        <td className="px-2.5 py-1.5 capitalize">{entry.dia_semana ?? '-'}</td>
-                                                        <td className="px-2.5 py-1.5">{entry.unidade?.nome ?? '-'}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_total)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.cargas)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.veiculos)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.km_rodado)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_terceiros)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.viagens_terceiros)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves_terceiros)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatCurrencyBR(entry.frete_liquido)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.cargas_liq)}</td>
-                                                        <td className="px-2.5 py-1.5 text-right">{formatIntegerBR(entry.aves_liq)}</td>
-                                                    </tr>
-                                                ))}
+                                                {dailyEntriesSorted.map(
+                                                    (entry) => (
+                                                        <tr
+                                                            key={entry.id}
+                                                            className="border-t transition-colors hover:bg-muted/20"
+                                                        >
+                                                            <td className="px-2.5 py-1.5">
+                                                                {formatDateBR(
+                                                                    entry.data,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 capitalize">
+                                                                {entry.dia_semana ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5">
+                                                                {entry.unidade
+                                                                    ?.nome ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatCurrencyBR(
+                                                                    entry.frete_total,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.cargas,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.aves,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.veiculos,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.km_rodado,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatCurrencyBR(
+                                                                    entry.frete_terceiros,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.viagens_terceiros,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.aves_terceiros,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatCurrencyBR(
+                                                                    entry.frete_liquido,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.cargas_liq,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2.5 py-1.5 text-right">
+                                                                {formatIntegerBR(
+                                                                    entry.aves_liq,
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1077,7 +1328,11 @@ export default function TransportFreightDashboardPage() {
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            onClick={() => void loadDashboard(entriesPage + 1)}
+                                            onClick={() =>
+                                                void loadDashboard(
+                                                    entriesPage + 1,
+                                                )
+                                            }
                                             disabled={loading}
                                         >
                                             Carregar mais lançamentos

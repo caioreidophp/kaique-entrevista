@@ -112,7 +112,6 @@ export default function TransportInterviewsCreatePage() {
         const raw = window.localStorage.getItem(INTERVIEW_DRAFT_STORAGE_KEY);
 
         if (!raw) {
-             
             setDraftResolved(true);
             return;
         }
@@ -122,7 +121,7 @@ export default function TransportInterviewsCreatePage() {
 
             if (!isInterviewDraftSnapshot(parsed)) {
                 window.localStorage.removeItem(INTERVIEW_DRAFT_STORAGE_KEY);
-                 
+
                 setDraftResolved(true);
                 return;
             }
@@ -137,7 +136,7 @@ export default function TransportInterviewsCreatePage() {
             setResumeDialogOpen(true);
         } catch {
             window.localStorage.removeItem(INTERVIEW_DRAFT_STORAGE_KEY);
-             
+
             setDraftResolved(true);
         }
     }, []);
@@ -215,7 +214,11 @@ export default function TransportInterviewsCreatePage() {
     }
 
     return (
-        <AdminLayout title="Nova entrevista" active="create" showBobChat={false}>
+        <AdminLayout
+            title="Nova entrevista"
+            active="create"
+            showBobChat={false}
+        >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">{dynamicTitle}</h2>

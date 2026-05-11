@@ -28,7 +28,15 @@ import {
     CircleAlert,
     LoaderCircle,
 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -126,7 +134,15 @@ interface AdminLayoutProps {
         | 'fines-launch-notification'
         | 'fines-list'
         | 'activity-log';
-    module?: 'home' | 'interviews' | 'registry' | 'payroll' | 'freight' | 'vacations' | 'programming' | 'fines';
+    module?:
+        | 'home'
+        | 'interviews'
+        | 'registry'
+        | 'payroll'
+        | 'freight'
+        | 'vacations'
+        | 'programming'
+        | 'fines';
     showBobChat?: boolean;
     children: React.ReactNode;
 }
@@ -230,7 +246,8 @@ const adminLayoutCopy = {
         linkLog: 'Log',
         menuSearchPlaceholder: 'Buscar no menu',
         menuSearchNoResults: 'Nenhum item encontrado para este termo.',
-        quickSearchPlaceholder: 'Buscar por colaborador, placa, viagem, multa...',
+        quickSearchPlaceholder:
+            'Buscar por colaborador, placa, viagem, multa...',
         quickSearchTitle: 'Busca global',
         quickSearchEmpty: 'Digite pelo menos 2 caracteres para buscar.',
         quickSearchNoResults: 'Nenhum resultado encontrado para este termo.',
@@ -339,14 +356,22 @@ export function AdminLayout({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [navigationInput, setNavigationInput] = useState('');
-    const [navigationResults, setNavigationResults] = useState<GlobalSearchItem[]>([]);
+    const [navigationResults, setNavigationResults] = useState<
+        GlobalSearchItem[]
+    >([]);
     const [navigationLoading, setNavigationLoading] = useState(false);
-    const [quickAccesses, setQuickAccesses] = useState<UserQuickAccessEntry[]>([]);
+    const [quickAccesses, setQuickAccesses] = useState<UserQuickAccessEntry[]>(
+        [],
+    );
     const [quickAccessLoading, setQuickAccessLoading] = useState(false);
-    const [navigationActionBusy, setNavigationActionBusy] = useState<string | null>(null);
+    const [navigationActionBusy, setNavigationActionBusy] = useState<
+        string | null
+    >(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
-        return window.localStorage.getItem('transport.sidebar.collapsed') === '1';
+        return (
+            window.localStorage.getItem('transport.sidebar.collapsed') === '1'
+        );
     });
     const [focusMode] = useState<boolean>(() => {
         if (typeof window === 'undefined') return false;
@@ -360,16 +385,17 @@ export function AdminLayout({
     const [focusSidebarVisible, setFocusSidebarVisible] = useState(false);
     const [menuSearch, setMenuSearch] = useState('');
     const [language, setLanguage] = useState<TransportLanguage>(() =>
-        typeof window === 'undefined'
-            ? 'pt-BR'
-            : getStoredTransportLanguage(),
+        typeof window === 'undefined' ? 'pt-BR' : getStoredTransportLanguage(),
     );
     const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
         Partial<Record<SidebarLinkKey, boolean>>
     >({});
     const pageRootRef = useRef<HTMLDivElement | null>(null);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
-    const debouncedNavigationInput = useDebouncedValue(navigationInput.trim(), 280);
+    const debouncedNavigationInput = useDebouncedValue(
+        navigationInput.trim(),
+        280,
+    );
     const copy = adminLayoutCopy[language];
 
     const clearFocusSidebarCloseTimeout = useCallback((): void => {
@@ -384,13 +410,16 @@ export function AdminLayout({
         setFocusSidebarVisible(true);
     }, [clearFocusSidebarCloseTimeout]);
 
-    const scheduleHideFocusSidebar = useCallback((delay = 110): void => {
-        clearFocusSidebarCloseTimeout();
-        focusSidebarCloseTimeoutRef.current = window.setTimeout(() => {
-            setFocusSidebarVisible(false);
-            focusSidebarCloseTimeoutRef.current = null;
-        }, delay);
-    }, [clearFocusSidebarCloseTimeout]);
+    const scheduleHideFocusSidebar = useCallback(
+        (delay = 110): void => {
+            clearFocusSidebarCloseTimeout();
+            focusSidebarCloseTimeoutRef.current = window.setTimeout(() => {
+                setFocusSidebarVisible(false);
+                focusSidebarCloseTimeoutRef.current = null;
+            }, delay);
+        },
+        [clearFocusSidebarCloseTimeout],
+    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -402,7 +431,10 @@ export function AdminLayout({
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        window.localStorage.setItem('transport.focus.mode', focusMode ? '1' : '0');
+        window.localStorage.setItem(
+            'transport.focus.mode',
+            focusMode ? '1' : '0',
+        );
     }, [focusMode]);
 
     useEffect(() => {
@@ -426,7 +458,9 @@ export function AdminLayout({
         }
 
         const onLanguageChanged = (event: Event): void => {
-            const customEvent = event as CustomEvent<{ language?: TransportLanguage }>;
+            const customEvent = event as CustomEvent<{
+                language?: TransportLanguage;
+            }>;
             const nextLanguage = normalizeTransportLanguage(
                 customEvent.detail?.language ?? getStoredTransportLanguage(),
             );
@@ -503,7 +537,8 @@ export function AdminLayout({
         setQuickAccessLoading(true);
 
         try {
-            const response = await apiGet<UserQuickAccessListResponse>('/quick-accesses');
+            const response =
+                await apiGet<UserQuickAccessListResponse>('/quick-accesses');
             setQuickAccesses(response.data);
         } catch {
             setQuickAccesses([]);
@@ -575,7 +610,12 @@ export function AdminLayout({
     }, [quickAccesses]);
 
     const handleQuickAccessToggle = useCallback(
-        async (entry: { title: string; href: string; module: string; id: string }): Promise<void> => {
+        async (entry: {
+            title: string;
+            href: string;
+            module: string;
+            id: string;
+        }): Promise<void> => {
             const saved = quickAccessByHref.get(entry.href);
             setNavigationActionBusy(entry.href);
 
@@ -615,7 +655,12 @@ export function AdminLayout({
                 setNavigationActionBusy(null);
             }
         },
-        [copy.quickSearchPinned, copy.quickSearchUnpinned, loadQuickAccesses, quickAccessByHref],
+        [
+            copy.quickSearchPinned,
+            copy.quickSearchUnpinned,
+            loadQuickAccesses,
+            quickAccessByHref,
+        ],
     );
 
     useEffect(() => {
@@ -641,10 +686,16 @@ export function AdminLayout({
             });
         }
 
-        window.addEventListener('transport:api-error', onApiError as EventListener);
+        window.addEventListener(
+            'transport:api-error',
+            onApiError as EventListener,
+        );
 
         return () => {
-            window.removeEventListener('transport:api-error', onApiError as EventListener);
+            window.removeEventListener(
+                'transport:api-error',
+                onApiError as EventListener,
+            );
         };
     }, []);
 
@@ -686,10 +737,14 @@ export function AdminLayout({
 
         function applyDirtyState(element: HTMLElement, isDirty: boolean): void {
             if (isDirty) {
-                dirtyClassNames.forEach((className) => element.classList.add(className));
+                dirtyClassNames.forEach((className) =>
+                    element.classList.add(className),
+                );
                 dirtySet.add(element);
             } else {
-                dirtyClassNames.forEach((className) => element.classList.remove(className));
+                dirtyClassNames.forEach((className) =>
+                    element.classList.remove(className),
+                );
                 dirtySet.delete(element);
             }
 
@@ -773,7 +828,9 @@ export function AdminLayout({
             if (submit) return submit;
 
             const byText = Array.from(
-                scope.querySelectorAll<HTMLButtonElement>('button:not([disabled])'),
+                scope.querySelectorAll<HTMLButtonElement>(
+                    'button:not([disabled])',
+                ),
             ).find((button) =>
                 /(salvar|gravar|lançar|cadastrar|finalizar|importar|save|submit|create|finish)/i.test(
                     button.textContent ?? '',
@@ -798,7 +855,8 @@ export function AdminLayout({
                     return true;
                 }
 
-                const requestSubmit = (activeForm as HTMLFormElement).requestSubmit;
+                const requestSubmit = (activeForm as HTMLFormElement)
+                    .requestSubmit;
 
                 if (typeof requestSubmit === 'function') {
                     requestSubmit.call(activeForm);
@@ -851,8 +909,12 @@ export function AdminLayout({
 
             fields.forEach((element, index) => {
                 if (element instanceof HTMLInputElement) {
-                    if (element.type === 'checkbox' || element.type === 'radio') {
-                        snapshot[fieldIdentifier(element, index)] = element.checked ? '1' : '0';
+                    if (
+                        element.type === 'checkbox' ||
+                        element.type === 'radio'
+                    ) {
+                        snapshot[fieldIdentifier(element, index)] =
+                            element.checked ? '1' : '0';
                         return;
                     }
 
@@ -890,13 +952,22 @@ export function AdminLayout({
                 if (typeof value !== 'string') return;
 
                 if (element instanceof HTMLInputElement) {
-                    if (element.type === 'checkbox' || element.type === 'radio') {
+                    if (
+                        element.type === 'checkbox' ||
+                        element.type === 'radio'
+                    ) {
                         element.checked = value === '1';
-                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                        element.dispatchEvent(
+                            new Event('change', { bubbles: true }),
+                        );
                     } else {
                         element.value = value;
-                        element.dispatchEvent(new Event('input', { bubbles: true }));
-                        element.dispatchEvent(new Event('change', { bubbles: true }));
+                        element.dispatchEvent(
+                            new Event('input', { bubbles: true }),
+                        );
+                        element.dispatchEvent(
+                            new Event('change', { bubbles: true }),
+                        );
                     }
 
                     applied += 1;
@@ -905,15 +976,21 @@ export function AdminLayout({
 
                 if (element instanceof HTMLSelectElement) {
                     element.value = value;
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    element.dispatchEvent(
+                        new Event('change', { bubbles: true }),
+                    );
                     applied += 1;
                     return;
                 }
 
                 if (element instanceof HTMLTextAreaElement) {
                     element.value = value;
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    element.dispatchEvent(
+                        new Event('input', { bubbles: true }),
+                    );
+                    element.dispatchEvent(
+                        new Event('change', { bubbles: true }),
+                    );
                     applied += 1;
                 }
             });
@@ -955,7 +1032,9 @@ export function AdminLayout({
             }
 
             try {
-                const parsed = JSON.parse(raw) as { snapshot?: Record<string, string> };
+                const parsed = JSON.parse(raw) as {
+                    snapshot?: Record<string, string>;
+                };
                 const applied = applySnapshot(parsed.snapshot ?? {});
 
                 setGlobalNotice({
@@ -1080,9 +1159,8 @@ export function AdminLayout({
                     return;
                 }
 
-                const requestSubmit = (
-                    activeForm as HTMLFormElement
-                ).requestSubmit;
+                const requestSubmit = (activeForm as HTMLFormElement)
+                    .requestSubmit;
 
                 if (typeof requestSubmit === 'function') {
                     event.preventDefault();
@@ -1138,14 +1216,15 @@ export function AdminLayout({
         window.addEventListener('keydown', handleNavigationShortcut, true);
 
         return () => {
-            window.removeEventListener('keydown', handleNavigationShortcut, true);
+            window.removeEventListener(
+                'keydown',
+                handleNavigationShortcut,
+                true,
+            );
         };
     }, []);
 
-    const navigationOptions: Record<
-        string,
-        { label: string; href: string }
-    > = {
+    const navigationOptions: Record<string, { label: string; href: string }> = {
         '1': {
             label: copy.quickInterviews,
             href: '/transport/interviews',
@@ -1198,7 +1277,8 @@ export function AdminLayout({
 
         if (key === 'Enter') {
             const term = navigationInput.trim();
-            const directOption = term.length === 1 ? navigationOptions[term] : null;
+            const directOption =
+                term.length === 1 ? navigationOptions[term] : null;
 
             event.preventDefault();
 
@@ -1227,7 +1307,8 @@ export function AdminLayout({
             active === 'activity-log' ||
             active === 'operations-hub' ||
             active === 'executive-dashboard'
-        ) return 'home';
+        )
+            return 'home';
         if (active.startsWith('registry-')) return 'registry';
         if (active.startsWith('payroll-')) return 'payroll';
         if (active.startsWith('vacations-')) return 'vacations';
@@ -1237,57 +1318,67 @@ export function AdminLayout({
         return 'interviews';
     }, [active, module]);
 
-    const hasPermission = useCallback((permissionKey: string): boolean => {
-        if (!user) return false;
-        if (user.role === 'master_admin') return true;
+    const hasPermission = useCallback(
+        (permissionKey: string): boolean => {
+            if (!user) return false;
+            if (user.role === 'master_admin') return true;
 
-        if (!user.permissions || Object.keys(user.permissions).length === 0) {
-            return true;
-        }
+            if (
+                !user.permissions ||
+                Object.keys(user.permissions).length === 0
+            ) {
+                return true;
+            }
 
-        return Boolean(user.permissions?.[permissionKey]);
-    }, [user]);
+            return Boolean(user.permissions?.[permissionKey]);
+        },
+        [user],
+    );
 
-    const sidebarPermissionByLinkKey = useMemo<Record<string, string>>(() => ({
-        dashboard: 'sidebar.dashboard.view',
-        interviews: 'sidebar.interviews.view',
-        curriculums: 'sidebar.curriculums.view',
-        create: 'sidebar.interviews.create',
-        'next-steps': 'sidebar.next-steps.view',
-        onboarding: 'sidebar.onboarding.view',
-        'registry-collaborators': 'sidebar.registry.collaborators.view',
-        'registry-units': 'sidebar.registry.units.view',
-        'registry-users': 'sidebar.registry.users.view',
-        'registry-functions': 'sidebar.registry.functions.view',
-        'registry-payment-types': 'sidebar.registry.payment-types.view',
-        'registry-plates-aviaries': 'sidebar.registry.plates-aviaries.view',
-        'registry-infractions': 'sidebar.registry.infractions.view',
-        'payroll-dashboard': 'sidebar.payroll.dashboard.view',
-        'payroll-launch': 'sidebar.payroll.launch.view',
-        'payroll-list': 'sidebar.payroll.list.view',
-        'payroll-adjustments': 'sidebar.payroll.adjustments.view',
-        'payroll-report-unit': 'sidebar.payroll.report-unit.view',
-        'payroll-report-collaborator': 'sidebar.payroll.report-collaborator.view',
-        'vacations-dashboard': 'sidebar.vacations.dashboard.view',
-        'vacations-list': 'sidebar.vacations.list.view',
-        'vacations-launch': 'sidebar.vacations.launch.view',
-        'freight-dashboard': 'sidebar.freight.dashboard.view',
-        'freight-launch': 'sidebar.freight.launch.view',
-        'freight-list': 'sidebar.freight.list.view',
-        'freight-spot': 'sidebar.freight.spot.view',
-        'freight-canceled-loads': 'sidebar.freight.canceled-loads.view',
-        'freight-fleet-size-config': 'sidebar.freight.list.view',
-        'freight-timeline': 'sidebar.freight.timeline.view',
-        'programming-dashboard': 'sidebar.programming.dashboard.view',
-        'fines-dashboard': 'sidebar.fines.dashboard.view',
-        'fines-launch': 'sidebar.fines.launch.view',
-        'fines-launch-notification': 'sidebar.fines.launch.view',
-        'fines-list': 'sidebar.fines.list.view',
-        'operations-hub': 'sidebar.operations-hub.view',
-        'executive-dashboard': 'sidebar.executive-dashboard.view',
-        settings: 'sidebar.settings.view',
-        'activity-log': 'sidebar.activity-log.view',
-    }), []);
+    const sidebarPermissionByLinkKey = useMemo<Record<string, string>>(
+        () => ({
+            dashboard: 'sidebar.dashboard.view',
+            interviews: 'sidebar.interviews.view',
+            curriculums: 'sidebar.curriculums.view',
+            create: 'sidebar.interviews.create',
+            'next-steps': 'sidebar.next-steps.view',
+            onboarding: 'sidebar.onboarding.view',
+            'registry-collaborators': 'sidebar.registry.collaborators.view',
+            'registry-units': 'sidebar.registry.units.view',
+            'registry-users': 'sidebar.registry.users.view',
+            'registry-functions': 'sidebar.registry.functions.view',
+            'registry-payment-types': 'sidebar.registry.payment-types.view',
+            'registry-plates-aviaries': 'sidebar.registry.plates-aviaries.view',
+            'registry-infractions': 'sidebar.registry.infractions.view',
+            'payroll-dashboard': 'sidebar.payroll.dashboard.view',
+            'payroll-launch': 'sidebar.payroll.launch.view',
+            'payroll-list': 'sidebar.payroll.list.view',
+            'payroll-adjustments': 'sidebar.payroll.adjustments.view',
+            'payroll-report-unit': 'sidebar.payroll.report-unit.view',
+            'payroll-report-collaborator':
+                'sidebar.payroll.report-collaborator.view',
+            'vacations-dashboard': 'sidebar.vacations.dashboard.view',
+            'vacations-list': 'sidebar.vacations.list.view',
+            'vacations-launch': 'sidebar.vacations.launch.view',
+            'freight-dashboard': 'sidebar.freight.dashboard.view',
+            'freight-launch': 'sidebar.freight.launch.view',
+            'freight-list': 'sidebar.freight.list.view',
+            'freight-spot': 'sidebar.freight.spot.view',
+            'freight-canceled-loads': 'sidebar.freight.canceled-loads.view',
+            'freight-fleet-size-config': 'sidebar.freight.list.view',
+            'freight-timeline': 'sidebar.freight.timeline.view',
+            'programming-dashboard': 'sidebar.programming.dashboard.view',
+            'fines-dashboard': 'sidebar.fines.dashboard.view',
+            'fines-launch': 'sidebar.fines.launch.view',
+            'fines-launch-notification': 'sidebar.fines.launch.view',
+            'fines-list': 'sidebar.fines.list.view',
+            'operations-hub': 'sidebar.operations-hub.view',
+            'executive-dashboard': 'sidebar.executive-dashboard.view',
+            settings: 'sidebar.settings.view',
+            'activity-log': 'sidebar.activity-log.view',
+        }),
+        [],
+    );
 
     const links = useMemo<SidebarLink[]>(() => {
         if (currentModule === 'home') {
@@ -1298,10 +1389,26 @@ export function AdminLayout({
                     href: '/transport/interviews',
                     icon: ListChecks,
                     children: [
-                        { key: 'curriculums', label: copy.linkCurriculums, href: '/transport/interviews/curriculums' },
-                        { key: 'create', label: copy.linkNewInterview, href: '/transport/interviews/create' },
-                        { key: 'next-steps', label: copy.linkNextSteps, href: '/transport/next-steps' },
-                        { key: 'onboarding', label: copy.linkOnboarding, href: '/transport/onboarding' },
+                        {
+                            key: 'curriculums',
+                            label: copy.linkCurriculums,
+                            href: '/transport/interviews/curriculums',
+                        },
+                        {
+                            key: 'create',
+                            label: copy.linkNewInterview,
+                            href: '/transport/interviews/create',
+                        },
+                        {
+                            key: 'next-steps',
+                            label: copy.linkNextSteps,
+                            href: '/transport/next-steps',
+                        },
+                        {
+                            key: 'onboarding',
+                            label: copy.linkOnboarding,
+                            href: '/transport/onboarding',
+                        },
                     ],
                 },
                 {
@@ -1310,11 +1417,31 @@ export function AdminLayout({
                     href: '/transport/payroll/dashboard',
                     icon: Wallet,
                     children: [
-                        { key: 'payroll-launch', label: copy.linkLaunchPayments, href: '/transport/payroll/launch' },
-                        { key: 'payroll-list', label: copy.linkPaymentList, href: '/transport/payroll/list' },
-                        { key: 'payroll-adjustments', label: copy.linkDiscounts, href: '/transport/payroll/adjustments' },
-                        { key: 'payroll-report-unit', label: copy.linkUnitReport, href: '/transport/payroll/reports/unit' },
-                        { key: 'payroll-report-collaborator', label: copy.linkCollaboratorReport, href: '/transport/payroll/reports/collaborator' },
+                        {
+                            key: 'payroll-launch',
+                            label: copy.linkLaunchPayments,
+                            href: '/transport/payroll/launch',
+                        },
+                        {
+                            key: 'payroll-list',
+                            label: copy.linkPaymentList,
+                            href: '/transport/payroll/list',
+                        },
+                        {
+                            key: 'payroll-adjustments',
+                            label: copy.linkDiscounts,
+                            href: '/transport/payroll/adjustments',
+                        },
+                        {
+                            key: 'payroll-report-unit',
+                            label: copy.linkUnitReport,
+                            href: '/transport/payroll/reports/unit',
+                        },
+                        {
+                            key: 'payroll-report-collaborator',
+                            label: copy.linkCollaboratorReport,
+                            href: '/transport/payroll/reports/collaborator',
+                        },
                     ],
                 },
                 {
@@ -1323,8 +1450,16 @@ export function AdminLayout({
                     href: '/transport/vacations/dashboard',
                     icon: ClipboardCheck,
                     children: [
-                        { key: 'vacations-list', label: copy.linkVacationList, href: '/transport/vacations/list' },
-                        { key: 'vacations-launch', label: copy.linkLaunchVacation, href: '/transport/vacations/launch' },
+                        {
+                            key: 'vacations-list',
+                            label: copy.linkVacationList,
+                            href: '/transport/vacations/list',
+                        },
+                        {
+                            key: 'vacations-launch',
+                            label: copy.linkLaunchVacation,
+                            href: '/transport/vacations/launch',
+                        },
                     ],
                 },
                 {
@@ -1333,12 +1468,36 @@ export function AdminLayout({
                     href: '/transport/registry/collaborators',
                     icon: Users,
                     children: [
-                        { key: 'registry-units', label: copy.linkUnits, href: '/transport/registry/units' },
-                        { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users' },
-                        { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions' },
-                        { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types' },
-                        { key: 'registry-plates-aviaries', label: copy.linkPlatesAviaries, href: '/transport/registry/plates-aviaries' },
-                        { key: 'registry-infractions', label: copy.linkInfractions, href: '/transport/registry/infractions' },
+                        {
+                            key: 'registry-units',
+                            label: copy.linkUnits,
+                            href: '/transport/registry/units',
+                        },
+                        {
+                            key: 'registry-users',
+                            label: copy.linkUsers,
+                            href: '/transport/registry/users',
+                        },
+                        {
+                            key: 'registry-functions',
+                            label: copy.linkFunctions,
+                            href: '/transport/registry/functions',
+                        },
+                        {
+                            key: 'registry-payment-types',
+                            label: copy.linkPaymentTypes,
+                            href: '/transport/registry/payment-types',
+                        },
+                        {
+                            key: 'registry-plates-aviaries',
+                            label: copy.linkPlatesAviaries,
+                            href: '/transport/registry/plates-aviaries',
+                        },
+                        {
+                            key: 'registry-infractions',
+                            label: copy.linkInfractions,
+                            href: '/transport/registry/infractions',
+                        },
                     ],
                 },
                 {
@@ -1347,12 +1506,36 @@ export function AdminLayout({
                     href: '/transport/freight/dashboard',
                     icon: Truck,
                     children: [
-                        { key: 'freight-launch', label: copy.linkLaunchFreight, href: '/transport/freight/launch' },
-                        { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list' },
-                        { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot' },
-                        { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads' },
-                        { key: 'freight-fleet-size-config', label: copy.linkFleetMonthly, href: '/transport/freight/fleet-size-config' },
-                        { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline' },
+                        {
+                            key: 'freight-launch',
+                            label: copy.linkLaunchFreight,
+                            href: '/transport/freight/launch',
+                        },
+                        {
+                            key: 'freight-list',
+                            label: copy.linkFreightList,
+                            href: '/transport/freight/list',
+                        },
+                        {
+                            key: 'freight-spot',
+                            label: copy.linkSpotFreight,
+                            href: '/transport/freight/spot',
+                        },
+                        {
+                            key: 'freight-canceled-loads',
+                            label: copy.linkCanceledLoads,
+                            href: '/transport/freight/canceled-loads',
+                        },
+                        {
+                            key: 'freight-fleet-size-config',
+                            label: copy.linkFleetMonthly,
+                            href: '/transport/freight/fleet-size-config',
+                        },
+                        {
+                            key: 'freight-timeline',
+                            label: copy.linkAnalyticsHub,
+                            href: '/transport/freight/timeline',
+                        },
                     ],
                 },
                 {
@@ -1367,9 +1550,21 @@ export function AdminLayout({
                     href: '/transport/fines/dashboard',
                     icon: LayoutDashboard,
                     children: [
-                        { key: 'fines-launch', label: copy.linkFinesLaunch, href: '/transport/fines/launch' },
-                        { key: 'fines-launch-notification', label: copy.linkFinesLaunchNotification, href: '/transport/fines/launch-notification' },
-                        { key: 'fines-list', label: copy.linkFinesList, href: '/transport/fines/list' },
+                        {
+                            key: 'fines-launch',
+                            label: copy.linkFinesLaunch,
+                            href: '/transport/fines/launch',
+                        },
+                        {
+                            key: 'fines-launch-notification',
+                            label: copy.linkFinesLaunchNotification,
+                            href: '/transport/fines/launch-notification',
+                        },
+                        {
+                            key: 'fines-list',
+                            label: copy.linkFinesList,
+                            href: '/transport/fines/list',
+                        },
                     ],
                 },
             ];
@@ -1377,69 +1572,239 @@ export function AdminLayout({
 
         if (currentModule === 'registry') {
             return [
-                { key: 'registry-collaborators', label: copy.linkCollaborators, href: '/transport/registry/collaborators', icon: Users },
-                { key: 'registry-units', label: copy.linkUnits, href: '/transport/registry/units', icon: Building2 },
-                { key: 'registry-users', label: copy.linkUsers, href: '/transport/registry/users', icon: UserPlus },
-                { key: 'registry-functions', label: copy.linkFunctions, href: '/transport/registry/functions', icon: Briefcase },
-                { key: 'registry-payment-types', label: copy.linkPaymentTypes, href: '/transport/registry/payment-types', icon: ReceiptText },
-                { key: 'registry-plates-aviaries', label: copy.linkPlatesAviaries, href: '/transport/registry/plates-aviaries', icon: Truck },
-                { key: 'registry-infractions', label: copy.linkInfractions, href: '/transport/registry/infractions', icon: CircleAlert },
+                {
+                    key: 'registry-collaborators',
+                    label: copy.linkCollaborators,
+                    href: '/transport/registry/collaborators',
+                    icon: Users,
+                },
+                {
+                    key: 'registry-units',
+                    label: copy.linkUnits,
+                    href: '/transport/registry/units',
+                    icon: Building2,
+                },
+                {
+                    key: 'registry-users',
+                    label: copy.linkUsers,
+                    href: '/transport/registry/users',
+                    icon: UserPlus,
+                },
+                {
+                    key: 'registry-functions',
+                    label: copy.linkFunctions,
+                    href: '/transport/registry/functions',
+                    icon: Briefcase,
+                },
+                {
+                    key: 'registry-payment-types',
+                    label: copy.linkPaymentTypes,
+                    href: '/transport/registry/payment-types',
+                    icon: ReceiptText,
+                },
+                {
+                    key: 'registry-plates-aviaries',
+                    label: copy.linkPlatesAviaries,
+                    href: '/transport/registry/plates-aviaries',
+                    icon: Truck,
+                },
+                {
+                    key: 'registry-infractions',
+                    label: copy.linkInfractions,
+                    href: '/transport/registry/infractions',
+                    icon: CircleAlert,
+                },
             ];
         }
 
         if (currentModule === 'payroll') {
             return [
-                { key: 'payroll-dashboard', label: copy.linkDashboard, href: '/transport/payroll/dashboard', icon: Wallet },
-                { key: 'payroll-launch', label: copy.linkLaunchPayments, href: '/transport/payroll/launch', icon: ReceiptText },
-                { key: 'payroll-list', label: copy.linkPaymentList, href: '/transport/payroll/list', icon: List },
-                { key: 'payroll-adjustments', label: copy.linkDiscounts, href: '/transport/payroll/adjustments', icon: ReceiptText },
-                { key: 'payroll-report-unit', label: copy.linkUnitReport, href: '/transport/payroll/reports/unit', icon: BarChart3 },
-                { key: 'payroll-report-collaborator', label: copy.linkCollaboratorReport, href: '/transport/payroll/reports/collaborator', icon: ChartColumn },
+                {
+                    key: 'payroll-dashboard',
+                    label: copy.linkDashboard,
+                    href: '/transport/payroll/dashboard',
+                    icon: Wallet,
+                },
+                {
+                    key: 'payroll-launch',
+                    label: copy.linkLaunchPayments,
+                    href: '/transport/payroll/launch',
+                    icon: ReceiptText,
+                },
+                {
+                    key: 'payroll-list',
+                    label: copy.linkPaymentList,
+                    href: '/transport/payroll/list',
+                    icon: List,
+                },
+                {
+                    key: 'payroll-adjustments',
+                    label: copy.linkDiscounts,
+                    href: '/transport/payroll/adjustments',
+                    icon: ReceiptText,
+                },
+                {
+                    key: 'payroll-report-unit',
+                    label: copy.linkUnitReport,
+                    href: '/transport/payroll/reports/unit',
+                    icon: BarChart3,
+                },
+                {
+                    key: 'payroll-report-collaborator',
+                    label: copy.linkCollaboratorReport,
+                    href: '/transport/payroll/reports/collaborator',
+                    icon: ChartColumn,
+                },
             ];
         }
 
         if (currentModule === 'vacations') {
             return [
-                { key: 'vacations-dashboard', label: copy.linkDashboard, href: '/transport/vacations/dashboard', icon: ClipboardCheck },
-                { key: 'vacations-list', label: copy.linkVacationList, href: '/transport/vacations/list', icon: List },
-                { key: 'vacations-launch', label: copy.linkLaunchVacation, href: '/transport/vacations/launch', icon: PlusSquare },
+                {
+                    key: 'vacations-dashboard',
+                    label: copy.linkDashboard,
+                    href: '/transport/vacations/dashboard',
+                    icon: ClipboardCheck,
+                },
+                {
+                    key: 'vacations-list',
+                    label: copy.linkVacationList,
+                    href: '/transport/vacations/list',
+                    icon: List,
+                },
+                {
+                    key: 'vacations-launch',
+                    label: copy.linkLaunchVacation,
+                    href: '/transport/vacations/launch',
+                    icon: PlusSquare,
+                },
             ];
         }
 
         if (currentModule === 'freight') {
             return [
-                { key: 'freight-dashboard', label: copy.linkDashboard, href: '/transport/freight/dashboard', icon: LayoutDashboard },
-                { key: 'freight-launch', label: copy.linkLaunchFreight, href: '/transport/freight/launch', icon: PlusSquare },
-                { key: 'freight-list', label: copy.linkFreightList, href: '/transport/freight/list', icon: List },
-                { key: 'freight-spot', label: copy.linkSpotFreight, href: '/transport/freight/spot', icon: Truck },
-                { key: 'freight-canceled-loads', label: copy.linkCanceledLoads, href: '/transport/freight/canceled-loads', icon: CircleX },
-                { key: 'freight-fleet-size-config', label: copy.linkFleetMonthly, href: '/transport/freight/fleet-size-config', icon: Truck },
-                { key: 'freight-timeline', label: copy.linkAnalyticsHub, href: '/transport/freight/timeline', icon: TrendingUp },
+                {
+                    key: 'freight-dashboard',
+                    label: copy.linkDashboard,
+                    href: '/transport/freight/dashboard',
+                    icon: LayoutDashboard,
+                },
+                {
+                    key: 'freight-launch',
+                    label: copy.linkLaunchFreight,
+                    href: '/transport/freight/launch',
+                    icon: PlusSquare,
+                },
+                {
+                    key: 'freight-list',
+                    label: copy.linkFreightList,
+                    href: '/transport/freight/list',
+                    icon: List,
+                },
+                {
+                    key: 'freight-spot',
+                    label: copy.linkSpotFreight,
+                    href: '/transport/freight/spot',
+                    icon: Truck,
+                },
+                {
+                    key: 'freight-canceled-loads',
+                    label: copy.linkCanceledLoads,
+                    href: '/transport/freight/canceled-loads',
+                    icon: CircleX,
+                },
+                {
+                    key: 'freight-fleet-size-config',
+                    label: copy.linkFleetMonthly,
+                    href: '/transport/freight/fleet-size-config',
+                    icon: Truck,
+                },
+                {
+                    key: 'freight-timeline',
+                    label: copy.linkAnalyticsHub,
+                    href: '/transport/freight/timeline',
+                    icon: TrendingUp,
+                },
             ];
         }
 
         if (currentModule === 'programming') {
             return [
-                { key: 'programming-dashboard', label: copy.linkProgrammingDashboard, href: '/transport/programming/dashboard', icon: CalendarDays },
+                {
+                    key: 'programming-dashboard',
+                    label: copy.linkProgrammingDashboard,
+                    href: '/transport/programming/dashboard',
+                    icon: CalendarDays,
+                },
             ];
         }
 
         if (currentModule === 'fines') {
             return [
-                { key: 'fines-dashboard', label: copy.linkFinesDashboard, href: '/transport/fines/dashboard', icon: LayoutDashboard },
-                { key: 'fines-launch', label: copy.linkFinesLaunch, href: '/transport/fines/launch', icon: PlusSquare },
-                { key: 'fines-launch-notification', label: copy.linkFinesLaunchNotification, href: '/transport/fines/launch-notification', icon: PlusSquare },
-                { key: 'fines-list', label: copy.linkFinesList, href: '/transport/fines/list', icon: List },
+                {
+                    key: 'fines-dashboard',
+                    label: copy.linkFinesDashboard,
+                    href: '/transport/fines/dashboard',
+                    icon: LayoutDashboard,
+                },
+                {
+                    key: 'fines-launch',
+                    label: copy.linkFinesLaunch,
+                    href: '/transport/fines/launch',
+                    icon: PlusSquare,
+                },
+                {
+                    key: 'fines-launch-notification',
+                    label: copy.linkFinesLaunchNotification,
+                    href: '/transport/fines/launch-notification',
+                    icon: PlusSquare,
+                },
+                {
+                    key: 'fines-list',
+                    label: copy.linkFinesList,
+                    href: '/transport/fines/list',
+                    icon: List,
+                },
             ];
         }
 
         return [
-            { key: 'dashboard', label: copy.linkDashboard, href: '/transport/dashboard', icon: LayoutDashboard },
-            { key: 'interviews', label: copy.linkInterviews, href: '/transport/interviews', icon: ListChecks },
-            { key: 'curriculums', label: copy.linkCurriculums, href: '/transport/interviews/curriculums', icon: ScrollText },
-            { key: 'create', label: copy.linkNewInterview, href: '/transport/interviews/create', icon: PlusSquare },
-            { key: 'next-steps', label: copy.linkNextSteps, href: '/transport/next-steps', icon: Workflow },
-            { key: 'onboarding', label: copy.linkOnboarding, href: '/transport/onboarding', icon: ClipboardCheck },
+            {
+                key: 'dashboard',
+                label: copy.linkDashboard,
+                href: '/transport/dashboard',
+                icon: LayoutDashboard,
+            },
+            {
+                key: 'interviews',
+                label: copy.linkInterviews,
+                href: '/transport/interviews',
+                icon: ListChecks,
+            },
+            {
+                key: 'curriculums',
+                label: copy.linkCurriculums,
+                href: '/transport/interviews/curriculums',
+                icon: ScrollText,
+            },
+            {
+                key: 'create',
+                label: copy.linkNewInterview,
+                href: '/transport/interviews/create',
+                icon: PlusSquare,
+            },
+            {
+                key: 'next-steps',
+                label: copy.linkNextSteps,
+                href: '/transport/next-steps',
+                icon: Workflow,
+            },
+            {
+                key: 'onboarding',
+                label: copy.linkOnboarding,
+                href: '/transport/onboarding',
+                icon: ClipboardCheck,
+            },
         ];
     }, [copy, currentModule]);
 
@@ -1488,24 +1853,40 @@ export function AdminLayout({
                 icon: settingsLink.icon,
             },
         ],
-        [copy.linkExecutive, copy.linkLog, copy.linkPending, settingsLink.href, settingsLink.icon, settingsLink.key, settingsLink.label, user?.role],
+        [
+            copy.linkExecutive,
+            copy.linkLog,
+            copy.linkPending,
+            settingsLink.href,
+            settingsLink.icon,
+            settingsLink.key,
+            settingsLink.label,
+            user?.role,
+        ],
     );
 
     const visibleLinks = useMemo(
         () =>
             links
-                .filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? ''))
+                .filter((link) =>
+                    hasPermission(sidebarPermissionByLinkKey[link.key] ?? ''),
+                )
                 .map((link) => ({
                     ...link,
                     children: (link.children ?? []).filter((child) =>
-                        hasPermission(sidebarPermissionByLinkKey[child.key] ?? ''),
+                        hasPermission(
+                            sidebarPermissionByLinkKey[child.key] ?? '',
+                        ),
                     ),
                 })),
         [hasPermission, links, sidebarPermissionByLinkKey],
     );
 
     const visibleFixedLinks = useMemo(
-        () => fixedLinks.filter((link) => hasPermission(sidebarPermissionByLinkKey[link.key] ?? '')),
+        () =>
+            fixedLinks.filter((link) =>
+                hasPermission(sidebarPermissionByLinkKey[link.key] ?? ''),
+            ),
         [fixedLinks, hasPermission, sidebarPermissionByLinkKey],
     );
 
@@ -1611,12 +1992,12 @@ export function AdminLayout({
                     />
                 ) : null}
                 <div
-                    className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0 ${
+                    className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:p-6 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out print:block print:min-h-0 print:max-w-none print:p-0 ${
                         focusMode
                             ? 'lg:grid-cols-[1fr]'
                             : sidebarCollapsed
-                            ? 'lg:grid-cols-[92px_1fr]'
-                            : 'lg:grid-cols-[260px_1fr]'
+                              ? 'lg:grid-cols-[92px_1fr]'
+                              : 'lg:grid-cols-[260px_1fr]'
                     }`}
                 >
                     <div className="flex items-center justify-between rounded-xl border bg-card p-3 shadow-sm lg:hidden print:hidden">
@@ -1651,9 +2032,7 @@ export function AdminLayout({
                     <aside
                         className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
                             focusMode ? 'lg:hidden' : 'lg:flex'
-                        } ${
-                            sidebarCollapsed ? 'p-2' : 'p-4'
-                        }`}
+                        } ${sidebarCollapsed ? 'p-2' : 'p-4'}`}
                     >
                         <div className="mb-6 border-b pb-4">
                             <div
@@ -1666,7 +2045,11 @@ export function AdminLayout({
                                 <Link
                                     href="/transport/home"
                                     prefetch
-                                    className={sidebarCollapsed ? 'block' : 'mb-3 block w-full'}
+                                    className={
+                                        sidebarCollapsed
+                                            ? 'block'
+                                            : 'mb-3 block w-full'
+                                    }
                                 >
                                     <div
                                         className={`flex items-center justify-center rounded-lg border bg-muted/20 p-2 ${
@@ -1696,7 +2079,9 @@ export function AdminLayout({
                                         type="button"
                                         variant="outline"
                                         size="icon"
-                                        onClick={() => setSidebarCollapsed(false)}
+                                        onClick={() =>
+                                            setSidebarCollapsed(false)
+                                        }
                                         aria-label={copy.expandMenu}
                                         title={copy.expandMenu}
                                     >
@@ -1711,13 +2096,17 @@ export function AdminLayout({
                                     <div className="mt-1 flex items-center justify-between gap-2">
                                         <h1 className="text-lg font-semibold">
                                             {panelTitle}
-                                            {hasUnsavedChanges ? copy.pendingChanges : ''}
+                                            {hasUnsavedChanges
+                                                ? copy.pendingChanges
+                                                : ''}
                                         </h1>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="icon"
-                                            onClick={() => setSidebarCollapsed(true)}
+                                            onClick={() =>
+                                                setSidebarCollapsed(true)
+                                            }
                                             aria-label={copy.collapseMenu}
                                             title={copy.collapseMenu}
                                         >
@@ -1743,7 +2132,7 @@ export function AdminLayout({
                         </div>
 
                         <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                            <div className="flex-1 overflow-x-hidden overflow-y-auto">
                                 {!sidebarCollapsed ? (
                                     <>
                                         <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
@@ -1752,8 +2141,14 @@ export function AdminLayout({
                                         <div className="mb-2">
                                             <Input
                                                 value={menuSearch}
-                                                onChange={(event) => setMenuSearch(event.target.value)}
-                                                placeholder={copy.menuSearchPlaceholder}
+                                                onChange={(event) =>
+                                                    setMenuSearch(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder={
+                                                    copy.menuSearchPlaceholder
+                                                }
                                                 className="h-8 rounded-md bg-background/90 text-xs"
                                             />
                                         </div>
@@ -1761,24 +2156,39 @@ export function AdminLayout({
                                             <p className="mb-1 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
                                                 {copy.quickSearchRecentTitle}
                                             </p>
-                                            {sidebarQuickAccesses.length === 0 ? (
+                                            {sidebarQuickAccesses.length ===
+                                            0 ? (
                                                 <p className="px-1 text-[11px] text-muted-foreground">
-                                                    {copy.quickSearchRecentEmpty}
+                                                    {
+                                                        copy.quickSearchRecentEmpty
+                                                    }
                                                 </p>
                                             ) : (
                                                 <div className="space-y-1">
-                                                    {sidebarQuickAccesses.map((shortcut) => (
-                                                        <Link
-                                                            key={shortcut.id}
-                                                            href={shortcut.href}
-                                                            prefetch
-                                                            title={shortcut.label}
-                                                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
-                                                        >
-                                                            <PlusSquare className="size-3.5 text-muted-foreground" />
-                                                            <span className="truncate">{shortcut.label}</span>
-                                                        </Link>
-                                                    ))}
+                                                    {sidebarQuickAccesses.map(
+                                                        (shortcut) => (
+                                                            <Link
+                                                                key={
+                                                                    shortcut.id
+                                                                }
+                                                                href={
+                                                                    shortcut.href
+                                                                }
+                                                                prefetch
+                                                                title={
+                                                                    shortcut.label
+                                                                }
+                                                                className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                            >
+                                                                <PlusSquare className="size-3.5 text-muted-foreground" />
+                                                                <span className="truncate">
+                                                                    {
+                                                                        shortcut.label
+                                                                    }
+                                                                </span>
+                                                            </Link>
+                                                        ),
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1787,16 +2197,25 @@ export function AdminLayout({
                                 <nav className="space-y-2">
                                     {filteredVisibleLinks.map((link) => {
                                         const Icon = link.icon;
-                                        const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                        const hasChildren =
+                                            currentModule === 'home' &&
+                                            (link.children?.length ?? 0) > 0;
                                         const isExpanded =
                                             hasChildren &&
                                             Boolean(
-                                                expandedSidebarGroups[link.key] ||
-                                                    (link.children ?? []).some((child) => child.key === active),
+                                                expandedSidebarGroups[
+                                                    link.key
+                                                ] ||
+                                                (link.children ?? []).some(
+                                                    (child) =>
+                                                        child.key === active,
+                                                ),
                                             );
                                         const isActive =
                                             link.key === active ||
-                                            (link.children ?? []).some((child) => child.key === active);
+                                            (link.children ?? []).some(
+                                                (child) => child.key === active,
+                                            );
 
                                         return (
                                             <div key={link.key}>
@@ -1804,7 +2223,11 @@ export function AdminLayout({
                                                     <Link
                                                         href={link.href}
                                                         prefetch
-                                                        onClick={() => setMobileMenuOpen(false)}
+                                                        onClick={() =>
+                                                            setMobileMenuOpen(
+                                                                false,
+                                                            )
+                                                        }
                                                         title={link.label}
                                                         className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                                             isActive
@@ -1818,21 +2241,32 @@ export function AdminLayout({
                                                     >
                                                         <Icon className="size-4" />
                                                         {!sidebarCollapsed ? (
-                                                            <span className="truncate">{link.label}</span>
+                                                            <span className="truncate">
+                                                                {link.label}
+                                                            </span>
                                                         ) : null}
                                                     </Link>
 
-                                                    {hasChildren && !sidebarCollapsed ? (
+                                                    {hasChildren &&
+                                                    !sidebarCollapsed ? (
                                                         <button
                                                             type="button"
                                                             aria-label={`Expandir ${link.label}`}
-                                                            aria-expanded={isExpanded}
-                                                            onClick={() => toggleSidebarGroup(link.key)}
+                                                            aria-expanded={
+                                                                isExpanded
+                                                            }
+                                                            onClick={() =>
+                                                                toggleSidebarGroup(
+                                                                    link.key,
+                                                                )
+                                                            }
                                                             className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
                                                         >
                                                             <ChevronRight
                                                                 className={`size-4 transition-transform duration-150 ${
-                                                                    isExpanded ? 'rotate-90' : ''
+                                                                    isExpanded
+                                                                        ? 'rotate-90'
+                                                                        : ''
                                                                 }`}
                                                             />
                                                         </button>
@@ -1841,15 +2275,25 @@ export function AdminLayout({
 
                                                 {hasChildren && isExpanded ? (
                                                     <div className="mt-1 space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5">
-                                                        {(link.children ?? []).map((child) => {
-                                                            const isChildActive = child.key === active;
+                                                        {(
+                                                            link.children ?? []
+                                                        ).map((child) => {
+                                                            const isChildActive =
+                                                                child.key ===
+                                                                active;
 
                                                             return (
                                                                 <Link
-                                                                    key={child.key}
-                                                                    href={child.href}
+                                                                    key={
+                                                                        child.key
+                                                                    }
+                                                                    href={
+                                                                        child.href
+                                                                    }
                                                                     prefetch
-                                                                    title={child.label}
+                                                                    title={
+                                                                        child.label
+                                                                    }
                                                                     className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                         isChildActive
                                                                             ? 'bg-primary/90 text-primary-foreground shadow-sm'
@@ -1863,7 +2307,11 @@ export function AdminLayout({
                                                                                 : 'bg-muted-foreground/60'
                                                                         }`}
                                                                     />
-                                                                    <span className="truncate">{child.label}</span>
+                                                                    <span className="truncate">
+                                                                        {
+                                                                            child.label
+                                                                        }
+                                                                    </span>
                                                                 </Link>
                                                             );
                                                         })}
@@ -1873,7 +2321,8 @@ export function AdminLayout({
                                         );
                                     })}
                                 </nav>
-                                {!sidebarCollapsed && filteredVisibleLinks.length === 0 ? (
+                                {!sidebarCollapsed &&
+                                filteredVisibleLinks.length === 0 ? (
                                     <p className="px-1 py-2 text-xs text-muted-foreground">
                                         {copy.menuSearchNoResults}
                                     </p>
@@ -1895,7 +2344,9 @@ export function AdminLayout({
                                             key={link.key}
                                             href={link.href}
                                             prefetch
-                                            onClick={() => setMobileMenuOpen(false)}
+                                            onClick={() =>
+                                                setMobileMenuOpen(false)
+                                            }
                                             title={link.label}
                                             className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                                                 isActive
@@ -1908,7 +2359,9 @@ export function AdminLayout({
                                             }`}
                                         >
                                             <Icon className="size-4" />
-                                            {!sidebarCollapsed ? <span>{link.label}</span> : null}
+                                            {!sidebarCollapsed ? (
+                                                <span>{link.label}</span>
+                                            ) : null}
                                         </Link>
                                     );
                                 })}
@@ -1932,14 +2385,18 @@ export function AdminLayout({
                             className={`fixed top-6 bottom-6 left-6 z-50 hidden w-[260px] flex-col overflow-hidden rounded-xl border bg-card p-4 shadow-xl transition-all duration-200 ease-out lg:flex print:hidden ${
                                 focusSidebarVisible
                                     ? 'translate-x-0 opacity-100'
-                                    : '-translate-x-[120%] opacity-0 pointer-events-none'
+                                    : 'pointer-events-none -translate-x-[120%] opacity-0'
                             }`}
                             onMouseEnter={showFocusSidebar}
                             onMouseLeave={() => scheduleHideFocusSidebar(60)}
                         >
                             <div className="mb-6 border-b pb-4">
                                 <div className="mb-3 block w-full">
-                                    <Link href="/transport/home" prefetch className="mb-3 block w-full">
+                                    <Link
+                                        href="/transport/home"
+                                        prefetch
+                                        className="mb-3 block w-full"
+                                    >
                                         <div className="flex min-h-[96px] w-full items-center justify-center rounded-lg border bg-muted/20 p-2">
                                             <Logo className="h-16 w-full max-w-[236px] object-contain object-center" />
                                         </div>
@@ -1950,7 +2407,9 @@ export function AdminLayout({
                                 </p>
                                 <h1 className="mt-1 text-lg font-semibold">
                                     {panelTitle}
-                                    {hasUnsavedChanges ? copy.pendingChanges : ''}
+                                    {hasUnsavedChanges
+                                        ? copy.pendingChanges
+                                        : ''}
                                 </h1>
                                 <p
                                     data-transport-translate="off"
@@ -1961,15 +2420,21 @@ export function AdminLayout({
                             </div>
 
                             <div className="flex min-h-0 flex-1 flex-col">
-                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                                <div className="flex-1 overflow-x-hidden overflow-y-auto">
                                     <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
                                         {copy.moduleNavigation}
                                     </p>
                                     <div className="mb-2">
                                         <Input
                                             value={menuSearch}
-                                            onChange={(event) => setMenuSearch(event.target.value)}
-                                            placeholder={copy.menuSearchPlaceholder}
+                                            onChange={(event) =>
+                                                setMenuSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder={
+                                                copy.menuSearchPlaceholder
+                                            }
                                             className="h-8 rounded-md bg-background/90 text-xs"
                                         />
                                     </div>
@@ -1983,34 +2448,54 @@ export function AdminLayout({
                                             </p>
                                         ) : (
                                             <div className="space-y-1">
-                                                {sidebarQuickAccesses.map((shortcut) => (
-                                                    <Link
-                                                        key={shortcut.id}
-                                                        href={shortcut.href}
-                                                        prefetch
-                                                        onClick={() => setMobileMenuOpen(false)}
-                                                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
-                                                    >
-                                                        <PlusSquare className="size-3.5 text-muted-foreground" />
-                                                        <span className="truncate">{shortcut.label}</span>
-                                                    </Link>
-                                                ))}
+                                                {sidebarQuickAccesses.map(
+                                                    (shortcut) => (
+                                                        <Link
+                                                            key={shortcut.id}
+                                                            href={shortcut.href}
+                                                            prefetch
+                                                            onClick={() =>
+                                                                setMobileMenuOpen(
+                                                                    false,
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                        >
+                                                            <PlusSquare className="size-3.5 text-muted-foreground" />
+                                                            <span className="truncate">
+                                                                {shortcut.label}
+                                                            </span>
+                                                        </Link>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
                                     <nav className="space-y-2">
                                         {filteredVisibleLinks.map((link) => {
                                             const Icon = link.icon;
-                                            const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const hasChildren =
+                                                currentModule === 'home' &&
+                                                (link.children?.length ?? 0) >
+                                                    0;
                                             const isExpanded =
                                                 hasChildren &&
                                                 Boolean(
-                                                    expandedSidebarGroups[link.key] ||
-                                                        (link.children ?? []).some((child) => child.key === active),
+                                                    expandedSidebarGroups[
+                                                        link.key
+                                                    ] ||
+                                                    (link.children ?? []).some(
+                                                        (child) =>
+                                                            child.key ===
+                                                            active,
+                                                    ),
                                                 );
                                             const isActive =
                                                 link.key === active ||
-                                                (link.children ?? []).some((child) => child.key === active);
+                                                (link.children ?? []).some(
+                                                    (child) =>
+                                                        child.key === active,
+                                                );
 
                                             return (
                                                 <div key={link.key}>
@@ -2026,37 +2511,59 @@ export function AdminLayout({
                                                             }`}
                                                         >
                                                             <Icon className="size-4" />
-                                                            <span className="truncate">{link.label}</span>
+                                                            <span className="truncate">
+                                                                {link.label}
+                                                            </span>
                                                         </Link>
 
                                                         {hasChildren ? (
                                                             <button
                                                                 type="button"
                                                                 aria-label={`Expandir ${link.label}`}
-                                                                aria-expanded={isExpanded}
-                                                                onClick={() => toggleSidebarGroup(link.key)}
+                                                                aria-expanded={
+                                                                    isExpanded
+                                                                }
+                                                                onClick={() =>
+                                                                    toggleSidebarGroup(
+                                                                        link.key,
+                                                                    )
+                                                                }
                                                                 className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
                                                             >
                                                                 <ChevronRight
                                                                     className={`size-4 transition-transform duration-150 ${
-                                                                        isExpanded ? 'rotate-90' : ''
+                                                                        isExpanded
+                                                                            ? 'rotate-90'
+                                                                            : ''
                                                                     }`}
                                                                 />
                                                             </button>
                                                         ) : null}
                                                     </div>
 
-                                                    {hasChildren && isExpanded ? (
+                                                    {hasChildren &&
+                                                    isExpanded ? (
                                                         <div className="mt-1 space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5 pl-2.5">
-                                                            {(link.children ?? []).map((child) => {
-                                                                const isChildActive = child.key === active;
+                                                            {(
+                                                                link.children ??
+                                                                []
+                                                            ).map((child) => {
+                                                                const isChildActive =
+                                                                    child.key ===
+                                                                    active;
 
                                                                 return (
                                                                     <Link
-                                                                        key={child.key}
-                                                                        href={child.href}
+                                                                        key={
+                                                                            child.key
+                                                                        }
+                                                                        href={
+                                                                            child.href
+                                                                        }
                                                                         prefetch
-                                                                        title={child.label}
+                                                                        title={
+                                                                            child.label
+                                                                        }
                                                                         className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                             isChildActive
                                                                                 ? 'bg-primary/90 text-primary-foreground shadow-sm'
@@ -2070,7 +2577,11 @@ export function AdminLayout({
                                                                                     : 'bg-muted-foreground/60'
                                                                             }`}
                                                                         />
-                                                                        <span className="truncate">{child.label}</span>
+                                                                        <span className="truncate">
+                                                                            {
+                                                                                child.label
+                                                                            }
+                                                                        </span>
                                                                     </Link>
                                                                 );
                                                             })}
@@ -2165,20 +2676,26 @@ export function AdminLayout({
                                         {user?.role === 'master_admin'
                                             ? 'Master Admin'
                                             : user?.role === 'usuario'
-                                                ? copy.roleUser
-                                                : copy.roleAdmin}
+                                              ? copy.roleUser
+                                              : copy.roleAdmin}
                                     </p>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                                <div className="flex-1 overflow-x-hidden overflow-y-auto">
                                     <p className="mb-2 text-[11px] tracking-wide text-muted-foreground uppercase">
                                         {copy.moduleNavigation}
                                     </p>
                                     <div className="mb-2">
                                         <Input
                                             value={menuSearch}
-                                            onChange={(event) => setMenuSearch(event.target.value)}
-                                            placeholder={copy.menuSearchPlaceholder}
+                                            onChange={(event) =>
+                                                setMenuSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder={
+                                                copy.menuSearchPlaceholder
+                                            }
                                             className="h-8 rounded-md bg-background/90 text-xs"
                                         />
                                     </div>
@@ -2192,43 +2709,66 @@ export function AdminLayout({
                                             </p>
                                         ) : (
                                             <div className="space-y-1">
-                                                {sidebarQuickAccesses.map((shortcut) => (
-                                                    <Link
-                                                        key={shortcut.id}
-                                                        href={shortcut.href}
-                                                        prefetch
-                                                        title={shortcut.label}
-                                                        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
-                                                    >
-                                                        <PlusSquare className="size-3.5 text-muted-foreground" />
-                                                        <span className="truncate">{shortcut.label}</span>
-                                                    </Link>
-                                                ))}
+                                                {sidebarQuickAccesses.map(
+                                                    (shortcut) => (
+                                                        <Link
+                                                            key={shortcut.id}
+                                                            href={shortcut.href}
+                                                            prefetch
+                                                            title={
+                                                                shortcut.label
+                                                            }
+                                                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs text-foreground/90 transition hover:bg-muted/70"
+                                                        >
+                                                            <PlusSquare className="size-3.5 text-muted-foreground" />
+                                                            <span className="truncate">
+                                                                {shortcut.label}
+                                                            </span>
+                                                        </Link>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
                                     <nav className="space-y-2">
                                         {filteredVisibleLinks.map((link) => {
                                             const Icon = link.icon;
-                                            const hasChildren = currentModule === 'home' && (link.children?.length ?? 0) > 0;
+                                            const hasChildren =
+                                                currentModule === 'home' &&
+                                                (link.children?.length ?? 0) >
+                                                    0;
                                             const isExpanded =
                                                 hasChildren &&
                                                 Boolean(
-                                                    expandedSidebarGroups[link.key] ||
-                                                        (link.children ?? []).some((child) => child.key === active),
+                                                    expandedSidebarGroups[
+                                                        link.key
+                                                    ] ||
+                                                    (link.children ?? []).some(
+                                                        (child) =>
+                                                            child.key ===
+                                                            active,
+                                                    ),
                                                 );
                                             const isActive =
                                                 link.key === active ||
-                                                (link.children ?? []).some((child) => child.key === active);
+                                                (link.children ?? []).some(
+                                                    (child) =>
+                                                        child.key === active,
+                                                );
 
                                             return (
-                                                <div key={link.key} className="space-y-1">
+                                                <div
+                                                    key={link.key}
+                                                    className="space-y-1"
+                                                >
                                                     <div className="flex items-center gap-1">
                                                         <Link
                                                             href={link.href}
                                                             prefetch
                                                             onClick={() =>
-                                                                setMobileMenuOpen(false)
+                                                                setMobileMenuOpen(
+                                                                    false,
+                                                                )
                                                             }
                                                             className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                                                                 isActive
@@ -2237,38 +2777,60 @@ export function AdminLayout({
                                                             }`}
                                                         >
                                                             <Icon className="size-4" />
-                                                            <span className="truncate">{link.label}</span>
+                                                            <span className="truncate">
+                                                                {link.label}
+                                                            </span>
                                                         </Link>
 
                                                         {hasChildren ? (
                                                             <button
                                                                 type="button"
                                                                 aria-label={`Expandir ${link.label}`}
-                                                                aria-expanded={isExpanded}
-                                                                onClick={() => toggleSidebarGroup(link.key)}
+                                                                aria-expanded={
+                                                                    isExpanded
+                                                                }
+                                                                onClick={() =>
+                                                                    toggleSidebarGroup(
+                                                                        link.key,
+                                                                    )
+                                                                }
                                                                 className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
                                                             >
                                                                 <ChevronRight
                                                                     className={`size-4 transition-transform duration-150 ${
-                                                                        isExpanded ? 'rotate-90' : ''
+                                                                        isExpanded
+                                                                            ? 'rotate-90'
+                                                                            : ''
                                                                     }`}
                                                                 />
                                                             </button>
                                                         ) : null}
                                                     </div>
 
-                                                    {hasChildren && isExpanded ? (
+                                                    {hasChildren &&
+                                                    isExpanded ? (
                                                         <div className="ml-6 space-y-1 border-l border-border/70 pl-2">
-                                                            {(link.children ?? []).map((child) => {
-                                                                const isChildActive = child.key === active;
+                                                            {(
+                                                                link.children ??
+                                                                []
+                                                            ).map((child) => {
+                                                                const isChildActive =
+                                                                    child.key ===
+                                                                    active;
 
                                                                 return (
                                                                     <Link
-                                                                        key={child.key}
-                                                                        href={child.href}
+                                                                        key={
+                                                                            child.key
+                                                                        }
+                                                                        href={
+                                                                            child.href
+                                                                        }
                                                                         prefetch
                                                                         onClick={() =>
-                                                                            setMobileMenuOpen(false)
+                                                                            setMobileMenuOpen(
+                                                                                false,
+                                                                            )
                                                                         }
                                                                         className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors duration-150 ${
                                                                             isChildActive
@@ -2283,7 +2845,11 @@ export function AdminLayout({
                                                                                     : 'bg-muted-foreground/60'
                                                                             }`}
                                                                         />
-                                                                        <span className="truncate">{child.label}</span>
+                                                                        <span className="truncate">
+                                                                            {
+                                                                                child.label
+                                                                            }
+                                                                        </span>
                                                                     </Link>
                                                                 );
                                                             })}
@@ -2399,43 +2965,58 @@ export function AdminLayout({
                                 </p>
                             ) : (
                                 <div className="space-y-1.5">
-                                    {quickAccesses.slice(0, 6).map((shortcut) => (
-                                        <div
-                                            key={shortcut.id}
-                                            className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
-                                        >
-                                            <button
-                                                type="button"
-                                                className="min-w-0 flex-1 text-left"
-                                                onClick={() => openQuickNavigation(shortcut.href)}
+                                    {quickAccesses
+                                        .slice(0, 6)
+                                        .map((shortcut) => (
+                                            <div
+                                                key={shortcut.id}
+                                                className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
                                             >
-                                                <p className="truncate text-xs font-medium">
-                                                    {shortcut.label}
-                                                </p>
-                                                <p className="truncate text-[11px] text-muted-foreground">
-                                                    {shortcut.href}
-                                                </p>
-                                            </button>
+                                                <button
+                                                    type="button"
+                                                    className="min-w-0 flex-1 text-left"
+                                                    onClick={() =>
+                                                        openQuickNavigation(
+                                                            shortcut.href,
+                                                        )
+                                                    }
+                                                >
+                                                    <p className="truncate text-xs font-medium">
+                                                        {shortcut.label}
+                                                    </p>
+                                                    <p className="truncate text-[11px] text-muted-foreground">
+                                                        {shortcut.href}
+                                                    </p>
+                                                </button>
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
                                                     className="size-7"
-                                                    title={copy.quickSearchUnpin}
-                                                onClick={() =>
-                                                    void handleQuickAccessToggle({
-                                                        title: shortcut.label,
-                                                        href: shortcut.href,
-                                                        module: 'shortcut',
-                                                        id: String(shortcut.id),
-                                                    })
-                                                }
-                                                disabled={navigationActionBusy === shortcut.href}
+                                                    title={
+                                                        copy.quickSearchUnpin
+                                                    }
+                                                    onClick={() =>
+                                                        void handleQuickAccessToggle(
+                                                            {
+                                                                title: shortcut.label,
+                                                                href: shortcut.href,
+                                                                module: 'shortcut',
+                                                                id: String(
+                                                                    shortcut.id,
+                                                                ),
+                                                            },
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        navigationActionBusy ===
+                                                        shortcut.href
+                                                    }
                                                 >
                                                     <CircleX className="size-3.5" />
                                                 </Button>
-                                        </div>
-                                    ))}
+                                            </div>
+                                        ))}
                                 </div>
                             )}
                         </div>
@@ -2460,7 +3041,9 @@ export function AdminLayout({
                             ) : (
                                 <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                                     {navigationResults.map((result) => {
-                                        const isPinned = quickAccessByHref.has(result.href);
+                                        const isPinned = quickAccessByHref.has(
+                                            result.href,
+                                        );
 
                                         return (
                                             <div
@@ -2470,7 +3053,11 @@ export function AdminLayout({
                                                 <button
                                                     type="button"
                                                     className="min-w-0 flex-1 text-left"
-                                                    onClick={() => openQuickNavigation(result.href)}
+                                                    onClick={() =>
+                                                        openQuickNavigation(
+                                                            result.href,
+                                                        )
+                                                    }
                                                 >
                                                     <p className="truncate text-xs font-medium">
                                                         {result.title}
@@ -2485,8 +3072,14 @@ export function AdminLayout({
                                                         variant="ghost"
                                                         size="icon"
                                                         className="size-7"
-                                                        onClick={() => openQuickNavigation(result.href)}
-                                                        title={copy.quickSearchOpen}
+                                                        onClick={() =>
+                                                            openQuickNavigation(
+                                                                result.href,
+                                                            )
+                                                        }
+                                                        title={
+                                                            copy.quickSearchOpen
+                                                        }
                                                     >
                                                         <List className="size-3.5" />
                                                     </Button>
@@ -2501,14 +3094,19 @@ export function AdminLayout({
                                                                 : copy.quickSearchPin
                                                         }
                                                         onClick={() =>
-                                                            void handleQuickAccessToggle({
-                                                                title: result.title,
-                                                                href: result.href,
-                                                                module: result.module,
-                                                                id: result.id,
-                                                            })
+                                                            void handleQuickAccessToggle(
+                                                                {
+                                                                    title: result.title,
+                                                                    href: result.href,
+                                                                    module: result.module,
+                                                                    id: result.id,
+                                                                },
+                                                            )
                                                         }
-                                                        disabled={navigationActionBusy === result.href}
+                                                        disabled={
+                                                            navigationActionBusy ===
+                                                            result.href
+                                                        }
                                                     >
                                                         {isPinned ? (
                                                             <CircleX className="size-3.5" />
@@ -2530,31 +3128,45 @@ export function AdminLayout({
                             </p>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">1</span>
-                                <span className="font-medium">{copy.quickInterviews}</span>
+                                <span className="font-medium">
+                                    {copy.quickInterviews}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">2</span>
-                                <span className="font-medium">{copy.quickPayroll}</span>
+                                <span className="font-medium">
+                                    {copy.quickPayroll}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">3</span>
-                                <span className="font-medium">{copy.quickVacations}</span>
+                                <span className="font-medium">
+                                    {copy.quickVacations}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">4</span>
-                                <span className="font-medium">{copy.quickRegistry}</span>
+                                <span className="font-medium">
+                                    {copy.quickRegistry}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">5</span>
-                                <span className="font-medium">{copy.quickFreight}</span>
+                                <span className="font-medium">
+                                    {copy.quickFreight}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">6</span>
-                                <span className="font-medium">{copy.quickProgramming}</span>
+                                <span className="font-medium">
+                                    {copy.quickProgramming}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-muted-foreground">7</span>
-                                <span className="font-medium">{copy.quickFines}</span>
+                                <span className="font-medium">
+                                    {copy.quickFines}
+                                </span>
                             </div>
                         </div>
                     </div>

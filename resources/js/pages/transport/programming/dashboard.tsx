@@ -32,7 +32,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiGet, apiPost } from '@/lib/api-client';
-import { formatDateBR, formatDecimalBR, formatIntegerBR } from '@/lib/transport-format';
+import {
+    formatDateBR,
+    formatDecimalBR,
+    formatIntegerBR,
+} from '@/lib/transport-format';
 
 type NoticeVariant = 'success' | 'error' | 'info';
 type DragType = 'driver' | 'truck';
@@ -234,7 +238,10 @@ function normalizeText(value: string): string {
         .trim();
 }
 
-function resolveResourceStatus(assignedCount: number, totalHours: number): ResourceStatus {
+function resolveResourceStatus(
+    assignedCount: number,
+    totalHours: number,
+): ResourceStatus {
     if (assignedCount >= 2 || totalHours >= 8) {
         return 'closed';
     }
@@ -282,7 +289,9 @@ function clamp(value: number, min: number, max: number): number {
     return value;
 }
 
-function buildDraftSignature(draft: AssignmentDraft | null | undefined): string {
+function buildDraftSignature(
+    draft: AssignmentDraft | null | undefined,
+): string {
     if (!draft) {
         return '';
     }
@@ -296,7 +305,9 @@ function buildDraftSignature(draft: AssignmentDraft | null | undefined): string 
     ].join('|');
 }
 
-function hasRequiredAssignment(draft: AssignmentDraft | null | undefined): boolean {
+function hasRequiredAssignment(
+    draft: AssignmentDraft | null | undefined,
+): boolean {
     if (!draft) {
         return false;
     }
@@ -304,48 +315,70 @@ function hasRequiredAssignment(draft: AssignmentDraft | null | undefined): boole
     return draft.colaborador_id !== 'none' && draft.placa_frota_id !== 'none';
 }
 
-function findBestDriverMatch(query: string, drivers: DriverItem[]): DriverItem | null {
+function findBestDriverMatch(
+    query: string,
+    drivers: DriverItem[],
+): DriverItem | null {
     const normalizedQuery = normalizeText(query);
 
     if (!normalizedQuery) {
         return null;
     }
 
-    const exact = drivers.find((item) => normalizeText(item.nome) === normalizedQuery);
+    const exact = drivers.find(
+        (item) => normalizeText(item.nome) === normalizedQuery,
+    );
 
     if (exact) {
         return exact;
     }
 
-    const startsWith = drivers.find((item) => normalizeText(item.nome).startsWith(normalizedQuery));
+    const startsWith = drivers.find((item) =>
+        normalizeText(item.nome).startsWith(normalizedQuery),
+    );
 
     if (startsWith) {
         return startsWith;
     }
 
-    return drivers.find((item) => normalizeText(item.nome).includes(normalizedQuery)) ?? null;
+    return (
+        drivers.find((item) =>
+            normalizeText(item.nome).includes(normalizedQuery),
+        ) ?? null
+    );
 }
 
-function findBestTruckMatch(query: string, trucks: TruckItem[]): TruckItem | null {
+function findBestTruckMatch(
+    query: string,
+    trucks: TruckItem[],
+): TruckItem | null {
     const normalizedQuery = normalizeText(query);
 
     if (!normalizedQuery) {
         return null;
     }
 
-    const exact = trucks.find((item) => normalizeText(item.placa) === normalizedQuery);
+    const exact = trucks.find(
+        (item) => normalizeText(item.placa) === normalizedQuery,
+    );
 
     if (exact) {
         return exact;
     }
 
-    const startsWith = trucks.find((item) => normalizeText(item.placa).startsWith(normalizedQuery));
+    const startsWith = trucks.find((item) =>
+        normalizeText(item.placa).startsWith(normalizedQuery),
+    );
 
     if (startsWith) {
         return startsWith;
     }
 
-    return trucks.find((item) => normalizeText(item.placa).includes(normalizedQuery)) ?? null;
+    return (
+        trucks.find((item) =>
+            normalizeText(item.placa).includes(normalizedQuery),
+        ) ?? null
+    );
 }
 
 function defaultPanelStates(): Record<FloatingPanelKey, FloatingPanelState> {
@@ -370,10 +403,18 @@ function defaultPanelStates(): Record<FloatingPanelKey, FloatingPanelState> {
 export default function TransportProgrammingDashboardPage() {
     const [data, setData] = useState<ProgrammingDashboardResponse | null>(null);
     const [selectedUnitId, setSelectedUnitId] = useState<string>('');
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
-    const [assignmentDraft, setAssignmentDraft] = useState<Record<number, AssignmentDraft>>({});
-    const [driverInputByTrip, setDriverInputByTrip] = useState<Record<number, string>>({});
-    const [truckInputByTrip, setTruckInputByTrip] = useState<Record<number, string>>({});
+    const [selectedDate, setSelectedDate] = useState<string>(
+        new Date().toISOString().slice(0, 10),
+    );
+    const [assignmentDraft, setAssignmentDraft] = useState<
+        Record<number, AssignmentDraft>
+    >({});
+    const [driverInputByTrip, setDriverInputByTrip] = useState<
+        Record<number, string>
+    >({});
+    const [truckInputByTrip, setTruckInputByTrip] = useState<
+        Record<number, string>
+    >({});
     const [dragging, setDragging] = useState<DragPayload | null>(null);
     const [dragOverZone, setDragOverZone] = useState<string | null>(null);
     const [driverQuery, setDriverQuery] = useState('');
@@ -388,17 +429,32 @@ export default function TransportProgrammingDashboardPage() {
     const [isDesktop, setIsDesktop] = useState<boolean>(
         typeof window !== 'undefined' ? window.innerWidth >= 1280 : false,
     );
-    const [panelStates, setPanelStates] = useState<Record<FloatingPanelKey, FloatingPanelState>>(defaultPanelStates());
-    const [dragPanelState, setDragPanelState] = useState<DragPanelState | null>(null);
+    const [panelStates, setPanelStates] =
+        useState<Record<FloatingPanelKey, FloatingPanelState>>(
+            defaultPanelStates(),
+        );
+    const [dragPanelState, setDragPanelState] = useState<DragPanelState | null>(
+        null,
+    );
 
-    const [autoSavingTripIds, setAutoSavingTripIds] = useState<Record<number, boolean>>({});
-    const [autoSavedAtByTrip, setAutoSavedAtByTrip] = useState<Record<number, number>>({});
-    const [tripSaveErrors, setTripSaveErrors] = useState<Record<number, string>>({});
+    const [autoSavingTripIds, setAutoSavingTripIds] = useState<
+        Record<number, boolean>
+    >({});
+    const [autoSavedAtByTrip, setAutoSavedAtByTrip] = useState<
+        Record<number, number>
+    >({});
+    const [tripSaveErrors, setTripSaveErrors] = useState<
+        Record<number, string>
+    >({});
 
     const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<{ message: string; variant: NoticeVariant } | null>(null);
+    const [notice, setNotice] = useState<{
+        message: string;
+        variant: NoticeVariant;
+    } | null>(null);
     const [importFile, setImportFile] = useState<File | null>(null);
-    const [importPreview, setImportPreview] = useState<ImportPreviewResponse | null>(null);
+    const [importPreview, setImportPreview] =
+        useState<ImportPreviewResponse | null>(null);
     const [previewing, setPreviewing] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -551,7 +607,10 @@ export default function TransportProgrammingDashboardPage() {
 
         map.forEach((meta) => {
             meta.totalHours = Number(meta.totalHours.toFixed(2));
-            meta.status = resolveResourceStatus(meta.assignedCount, meta.totalHours);
+            meta.status = resolveResourceStatus(
+                meta.assignedCount,
+                meta.totalHours,
+            );
         });
 
         return map;
@@ -593,7 +652,10 @@ export default function TransportProgrammingDashboardPage() {
 
         map.forEach((meta) => {
             meta.totalHours = Number(meta.totalHours.toFixed(2));
-            meta.status = resolveResourceStatus(meta.assignedCount, meta.totalHours);
+            meta.status = resolveResourceStatus(
+                meta.assignedCount,
+                meta.totalHours,
+            );
         });
 
         return map;
@@ -619,7 +681,8 @@ export default function TransportProgrammingDashboardPage() {
                 return true;
             }
 
-            const haystack = `${driver.nome} ${driver.funcao_nome}`.toLowerCase();
+            const haystack =
+                `${driver.nome} ${driver.funcao_nome}`.toLowerCase();
             return haystack.includes(normalizedDriverQuery);
         });
     }, [drivers, driverUsageMetaMap, driverFilter, normalizedDriverQuery]);
@@ -650,7 +713,8 @@ export default function TransportProgrammingDashboardPage() {
         let started = 0;
 
         drivers.forEach((driver) => {
-            const status = driverUsageMetaMap.get(driver.id)?.status ?? 'available';
+            const status =
+                driverUsageMetaMap.get(driver.id)?.status ?? 'available';
 
             if (status === 'available') {
                 available += 1;
@@ -673,7 +737,8 @@ export default function TransportProgrammingDashboardPage() {
         let started = 0;
 
         trucks.forEach((truck) => {
-            const status = truckUsageMetaMap.get(truck.id)?.status ?? 'available';
+            const status =
+                truckUsageMetaMap.get(truck.id)?.status ?? 'available';
 
             if (status === 'available') {
                 available += 1;
@@ -730,7 +795,11 @@ export default function TransportProgrammingDashboardPage() {
         ];
     }, [data, driverCounters.available]);
 
-    async function loadDashboard(unitId: string, date: string, keepLoading = false): Promise<void> {
+    async function loadDashboard(
+        unitId: string,
+        date: string,
+        keepLoading = false,
+    ): Promise<void> {
         const requestId = dashboardRequestSeqRef.current + 1;
         dashboardRequestSeqRef.current = requestId;
 
@@ -771,10 +840,15 @@ export default function TransportProgrammingDashboardPage() {
 
             response.trips.forEach((trip) => {
                 const draftItem: AssignmentDraft = {
-                    colaborador_id: trip.escala ? String(trip.escala.colaborador_id) : 'none',
-                    placa_frota_id: trip.escala ? String(trip.escala.placa_frota_id) : 'none',
+                    colaborador_id: trip.escala
+                        ? String(trip.escala.colaborador_id)
+                        : 'none',
+                    placa_frota_id: trip.escala
+                        ? String(trip.escala.placa_frota_id)
+                        : 'none',
                     hora_inicio_prevista: trip.hora_inicio_prevista ?? '',
-                    hora_carregamento_prevista: trip.hora_carregamento_prevista ?? '',
+                    hora_carregamento_prevista:
+                        trip.hora_carregamento_prevista ?? '',
                     hora_fim_prevista: trip.hora_fim_prevista ?? '',
                 };
 
@@ -809,7 +883,12 @@ export default function TransportProgrammingDashboardPage() {
                 return;
             }
 
-            setError(getErrorMessage(loadError, 'Não foi possível carregar o painel de programação.'));
+            setError(
+                getErrorMessage(
+                    loadError,
+                    'Não foi possível carregar o painel de programação.',
+                ),
+            );
         } finally {
             if (requestId === dashboardRequestSeqRef.current) {
                 setLoading(false);
@@ -839,15 +918,13 @@ export default function TransportProgrammingDashboardPage() {
         updater: (current: AssignmentDraft) => AssignmentDraft,
     ): void {
         setAssignmentDraft((previous) => {
-            const current =
-                previous[tripId] ??
-                {
-                    colaborador_id: 'none',
-                    placa_frota_id: 'none',
-                    hora_inicio_prevista: '',
-                    hora_carregamento_prevista: '',
-                    hora_fim_prevista: '',
-                };
+            const current = previous[tripId] ?? {
+                colaborador_id: 'none',
+                placa_frota_id: 'none',
+                hora_inicio_prevista: '',
+                hora_carregamento_prevista: '',
+                hora_fim_prevista: '',
+            };
 
             return {
                 ...previous,
@@ -856,7 +933,11 @@ export default function TransportProgrammingDashboardPage() {
         });
     }
 
-    function setTripDriver(tripId: number, driverId: string, driverName: string): void {
+    function setTripDriver(
+        tripId: number,
+        driverId: string,
+        driverName: string,
+    ): void {
         updateTripDraft(tripId, (current) => ({
             ...current,
             colaborador_id: driverId,
@@ -876,7 +957,11 @@ export default function TransportProgrammingDashboardPage() {
         queueAutoSaveTrip(tripId);
     }
 
-    function setTripTruck(tripId: number, truckId: string, plate: string): void {
+    function setTripTruck(
+        tripId: number,
+        truckId: string,
+        plate: string,
+    ): void {
         updateTripDraft(tripId, (current) => ({
             ...current,
             placa_frota_id: truckId,
@@ -947,7 +1032,8 @@ export default function TransportProgrammingDashboardPage() {
                 colaborador_id: Number(draft.colaborador_id),
                 placa_frota_id: Number(draft.placa_frota_id),
                 hora_inicio_prevista: draft.hora_inicio_prevista || null,
-                hora_carregamento_prevista: draft.hora_carregamento_prevista || null,
+                hora_carregamento_prevista:
+                    draft.hora_carregamento_prevista || null,
                 hora_fim_prevista: draft.hora_fim_prevista || null,
             });
 
@@ -975,8 +1061,10 @@ export default function TransportProgrammingDashboardPage() {
 
                     return {
                         ...item,
-                        hora_inicio_prevista: response.data.hora_inicio_prevista,
-                        hora_carregamento_prevista: response.data.hora_carregamento_prevista,
+                        hora_inicio_prevista:
+                            response.data.hora_inicio_prevista,
+                        hora_carregamento_prevista:
+                            response.data.hora_carregamento_prevista,
                         hora_fim_prevista: response.data.hora_fim_prevista,
                         escala: {
                             id: response.data.id,
@@ -995,7 +1083,10 @@ export default function TransportProgrammingDashboardPage() {
                 };
             });
         } catch (saveError) {
-            const message = getErrorMessage(saveError, 'Não foi possível salvar a escala automaticamente.');
+            const message = getErrorMessage(
+                saveError,
+                'Não foi possível salvar a escala automaticamente.',
+            );
 
             setTripSaveErrors((previous) => ({
                 ...previous,
@@ -1010,9 +1101,15 @@ export default function TransportProgrammingDashboardPage() {
         }
     }
 
-    function handleDragStart(payload: DragPayload, event: React.DragEvent<HTMLDivElement>): void {
+    function handleDragStart(
+        payload: DragPayload,
+        event: React.DragEvent<HTMLDivElement>,
+    ): void {
         event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', `${payload.type}:${payload.id}`);
+        event.dataTransfer.setData(
+            'text/plain',
+            `${payload.type}:${payload.id}`,
+        );
         setDragging(payload);
     }
 
@@ -1037,7 +1134,8 @@ export default function TransportProgrammingDashboardPage() {
         event.preventDefault();
 
         const payload =
-            parseDropPayload(event.dataTransfer.getData('text/plain')) ?? dragging;
+            parseDropPayload(event.dataTransfer.getData('text/plain')) ??
+            dragging;
 
         if (!payload || payload.type !== expectedType) {
             setDragOverZone(null);
@@ -1088,7 +1186,10 @@ export default function TransportProgrammingDashboardPage() {
         formData.append('unidade_id', selectedUnitId);
 
         try {
-            const response = await apiPost<ImportPreviewResponse>('/programming/import-base-preview', formData);
+            const response = await apiPost<ImportPreviewResponse>(
+                '/programming/import-base-preview',
+                formData,
+            );
 
             setImportPreview(response);
 
@@ -1106,7 +1207,10 @@ export default function TransportProgrammingDashboardPage() {
             }
         } catch (importError) {
             setNotice({
-                message: getErrorMessage(importError, 'Não foi possível ler a planilha de programação.'),
+                message: getErrorMessage(
+                    importError,
+                    'Não foi possível ler a planilha de programação.',
+                ),
                 variant: 'error',
             });
             setImportPreview(null);
@@ -1134,7 +1238,8 @@ export default function TransportProgrammingDashboardPage() {
 
         if (!importPreview || importPreview.total_validas <= 0) {
             setNotice({
-                message: 'Primeiro clique em Ler XLSX e valide se existem linhas válidas para importar.',
+                message:
+                    'Primeiro clique em Ler XLSX e valide se existem linhas válidas para importar.',
                 variant: 'error',
             });
             return;
@@ -1169,9 +1274,10 @@ export default function TransportProgrammingDashboardPage() {
 
             setImportPreview(null);
 
-            const importedDate = response.data_sugerida && response.data_sugerida !== ''
-                ? response.data_sugerida
-                : selectedDate;
+            const importedDate =
+                response.data_sugerida && response.data_sugerida !== ''
+                    ? response.data_sugerida
+                    : selectedDate;
 
             if (importedDate !== selectedDate) {
                 setSelectedDate(importedDate);
@@ -1180,7 +1286,10 @@ export default function TransportProgrammingDashboardPage() {
             await loadDashboard(selectedUnitId, importedDate, true);
         } catch (importError) {
             setNotice({
-                message: getErrorMessage(importError, 'Não foi possível importar a planilha de programação.'),
+                message: getErrorMessage(
+                    importError,
+                    'Não foi possível importar a planilha de programação.',
+                ),
                 variant: 'error',
             });
         } finally {
@@ -1191,7 +1300,8 @@ export default function TransportProgrammingDashboardPage() {
     async function handleClearDayTable(): Promise<void> {
         if (selectedUnitId === '' || selectedDate === '') {
             setNotice({
-                message: 'Selecione unidade e data para limpar a tabela do dia.',
+                message:
+                    'Selecione unidade e data para limpar a tabela do dia.',
                 variant: 'error',
             });
             return;
@@ -1217,7 +1327,10 @@ export default function TransportProgrammingDashboardPage() {
             await loadDashboard(selectedUnitId, selectedDate, true);
         } catch (clearError) {
             setNotice({
-                message: getErrorMessage(clearError, 'Não foi possível limpar a tabela do dia.'),
+                message: getErrorMessage(
+                    clearError,
+                    'Não foi possível limpar a tabela do dia.',
+                ),
                 variant: 'error',
             });
         } finally {
@@ -1239,7 +1352,10 @@ export default function TransportProgrammingDashboardPage() {
         });
     }
 
-    function startPanelDrag(panel: FloatingPanelKey, event: React.MouseEvent<HTMLDivElement>): void {
+    function startPanelDrag(
+        panel: FloatingPanelKey,
+        event: React.MouseEvent<HTMLDivElement>,
+    ): void {
         if (!isDesktop) {
             return;
         }
@@ -1288,21 +1404,36 @@ export default function TransportProgrammingDashboardPage() {
                     ...current,
                     width,
                     height,
-                    x: clamp(current.x, 0, Math.max(0, workspaceRect.width - width)),
-                    y: clamp(current.y, 0, Math.max(0, workspaceRect.height - 80)),
+                    x: clamp(
+                        current.x,
+                        0,
+                        Math.max(0, workspaceRect.width - width),
+                    ),
+                    y: clamp(
+                        current.y,
+                        0,
+                        Math.max(0, workspaceRect.height - 80),
+                    ),
                 },
             };
         });
     }
 
-    function focusDriverInputByOffset(currentTripId: number, offset: number): void {
+    function focusDriverInputByOffset(
+        currentTripId: number,
+        offset: number,
+    ): void {
         const currentIndex = orderedTripIds.indexOf(currentTripId);
 
         if (currentIndex < 0) {
             return;
         }
 
-        const nextIndex = clamp(currentIndex + offset, 0, orderedTripIds.length - 1);
+        const nextIndex = clamp(
+            currentIndex + offset,
+            0,
+            orderedTripIds.length - 1,
+        );
         const targetTripId = orderedTripIds[nextIndex];
 
         window.setTimeout(() => {
@@ -1311,14 +1442,21 @@ export default function TransportProgrammingDashboardPage() {
         }, 0);
     }
 
-    function focusTruckInputByOffset(currentTripId: number, offset: number): void {
+    function focusTruckInputByOffset(
+        currentTripId: number,
+        offset: number,
+    ): void {
         const currentIndex = orderedTripIds.indexOf(currentTripId);
 
         if (currentIndex < 0) {
             return;
         }
 
-        const nextIndex = clamp(currentIndex + offset, 0, orderedTripIds.length - 1);
+        const nextIndex = clamp(
+            currentIndex + offset,
+            0,
+            orderedTripIds.length - 1,
+        );
         const targetTripId = orderedTripIds[nextIndex];
 
         window.setTimeout(() => {
@@ -1410,7 +1548,9 @@ export default function TransportProgrammingDashboardPage() {
                 <Button
                     type="button"
                     size="sm"
-                    variant={driverFilter === 'available' ? 'default' : 'outline'}
+                    variant={
+                        driverFilter === 'available' ? 'default' : 'outline'
+                    }
                     onClick={() => setDriverFilter('available')}
                     className="h-7 text-xs"
                 >
@@ -1427,9 +1567,14 @@ export default function TransportProgrammingDashboardPage() {
                 </Button>
             </div>
 
-            <div className="space-y-1 overflow-auto pr-1 text-xs" style={{ maxHeight: isDesktop ? 'calc(100% - 96px)' : '420px' }}>
+            <div
+                className="space-y-1 overflow-auto pr-1 text-xs"
+                style={{ maxHeight: isDesktop ? 'calc(100% - 96px)' : '420px' }}
+            >
                 {filteredDrivers.length === 0 ? (
-                    <p className="py-4 text-center text-muted-foreground">Nenhum motorista encontrado.</p>
+                    <p className="py-4 text-center text-muted-foreground">
+                        Nenhum motorista encontrado.
+                    </p>
                 ) : (
                     filteredDrivers.map((driver) => {
                         const usage = driverUsageMetaMap.get(driver.id);
@@ -1440,7 +1585,10 @@ export default function TransportProgrammingDashboardPage() {
                                 key={driver.id}
                                 draggable
                                 onDragStart={(event) =>
-                                    handleDragStart({ type: 'driver', id: driver.id }, event)
+                                    handleDragStart(
+                                        { type: 'driver', id: driver.id },
+                                        event,
+                                    )
                                 }
                                 onDragEnd={() => {
                                     setDragging(null);
@@ -1450,16 +1598,30 @@ export default function TransportProgrammingDashboardPage() {
                                 title="Clique e arraste"
                             >
                                 <div className="mb-1 flex items-start justify-between gap-2">
-                                    <p className="truncate text-[13px] font-semibold">{driver.nome}</p>
+                                    <p className="truncate text-[13px] font-semibold">
+                                        {driver.nome}
+                                    </p>
                                     <GripVertical className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                                 </div>
 
-                                <p className="text-[11px] text-muted-foreground">{driver.funcao_nome}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {driver.funcao_nome}
+                                </p>
 
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                    <Badge className={statusBadgeClass(status)}>{statusLabel(status)}</Badge>
+                                    <Badge className={statusBadgeClass(status)}>
+                                        {statusLabel(status)}
+                                    </Badge>
                                     <span className="text-[11px] text-muted-foreground">
-                                        {formatDecimalBR(usage?.totalHours ?? 0, 2)} h • {formatIntegerBR(usage?.assignedCount ?? 0)} viag.
+                                        {formatDecimalBR(
+                                            usage?.totalHours ?? 0,
+                                            2,
+                                        )}{' '}
+                                        h •{' '}
+                                        {formatIntegerBR(
+                                            usage?.assignedCount ?? 0,
+                                        )}{' '}
+                                        viag.
                                     </span>
                                 </div>
 
@@ -1501,7 +1663,9 @@ export default function TransportProgrammingDashboardPage() {
                 <Button
                     type="button"
                     size="sm"
-                    variant={truckFilter === 'available' ? 'default' : 'outline'}
+                    variant={
+                        truckFilter === 'available' ? 'default' : 'outline'
+                    }
                     onClick={() => setTruckFilter('available')}
                     className="h-7 text-xs"
                 >
@@ -1518,9 +1682,14 @@ export default function TransportProgrammingDashboardPage() {
                 </Button>
             </div>
 
-            <div className="space-y-1 overflow-auto pr-1 text-xs" style={{ maxHeight: isDesktop ? 'calc(100% - 96px)' : '320px' }}>
+            <div
+                className="space-y-1 overflow-auto pr-1 text-xs"
+                style={{ maxHeight: isDesktop ? 'calc(100% - 96px)' : '320px' }}
+            >
                 {filteredTrucks.length === 0 ? (
-                    <p className="py-4 text-center text-muted-foreground">Nenhum caminhão encontrado.</p>
+                    <p className="py-4 text-center text-muted-foreground">
+                        Nenhum caminhão encontrado.
+                    </p>
                 ) : (
                     filteredTrucks.map((truck) => {
                         const usage = truckUsageMetaMap.get(truck.id);
@@ -1531,7 +1700,10 @@ export default function TransportProgrammingDashboardPage() {
                                 key={truck.id}
                                 draggable
                                 onDragStart={(event) =>
-                                    handleDragStart({ type: 'truck', id: truck.id }, event)
+                                    handleDragStart(
+                                        { type: 'truck', id: truck.id },
+                                        event,
+                                    )
                                 }
                                 onDragEnd={() => {
                                     setDragging(null);
@@ -1541,14 +1713,21 @@ export default function TransportProgrammingDashboardPage() {
                                 title="Clique e arraste"
                             >
                                 <div className="mb-1 flex items-start justify-between gap-2">
-                                    <p className="truncate text-[13px] font-semibold">{truck.placa}</p>
+                                    <p className="truncate text-[13px] font-semibold">
+                                        {truck.placa}
+                                    </p>
                                     <GripVertical className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                                 </div>
 
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                    <Badge className={statusBadgeClass(status)}>{statusLabel(status)}</Badge>
+                                    <Badge className={statusBadgeClass(status)}>
+                                        {statusLabel(status)}
+                                    </Badge>
                                     <span className="text-[11px] text-muted-foreground">
-                                        {formatIntegerBR(usage?.assignedCount ?? 0)} viag.
+                                        {formatIntegerBR(
+                                            usage?.assignedCount ?? 0,
+                                        )}{' '}
+                                        viag.
                                     </span>
                                 </div>
                             </div>
@@ -1560,17 +1739,28 @@ export default function TransportProgrammingDashboardPage() {
     );
 
     return (
-        <AdminLayout title="Programação - Dashboard" active="programming-dashboard" module="programming">
+        <AdminLayout
+            title="Programação - Dashboard"
+            active="programming-dashboard"
+            module="programming"
+        >
             <div className="transport-dashboard-page">
                 <div className="transport-dashboard-header">
-                    <p className="transport-dashboard-eyebrow">Operação diária</p>
-                    <h2 className="transport-dashboard-title">Programação de Viagens</h2>
+                    <p className="transport-dashboard-eyebrow">
+                        Operação diária
+                    </p>
+                    <h2 className="transport-dashboard-title">
+                        Programação de Viagens
+                    </h2>
                     <p className="transport-dashboard-subtitle">
-                        Visão operacional em modo planilha com autosave e navegação por teclado.
+                        Visão operacional em modo planilha com autosave e
+                        navegação por teclado.
                     </p>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
                 {notice ? (
                     <Notification
                         message={notice.message}
@@ -1581,19 +1771,31 @@ export default function TransportProgrammingDashboardPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader className="pb-2">
-                        <CardTitle className="transport-dashboard-section-title">Filtros e importação da base (XLSX)</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Filtros e importação da base (XLSX)
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <div className="grid gap-3 lg:grid-cols-3">
                             <div>
-                                <p className="mb-1.5 text-xs text-muted-foreground">Unidade</p>
-                                <Select value={selectedUnitId} onValueChange={(value) => void handleUnitChange(value)}>
+                                <p className="mb-1.5 text-xs text-muted-foreground">
+                                    Unidade
+                                </p>
+                                <Select
+                                    value={selectedUnitId}
+                                    onValueChange={(value) =>
+                                        void handleUnitChange(value)
+                                    }
+                                >
                                     <SelectTrigger className="h-8">
                                         <SelectValue placeholder="Selecione uma unidade" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {units.map((unit) => (
-                                            <SelectItem key={unit.id} value={String(unit.id)}>
+                                            <SelectItem
+                                                key={unit.id}
+                                                value={String(unit.id)}
+                                            >
                                                 {unit.nome}
                                             </SelectItem>
                                         ))}
@@ -1602,19 +1804,25 @@ export default function TransportProgrammingDashboardPage() {
                             </div>
 
                             <div>
-                                <p className="mb-1.5 text-xs text-muted-foreground">Data</p>
+                                <p className="mb-1.5 text-xs text-muted-foreground">
+                                    Data
+                                </p>
                                 <Input
                                     type="date"
                                     className="h-8"
                                     value={selectedDate}
                                     onChange={(event) => {
-                                        void handleDateChange(event.target.value);
+                                        void handleDateChange(
+                                            event.target.value,
+                                        );
                                     }}
                                 />
                             </div>
 
                             <div>
-                                <p className="mb-1.5 text-xs text-muted-foreground">Arquivo XLSX</p>
+                                <p className="mb-1.5 text-xs text-muted-foreground">
+                                    Arquivo XLSX
+                                </p>
                                 <div className="flex flex-wrap gap-2">
                                     <Input
                                         ref={fileInputRef}
@@ -1622,7 +1830,8 @@ export default function TransportProgrammingDashboardPage() {
                                         className="h-8"
                                         accept=".xlsx"
                                         onChange={(event) => {
-                                            const nextFile = event.target.files?.[0] ?? null;
+                                            const nextFile =
+                                                event.target.files?.[0] ?? null;
                                             setImportFile(nextFile);
                                             setImportPreview(null);
                                         }}
@@ -1631,7 +1840,9 @@ export default function TransportProgrammingDashboardPage() {
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => void handlePreviewImport()}
+                                        onClick={() =>
+                                            void handlePreviewImport()
+                                        }
                                         disabled={previewing}
                                         className="h-8"
                                     >
@@ -1646,7 +1857,11 @@ export default function TransportProgrammingDashboardPage() {
                                         type="button"
                                         size="sm"
                                         onClick={() => void handleImportBase()}
-                                        disabled={importing || !importPreview || importPreview.total_validas <= 0}
+                                        disabled={
+                                            importing ||
+                                            !importPreview ||
+                                            importPreview.total_validas <= 0
+                                        }
                                         className="h-8"
                                     >
                                         {importing ? (
@@ -1659,7 +1874,22 @@ export default function TransportProgrammingDashboardPage() {
                                 </div>
                                 {importPreview ? (
                                     <p className="mt-2 text-[11px] text-muted-foreground">
-                                        Lidas: {formatIntegerBR(importPreview.total_lidas)} • Válidas: {formatIntegerBR(importPreview.total_validas)} • Ignoradas: {formatIntegerBR(importPreview.total_ignoradas ?? 0)} • Erros: {formatIntegerBR(importPreview.total_erros)}
+                                        Lidas:{' '}
+                                        {formatIntegerBR(
+                                            importPreview.total_lidas,
+                                        )}{' '}
+                                        • Válidas:{' '}
+                                        {formatIntegerBR(
+                                            importPreview.total_validas,
+                                        )}{' '}
+                                        • Ignoradas:{' '}
+                                        {formatIntegerBR(
+                                            importPreview.total_ignoradas ?? 0,
+                                        )}{' '}
+                                        • Erros:{' '}
+                                        {formatIntegerBR(
+                                            importPreview.total_erros,
+                                        )}
                                     </p>
                                 ) : null}
 
@@ -1668,8 +1898,15 @@ export default function TransportProgrammingDashboardPage() {
                                         type="button"
                                         variant="destructive"
                                         size="sm"
-                                        onClick={() => setClearConfirmOpen(true)}
-                                        disabled={clearingDay || loading || selectedUnitId === '' || selectedDate === ''}
+                                        onClick={() =>
+                                            setClearConfirmOpen(true)
+                                        }
+                                        disabled={
+                                            clearingDay ||
+                                            loading ||
+                                            selectedUnitId === '' ||
+                                            selectedDate === ''
+                                        }
                                         className="h-8"
                                     >
                                         Limpar tabela do dia
@@ -1690,16 +1927,22 @@ export default function TransportProgrammingDashboardPage() {
                                 <Card
                                     key={item.label}
                                     className={`transport-metric-card ${
-                                        index === 2 || index === 4 || index === 6
+                                        index === 2 ||
+                                        index === 4 ||
+                                        index === 6
                                             ? 'transport-tone-warning'
                                             : index === 3
-                                                ? 'transport-tone-success'
-                                                : 'transport-tone-info'
+                                              ? 'transport-tone-success'
+                                              : 'transport-tone-info'
                                     }`}
                                 >
                                     <CardContent className="space-y-0.5 py-3">
-                                        <p className="transport-metric-label">{item.label}</p>
-                                        <p className="transport-metric-value text-2xl">{item.value}</p>
+                                        <p className="transport-metric-label">
+                                            {item.label}
+                                        </p>
+                                        <p className="transport-metric-value text-2xl">
+                                            {item.value}
+                                        </p>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -1711,13 +1954,22 @@ export default function TransportProgrammingDashboardPage() {
                     <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
                         <Card className="transport-insight-card">
                             <CardHeader className="pb-2">
-                                <CardTitle className="transport-dashboard-section-title">Leituras operacionais</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">
+                                    Leituras operacionais
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {data.operation_alerts.map((alert, index) => (
-                                    <div key={`${alert.title}-${index}`} className="transport-list-panel">
-                                        <p className="font-medium">{alert.title}</p>
-                                        <p className="text-xs text-muted-foreground">{alert.detail}</p>
+                                    <div
+                                        key={`${alert.title}-${index}`}
+                                        className="transport-list-panel"
+                                    >
+                                        <p className="font-medium">
+                                            {alert.title}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {alert.detail}
+                                        </p>
                                     </div>
                                 ))}
                             </CardContent>
@@ -1725,23 +1977,43 @@ export default function TransportProgrammingDashboardPage() {
 
                         <Card className="transport-insight-card">
                             <CardHeader className="pb-2">
-                                <CardTitle className="transport-dashboard-section-title">Motoristas para revisar</CardTitle>
+                                <CardTitle className="transport-dashboard-section-title">
+                                    Motoristas para revisar
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {(data.driver_overload ?? []).length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Sem revisões pendentes por jornada.</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Sem revisões pendentes por jornada.
+                                    </p>
                                 ) : (
-                                    (data.driver_overload ?? []).map((driver) => (
-                                        <div key={driver.id} className="transport-list-panel">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <p className="font-medium">{driver.nome}</p>
-                                                <p className="text-xs text-muted-foreground">{formatDecimalBR(driver.horas_trabalhadas_dia)} h</p>
+                                    (data.driver_overload ?? []).map(
+                                        (driver) => (
+                                            <div
+                                                key={driver.id}
+                                                className="transport-list-panel"
+                                            >
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="font-medium">
+                                                        {driver.nome}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {formatDecimalBR(
+                                                            driver.horas_trabalhadas_dia,
+                                                        )}{' '}
+                                                        h
+                                                    </p>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {driver.funcao_nome} • extra{' '}
+                                                    {formatDecimalBR(
+                                                        driver.horas_extra_dia,
+                                                    )}{' '}
+                                                    h
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                {driver.funcao_nome} • extra {formatDecimalBR(driver.horas_extra_dia)} h
-                                            </p>
-                                        </div>
-                                    ))
+                                        ),
+                                    )
                                 )}
                             </CardContent>
                         </Card>
@@ -1759,7 +2031,9 @@ export default function TransportProgrammingDashboardPage() {
                                             Motoristas
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-3">{driversPanelBody}</CardContent>
+                                    <CardContent className="space-y-3">
+                                        {driversPanelBody}
+                                    </CardContent>
                                 </Card>
 
                                 <Card className="transport-insight-card">
@@ -1769,7 +2043,9 @@ export default function TransportProgrammingDashboardPage() {
                                             Caminhões
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-3">{trucksPanelBody}</CardContent>
+                                    <CardContent className="space-y-3">
+                                        {trucksPanelBody}
+                                    </CardContent>
                                 </Card>
                             </div>
                         ) : null}
@@ -1783,99 +2059,185 @@ export default function TransportProgrammingDashboardPage() {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {loading ? (
-                                    <div className="flex items-center gap-2 py-10 px-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2 px-4 py-10 text-sm text-muted-foreground">
                                         <LoaderCircle className="size-4 animate-spin" />
                                         Carregando programação...
                                     </div>
                                 ) : trips.length === 0 ? (
-                                    <p className="py-10 px-4 text-sm text-muted-foreground">
-                                        Nenhuma viagem cadastrada para os filtros selecionados.
+                                    <p className="px-4 py-10 text-sm text-muted-foreground">
+                                        Nenhuma viagem cadastrada para os
+                                        filtros selecionados.
                                     </p>
                                 ) : (
                                     <div className="overflow-auto rounded-md border-t">
                                         <table className="w-full min-w-[1180px] border-collapse text-[11px]">
-                                            <thead className="bg-muted/70 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                            <thead className="bg-muted/70 text-[10px] tracking-wide text-muted-foreground uppercase">
                                                 <tr>
-                                                    <th className="w-10 border-b border-r px-1.5 py-1 text-center">#</th>
-                                                    <th className="border-b border-r px-1.5 py-1 text-left">Rota</th>
-                                                    <th className="w-[90px] border-b border-r px-1.5 py-1 text-left">Carga</th>
-                                                    <th className="w-[88px] border-b border-r px-1.5 py-1 text-left">Saída</th>
-                                                    <th className="w-[88px] border-b border-r px-1.5 py-1 text-left">Carreg.</th>
-                                                    <th className="w-[88px] border-b border-r px-1.5 py-1 text-left">Chegada</th>
-                                                    <th className="w-[230px] border-b border-r px-1.5 py-1 text-left">Motorista</th>
-                                                    <th className="w-[200px] border-b border-r px-1.5 py-1 text-left">Caminhão</th>
-                                                    <th className="w-[170px] border-b px-1.5 py-1 text-left">Sync</th>
+                                                    <th className="w-10 border-r border-b px-1.5 py-1 text-center">
+                                                        #
+                                                    </th>
+                                                    <th className="border-r border-b px-1.5 py-1 text-left">
+                                                        Rota
+                                                    </th>
+                                                    <th className="w-[90px] border-r border-b px-1.5 py-1 text-left">
+                                                        Carga
+                                                    </th>
+                                                    <th className="w-[88px] border-r border-b px-1.5 py-1 text-left">
+                                                        Saída
+                                                    </th>
+                                                    <th className="w-[88px] border-r border-b px-1.5 py-1 text-left">
+                                                        Carreg.
+                                                    </th>
+                                                    <th className="w-[88px] border-r border-b px-1.5 py-1 text-left">
+                                                        Chegada
+                                                    </th>
+                                                    <th className="w-[230px] border-r border-b px-1.5 py-1 text-left">
+                                                        Motorista
+                                                    </th>
+                                                    <th className="w-[200px] border-r border-b px-1.5 py-1 text-left">
+                                                        Caminhão
+                                                    </th>
+                                                    <th className="w-[170px] border-b px-1.5 py-1 text-left">
+                                                        Sync
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {trips.map((trip, index) => {
                                                     const draft =
-                                                        assignmentDraft[trip.id] ??
+                                                        assignmentDraft[
+                                                            trip.id
+                                                        ] ??
                                                         ({
-                                                            colaborador_id: trip.escala
-                                                                ? String(trip.escala.colaborador_id)
-                                                                : 'none',
-                                                            placa_frota_id: trip.escala
-                                                                ? String(trip.escala.placa_frota_id)
-                                                                : 'none',
+                                                            colaborador_id:
+                                                                trip.escala
+                                                                    ? String(
+                                                                          trip
+                                                                              .escala
+                                                                              .colaborador_id,
+                                                                      )
+                                                                    : 'none',
+                                                            placa_frota_id:
+                                                                trip.escala
+                                                                    ? String(
+                                                                          trip
+                                                                              .escala
+                                                                              .placa_frota_id,
+                                                                      )
+                                                                    : 'none',
                                                             hora_inicio_prevista:
-                                                                trip.hora_inicio_prevista ?? '',
+                                                                trip.hora_inicio_prevista ??
+                                                                '',
                                                             hora_carregamento_prevista:
-                                                                trip.hora_carregamento_prevista ?? '',
-                                                            hora_fim_prevista: trip.hora_fim_prevista ?? '',
+                                                                trip.hora_carregamento_prevista ??
+                                                                '',
+                                                            hora_fim_prevista:
+                                                                trip.hora_fim_prevista ??
+                                                                '',
                                                         } satisfies AssignmentDraft);
 
-                                                    const tripOrder = trip.ordem_no_dia && trip.ordem_no_dia > 0
-                                                        ? trip.ordem_no_dia
-                                                        : index + 1;
+                                                    const tripOrder =
+                                                        trip.ordem_no_dia &&
+                                                        trip.ordem_no_dia > 0
+                                                            ? trip.ordem_no_dia
+                                                            : index + 1;
                                                     const driverDropKey = `driver:${trip.id}`;
                                                     const truckDropKey = `truck:${trip.id}`;
-                                                    const isDriverDropOver = dragOverZone === driverDropKey;
-                                                    const isTruckDropOver = dragOverZone === truckDropKey;
-                                                    const autoSaving = Boolean(autoSavingTripIds[trip.id]);
-                                                    const autoSavedAt = autoSavedAtByTrip[trip.id];
-                                                    const saveError = tripSaveErrors[trip.id];
+                                                    const isDriverDropOver =
+                                                        dragOverZone ===
+                                                        driverDropKey;
+                                                    const isTruckDropOver =
+                                                        dragOverZone ===
+                                                        truckDropKey;
+                                                    const autoSaving = Boolean(
+                                                        autoSavingTripIds[
+                                                            trip.id
+                                                        ],
+                                                    );
+                                                    const autoSavedAt =
+                                                        autoSavedAtByTrip[
+                                                            trip.id
+                                                        ];
+                                                    const saveError =
+                                                        tripSaveErrors[trip.id];
 
                                                     return (
                                                         <tr
                                                             key={trip.id}
                                                             className={`border-b align-middle ${
-                                                                index % 2 === 0 ? 'bg-background' : 'bg-muted/15'
+                                                                index % 2 === 0
+                                                                    ? 'bg-background'
+                                                                    : 'bg-muted/15'
                                                             } hover:bg-muted/25`}
                                                         >
                                                             <td className="border-r px-1.5 py-1 text-center">
                                                                 <div className="flex flex-col items-center gap-0.5">
                                                                     <span className="inline-flex min-w-5 items-center justify-center rounded bg-muted px-1 py-0.5 text-[10px] font-semibold">
-                                                                        {tripOrder}
+                                                                        {
+                                                                            tripOrder
+                                                                        }
                                                                     </span>
                                                                     {trip.saida_dia_anterior ? (
-                                                                        <span className="rounded bg-amber-100 px-1 text-[9px] font-semibold text-amber-800">D-1</span>
+                                                                        <span className="rounded bg-amber-100 px-1 text-[9px] font-semibold text-amber-800">
+                                                                            D-1
+                                                                        </span>
                                                                     ) : null}
                                                                 </div>
                                                             </td>
 
                                                             <td className="border-r px-1.5 py-1 leading-tight">
-                                                                <p className="truncate font-semibold">{trip.aviario ?? '-'}</p>
-                                                                <p className="truncate text-[10px] text-muted-foreground">{trip.cidade ?? '-'}</p>
-                                                                <p className="text-[10px] text-muted-foreground">{formatDecimalBR(trip.distancia_km, 0)} km</p>
+                                                                <p className="truncate font-semibold">
+                                                                    {trip.aviario ??
+                                                                        '-'}
+                                                                </p>
+                                                                <p className="truncate text-[10px] text-muted-foreground">
+                                                                    {trip.cidade ??
+                                                                        '-'}
+                                                                </p>
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    {formatDecimalBR(
+                                                                        trip.distancia_km,
+                                                                        0,
+                                                                    )}{' '}
+                                                                    km
+                                                                </p>
                                                             </td>
 
                                                             <td className="border-r px-1.5 py-1">
-                                                                <span className="truncate">{trip.numero_carga ?? '-'}</span>
+                                                                <span className="truncate">
+                                                                    {trip.numero_carga ??
+                                                                        '-'}
+                                                                </span>
                                                             </td>
 
                                                             <td className="border-r px-1.5 py-1">
                                                                 <Input
                                                                     type="time"
                                                                     className="h-6 px-1 text-[11px]"
-                                                                    value={draft.hora_inicio_prevista}
-                                                                    onChange={(event) => {
-                                                                        updateTripDraft(trip.id, (current) => ({
-                                                                            ...current,
-                                                                            hora_inicio_prevista: event.target.value,
-                                                                        }));
+                                                                    value={
+                                                                        draft.hora_inicio_prevista
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        updateTripDraft(
+                                                                            trip.id,
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                hora_inicio_prevista:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            }),
+                                                                        );
                                                                     }}
-                                                                    onBlur={() => queueAutoSaveTrip(trip.id)}
+                                                                    onBlur={() =>
+                                                                        queueAutoSaveTrip(
+                                                                            trip.id,
+                                                                        )
+                                                                    }
                                                                 />
                                                             </td>
 
@@ -1883,14 +2245,30 @@ export default function TransportProgrammingDashboardPage() {
                                                                 <Input
                                                                     type="time"
                                                                     className="h-6 px-1 text-[11px]"
-                                                                    value={draft.hora_carregamento_prevista}
-                                                                    onChange={(event) => {
-                                                                        updateTripDraft(trip.id, (current) => ({
-                                                                            ...current,
-                                                                            hora_carregamento_prevista: event.target.value,
-                                                                        }));
+                                                                    value={
+                                                                        draft.hora_carregamento_prevista
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        updateTripDraft(
+                                                                            trip.id,
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                hora_carregamento_prevista:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            }),
+                                                                        );
                                                                     }}
-                                                                    onBlur={() => queueAutoSaveTrip(trip.id)}
+                                                                    onBlur={() =>
+                                                                        queueAutoSaveTrip(
+                                                                            trip.id,
+                                                                        )
+                                                                    }
                                                                 />
                                                             </td>
 
@@ -1898,121 +2276,313 @@ export default function TransportProgrammingDashboardPage() {
                                                                 <Input
                                                                     type="time"
                                                                     className="h-6 px-1 text-[11px]"
-                                                                    value={draft.hora_fim_prevista}
-                                                                    onChange={(event) => {
-                                                                        updateTripDraft(trip.id, (current) => ({
-                                                                            ...current,
-                                                                            hora_fim_prevista: event.target.value,
-                                                                        }));
+                                                                    value={
+                                                                        draft.hora_fim_prevista
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        updateTripDraft(
+                                                                            trip.id,
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                hora_fim_prevista:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            }),
+                                                                        );
                                                                     }}
-                                                                    onBlur={() => queueAutoSaveTrip(trip.id)}
+                                                                    onBlur={() =>
+                                                                        queueAutoSaveTrip(
+                                                                            trip.id,
+                                                                        )
+                                                                    }
                                                                 />
                                                             </td>
 
                                                             <td className="border-r px-1.5 py-1">
                                                                 <div
-                                                                    onDragOver={(event) => handleDragOverTrip(event, 'driver', trip.id)}
-                                                                    onDragLeave={() => setDragOverZone(null)}
-                                                                    onDrop={(event) => handleDropOnTrip(event, 'driver', trip.id)}
+                                                                    onDragOver={(
+                                                                        event,
+                                                                    ) =>
+                                                                        handleDragOverTrip(
+                                                                            event,
+                                                                            'driver',
+                                                                            trip.id,
+                                                                        )
+                                                                    }
+                                                                    onDragLeave={() =>
+                                                                        setDragOverZone(
+                                                                            null,
+                                                                        )
+                                                                    }
+                                                                    onDrop={(
+                                                                        event,
+                                                                    ) =>
+                                                                        handleDropOnTrip(
+                                                                            event,
+                                                                            'driver',
+                                                                            trip.id,
+                                                                        )
+                                                                    }
                                                                     className={`rounded-sm border px-1 py-0.5 ${
-                                                                        isDriverDropOver ? 'border-primary bg-primary/10' : 'border-border'
+                                                                        isDriverDropOver
+                                                                            ? 'border-primary bg-primary/10'
+                                                                            : 'border-border'
                                                                     }`}
                                                                 >
                                                                     <Input
-                                                                        ref={(element) => {
-                                                                            driverInputRefs.current[trip.id] = element;
+                                                                        ref={(
+                                                                            element,
+                                                                        ) => {
+                                                                            driverInputRefs.current[
+                                                                                trip.id
+                                                                            ] =
+                                                                                element;
                                                                         }}
                                                                         list="programming-driver-options"
                                                                         className="h-6 border-0 px-0 text-[11px] shadow-none focus-visible:ring-0"
                                                                         placeholder="Digite nome (ex: Adai)"
-                                                                        value={driverInputByTrip[trip.id] ?? ''}
-                                                                        onChange={(event) => {
-                                                                            const value = event.target.value;
-                                                                            setDriverInputByTrip((previous) => ({
-                                                                                ...previous,
-                                                                                [trip.id]: value,
-                                                                            }));
+                                                                        value={
+                                                                            driverInputByTrip[
+                                                                                trip
+                                                                                    .id
+                                                                            ] ??
+                                                                            ''
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            const value =
+                                                                                event
+                                                                                    .target
+                                                                                    .value;
+                                                                            setDriverInputByTrip(
+                                                                                (
+                                                                                    previous,
+                                                                                ) => ({
+                                                                                    ...previous,
+                                                                                    [trip.id]:
+                                                                                        value,
+                                                                                }),
+                                                                            );
                                                                         }}
-                                                                        onBlur={(event) => {
-                                                                            applyDriverTextToTrip(trip.id, event.target.value);
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            applyDriverTextToTrip(
+                                                                                trip.id,
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
                                                                         }}
-                                                                        onKeyDown={(event) => {
-                                                                            if (event.key === 'Enter') {
+                                                                        onKeyDown={(
+                                                                            event,
+                                                                        ) => {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'Enter'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyDriverTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusDriverInputByOffset(trip.id, 1);
+                                                                                applyDriverTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusDriverInputByOffset(
+                                                                                    trip.id,
+                                                                                    1,
+                                                                                );
                                                                                 return;
                                                                             }
 
-                                                                            if (event.key === 'ArrowDown') {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'ArrowDown'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyDriverTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusDriverInputByOffset(trip.id, 1);
+                                                                                applyDriverTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusDriverInputByOffset(
+                                                                                    trip.id,
+                                                                                    1,
+                                                                                );
                                                                                 return;
                                                                             }
 
-                                                                            if (event.key === 'ArrowUp') {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'ArrowUp'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyDriverTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusDriverInputByOffset(trip.id, -1);
+                                                                                applyDriverTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusDriverInputByOffset(
+                                                                                    trip.id,
+                                                                                    -1,
+                                                                                );
                                                                             }
                                                                         }}
                                                                     />
                                                                 </div>
-                                                                {trip.interjornada_alert?.is_violated ? (
+                                                                {trip
+                                                                    .interjornada_alert
+                                                                    ?.is_violated ? (
                                                                     <p className="mt-0.5 flex items-center gap-1 text-[10px] text-destructive">
                                                                         <AlertTriangle className="size-3" />
-                                                                        {trip.interjornada_alert.mensagem}
+                                                                        {
+                                                                            trip
+                                                                                .interjornada_alert
+                                                                                .mensagem
+                                                                        }
                                                                     </p>
                                                                 ) : null}
                                                             </td>
 
                                                             <td className="border-r px-1.5 py-1">
                                                                 <div
-                                                                    onDragOver={(event) => handleDragOverTrip(event, 'truck', trip.id)}
-                                                                    onDragLeave={() => setDragOverZone(null)}
-                                                                    onDrop={(event) => handleDropOnTrip(event, 'truck', trip.id)}
+                                                                    onDragOver={(
+                                                                        event,
+                                                                    ) =>
+                                                                        handleDragOverTrip(
+                                                                            event,
+                                                                            'truck',
+                                                                            trip.id,
+                                                                        )
+                                                                    }
+                                                                    onDragLeave={() =>
+                                                                        setDragOverZone(
+                                                                            null,
+                                                                        )
+                                                                    }
+                                                                    onDrop={(
+                                                                        event,
+                                                                    ) =>
+                                                                        handleDropOnTrip(
+                                                                            event,
+                                                                            'truck',
+                                                                            trip.id,
+                                                                        )
+                                                                    }
                                                                     className={`rounded-sm border px-1 py-0.5 ${
-                                                                        isTruckDropOver ? 'border-primary bg-primary/10' : 'border-border'
+                                                                        isTruckDropOver
+                                                                            ? 'border-primary bg-primary/10'
+                                                                            : 'border-border'
                                                                     }`}
                                                                 >
                                                                     <Input
-                                                                        ref={(element) => {
-                                                                            truckInputRefs.current[trip.id] = element;
+                                                                        ref={(
+                                                                            element,
+                                                                        ) => {
+                                                                            truckInputRefs.current[
+                                                                                trip.id
+                                                                            ] =
+                                                                                element;
                                                                         }}
                                                                         list="programming-truck-options"
                                                                         className="h-6 border-0 px-0 text-[11px] shadow-none focus-visible:ring-0"
                                                                         placeholder="Digite placa"
-                                                                        value={truckInputByTrip[trip.id] ?? ''}
-                                                                        onChange={(event) => {
-                                                                            const value = event.target.value;
-                                                                            setTruckInputByTrip((previous) => ({
-                                                                                ...previous,
-                                                                                [trip.id]: value,
-                                                                            }));
+                                                                        value={
+                                                                            truckInputByTrip[
+                                                                                trip
+                                                                                    .id
+                                                                            ] ??
+                                                                            ''
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            const value =
+                                                                                event
+                                                                                    .target
+                                                                                    .value;
+                                                                            setTruckInputByTrip(
+                                                                                (
+                                                                                    previous,
+                                                                                ) => ({
+                                                                                    ...previous,
+                                                                                    [trip.id]:
+                                                                                        value,
+                                                                                }),
+                                                                            );
                                                                         }}
-                                                                        onBlur={(event) => {
-                                                                            applyTruckTextToTrip(trip.id, event.target.value);
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            applyTruckTextToTrip(
+                                                                                trip.id,
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
                                                                         }}
-                                                                        onKeyDown={(event) => {
-                                                                            if (event.key === 'Enter') {
+                                                                        onKeyDown={(
+                                                                            event,
+                                                                        ) => {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'Enter'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyTruckTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusTruckInputByOffset(trip.id, 1);
+                                                                                applyTruckTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusTruckInputByOffset(
+                                                                                    trip.id,
+                                                                                    1,
+                                                                                );
                                                                                 return;
                                                                             }
 
-                                                                            if (event.key === 'ArrowDown') {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'ArrowDown'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyTruckTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusTruckInputByOffset(trip.id, 1);
+                                                                                applyTruckTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusTruckInputByOffset(
+                                                                                    trip.id,
+                                                                                    1,
+                                                                                );
                                                                                 return;
                                                                             }
 
-                                                                            if (event.key === 'ArrowUp') {
+                                                                            if (
+                                                                                event.key ===
+                                                                                'ArrowUp'
+                                                                            ) {
                                                                                 event.preventDefault();
-                                                                                applyTruckTextToTrip(trip.id, event.currentTarget.value);
-                                                                                focusTruckInputByOffset(trip.id, -1);
+                                                                                applyTruckTextToTrip(
+                                                                                    trip.id,
+                                                                                    event
+                                                                                        .currentTarget
+                                                                                        .value,
+                                                                                );
+                                                                                focusTruckInputByOffset(
+                                                                                    trip.id,
+                                                                                    -1,
+                                                                                );
                                                                             }
                                                                         }}
                                                                     />
@@ -2028,15 +2598,30 @@ export default function TransportProgrammingDashboardPage() {
                                                                 ) : saveError ? (
                                                                     <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
                                                                         <AlertTriangle className="size-3" />
-                                                                        {saveError}
+                                                                        {
+                                                                            saveError
+                                                                        }
                                                                     </span>
                                                                 ) : autoSavedAt ? (
                                                                     <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700">
                                                                         <CheckCircle2 className="size-3" />
-                                                                        Auto {new Date(autoSavedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                                        Auto{' '}
+                                                                        {new Date(
+                                                                            autoSavedAt,
+                                                                        ).toLocaleTimeString(
+                                                                            'pt-BR',
+                                                                            {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                            },
+                                                                        )}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-[10px] text-muted-foreground">Aguardando escala completa</span>
+                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                        Aguardando
+                                                                        escala
+                                                                        completa
+                                                                    </span>
                                                                 )}
                                                             </td>
                                                         </tr>
@@ -2058,7 +2643,7 @@ export default function TransportProgrammingDashboardPage() {
                                 }}
                                 onMouseDown={() => bringPanelToFront('drivers')}
                                 onMouseUp={() => syncPanelSize('drivers')}
-                                className="absolute rounded-lg border bg-background shadow-xl resize overflow-auto"
+                                className="absolute resize overflow-auto rounded-lg border bg-background shadow-xl"
                                 style={{
                                     left: panelStates.drivers.x,
                                     top: panelStates.drivers.y,
@@ -2073,14 +2658,22 @@ export default function TransportProgrammingDashboardPage() {
                             >
                                 <div
                                     className="cursor-move border-b bg-muted/50 px-3 py-2"
-                                    onMouseDown={(event) => startPanelDrag('drivers', event)}
+                                    onMouseDown={(event) =>
+                                        startPanelDrag('drivers', event)
+                                    }
                                 >
                                     <p className="flex items-center gap-2 text-sm font-semibold">
                                         <Users className="size-4" />
-                                        Motoristas ({formatIntegerBR(filteredDrivers.length)})
+                                        Motoristas (
+                                        {formatIntegerBR(
+                                            filteredDrivers.length,
+                                        )}
+                                        )
                                     </p>
                                 </div>
-                                <div className="space-y-2 p-3">{driversPanelBody}</div>
+                                <div className="space-y-2 p-3">
+                                    {driversPanelBody}
+                                </div>
                             </div>
 
                             <div
@@ -2089,7 +2682,7 @@ export default function TransportProgrammingDashboardPage() {
                                 }}
                                 onMouseDown={() => bringPanelToFront('trucks')}
                                 onMouseUp={() => syncPanelSize('trucks')}
-                                className="absolute rounded-lg border bg-background shadow-xl resize overflow-auto"
+                                className="absolute resize overflow-auto rounded-lg border bg-background shadow-xl"
                                 style={{
                                     left: panelStates.trucks.x,
                                     top: panelStates.trucks.y,
@@ -2104,14 +2697,20 @@ export default function TransportProgrammingDashboardPage() {
                             >
                                 <div
                                     className="cursor-move border-b bg-muted/50 px-3 py-2"
-                                    onMouseDown={(event) => startPanelDrag('trucks', event)}
+                                    onMouseDown={(event) =>
+                                        startPanelDrag('trucks', event)
+                                    }
                                 >
                                     <p className="flex items-center gap-2 text-sm font-semibold">
                                         <Truck className="size-4" />
-                                        Caminhões ({formatIntegerBR(filteredTrucks.length)})
+                                        Caminhões (
+                                        {formatIntegerBR(filteredTrucks.length)}
+                                        )
                                     </p>
                                 </div>
-                                <div className="space-y-2 p-3">{trucksPanelBody}</div>
+                                <div className="space-y-2 p-3">
+                                    {trucksPanelBody}
+                                </div>
                             </div>
                         </>
                     ) : null}
@@ -2138,13 +2737,17 @@ export default function TransportProgrammingDashboardPage() {
                             Confirmar limpeza da tabela do dia
                         </DialogTitle>
                         <DialogDescription>
-                            Esta ação vai remover todas as viagens da unidade selecionada em <strong>{formatDateBR(selectedDate)}</strong>.
-                            Use apenas quando a base do dia tiver sido lançada errado.
+                            Esta ação vai remover todas as viagens da unidade
+                            selecionada em{' '}
+                            <strong>{formatDateBR(selectedDate)}</strong>. Use
+                            apenas quando a base do dia tiver sido lançada
+                            errado.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                        Depois da limpeza, você pode importar novamente o XLSX correto do dia.
+                        Depois da limpeza, você pode importar novamente o XLSX
+                        correto do dia.
                     </div>
 
                     <DialogFooter>
@@ -2164,7 +2767,9 @@ export default function TransportProgrammingDashboardPage() {
                             }}
                             disabled={clearingDay}
                         >
-                            {clearingDay ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                            {clearingDay ? (
+                                <LoaderCircle className="size-4 animate-spin" />
+                            ) : null}
                             Confirmar limpeza
                         </Button>
                     </DialogFooter>

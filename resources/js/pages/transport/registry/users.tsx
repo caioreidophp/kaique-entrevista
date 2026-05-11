@@ -1,5 +1,11 @@
 import { router } from '@inertiajs/react';
-import { LoaderCircle, Pencil, PlusSquare, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+    LoaderCircle,
+    Pencil,
+    PlusSquare,
+    ShieldCheck,
+    Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -109,7 +115,9 @@ interface RolePermissionResponse {
     permissions_by_role: Record<RoleName, Record<string, boolean>>;
 }
 
-function buildDefaultAccessScopes(modules: AccessScopeModule[]): UserAccessScope[] {
+function buildDefaultAccessScopes(
+    modules: AccessScopeModule[],
+): UserAccessScope[] {
     return modules.map((module) => ({
         module_key: module.key,
         data_scope: 'all',
@@ -122,7 +130,10 @@ function mergeAccessScopes(
     rawScopes: UserAccessScope[] | undefined,
 ): UserAccessScope[] {
     const defaultByModule = new Map(
-        buildDefaultAccessScopes(modules).map((scope) => [scope.module_key, scope]),
+        buildDefaultAccessScopes(modules).map((scope) => [
+            scope.module_key,
+            scope,
+        ]),
     );
 
     for (const scope of rawScopes ?? []) {
@@ -155,7 +166,11 @@ const emptyForm: UserFormData = {
 export default function TransportRegistryUsersPage() {
     const [items, setItems] = useState<RegistryUser[]>([]);
     const [scopeModules, setScopeModules] = useState<AccessScopeModule[]>([]);
-    const [scopeTypes, setScopeTypes] = useState<DataScopeKey[]>(['all', 'own', 'units']);
+    const [scopeTypes, setScopeTypes] = useState<DataScopeKey[]>([
+        'all',
+        'own',
+        'units',
+    ]);
     const [colaboradores, setColaboradores] = useState<ColaboradorOption[]>([]);
     const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -163,8 +178,9 @@ export default function TransportRegistryUsersPage() {
     const [deleting, setDeleting] = useState(false);
     const [formOpen, setFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<RegistryUser | null>(null);
-    const [deleteCandidate, setDeleteCandidate] =
-        useState<RegistryUser | null>(null);
+    const [deleteCandidate, setDeleteCandidate] = useState<RegistryUser | null>(
+        null,
+    );
     const [formData, setFormData] = useState<UserFormData>(emptyForm);
     const [notification, setNotification] = useState<{
         message: string;
@@ -191,7 +207,12 @@ export default function TransportRegistryUsersPage() {
         setNotification(null);
 
         try {
-            const [usersResponse, colaboradoresResponse, permissionsResponse, unidadesResponse] = await Promise.all([
+            const [
+                usersResponse,
+                colaboradoresResponse,
+                permissionsResponse,
+                unidadesResponse,
+            ] = await Promise.all([
                 apiGet<UsersRegistryResponse>('/registry/users'),
                 apiGet<PaginatedCollaborators>(
                     '/registry/colaboradores?active=1&per_page=100',
@@ -259,7 +280,9 @@ export default function TransportRegistryUsersPage() {
         setFormOpen(true);
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -274,7 +297,11 @@ export default function TransportRegistryUsersPage() {
                         ? null
                         : Number(formData.colaborador_id),
                 access_scopes: formData.access_scopes
-                    .filter((scope) => scope.data_scope !== 'all' || scope.allowed_unit_ids.length > 0)
+                    .filter(
+                        (scope) =>
+                            scope.data_scope !== 'all' ||
+                            scope.allowed_unit_ids.length > 0,
+                    )
                     .map((scope) => ({
                         module_key: scope.module_key,
                         data_scope: scope.data_scope,
@@ -385,7 +412,9 @@ export default function TransportRegistryUsersPage() {
 
     function resolveScopeByModule(moduleKey: string): UserAccessScope {
         return (
-            formData.access_scopes.find((scope) => scope.module_key === moduleKey) ?? {
+            formData.access_scopes.find(
+                (scope) => scope.module_key === moduleKey,
+            ) ?? {
                 module_key: moduleKey,
                 data_scope: 'all',
                 allowed_unit_ids: [],
@@ -393,16 +422,23 @@ export default function TransportRegistryUsersPage() {
         );
     }
 
-    function updateScopeForModule(moduleKey: string, nextScope: Partial<UserAccessScope>): void {
+    function updateScopeForModule(
+        moduleKey: string,
+        nextScope: Partial<UserAccessScope>,
+    ): void {
         setFormData((previous) => {
-            const existing = previous.access_scopes.find((scope) => scope.module_key === moduleKey);
+            const existing = previous.access_scopes.find(
+                (scope) => scope.module_key === moduleKey,
+            );
             const updated: UserAccessScope = {
                 module_key: moduleKey,
-                data_scope: (nextScope.data_scope ?? existing?.data_scope ?? 'all') as DataScopeKey,
+                data_scope: (nextScope.data_scope ??
+                    existing?.data_scope ??
+                    'all') as DataScopeKey,
                 allowed_unit_ids: (
-                    nextScope.allowed_unit_ids
-                    ?? existing?.allowed_unit_ids
-                    ?? []
+                    nextScope.allowed_unit_ids ??
+                    existing?.allowed_unit_ids ??
+                    []
                 )
                     .map((unitId) => Number(unitId))
                     .filter((unitId) => Number.isFinite(unitId) && unitId > 0),
@@ -499,8 +535,8 @@ export default function TransportRegistryUsersPage() {
                     <CardContent className="space-y-4 text-sm text-muted-foreground">
                         <p>
                             Defina exatamente o que cada função da hierarquia
-                            pode ver e fazer (painéis, páginas de sidebar,
-                            ações e visibilidade de dados de outros usuários).
+                            pode ver e fazer (painéis, páginas de sidebar, ações
+                            e visibilidade de dados de outros usuários).
                         </p>
                         <Button
                             type="button"
@@ -565,10 +601,10 @@ export default function TransportRegistryUsersPage() {
                                                     {item.role ===
                                                     'master_admin'
                                                         ? 'Master Admin'
-                                                                                                                : item.role ===
-                                                                                                                        'usuario'
-                                                                                                                    ? 'Usuário'
-                                                                                                                    : 'Admin'}
+                                                        : item.role ===
+                                                            'usuario'
+                                                          ? 'Usuário'
+                                                          : 'Admin'}
                                                 </td>
                                                 <td className="py-2 pr-3">
                                                     {item.colaborador?.nome ??
@@ -625,7 +661,8 @@ export default function TransportRegistryUsersPage() {
                         setEditingItem(null);
                         setFormData({
                             ...emptyForm,
-                            access_scopes: buildDefaultAccessScopes(scopeModules),
+                            access_scopes:
+                                buildDefaultAccessScopes(scopeModules),
                         });
                     }
                 }}
@@ -743,69 +780,129 @@ export default function TransportRegistryUsersPage() {
                             <Label>Escopo de dados por mÃ³dulo</Label>
                             <div className="max-h-72 space-y-3 overflow-y-auto rounded-md border p-3">
                                 {scopeModules.map((module) => {
-                                    const moduleScope = resolveScopeByModule(module.key);
+                                    const moduleScope = resolveScopeByModule(
+                                        module.key,
+                                    );
 
                                     return (
-                                        <div key={module.key} className="space-y-2 rounded-md border bg-muted/20 p-3">
+                                        <div
+                                            key={module.key}
+                                            className="space-y-2 rounded-md border bg-muted/20 p-3"
+                                        >
                                             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                                <p className="text-sm font-medium">{module.label}</p>
+                                                <p className="text-sm font-medium">
+                                                    {module.label}
+                                                </p>
                                                 <Select
-                                                    value={moduleScope.data_scope}
+                                                    value={
+                                                        moduleScope.data_scope
+                                                    }
                                                     onValueChange={(value) =>
-                                                        updateScopeForModule(module.key, {
-                                                            data_scope: value as DataScopeKey,
-                                                        })
+                                                        updateScopeForModule(
+                                                            module.key,
+                                                            {
+                                                                data_scope:
+                                                                    value as DataScopeKey,
+                                                            },
+                                                        )
                                                     }
                                                 >
                                                     <SelectTrigger className="w-full md:w-56">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {scopeTypes.map((scopeType) => (
-                                                            <SelectItem key={`${module.key}-${scopeType}`} value={scopeType}>
-                                                                {scopeTypeLabel(scopeType)}
-                                                            </SelectItem>
-                                                        ))}
+                                                        {scopeTypes.map(
+                                                            (scopeType) => (
+                                                                <SelectItem
+                                                                    key={`${module.key}-${scopeType}`}
+                                                                    value={
+                                                                        scopeType
+                                                                    }
+                                                                >
+                                                                    {scopeTypeLabel(
+                                                                        scopeType,
+                                                                    )}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
 
-                                            {moduleScope.data_scope === 'units' ? (
+                                            {moduleScope.data_scope ===
+                                            'units' ? (
                                                 <div className="grid gap-2 rounded-md border border-dashed bg-background p-3 md:grid-cols-2">
                                                     {unidades.length === 0 ? (
                                                         <p className="text-xs text-muted-foreground">
-                                                            Sem unidades cadastradas para este escopo.
+                                                            Sem unidades
+                                                            cadastradas para
+                                                            este escopo.
                                                         </p>
                                                     ) : (
-                                                        unidades.map((unidade) => {
-                                                            const checked = moduleScope.allowed_unit_ids.includes(unidade.id);
+                                                        unidades.map(
+                                                            (unidade) => {
+                                                                const checked =
+                                                                    moduleScope.allowed_unit_ids.includes(
+                                                                        unidade.id,
+                                                                    );
 
-                                                            return (
-                                                                <label
-                                                                    key={`${module.key}-unit-${unidade.id}`}
-                                                                    className="flex items-center gap-2 text-sm"
-                                                                >
-                                                                    <Checkbox
-                                                                        checked={checked}
-                                                                        onCheckedChange={(nextChecked) => {
-                                                                            const nextUnits = nextChecked
-                                                                                ? [...moduleScope.allowed_unit_ids, unidade.id]
-                                                                                : moduleScope.allowed_unit_ids.filter((unitId) => unitId !== unidade.id);
+                                                                return (
+                                                                    <label
+                                                                        key={`${module.key}-unit-${unidade.id}`}
+                                                                        className="flex items-center gap-2 text-sm"
+                                                                    >
+                                                                        <Checkbox
+                                                                            checked={
+                                                                                checked
+                                                                            }
+                                                                            onCheckedChange={(
+                                                                                nextChecked,
+                                                                            ) => {
+                                                                                const nextUnits =
+                                                                                    nextChecked
+                                                                                        ? [
+                                                                                              ...moduleScope.allowed_unit_ids,
+                                                                                              unidade.id,
+                                                                                          ]
+                                                                                        : moduleScope.allowed_unit_ids.filter(
+                                                                                              (
+                                                                                                  unitId,
+                                                                                              ) =>
+                                                                                                  unitId !==
+                                                                                                  unidade.id,
+                                                                                          );
 
-                                                                            updateScopeForModule(module.key, {
-                                                                                allowed_unit_ids: Array.from(new Set(nextUnits)),
-                                                                            });
-                                                                        }}
-                                                                    />
-                                                                    <span>{unidade.nome}</span>
-                                                                </label>
-                                                            );
-                                                        })
+                                                                                updateScopeForModule(
+                                                                                    module.key,
+                                                                                    {
+                                                                                        allowed_unit_ids:
+                                                                                            Array.from(
+                                                                                                new Set(
+                                                                                                    nextUnits,
+                                                                                                ),
+                                                                                            ),
+                                                                                    },
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                        <span>
+                                                                            {
+                                                                                unidade.nome
+                                                                            }
+                                                                        </span>
+                                                                    </label>
+                                                                );
+                                                            },
+                                                        )
                                                     )}
                                                 </div>
                                             ) : (
                                                 <p className="text-xs text-muted-foreground">
-                                                    Este mÃ³dulo usa escopo {scopeTypeLabel(moduleScope.data_scope).toLowerCase()}.
+                                                    Este mÃ³dulo usa escopo{' '}
+                                                    {scopeTypeLabel(
+                                                        moduleScope.data_scope,
+                                                    ).toLowerCase()}
+                                                    .
                                                 </p>
                                             )}
                                         </div>
@@ -883,8 +980,10 @@ export default function TransportRegistryUsersPage() {
                                         <LoaderCircle className="size-4 animate-spin" />
                                         Salvando...
                                     </>
+                                ) : editingItem ? (
+                                    'Atualizar'
                                 ) : (
-                                    editingItem ? 'Atualizar' : 'Salvar'
+                                    'Salvar'
                                 )}
                             </Button>
                         </DialogFooter>
@@ -985,7 +1084,10 @@ export default function TransportRegistryUsersPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {section.groups.map((group) => (
-                                        <div key={group.key} className="space-y-2">
+                                        <div
+                                            key={group.key}
+                                            className="space-y-2"
+                                        >
                                             <p className="text-sm font-medium">
                                                 {group.label}
                                             </p>

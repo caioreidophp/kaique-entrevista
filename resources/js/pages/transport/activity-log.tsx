@@ -2099,7 +2099,8 @@ export default function ActivityLogPage() {
         const start = new Date();
         start.setDate(end.getDate() - days + 1);
 
-        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
+        const toIsoDate = (value: Date): string =>
+            value.toISOString().slice(0, 10);
 
         setDateFrom(toIsoDate(start));
         setDateTo(toIsoDate(end));
@@ -2110,11 +2111,7 @@ export default function ActivityLogPage() {
     }
 
     return (
-        <AdminLayout
-            title="Log"
-            active="activity-log"
-            module="home"
-        >
+        <AdminLayout title="Log" active="activity-log" module="home">
             {notification && (
                 <Notification
                     variant={notification.type}
@@ -2159,22 +2156,45 @@ export default function ActivityLogPage() {
                 {mode === 'updates' ? (
                     <div className="max-h-[68vh] space-y-4 overflow-y-auto rounded-lg border p-3">
                         {updateLogTimeline.map((day) => (
-                            <div key={day.dateLabel} className="space-y-3 rounded-lg border bg-card p-4">
-                                <h3 className="text-base font-semibold">{day.dateLabel}</h3>
+                            <div
+                                key={day.dateLabel}
+                                className="space-y-3 rounded-lg border bg-card p-4"
+                            >
+                                <h3 className="text-base font-semibold">
+                                    {day.dateLabel}
+                                </h3>
 
                                 <div className="space-y-4">
                                     {day.sections.map((section) => (
-                                        <div key={section.panel} className="space-y-2">
-                                            <h4 className="text-sm font-semibold text-foreground">{section.panel}</h4>
+                                        <div
+                                            key={section.panel}
+                                            className="space-y-2"
+                                        >
+                                            <h4 className="text-sm font-semibold text-foreground">
+                                                {section.panel}
+                                            </h4>
 
                                             <div className="space-y-2">
                                                 {section.items.map((item) => (
-                                                    <div key={item.title} className="rounded-md border bg-muted/20 p-3">
-                                                        <p className="text-sm font-medium">{item.title}</p>
+                                                    <div
+                                                        key={item.title}
+                                                        className="rounded-md border bg-muted/20 p-3"
+                                                    >
+                                                        <p className="text-sm font-medium">
+                                                            {item.title}
+                                                        </p>
                                                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                                                            {item.details.map((detail) => (
-                                                                <li key={detail}>{detail}</li>
-                                                            ))}
+                                                            {item.details.map(
+                                                                (detail) => (
+                                                                    <li
+                                                                        key={
+                                                                            detail
+                                                                        }
+                                                                    >
+                                                                        {detail}
+                                                                    </li>
+                                                                ),
+                                                            )}
                                                         </ul>
                                                     </div>
                                                 ))}
@@ -2194,12 +2214,16 @@ export default function ActivityLogPage() {
                                 placeholder="Buscar por usuário ou ação..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+                                onKeyDown={(e) =>
+                                    e.key === 'Enter' && applyFilters()
+                                }
                                 className="w-52"
                             />
                             <Select
                                 value={logName || '_all'}
-                                onValueChange={(v) => setLogName(v === '_all' ? '' : v)}
+                                onValueChange={(v) =>
+                                    setLogName(v === '_all' ? '' : v)
+                                }
                             >
                                 <SelectTrigger className="w-36">
                                     <SelectValue placeholder="Módulo" />
@@ -2208,15 +2232,21 @@ export default function ActivityLogPage() {
                                     <SelectItem value="_all">
                                         Todos os módulos
                                     </SelectItem>
-                                    <SelectItem value="default">Entrevistas</SelectItem>
+                                    <SelectItem value="default">
+                                        Entrevistas
+                                    </SelectItem>
                                     <SelectItem value="frete">Frete</SelectItem>
                                     <SelectItem value="folha">Folha</SelectItem>
-                                    <SelectItem value="cadastro">Cadastro</SelectItem>
+                                    <SelectItem value="cadastro">
+                                        Cadastro
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Select
                                 value={event || '_all'}
-                                onValueChange={(v) => setEvent(v === '_all' ? '' : v)}
+                                onValueChange={(v) =>
+                                    setEvent(v === '_all' ? '' : v)
+                                }
                             >
                                 <SelectTrigger className="w-36">
                                     <SelectValue placeholder="Evento" />
@@ -2225,9 +2255,15 @@ export default function ActivityLogPage() {
                                     <SelectItem value="_all">
                                         Todos os eventos
                                     </SelectItem>
-                                    <SelectItem value="created">Criação</SelectItem>
-                                    <SelectItem value="updated">Atualização</SelectItem>
-                                    <SelectItem value="deleted">Exclusão</SelectItem>
+                                    <SelectItem value="created">
+                                        Criação
+                                    </SelectItem>
+                                    <SelectItem value="updated">
+                                        Atualização
+                                    </SelectItem>
+                                    <SelectItem value="deleted">
+                                        Exclusão
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Input
@@ -2244,19 +2280,35 @@ export default function ActivityLogPage() {
                                 className="w-36"
                                 title="Data final"
                             />
-                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(7)}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => applyDatePreset(7)}
+                            >
                                 7 dias
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(30)}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => applyDatePreset(30)}
+                            >
                                 30 dias
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => applyDatePreset(90)}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => applyDatePreset(90)}
+                            >
                                 90 dias
                             </Button>
                             <Button size="sm" onClick={applyFilters}>
                                 Filtrar
                             </Button>
-                            <Button size="sm" variant="outline" onClick={clearFilters}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={clearFilters}
+                            >
                                 Limpar
                             </Button>
                         </div>
@@ -2314,7 +2366,9 @@ export default function ActivityLogPage() {
                                                 className="border-t align-top transition-colors hover:bg-muted/20"
                                             >
                                                 <td className="px-4 py-3 text-xs whitespace-nowrap text-muted-foreground">
-                                                    {formatDate(item.created_at)}
+                                                    {formatDate(
+                                                        item.created_at,
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="block truncate text-sm leading-5 font-medium">
@@ -2351,7 +2405,9 @@ export default function ActivityLogPage() {
                                                         }
                                                         className="text-[11px]"
                                                     >
-                                                        {eventLabel[item.event ?? ''] ??
+                                                        {eventLabel[
+                                                            item.event ?? ''
+                                                        ] ??
                                                             item.event ??
                                                             '—'}
                                                     </Badge>
@@ -2361,8 +2417,13 @@ export default function ActivityLogPage() {
                                                     {item.subject_type &&
                                                         item.subject_id && (
                                                             <span className="block text-[11px] text-muted-foreground">
-                                                                {item.subject_type} #
-                                                                {item.subject_id}
+                                                                {
+                                                                    item.subject_type
+                                                                }{' '}
+                                                                #
+                                                                {
+                                                                    item.subject_id
+                                                                }
                                                             </span>
                                                         )}
                                                 </td>
@@ -2389,7 +2450,9 @@ export default function ActivityLogPage() {
                                         size="sm"
                                         variant="outline"
                                         disabled={currentPage <= 1}
-                                        onClick={() => goToPage(currentPage - 1)}
+                                        onClick={() =>
+                                            goToPage(currentPage - 1)
+                                        }
                                     >
                                         Anterior
                                     </Button>
@@ -2397,7 +2460,9 @@ export default function ActivityLogPage() {
                                         size="sm"
                                         variant="outline"
                                         disabled={currentPage >= lastPage}
-                                        onClick={() => goToPage(currentPage + 1)}
+                                        onClick={() =>
+                                            goToPage(currentPage + 1)
+                                        }
                                     >
                                         Próximo
                                     </Button>

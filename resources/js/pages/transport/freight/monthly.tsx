@@ -49,7 +49,11 @@ export default function TransportFreightMonthlyPage() {
     );
 
     const yearOptions = useMemo(
-        () => [String(currentYear - 1), String(currentYear), String(currentYear + 1)],
+        () => [
+            String(currentYear - 1),
+            String(currentYear),
+            String(currentYear + 1),
+        ],
         [currentYear],
     );
 
@@ -72,9 +76,13 @@ export default function TransportFreightMonthlyPage() {
             params.set('unidade_id', unidadeId);
         }
 
-        apiGet<FreightMonthlyResponse>(`/freight/monthly-unit-report?${params.toString()}`)
+        apiGet<FreightMonthlyResponse>(
+            `/freight/monthly-unit-report?${params.toString()}`,
+        )
             .then((response) => setReport(response))
-            .catch(() => setError('Não foi possível carregar o relatório mensal.'))
+            .catch(() =>
+                setError('Não foi possível carregar o relatório mensal.'),
+            )
             .finally(() => setLoading(false));
     }, [month, year, unidadeId]);
 
@@ -86,9 +94,12 @@ export default function TransportFreightMonthlyPage() {
         >
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Análise mensal por unidade</h2>
+                    <h2 className="text-2xl font-semibold">
+                        Análise mensal por unidade
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                        Métricas consolidadas de produtividade e eficiência por unidade no mês.
+                        Métricas consolidadas de produtividade e eficiência por
+                        unidade no mês.
                     </p>
                     <div className="mt-2">
                         <Link
@@ -100,7 +111,9 @@ export default function TransportFreightMonthlyPage() {
                     </div>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
 
                 <Card>
                     <CardHeader>
@@ -108,14 +121,19 @@ export default function TransportFreightMonthlyPage() {
                     </CardHeader>
                     <CardContent className="grid gap-3 md:grid-cols-3">
                         <div>
-                            <p className="mb-2 text-sm text-muted-foreground">Mês</p>
+                            <p className="mb-2 text-sm text-muted-foreground">
+                                Mês
+                            </p>
                             <Select value={month} onValueChange={setMonth}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {monthOptions.map((item) => (
-                                        <SelectItem key={item.value} value={item.value}>
+                                        <SelectItem
+                                            key={item.value}
+                                            value={item.value}
+                                        >
                                             {item.label}
                                         </SelectItem>
                                     ))}
@@ -123,7 +141,9 @@ export default function TransportFreightMonthlyPage() {
                             </Select>
                         </div>
                         <div>
-                            <p className="mb-2 text-sm text-muted-foreground">Ano</p>
+                            <p className="mb-2 text-sm text-muted-foreground">
+                                Ano
+                            </p>
                             <Select value={year} onValueChange={setYear}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -138,15 +158,23 @@ export default function TransportFreightMonthlyPage() {
                             </Select>
                         </div>
                         <div>
-                            <p className="mb-2 text-sm text-muted-foreground">Unidade</p>
-                            <Select value={unidadeId} onValueChange={setUnidadeId}>
+                            <p className="mb-2 text-sm text-muted-foreground">
+                                Unidade
+                            </p>
+                            <Select
+                                value={unidadeId}
+                                onValueChange={setUnidadeId}
+                            >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Todas</SelectItem>
                                     {unidades.map((unidade) => (
-                                        <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                        <SelectItem
+                                            key={unidade.id}
+                                            value={String(unidade.id)}
+                                        >
                                             {unidade.nome}
                                         </SelectItem>
                                     ))}
@@ -173,62 +201,99 @@ export default function TransportFreightMonthlyPage() {
                         ) : (
                             <div className="space-y-3">
                                 {report.data.map((item) => (
-                                    <div key={item.unidade_id} className="rounded-lg border p-4">
+                                    <div
+                                        key={item.unidade_id}
+                                        className="rounded-lg border p-4"
+                                    >
                                         <div className="flex items-center justify-between gap-2">
                                             <p className="text-xl font-semibold">
-                                                {item.unidade_nome ?? 'Sem unidade'}
+                                                {item.unidade_nome ??
+                                                    'Sem unidade'}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {formatIntegerBR(item.dias_trabalhados)} dia(s)
+                                                {formatIntegerBR(
+                                                    item.dias_trabalhados,
+                                                )}{' '}
+                                                dia(s)
                                             </p>
                                         </div>
                                         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                             <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Frete total</p>
-                                                <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.total_frete)}
+                                                <p className="text-xs text-muted-foreground">
+                                                    Frete total
                                                 </p>
-                                            </div>
-                                            <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Frete líquido</p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.total_frete_liquido)}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Total KM</p>
-                                                <p className="text-xl font-semibold">
-                                                    {formatIntegerBR(item.total_km_rodado)}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Aves transportadas</p>
-                                                <p className="text-xl font-semibold">
-                                                    {formatIntegerBR(item.total_aves_transportadas)}
+                                                    {formatCurrencyBR(
+                                                        item.total_frete,
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    Frete médio por caminhão trabalhado
+                                                    Frete líquido
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.frete_medio_por_caminhao_trabalhado)}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatIntegerBR(item.caminhoes_trabalhados)} caminhão(ões)
+                                                    {formatCurrencyBR(
+                                                        item.total_frete_liquido,
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    Frete médio por caminhão da frota
+                                                    Total KM
+                                                </p>
+                                                <p className="text-xl font-semibold">
+                                                    {formatIntegerBR(
+                                                        item.total_km_rodado,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Aves transportadas
+                                                </p>
+                                                <p className="text-xl font-semibold">
+                                                    {formatIntegerBR(
+                                                        item.total_aves_transportadas,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Frete médio por caminhão
+                                                    trabalhado
+                                                </p>
+                                                <p className="text-xl font-semibold">
+                                                    {formatCurrencyBR(
+                                                        item.frete_medio_por_caminhao_trabalhado,
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatIntegerBR(
+                                                        item.caminhoes_trabalhados,
+                                                    )}{' '}
+                                                    caminhão(ões)
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Frete médio por caminhão da
+                                                    frota
                                                 </p>
                                                 {item.frota_informada ? (
                                                     <>
                                                         <p className="text-xl font-semibold">
-                                                            {formatCurrencyBR(item.frete_medio_por_caminhao_frota ?? 0)}
+                                                            {formatCurrencyBR(
+                                                                item.frete_medio_por_caminhao_frota ??
+                                                                    0,
+                                                            )}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Frota cadastrada: {formatIntegerBR(item.frota_cadastrada ?? 0)}
+                                                            Frota cadastrada:{' '}
+                                                            {formatIntegerBR(
+                                                                item.frota_cadastrada ??
+                                                                    0,
+                                                            )}
                                                         </p>
                                                     </>
                                                 ) : (
@@ -242,19 +307,29 @@ export default function TransportFreightMonthlyPage() {
                                                     Frete por dia trabalhado
                                                 </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.frete_por_dia_trabalhado)}
+                                                    {formatCurrencyBR(
+                                                        item.frete_por_dia_trabalhado,
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Média R$/KM</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Média R$/KM
+                                                </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.media_reais_por_km)}
+                                                    {formatCurrencyBR(
+                                                        item.media_reais_por_km,
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-xs text-muted-foreground">Média frete/KM</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Média frete/KM
+                                                </p>
                                                 <p className="text-xl font-semibold">
-                                                    {formatCurrencyBR(item.media_frete_por_km)}
+                                                    {formatCurrencyBR(
+                                                        item.media_frete_por_km,
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>

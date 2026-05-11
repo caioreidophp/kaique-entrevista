@@ -83,16 +83,31 @@ export interface FreightOperationalReportResponse {
     };
     abatedouro: {
         resumo: FreightExecutionMetrics;
-        por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+        por_unidade: Array<
+            FreightExecutionMetrics & {
+                unidade_id: number;
+                unidade_nome: string | null;
+            }
+        >;
     };
     kaique: {
         integracao: {
             resumo: FreightExecutionMetrics;
-            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+            por_unidade: Array<
+                FreightExecutionMetrics & {
+                    unidade_id: number;
+                    unidade_nome: string | null;
+                }
+            >;
         };
         spot: {
             resumo: FreightExecutionMetrics;
-            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+            por_unidade: Array<
+                FreightExecutionMetrics & {
+                    unidade_id: number;
+                    unidade_nome: string | null;
+                }
+            >;
         };
         percentual_spot_total: number;
     };

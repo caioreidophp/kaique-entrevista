@@ -104,21 +104,28 @@ export default function TransportFinesLaunchNotificationPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
 
-    const [references, setReferences] = useState<ReferenceResponse | null>(null);
+    const [references, setReferences] = useState<ReferenceResponse | null>(
+        null,
+    );
     const [form, setForm] = useState<NotificationFormData>(emptyForm);
     const [orgaoInput, setOrgaoInput] = useState('');
     const [confirmNewOrgaoOpen, setConfirmNewOrgaoOpen] = useState(false);
-    const [pendingPayload, setPendingPayload] = useState<Omit<NotificationPayload, 'multa_orgao_autuador_id'> | null>(null);
+    const [pendingPayload, setPendingPayload] = useState<Omit<
+        NotificationPayload,
+        'multa_orgao_autuador_id'
+    > | null>(null);
 
     async function loadReferences(): Promise<void> {
         setLoading(true);
 
         try {
-            const response = await apiGet<ReferenceResponse>('/fines/reference');
+            const response =
+                await apiGet<ReferenceResponse>('/fines/reference');
             setReferences(response);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar placas, infrações e órgãos.',
+                message:
+                    'Não foi possível carregar placas, infrações e órgãos.',
                 variant: 'error',
             });
         } finally {
@@ -131,15 +138,21 @@ export default function TransportFinesLaunchNotificationPage() {
     }, []);
 
     const sortedPlates = useMemo(() => {
-        return [...(references?.placas ?? [])].sort((a, b) => a.placa.localeCompare(b.placa));
+        return [...(references?.placas ?? [])].sort((a, b) =>
+            a.placa.localeCompare(b.placa),
+        );
     }, [references?.placas]);
 
     const sortedInfractions = useMemo(() => {
-        return [...(references?.infracoes ?? [])].sort((a, b) => a.nome.localeCompare(b.nome));
+        return [...(references?.infracoes ?? [])].sort((a, b) =>
+            a.nome.localeCompare(b.nome),
+        );
     }, [references?.infracoes]);
 
     const sortedOrgaos = useMemo(() => {
-        return [...(references?.orgaos ?? [])].sort((a, b) => a.nome.localeCompare(b.nome));
+        return [...(references?.orgaos ?? [])].sort((a, b) =>
+            a.nome.localeCompare(b.nome),
+        );
     }, [references?.orgaos]);
 
     const filteredOrgaos = useMemo(() => {
@@ -159,10 +172,15 @@ export default function TransportFinesLaunchNotificationPage() {
 
         if (!term) return null;
 
-        return sortedOrgaos.find((item) => normalizeText(item.nome) === term) ?? null;
+        return (
+            sortedOrgaos.find((item) => normalizeText(item.nome) === term) ??
+            null
+        );
     }, [orgaoInput, sortedOrgaos]);
 
-    async function submitNotification(payload: NotificationPayload): Promise<void> {
+    async function submitNotification(
+        payload: NotificationPayload,
+    ): Promise<void> {
         setSaving(true);
         setNotification(null);
 
@@ -198,10 +216,15 @@ export default function TransportFinesLaunchNotificationPage() {
         }
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
 
-        const payloadWithoutOrgao: Omit<NotificationPayload, 'multa_orgao_autuador_id'> = {
+        const payloadWithoutOrgao: Omit<
+            NotificationPayload,
+            'multa_orgao_autuador_id'
+        > = {
             tipo_registro: 'notificacao',
             data: form.data,
             hora: form.hora,
@@ -241,20 +264,27 @@ export default function TransportFinesLaunchNotificationPage() {
         }
 
         try {
-            const response = await apiPost<{ data: FineAuthorityItem }>('/fines/orgaos', {
-                nome: orgaoInput.trim(),
-            });
+            const response = await apiPost<{ data: FineAuthorityItem }>(
+                '/fines/orgaos',
+                {
+                    nome: orgaoInput.trim(),
+                },
+            );
 
             const newOrgao = response.data;
 
             setReferences((previous) => {
                 if (!previous) return previous;
 
-                const exists = previous.orgaos.some((item) => item.id === newOrgao.id);
+                const exists = previous.orgaos.some(
+                    (item) => item.id === newOrgao.id,
+                );
 
                 return {
                     ...previous,
-                    orgaos: exists ? previous.orgaos : [...previous.orgaos, newOrgao],
+                    orgaos: exists
+                        ? previous.orgaos
+                        : [...previous.orgaos, newOrgao],
                 };
             });
 
@@ -282,17 +312,28 @@ export default function TransportFinesLaunchNotificationPage() {
     }
 
     return (
-        <AdminLayout title="Gestão de Multas - Lançar Notificação" active="fines-launch-notification" module="fines">
+        <AdminLayout
+            title="Gestão de Multas - Lançar Notificação"
+            active="fines-launch-notification"
+            module="fines"
+        >
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Lançar Notificação</h2>
+                    <h2 className="text-2xl font-semibold">
+                        Lançar Notificação
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                        Registre notificações prévias sem valor final. Depois, na lista, transforme em multa quando chegar o restante das informações.
+                        Registre notificações prévias sem valor final. Depois,
+                        na lista, transforme em multa quando chegar o restante
+                        das informações.
                     </p>
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <Card className="border-border/80">
@@ -315,7 +356,10 @@ export default function TransportFinesLaunchNotificationPage() {
                                             type="date"
                                             value={form.data}
                                             onChange={(event) =>
-                                                setForm((previous) => ({ ...previous, data: event.target.value }))
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    data: event.target.value,
+                                                }))
                                             }
                                             required
                                         />
@@ -328,7 +372,10 @@ export default function TransportFinesLaunchNotificationPage() {
                                             type="time"
                                             value={form.hora}
                                             onChange={(event) =>
-                                                setForm((previous) => ({ ...previous, hora: event.target.value }))
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    hora: event.target.value,
+                                                }))
                                             }
                                             required
                                         />
@@ -337,11 +384,16 @@ export default function TransportFinesLaunchNotificationPage() {
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>Placa *</Label>
                                         <Select
-                                            value={form.placa_frota_id || 'none'}
+                                            value={
+                                                form.placa_frota_id || 'none'
+                                            }
                                             onValueChange={(value) =>
                                                 setForm((previous) => ({
                                                     ...previous,
-                                                    placa_frota_id: value === 'none' ? '' : value,
+                                                    placa_frota_id:
+                                                        value === 'none'
+                                                            ? ''
+                                                            : value,
                                                 }))
                                             }
                                         >
@@ -349,9 +401,14 @@ export default function TransportFinesLaunchNotificationPage() {
                                                 <SelectValue placeholder="Selecione" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">Selecione</SelectItem>
+                                                <SelectItem value="none">
+                                                    Selecione
+                                                </SelectItem>
                                                 {sortedPlates.map((plate) => (
-                                                    <SelectItem key={plate.id} value={String(plate.id)}>
+                                                    <SelectItem
+                                                        key={plate.id}
+                                                        value={String(plate.id)}
+                                                    >
                                                         {plate.placa}
                                                     </SelectItem>
                                                 ))}
@@ -364,11 +421,16 @@ export default function TransportFinesLaunchNotificationPage() {
                                     <div className="space-y-2">
                                         <Label>Infração *</Label>
                                         <Select
-                                            value={form.multa_infracao_id || 'none'}
+                                            value={
+                                                form.multa_infracao_id || 'none'
+                                            }
                                             onValueChange={(value) =>
                                                 setForm((previous) => ({
                                                     ...previous,
-                                                    multa_infracao_id: value === 'none' ? '' : value,
+                                                    multa_infracao_id:
+                                                        value === 'none'
+                                                            ? ''
+                                                            : value,
                                                 }))
                                             }
                                         >
@@ -376,12 +438,21 @@ export default function TransportFinesLaunchNotificationPage() {
                                                 <SelectValue placeholder="Selecione" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="none">Selecione</SelectItem>
-                                                {sortedInfractions.map((infraction) => (
-                                                    <SelectItem key={infraction.id} value={String(infraction.id)}>
-                                                        {infraction.nome}
-                                                    </SelectItem>
-                                                ))}
+                                                <SelectItem value="none">
+                                                    Selecione
+                                                </SelectItem>
+                                                {sortedInfractions.map(
+                                                    (infraction) => (
+                                                        <SelectItem
+                                                            key={infraction.id}
+                                                            value={String(
+                                                                infraction.id,
+                                                            )}
+                                                        >
+                                                            {infraction.nome}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -390,18 +461,31 @@ export default function TransportFinesLaunchNotificationPage() {
                                         <Label>Status *</Label>
                                         <Select
                                             value={form.status}
-                                            onValueChange={(value: NotificationFormData['status']) =>
-                                                setForm((previous) => ({ ...previous, status: value }))
+                                            onValueChange={(
+                                                value: NotificationFormData['status'],
+                                            ) =>
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    status: value,
+                                                }))
                                             }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="aguardando_motorista">Aguardando Motorista</SelectItem>
-                                                <SelectItem value="solicitado_boleto">Solicitado Boleto</SelectItem>
-                                                <SelectItem value="boleto_ok">Boleto OK</SelectItem>
-                                                <SelectItem value="pago">Pago</SelectItem>
+                                                <SelectItem value="aguardando_motorista">
+                                                    Aguardando Motorista
+                                                </SelectItem>
+                                                <SelectItem value="solicitado_boleto">
+                                                    Solicitado Boleto
+                                                </SelectItem>
+                                                <SelectItem value="boleto_ok">
+                                                    Boleto OK
+                                                </SelectItem>
+                                                <SelectItem value="pago">
+                                                    Pago
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -409,25 +493,34 @@ export default function TransportFinesLaunchNotificationPage() {
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="descricao">Descrição</Label>
+                                        <Label htmlFor="descricao">
+                                            Descrição
+                                        </Label>
                                         <Input
                                             id="descricao"
                                             value={form.descricao}
                                             onChange={(event) =>
-                                                setForm((previous) => ({ ...previous, descricao: event.target.value }))
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    descricao:
+                                                        event.target.value,
+                                                }))
                                             }
                                             placeholder="Campo livre"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="numero-auto">Nº Auto de Infração</Label>
+                                        <Label htmlFor="numero-auto">
+                                            Nº Auto de Infração
+                                        </Label>
                                         <Input
                                             id="numero-auto"
                                             value={form.numero_auto_infracao}
                                             onChange={(event) =>
                                                 setForm((previous) => ({
                                                     ...previous,
-                                                    numero_auto_infracao: event.target.value,
+                                                    numero_auto_infracao:
+                                                        event.target.value,
                                                 }))
                                             }
                                             placeholder="Campo livre"
@@ -436,11 +529,15 @@ export default function TransportFinesLaunchNotificationPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="orgao-atuador">Órgão Atuador *</Label>
+                                    <Label htmlFor="orgao-atuador">
+                                        Órgão Atuador *
+                                    </Label>
                                     <Input
                                         id="orgao-atuador"
                                         value={orgaoInput}
-                                        onChange={(event) => setOrgaoInput(event.target.value)}
+                                        onChange={(event) =>
+                                            setOrgaoInput(event.target.value)
+                                        }
                                         placeholder="Digite ou selecione um órgão"
                                         required
                                     />
@@ -451,7 +548,9 @@ export default function TransportFinesLaunchNotificationPage() {
                                                     key={item.id}
                                                     type="button"
                                                     className="block w-full rounded px-2 py-1 text-left hover:bg-muted"
-                                                    onClick={() => setOrgaoInput(item.nome)}
+                                                    onClick={() =>
+                                                        setOrgaoInput(item.nome)
+                                                    }
                                                 >
                                                     {item.nome}
                                                 </button>
@@ -464,12 +563,12 @@ export default function TransportFinesLaunchNotificationPage() {
                                     <Button
                                         type="submit"
                                         disabled={
-                                            saving
-                                            || !form.data
-                                            || !form.hora
-                                            || !form.placa_frota_id
-                                            || !form.multa_infracao_id
-                                            || !orgaoInput.trim()
+                                            saving ||
+                                            !form.data ||
+                                            !form.hora ||
+                                            !form.placa_frota_id ||
+                                            !form.multa_infracao_id ||
+                                            !orgaoInput.trim()
                                         }
                                     >
                                         {saving ? (
@@ -491,12 +590,17 @@ export default function TransportFinesLaunchNotificationPage() {
                 </Card>
             </div>
 
-            <Dialog open={confirmNewOrgaoOpen} onOpenChange={setConfirmNewOrgaoOpen}>
+            <Dialog
+                open={confirmNewOrgaoOpen}
+                onOpenChange={setConfirmNewOrgaoOpen}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Cadastrar novo órgão?</DialogTitle>
                         <DialogDescription>
-                            O órgão <strong>{orgaoInput.trim()}</strong> não foi encontrado. Deseja cadastrar e usar neste lançamento?
+                            O órgão <strong>{orgaoInput.trim()}</strong> não foi
+                            encontrado. Deseja cadastrar e usar neste
+                            lançamento?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -511,7 +615,11 @@ export default function TransportFinesLaunchNotificationPage() {
                         >
                             Cancelar
                         </Button>
-                        <Button type="button" onClick={() => void confirmCreateOrgaoAndSubmit()} disabled={saving}>
+                        <Button
+                            type="button"
+                            onClick={() => void confirmCreateOrgaoAndSubmit()}
+                            disabled={saving}
+                        >
                             Confirmar e lançar
                         </Button>
                     </DialogFooter>

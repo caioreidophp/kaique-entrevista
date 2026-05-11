@@ -1,4 +1,10 @@
-import { LoaderCircle, PencilLine, PlusSquare, Trash2, Upload } from 'lucide-react';
+import {
+    LoaderCircle,
+    PencilLine,
+    PlusSquare,
+    Trash2,
+    Upload,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -94,15 +100,24 @@ export default function TransportRegistryPlatesAviariesPage() {
     const [aviarioDialogOpen, setAviarioDialogOpen] = useState(false);
     const [placaBulkDialogOpen, setPlacaBulkDialogOpen] = useState(false);
     const [aviarioBulkDialogOpen, setAviarioBulkDialogOpen] = useState(false);
-    const [aviarioImportDialogOpen, setAviarioImportDialogOpen] = useState(false);
+    const [aviarioImportDialogOpen, setAviarioImportDialogOpen] =
+        useState(false);
     const [editingPlaca, setEditingPlaca] = useState<PlacaFrota | null>(null);
     const [editingAviario, setEditingAviario] = useState<Aviario | null>(null);
 
     const [placaForm, setPlacaForm] = useState(emptyPlacaForm);
     const [aviarioForm, setAviarioForm] = useState(emptyAviarioForm);
-    const [placaBulkForm, setPlacaBulkForm] = useState({ unidade_id: '', placas: '' });
-    const [aviarioBulkForm, setAviarioBulkForm] = useState({ cidade: '', aviarios: '' });
-    const [aviarioImportFile, setAviarioImportFile] = useState<File | null>(null);
+    const [placaBulkForm, setPlacaBulkForm] = useState({
+        unidade_id: '',
+        placas: '',
+    });
+    const [aviarioBulkForm, setAviarioBulkForm] = useState({
+        cidade: '',
+        aviarios: '',
+    });
+    const [aviarioImportFile, setAviarioImportFile] = useState<File | null>(
+        null,
+    );
 
     async function load(): Promise<void> {
         setLoading(true);
@@ -182,7 +197,9 @@ export default function TransportRegistryPlatesAviariesPage() {
         setAviarioDialogOpen(true);
     }
 
-    async function savePlaca(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function savePlaca(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -194,13 +211,18 @@ export default function TransportRegistryPlatesAviariesPage() {
 
         try {
             if (editingPlaca) {
-                await apiPut(`/registry/placas-frota/${editingPlaca.id}`, payload);
+                await apiPut(
+                    `/registry/placas-frota/${editingPlaca.id}`,
+                    payload,
+                );
             } else {
                 await apiPost('/registry/placas-frota', payload);
             }
 
             setNotification({
-                message: editingPlaca ? 'Placa atualizada com sucesso.' : 'Placa cadastrada com sucesso.',
+                message: editingPlaca
+                    ? 'Placa atualizada com sucesso.'
+                    : 'Placa cadastrada com sucesso.',
                 variant: 'success',
             });
             setPlacaDialogOpen(false);
@@ -209,17 +231,27 @@ export default function TransportRegistryPlatesAviariesPage() {
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar a placa.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar a placa.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function saveAviario(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function saveAviario(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -235,13 +267,18 @@ export default function TransportRegistryPlatesAviariesPage() {
 
         try {
             if (editingAviario) {
-                await apiPut(`/registry/aviarios/${editingAviario.id}`, payload);
+                await apiPut(
+                    `/registry/aviarios/${editingAviario.id}`,
+                    payload,
+                );
             } else {
                 await apiPost('/registry/aviarios', payload);
             }
 
             setNotification({
-                message: editingAviario ? 'Aviário atualizado com sucesso.' : 'Aviário cadastrado com sucesso.',
+                message: editingAviario
+                    ? 'Aviário atualizado com sucesso.'
+                    : 'Aviário cadastrado com sucesso.',
                 variant: 'success',
             });
             setAviarioDialogOpen(false);
@@ -250,17 +287,27 @@ export default function TransportRegistryPlatesAviariesPage() {
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar o aviário.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar o aviário.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function importAviariosSpreadsheet(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function importAviariosSpreadsheet(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
 
         if (!aviarioImportFile) {
@@ -293,29 +340,39 @@ export default function TransportRegistryPlatesAviariesPage() {
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível importar o XLSX de aviários.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível importar o XLSX de aviários.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function savePlacasBulk(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function savePlacasBulk(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
 
         try {
-            const response = await apiPost<{ created_count: number; skipped_existing: string[] }>(
-                '/registry/placas-frota/bulk',
-                {
-                    unidade_id: Number(placaBulkForm.unidade_id),
-                    placas: placaBulkForm.placas,
-                },
-            );
+            const response = await apiPost<{
+                created_count: number;
+                skipped_existing: string[];
+            }>('/registry/placas-frota/bulk', {
+                unidade_id: Number(placaBulkForm.unidade_id),
+                placas: placaBulkForm.placas,
+            });
 
             setNotification({
                 message:
@@ -330,29 +387,39 @@ export default function TransportRegistryPlatesAviariesPage() {
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível cadastrar placas em lote.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível cadastrar placas em lote.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function saveAviariosBulk(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function saveAviariosBulk(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
 
         try {
-            const response = await apiPost<{ created_count: number; skipped_existing: string[] }>(
-                '/registry/aviarios/bulk',
-                {
-                    cidade: aviarioBulkForm.cidade,
-                    aviarios: aviarioBulkForm.aviarios,
-                },
-            );
+            const response = await apiPost<{
+                created_count: number;
+                skipped_existing: string[];
+            }>('/registry/aviarios/bulk', {
+                cidade: aviarioBulkForm.cidade,
+                aviarios: aviarioBulkForm.aviarios,
+            });
 
             setNotification({
                 message:
@@ -367,10 +434,18 @@ export default function TransportRegistryPlatesAviariesPage() {
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível cadastrar aviários em lote.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível cadastrar aviários em lote.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
@@ -382,13 +457,19 @@ export default function TransportRegistryPlatesAviariesPage() {
 
         try {
             await apiDelete(`/registry/placas-frota/${id}`);
-            setNotification({ message: 'Placa excluída com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Placa excluída com sucesso.',
+                variant: 'success',
+            });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível excluir a placa.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível excluir a placa.',
+                    variant: 'error',
+                });
             }
         } finally {
             setDeletingId(null);
@@ -400,13 +481,19 @@ export default function TransportRegistryPlatesAviariesPage() {
 
         try {
             await apiDelete(`/registry/aviarios/${id}`);
-            setNotification({ message: 'Aviário excluído com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Aviário excluído com sucesso.',
+                variant: 'success',
+            });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível excluir o aviário.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível excluir o aviário.',
+                    variant: 'error',
+                });
             }
         } finally {
             setDeletingId(null);
@@ -421,20 +508,32 @@ export default function TransportRegistryPlatesAviariesPage() {
         >
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Placas e Aviários</h2>
+                    <h2 className="text-2xl font-semibold">
+                        Placas e Aviários
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                        Cadastre separadamente placas da frota e aviários para uso nos painéis operacionais.
+                        Cadastre separadamente placas da frota e aviários para
+                        uso nos painéis operacionais.
                     </p>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <div className="grid gap-6 xl:grid-cols-2">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Placas ({placas.length})</CardTitle>
                             <div className="flex gap-2">
-                                <Button type="button" variant="outline" onClick={openBulkPlaca}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={openBulkPlaca}
+                                >
                                     Cadastrar em Lote
                                 </Button>
                                 <Button type="button" onClick={openCreatePlaca}>
@@ -450,25 +549,52 @@ export default function TransportRegistryPlatesAviariesPage() {
                                     Carregando placas...
                                 </div>
                             ) : placas.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhuma placa cadastrada.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhuma placa cadastrada.
+                                </p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b text-left text-muted-foreground">
-                                                <th className="py-2 pr-3 font-medium">Placa</th>
-                                                <th className="py-2 pr-3 font-medium">Unidade frota</th>
-                                                <th className="py-2 text-right font-medium">Ações</th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    Placa
+                                                </th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    Unidade frota
+                                                </th>
+                                                <th className="py-2 text-right font-medium">
+                                                    Ações
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {placas.map((item) => (
-                                                <tr key={item.id} className="border-b last:border-b-0">
-                                                    <td className="py-2 pr-3 font-medium">{item.placa}</td>
-                                                    <td className="py-2 pr-3">{item.unidade?.nome ?? '-'}</td>
+                                                <tr
+                                                    key={item.id}
+                                                    className="border-b last:border-b-0"
+                                                >
+                                                    <td className="py-2 pr-3 font-medium">
+                                                        {item.placa}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {item.unidade?.nome ??
+                                                            '-'}
+                                                    </td>
                                                     <td className="py-2">
                                                         <div className="flex justify-end gap-2">
-                                                            <Button type="button" variant="ghost" size="sm" title="Editar" aria-label="Editar" onClick={() => openEditPlaca(item)}>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                title="Editar"
+                                                                aria-label="Editar"
+                                                                onClick={() =>
+                                                                    openEditPlaca(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
                                                                 <PencilLine className="size-4" />
                                                             </Button>
                                                             <Button
@@ -478,8 +604,15 @@ export default function TransportRegistryPlatesAviariesPage() {
                                                                 className="text-destructive hover:text-destructive"
                                                                 title="Excluir"
                                                                 aria-label="Excluir"
-                                                                onClick={() => void removePlaca(item.id)}
-                                                                disabled={deletingId === `placa-${item.id}`}
+                                                                onClick={() =>
+                                                                    void removePlaca(
+                                                                        item.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    deletingId ===
+                                                                    `placa-${item.id}`
+                                                                }
                                                             >
                                                                 <Trash2 className="size-4" />
                                                             </Button>
@@ -498,14 +631,27 @@ export default function TransportRegistryPlatesAviariesPage() {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Aviários ({aviarios.length})</CardTitle>
                             <div className="flex gap-2">
-                                <Button type="button" variant="outline" onClick={() => setAviarioImportDialogOpen(true)}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                        setAviarioImportDialogOpen(true)
+                                    }
+                                >
                                     <Upload className="size-4" />
                                     Importar XLSX
                                 </Button>
-                                <Button type="button" variant="outline" onClick={openBulkAviario}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={openBulkAviario}
+                                >
                                     Cadastrar em Lote
                                 </Button>
-                                <Button type="button" onClick={openCreateAviario}>
+                                <Button
+                                    type="button"
+                                    onClick={openCreateAviario}
+                                >
                                     <PlusSquare className="size-4" />
                                     Cadastrar Aviário
                                 </Button>
@@ -518,27 +664,57 @@ export default function TransportRegistryPlatesAviariesPage() {
                                     Carregando aviários...
                                 </div>
                             ) : aviarios.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhum aviário cadastrado.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhum aviário cadastrado.
+                                </p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b text-left text-muted-foreground">
-                                                <th className="py-2 pr-3 font-medium">Aviário</th>
-                                                <th className="py-2 pr-3 font-medium">Cidade</th>
-                                                <th className="py-2 pr-3 font-medium">KM</th>
-                                                <th className="py-2 text-right font-medium">Ações</th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    Aviário
+                                                </th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    Cidade
+                                                </th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    KM
+                                                </th>
+                                                <th className="py-2 text-right font-medium">
+                                                    Ações
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {aviarios.map((item) => (
-                                                <tr key={item.id} className="border-b last:border-b-0">
-                                                    <td className="py-2 pr-3 font-medium">{item.nome}</td>
-                                                    <td className="py-2 pr-3">{item.cidade}</td>
-                                                    <td className="py-2 pr-3">{formatKm(item.km)}</td>
+                                                <tr
+                                                    key={item.id}
+                                                    className="border-b last:border-b-0"
+                                                >
+                                                    <td className="py-2 pr-3 font-medium">
+                                                        {item.nome}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {item.cidade}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {formatKm(item.km)}
+                                                    </td>
                                                     <td className="py-2">
                                                         <div className="flex justify-end gap-2">
-                                                            <Button type="button" variant="ghost" size="sm" title="Editar" aria-label="Editar" onClick={() => openEditAviario(item)}>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                title="Editar"
+                                                                aria-label="Editar"
+                                                                onClick={() =>
+                                                                    openEditAviario(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
                                                                 <PencilLine className="size-4" />
                                                             </Button>
                                                             <Button
@@ -548,8 +724,15 @@ export default function TransportRegistryPlatesAviariesPage() {
                                                                 className="text-destructive hover:text-destructive"
                                                                 title="Excluir"
                                                                 aria-label="Excluir"
-                                                                onClick={() => void removeAviario(item.id)}
-                                                                disabled={deletingId === `aviario-${item.id}`}
+                                                                onClick={() =>
+                                                                    void removeAviario(
+                                                                        item.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    deletingId ===
+                                                                    `aviario-${item.id}`
+                                                                }
                                                             >
                                                                 <Trash2 className="size-4" />
                                                             </Button>
@@ -578,13 +761,19 @@ export default function TransportRegistryPlatesAviariesPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingPlaca ? 'Editar Placa' : 'Cadastrar Placa'}</DialogTitle>
+                        <DialogTitle>
+                            {editingPlaca ? 'Editar Placa' : 'Cadastrar Placa'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Informe a placa e a unidade da frota à qual ela pertence.
+                            Informe a placa e a unidade da frota à qual ela
+                            pertence.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void savePlaca(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void savePlaca(event)}
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="placa">Placa *</Label>
                             <Input
@@ -617,7 +806,10 @@ export default function TransportRegistryPlatesAviariesPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {unidades.map((unidade) => (
-                                        <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                        <SelectItem
+                                            key={unidade.id}
+                                            value={String(unidade.id)}
+                                        >
                                             {unidade.nome}
                                         </SelectItem>
                                     ))}
@@ -626,11 +818,19 @@ export default function TransportRegistryPlatesAviariesPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setPlacaDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setPlacaDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={saving}>
-                                {saving ? 'Salvando...' : editingPlaca ? 'Salvar alterações' : 'Cadastrar'}
+                                {saving
+                                    ? 'Salvando...'
+                                    : editingPlaca
+                                      ? 'Salvar alterações'
+                                      : 'Cadastrar'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -650,11 +850,15 @@ export default function TransportRegistryPlatesAviariesPage() {
                     <DialogHeader>
                         <DialogTitle>Cadastrar Placas em Lote</DialogTitle>
                         <DialogDescription>
-                            Informe a unidade e cole várias placas (uma por linha, vírgula ou ponto e vírgula).
+                            Informe a unidade e cole várias placas (uma por
+                            linha, vírgula ou ponto e vírgula).
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void savePlacasBulk(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void savePlacasBulk(event)}
+                    >
                         <div className="space-y-2">
                             <Label>Unidade da frota *</Label>
                             <Select
@@ -671,7 +875,10 @@ export default function TransportRegistryPlatesAviariesPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {unidades.map((unidade) => (
-                                        <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                        <SelectItem
+                                            key={unidade.id}
+                                            value={String(unidade.id)}
+                                        >
                                             {unidade.nome}
                                         </SelectItem>
                                     ))}
@@ -697,7 +904,11 @@ export default function TransportRegistryPlatesAviariesPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setPlacaBulkDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setPlacaBulkDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={saving}>
@@ -720,15 +931,25 @@ export default function TransportRegistryPlatesAviariesPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingAviario ? 'Editar Aviário' : 'Cadastrar Aviário'}</DialogTitle>
+                        <DialogTitle>
+                            {editingAviario
+                                ? 'Editar Aviário'
+                                : 'Cadastrar Aviário'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Informe o nome do aviário, sua cidade e a distância (KM) até o abatedouro.
+                            Informe o nome do aviário, sua cidade e a distância
+                            (KM) até o abatedouro.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void saveAviario(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void saveAviario(event)}
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="aviario-nome">Nome do aviário *</Label>
+                            <Label htmlFor="aviario-nome">
+                                Nome do aviário *
+                            </Label>
                             <Input
                                 id="aviario-nome"
                                 value={aviarioForm.nome}
@@ -776,11 +997,19 @@ export default function TransportRegistryPlatesAviariesPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAviarioDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setAviarioDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={saving}>
-                                {saving ? 'Salvando...' : editingAviario ? 'Salvar alterações' : 'Cadastrar'}
+                                {saving
+                                    ? 'Salvando...'
+                                    : editingAviario
+                                      ? 'Salvar alterações'
+                                      : 'Cadastrar'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -800,27 +1029,48 @@ export default function TransportRegistryPlatesAviariesPage() {
                     <DialogHeader>
                         <DialogTitle>Importar Aviários por XLSX</DialogTitle>
                         <DialogDescription>
-                            O arquivo deve usar: coluna A = nome do aviário, coluna B = cidade, coluna C = KM.
+                            O arquivo deve usar: coluna A = nome do aviário,
+                            coluna B = cidade, coluna C = KM.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void importAviariosSpreadsheet(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) =>
+                            void importAviariosSpreadsheet(event)
+                        }
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="aviarios-xlsx">Arquivo XLSX *</Label>
+                            <Label htmlFor="aviarios-xlsx">
+                                Arquivo XLSX *
+                            </Label>
                             <Input
                                 id="aviarios-xlsx"
                                 type="file"
                                 accept=".xlsx"
-                                onChange={(event) => setAviarioImportFile(event.target.files?.[0] ?? null)}
+                                onChange={(event) =>
+                                    setAviarioImportFile(
+                                        event.target.files?.[0] ?? null,
+                                    )
+                                }
                                 required
                             />
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAviarioImportDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setAviarioImportDialogOpen(false)
+                                }
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={saving || !aviarioImportFile}>
+                            <Button
+                                type="submit"
+                                disabled={saving || !aviarioImportFile}
+                            >
                                 {saving ? 'Importando...' : 'Importar XLSX'}
                             </Button>
                         </DialogFooter>
@@ -841,11 +1091,15 @@ export default function TransportRegistryPlatesAviariesPage() {
                     <DialogHeader>
                         <DialogTitle>Cadastrar Aviários em Lote</DialogTitle>
                         <DialogDescription>
-                            Informe a cidade e cole vários aviários (uma por linha, vírgula ou ponto e vírgula).
+                            Informe a cidade e cole vários aviários (uma por
+                            linha, vírgula ou ponto e vírgula).
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-4" onSubmit={(event) => void saveAviariosBulk(event)}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => void saveAviariosBulk(event)}
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="cidade-bulk">Cidade *</Label>
                             <Input
@@ -873,13 +1127,19 @@ export default function TransportRegistryPlatesAviariesPage() {
                                         aviarios: event.target.value,
                                     }))
                                 }
-                                placeholder={'Aviário São João\nAviário Boa Vista\nAviário Santa Rita'}
+                                placeholder={
+                                    'Aviário São João\nAviário Boa Vista\nAviário Santa Rita'
+                                }
                                 required
                             />
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAviarioBulkDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setAviarioBulkDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={saving}>

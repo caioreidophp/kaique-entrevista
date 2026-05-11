@@ -15,7 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
 import {
     decimalThousandsMaskBR,
@@ -58,7 +64,10 @@ const emptyForm: SpotFormData = {
     obs: '',
 };
 
-function monthRange(month: string, year: string): { startDate: string; endDate: string } {
+function monthRange(
+    month: string,
+    year: string,
+): { startDate: string; endDate: string } {
     const monthNumber = Math.min(12, Math.max(1, Number(month) || 1));
     const yearNumber = Number(year) || new Date().getFullYear();
     const lastDay = new Date(yearNumber, monthNumber, 0).getDate();
@@ -82,10 +91,14 @@ export default function TransportFreightSpotLaunchPage() {
     const [saving, setSaving] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
     const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
-    const [deleteCandidate, setDeleteCandidate] = useState<FreightSpotEntry | null>(null);
+    const [deleteCandidate, setDeleteCandidate] =
+        useState<FreightSpotEntry | null>(null);
     const [month, setMonth] = useState(String(currentMonth));
     const [year, setYear] = useState(String(currentYear));
-    const [notification, setNotification] = useState<{ message: string; variant: 'success' | 'error' | 'info' } | null>(null);
+    const [notification, setNotification] = useState<{
+        message: string;
+        variant: 'success' | 'error' | 'info';
+    } | null>(null);
 
     const monthOptions = useMemo(
         () => [
@@ -106,7 +119,11 @@ export default function TransportFreightSpotLaunchPage() {
     );
 
     const yearOptions = useMemo(
-        () => [String(currentYear - 1), String(currentYear), String(currentYear + 1)],
+        () => [
+            String(currentYear - 1),
+            String(currentYear),
+            String(currentYear + 1),
+        ],
         [currentYear],
     );
 
@@ -114,14 +131,22 @@ export default function TransportFreightSpotLaunchPage() {
         setLoading(true);
 
         try {
-            const unitsResponse = await apiGet<WrappedResponse<FreightUnit[]>>('/registry/unidades');
+            const unitsResponse =
+                await apiGet<WrappedResponse<FreightUnit[]>>(
+                    '/registry/unidades',
+                );
             setUnits(unitsResponse.data);
             setForm((previous) => ({
                 ...previous,
-                unidade_origem_id: previous.unidade_origem_id || String(unitsResponse.data[0]?.id ?? ''),
+                unidade_origem_id:
+                    previous.unidade_origem_id ||
+                    String(unitsResponse.data[0]?.id ?? ''),
             }));
         } catch {
-            setNotification({ message: 'Não foi possível carregar as unidades de frete spot.', variant: 'error' });
+            setNotification({
+                message: 'Não foi possível carregar as unidades de frete spot.',
+                variant: 'error',
+            });
         } finally {
             setLoading(false);
         }
@@ -133,10 +158,15 @@ export default function TransportFreightSpotLaunchPage() {
         setLoadingEntries(true);
 
         try {
-            const entriesResponse = await apiGet<SpotPaginatedResponse>(`/freight/spot-entries?start_date=${startDate}&end_date=${endDate}&per_page=200`);
+            const entriesResponse = await apiGet<SpotPaginatedResponse>(
+                `/freight/spot-entries?start_date=${startDate}&end_date=${endDate}&per_page=200`,
+            );
             setEntries(entriesResponse.data);
         } catch {
-            setNotification({ message: 'Não foi possível carregar os dados de frete spot.', variant: 'error' });
+            setNotification({
+                message: 'Não foi possível carregar os dados de frete spot.',
+                variant: 'error',
+            });
         } finally {
             setLoadingEntries(false);
         }
@@ -188,7 +218,10 @@ export default function TransportFreightSpotLaunchPage() {
 
     async function handleSubmit(): Promise<void> {
         if (!form.unidade_origem_id || !form.frete_spot) {
-            setNotification({ message: 'Unidade origem e frete spot são obrigatórios.', variant: 'info' });
+            setNotification({
+                message: 'Unidade origem e frete spot são obrigatórios.',
+                variant: 'info',
+            });
             return;
         }
 
@@ -207,23 +240,39 @@ export default function TransportFreightSpotLaunchPage() {
             };
 
             if (editingEntryId) {
-                await apiPut(`/freight/spot-entries/${editingEntryId}`, payload);
+                await apiPut(
+                    `/freight/spot-entries/${editingEntryId}`,
+                    payload,
+                );
             } else {
                 await apiPost('/freight/spot-entries', payload);
             }
 
             setNotification({
-                message: editingEntryId ? 'Frete spot atualizado com sucesso.' : 'Frete spot lançado com sucesso.',
+                message: editingEntryId
+                    ? 'Frete spot atualizado com sucesso.'
+                    : 'Frete spot lançado com sucesso.',
                 variant: 'success',
             });
-            setForm((previous) => ({ ...emptyForm, unidade_origem_id: previous.unidade_origem_id }));
+            setForm((previous) => ({
+                ...emptyForm,
+                unidade_origem_id: previous.unidade_origem_id,
+            }));
             setEditingEntryId(null);
             await loadEntries();
         } catch (error) {
             if (error instanceof ApiError) {
-                setNotification({ message: error.message ?? 'Não foi possível salvar o lançamento spot.', variant: 'error' });
+                setNotification({
+                    message:
+                        error.message ??
+                        'Não foi possível salvar o lançamento spot.',
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar o lançamento spot.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar o lançamento spot.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
@@ -253,17 +302,31 @@ export default function TransportFreightSpotLaunchPage() {
 
             if (editingEntryId === entry.id) {
                 setEditingEntryId(null);
-                setForm((previous) => ({ ...emptyForm, unidade_origem_id: previous.unidade_origem_id }));
+                setForm((previous) => ({
+                    ...emptyForm,
+                    unidade_origem_id: previous.unidade_origem_id,
+                }));
             }
 
             setDeleteCandidate(null);
-            setNotification({ message: 'Frete spot excluído com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Frete spot excluído com sucesso.',
+                variant: 'success',
+            });
             await loadEntries();
         } catch (error) {
             if (error instanceof ApiError) {
-                setNotification({ message: error.message ?? 'Não foi possível excluir o frete spot.', variant: 'error' });
+                setNotification({
+                    message:
+                        error.message ??
+                        'Não foi possível excluir o frete spot.',
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível excluir o frete spot.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível excluir o frete spot.',
+                    variant: 'error',
+                });
             }
         } finally {
             setDeletingEntryId(null);
@@ -271,23 +334,47 @@ export default function TransportFreightSpotLaunchPage() {
     }
 
     return (
-        <AdminLayout title="Gestão de Fretes - Lançar Fretes Spot" active="freight-spot" module="freight">
+        <AdminLayout
+            title="Gestão de Fretes - Lançar Fretes Spot"
+            active="freight-spot"
+            module="freight"
+        >
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-semibold">Lançar Fretes Spot</h2>
-                    <p className="text-sm text-muted-foreground">Registre os fretes fora da rota base para compor a visão de Frota (fora).</p>
+                    <h2 className="text-2xl font-semibold">
+                        Lançar Fretes Spot
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Registre os fretes fora da rota base para compor a visão
+                        de Frota (fora).
+                    </p>
                 </div>
 
                 <div className="flex gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => router.get('/transport/freight/list')}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.get('/transport/freight/list')}
+                    >
                         Integração
                     </Button>
-                    <Button type="button" size="sm" variant="default" onClick={() => router.get('/transport/freight/spot')}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="default"
+                        onClick={() => router.get('/transport/freight/spot')}
+                    >
                         Spot
                     </Button>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <Card>
                     <CardHeader>
@@ -296,20 +383,38 @@ export default function TransportFreightSpotLaunchPage() {
                     <CardContent className="grid gap-3 md:grid-cols-3">
                         <div className="space-y-2">
                             <Label htmlFor="spot-data">Data</Label>
-                            <Input id="spot-data" type="date" value={form.data} onChange={(event) => setForm((prev) => ({ ...prev, data: event.target.value }))} />
+                            <Input
+                                id="spot-data"
+                                type="date"
+                                value={form.data}
+                                onChange={(event) =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        data: event.target.value,
+                                    }))
+                                }
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>Frota origem</Label>
                             <Select
                                 value={form.unidade_origem_id || undefined}
-                                onValueChange={(value) => setForm((previous) => ({ ...previous, unidade_origem_id: value }))}
+                                onValueChange={(value) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        unidade_origem_id: value,
+                                    }))
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {units.map((unit) => (
-                                        <SelectItem key={unit.id} value={String(unit.id)}>
+                                        <SelectItem
+                                            key={unit.id}
+                                            value={String(unit.id)}
+                                        >
                                             {unit.nome}
                                         </SelectItem>
                                     ))}
@@ -323,7 +428,14 @@ export default function TransportFreightSpotLaunchPage() {
                                 type="text"
                                 inputMode="decimal"
                                 value={form.frete_spot}
-                                onChange={(event) => setForm((previous) => ({ ...previous, frete_spot: moneyMaskBR(event.target.value) }))}
+                                onChange={(event) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        frete_spot: moneyMaskBR(
+                                            event.target.value,
+                                        ),
+                                    }))
+                                }
                             />
                         </div>
                         <div className="space-y-2">
@@ -331,7 +443,14 @@ export default function TransportFreightSpotLaunchPage() {
                             <Input
                                 id="spot-cargas"
                                 value={form.cargas}
-                                onChange={(event) => setForm((previous) => ({ ...previous, cargas: integerThousandsMaskBR(event.target.value) }))}
+                                onChange={(event) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        cargas: integerThousandsMaskBR(
+                                            event.target.value,
+                                        ),
+                                    }))
+                                }
                             />
                         </div>
                         <div className="space-y-2">
@@ -339,7 +458,14 @@ export default function TransportFreightSpotLaunchPage() {
                             <Input
                                 id="spot-aves"
                                 value={form.aves}
-                                onChange={(event) => setForm((previous) => ({ ...previous, aves: integerThousandsMaskBR(event.target.value) }))}
+                                onChange={(event) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        aves: integerThousandsMaskBR(
+                                            event.target.value,
+                                        ),
+                                    }))
+                                }
                             />
                         </div>
                         <div className="space-y-2">
@@ -347,7 +473,14 @@ export default function TransportFreightSpotLaunchPage() {
                             <Input
                                 id="spot-km"
                                 value={form.km_rodado}
-                                onChange={(event) => setForm((previous) => ({ ...previous, km_rodado: decimalThousandsMaskBR(event.target.value) }))}
+                                onChange={(event) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        km_rodado: decimalThousandsMaskBR(
+                                            event.target.value,
+                                        ),
+                                    }))
+                                }
                             />
                         </div>
                         <div className="space-y-2 md:col-span-3">
@@ -357,10 +490,15 @@ export default function TransportFreightSpotLaunchPage() {
                                 rows={2}
                                 className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                 value={form.obs}
-                                onChange={(event) => setForm((previous) => ({ ...previous, obs: event.target.value }))}
+                                onChange={(event) =>
+                                    setForm((previous) => ({
+                                        ...previous,
+                                        obs: event.target.value,
+                                    }))
+                                }
                             />
                         </div>
-                        <div className="md:col-span-3 flex justify-end">
+                        <div className="flex justify-end md:col-span-3">
                             <div className="flex gap-2">
                                 {editingEntryId ? (
                                     <Button
@@ -368,23 +506,33 @@ export default function TransportFreightSpotLaunchPage() {
                                         variant="outline"
                                         onClick={() => {
                                             setEditingEntryId(null);
-                                            setForm((previous) => ({ ...emptyForm, unidade_origem_id: previous.unidade_origem_id }));
+                                            setForm((previous) => ({
+                                                ...emptyForm,
+                                                unidade_origem_id:
+                                                    previous.unidade_origem_id,
+                                            }));
                                         }}
                                         disabled={saving}
                                     >
                                         Cancelar edição
                                     </Button>
                                 ) : null}
-                                <Button type="button" onClick={() => void handleSubmit()} disabled={saving}>
-                                {saving ? (
-                                    <>
-                                        <LoaderCircle className="size-4 animate-spin" />
-                                        Salvando...
-                                    </>
-                                ) : (
-                                    editingEntryId ? 'Salvar alterações' : 'Salvar frete spot'
-                                )}
-                            </Button>
+                                <Button
+                                    type="button"
+                                    onClick={() => void handleSubmit()}
+                                    disabled={saving}
+                                >
+                                    {saving ? (
+                                        <>
+                                            <LoaderCircle className="size-4 animate-spin" />
+                                            Salvando...
+                                        </>
+                                    ) : editingEntryId ? (
+                                        'Salvar alterações'
+                                    ) : (
+                                        'Salvar frete spot'
+                                    )}
+                                </Button>
                             </div>
                         </div>
                     </CardContent>
@@ -402,7 +550,10 @@ export default function TransportFreightSpotLaunchPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {monthOptions.map((item) => (
-                                        <SelectItem key={item.value} value={item.value}>
+                                        <SelectItem
+                                            key={item.value}
+                                            value={item.value}
+                                        >
                                             {item.label}
                                         </SelectItem>
                                     ))}
@@ -429,35 +580,81 @@ export default function TransportFreightSpotLaunchPage() {
                                 Carregando...
                             </div>
                         ) : entries.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Nenhum frete spot lançado no período.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Nenhum frete spot lançado no período.
+                            </p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[760px] text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-2 pr-3 font-medium">Data</th>
-                                            <th className="py-2 pr-3 font-medium">Frota origem</th>
-                                            <th className="py-2 pr-3 font-medium">Frete Spot</th>
-                                            <th className="py-2 pr-3 font-medium">Cargas</th>
-                                            <th className="py-2 pr-3 font-medium">Aves</th>
-                                            <th className="py-2 pr-3 font-medium">Km</th>
-                                            <th className="py-2 pr-3 font-medium">Obs.</th>
-                                            <th className="py-2 pr-3 text-center font-medium">Ações</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Data
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Frota origem
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Frete Spot
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Cargas
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Aves
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Km
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Obs.
+                                            </th>
+                                            <th className="py-2 pr-3 text-center font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {entries.map((entry) => (
-                                            <tr key={entry.id} className="border-b last:border-b-0">
-                                                <td className="py-2 pr-3">{formatDateBR(entry.data)}</td>
-                                                <td className="py-2 pr-3">{entry.unidade_origem?.nome ?? '-'}</td>
-                                                <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(entry.frete_spot)}</td>
-                                                <td className="py-2 pr-3">{entry.cargas}</td>
-                                                <td className="py-2 pr-3">{entry.aves}</td>
-                                                <td className="py-2 pr-3">{entry.km_rodado}</td>
-                                                <td className="py-2 pr-3">{entry.obs ?? '-'}</td>
+                                            <tr
+                                                key={entry.id}
+                                                className="border-b last:border-b-0"
+                                            >
+                                                <td className="py-2 pr-3">
+                                                    {formatDateBR(entry.data)}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {entry.unidade_origem
+                                                        ?.nome ?? '-'}
+                                                </td>
+                                                <td className="py-2 pr-3 font-semibold">
+                                                    {formatCurrencyBR(
+                                                        entry.frete_spot,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {entry.cargas}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {entry.aves}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {entry.km_rodado}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {entry.obs ?? '-'}
+                                                </td>
                                                 <td className="py-2 pr-3">
                                                     <div className="flex justify-center gap-2">
-                                                        <Button type="button" size="sm" variant="ghost" onClick={() => startEdit(entry)} title="Editar">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() =>
+                                                                startEdit(entry)
+                                                            }
+                                                            title="Editar"
+                                                        >
                                                             <Pencil className="size-4 text-green-600" />
                                                         </Button>
                                                         <Button
@@ -465,9 +662,21 @@ export default function TransportFreightSpotLaunchPage() {
                                                             size="sm"
                                                             variant="ghost"
                                                             className="text-destructive hover:text-destructive"
-                                                            onClick={() => setDeleteCandidate(entry)}
-                                                            title={deletingEntryId === entry.id ? 'Excluindo...' : 'Excluir'}
-                                                            disabled={deletingEntryId === entry.id}
+                                                            onClick={() =>
+                                                                setDeleteCandidate(
+                                                                    entry,
+                                                                )
+                                                            }
+                                                            title={
+                                                                deletingEntryId ===
+                                                                entry.id
+                                                                    ? 'Excluindo...'
+                                                                    : 'Excluir'
+                                                            }
+                                                            disabled={
+                                                                deletingEntryId ===
+                                                                entry.id
+                                                            }
                                                         >
                                                             <Trash2 className="size-4" />
                                                         </Button>
@@ -520,7 +729,10 @@ export default function TransportFreightSpotLaunchPage() {
                             }}
                             disabled={deletingEntryId !== null}
                         >
-                            {deleteCandidate && deletingEntryId === deleteCandidate.id ? 'Excluindo...' : 'Confirmar exclusão'}
+                            {deleteCandidate &&
+                            deletingEntryId === deleteCandidate.id
+                                ? 'Excluindo...'
+                                : 'Confirmar exclusão'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

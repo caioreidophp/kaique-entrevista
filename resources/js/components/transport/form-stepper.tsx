@@ -38,22 +38,22 @@ export function FormStepper({
                         className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs transition sm:text-sm ${
                             isCurrent
                                 ? 'border-primary bg-primary/10 shadow-xs'
-                                                                : warningEmphasized
-                                                                    ? 'border-destructive/50 bg-destructive/5'
-                                : isCompleted
-                                  ? 'border-primary/50 bg-primary/5'
-                                  : 'hover:bg-background'
+                                : warningEmphasized
+                                  ? 'border-destructive/50 bg-destructive/5'
+                                  : isCompleted
+                                    ? 'border-primary/50 bg-primary/5'
+                                    : 'hover:bg-background'
                         }`}
                     >
                         <span
                             className={`inline-flex size-6 items-center justify-center rounded-full border text-[11px] font-semibold ${
                                 isCurrent
                                     ? 'border-primary bg-primary text-primary-foreground'
-                                                                        : warningEmphasized
-                                                                            ? 'border-destructive/50 bg-destructive/15 text-destructive'
-                                    : isCompleted
-                                      ? 'border-primary/50 bg-primary/20 text-foreground'
-                                      : 'border-border bg-background text-muted-foreground'
+                                    : warningEmphasized
+                                      ? 'border-destructive/50 bg-destructive/15 text-destructive'
+                                      : isCompleted
+                                        ? 'border-primary/50 bg-primary/20 text-foreground'
+                                        : 'border-border bg-background text-muted-foreground'
                             }`}
                         >
                             {showWarning ? (

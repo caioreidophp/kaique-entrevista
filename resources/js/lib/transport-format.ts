@@ -1,6 +1,8 @@
 import { getTransportIntlLocale } from '@/lib/transport-language';
 
-function normalizeNumberInput(value: string | number | null | undefined): number {
+function normalizeNumberInput(
+    value: string | number | null | undefined,
+): number {
     if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
     if (value === null || value === undefined) return 0;
 
@@ -65,11 +67,15 @@ function normalizeNumberInput(value: string | number | null | undefined): number
     return 0;
 }
 
-export function toNumberSafe(value: string | number | null | undefined): number {
+export function toNumberSafe(
+    value: string | number | null | undefined,
+): number {
     return normalizeNumberInput(value);
 }
 
-export function formatCurrencyBR(value: string | number | null | undefined): string {
+export function formatCurrencyBR(
+    value: string | number | null | undefined,
+): string {
     return new Intl.NumberFormat(getTransportIntlLocale(), {
         style: 'currency',
         currency: 'BRL',
@@ -78,20 +84,28 @@ export function formatCurrencyBR(value: string | number | null | undefined): str
     }).format(normalizeNumberInput(value));
 }
 
-export function formatIntegerBR(value: string | number | null | undefined): string {
+export function formatIntegerBR(
+    value: string | number | null | undefined,
+): string {
     return new Intl.NumberFormat(getTransportIntlLocale(), {
         maximumFractionDigits: 0,
     }).format(Math.round(normalizeNumberInput(value)));
 }
 
-export function formatPercentBR(value: string | number | null | undefined, digits = 2): string {
+export function formatPercentBR(
+    value: string | number | null | undefined,
+    digits = 2,
+): string {
     return `${new Intl.NumberFormat(getTransportIntlLocale(), {
         minimumFractionDigits: 0,
         maximumFractionDigits: digits,
     }).format(normalizeNumberInput(value))}%`;
 }
 
-export function formatDecimalBR(value: string | number | null | undefined, digits = 2): string {
+export function formatDecimalBR(
+    value: string | number | null | undefined,
+    digits = 2,
+): string {
     const safeDigits = Math.max(0, Math.min(6, digits));
 
     return new Intl.NumberFormat(getTransportIntlLocale(), {
@@ -108,15 +122,21 @@ export function moneyMaskBR(value: string): string {
     const hasComma = firstCommaIndex >= 0;
 
     const integerRaw = hasComma ? clean.slice(0, firstCommaIndex) : clean;
-    const decimalRaw = hasComma ? clean.slice(firstCommaIndex + 1).replace(/,/g, '') : '';
+    const decimalRaw = hasComma
+        ? clean.slice(firstCommaIndex + 1).replace(/,/g, '')
+        : '';
 
     const integerDigits = integerRaw.replace(/\D/g, '');
-    const integerFormatted = integerDigits ? formatIntegerBR(Number(integerDigits)) : '0';
+    const integerFormatted = integerDigits
+        ? formatIntegerBR(Number(integerDigits))
+        : '0';
 
     return hasComma ? `${integerFormatted},${decimalRaw}` : integerFormatted;
 }
 
-export function formatEditableMoneyBR(value: string | number | null | undefined): string {
+export function formatEditableMoneyBR(
+    value: string | number | null | undefined,
+): string {
     const normalized = normalizeNumberInput(value);
 
     if (!Number.isFinite(normalized)) {
@@ -137,7 +157,9 @@ export function integerThousandsMaskBR(value: string): string {
     return formatIntegerBR(Number(digits));
 }
 
-export function formatEditableIntegerBR(value: string | number | null | undefined): string {
+export function formatEditableIntegerBR(
+    value: string | number | null | undefined,
+): string {
     const normalized = Math.round(normalizeNumberInput(value));
 
     if (!Number.isFinite(normalized)) {
@@ -155,15 +177,22 @@ export function decimalThousandsMaskBR(value: string): string {
     const hasComma = firstCommaIndex >= 0;
 
     const integerRaw = hasComma ? clean.slice(0, firstCommaIndex) : clean;
-    const decimalRaw = hasComma ? clean.slice(firstCommaIndex + 1).replace(/,/g, '') : '';
+    const decimalRaw = hasComma
+        ? clean.slice(firstCommaIndex + 1).replace(/,/g, '')
+        : '';
 
     const integerDigits = integerRaw.replace(/\D/g, '');
-    const integerFormatted = integerDigits ? formatIntegerBR(Number(integerDigits)) : '0';
+    const integerFormatted = integerDigits
+        ? formatIntegerBR(Number(integerDigits))
+        : '0';
 
     return hasComma ? `${integerFormatted},${decimalRaw}` : integerFormatted;
 }
 
-export function formatEditableDecimalBR(value: string | number | null | undefined, digits = 2): string {
+export function formatEditableDecimalBR(
+    value: string | number | null | undefined,
+    digits = 2,
+): string {
     const normalized = normalizeNumberInput(value);
     const safeDigits = Math.max(0, Math.min(6, digits));
 
@@ -177,7 +206,10 @@ export function formatEditableDecimalBR(value: string | number | null | undefine
     }).format(normalized);
 }
 
-export function formatDateBR(value: string | null | undefined, empty = '-'): string {
+export function formatDateBR(
+    value: string | null | undefined,
+    empty = '-',
+): string {
     if (!value) return empty;
 
     const locale = getTransportIntlLocale();
@@ -200,7 +232,10 @@ export function formatDateBR(value: string | null | undefined, empty = '-'): str
     return value;
 }
 
-export function formatDateTimeBR(value: string | null | undefined, empty = '-'): string {
+export function formatDateTimeBR(
+    value: string | null | undefined,
+    empty = '-',
+): string {
     if (!value) return empty;
 
     const locale = getTransportIntlLocale();

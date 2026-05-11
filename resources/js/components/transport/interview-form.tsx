@@ -245,7 +245,9 @@ function defaultFormData(
         contact_name: initialData?.contact_name ?? '',
         expectations_about_company:
             initialData?.expectations_about_company ?? '',
-        last_salary: formatCurrencyInput(String(initialData?.last_salary ?? '')),
+        last_salary: formatCurrencyInput(
+            String(initialData?.last_salary ?? ''),
+        ),
         salary_expectation: formatCurrencyInput(
             String(initialData?.salary_expectation ?? ''),
         ),
@@ -271,7 +273,9 @@ export function hasMeaningfulInterviewDraftData(
     data: Partial<DriverInterviewFormData>,
     baseline: DriverInterviewFormData = defaultFormData(),
 ): boolean {
-    const fields = Object.keys(baseline) as Array<keyof DriverInterviewFormData>;
+    const fields = Object.keys(baseline) as Array<
+        keyof DriverInterviewFormData
+    >;
 
     return fields.some((field) => {
         return (
@@ -344,9 +348,7 @@ function AttachmentField({
             <Input
                 type="file"
                 accept={accept}
-                onChange={(event) =>
-                    onChange(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => onChange(event.target.files?.[0] ?? null)}
             />
             <p className="text-xs text-muted-foreground">{hint}</p>
             {currentUrl ? (
@@ -387,7 +389,10 @@ function CityAutocompleteField({
     const inputRef = useRef<HTMLInputElement | null>(null);
 
     const sortedCityOptions = useMemo(
-        () => [...cityOptions].sort((first, second) => compareTextPtBr(first.label, second.label)),
+        () =>
+            [...cityOptions].sort((first, second) =>
+                compareTextPtBr(first.label, second.label),
+            ),
         [cityOptions],
     );
 
@@ -542,17 +547,21 @@ function CityAutocompleteField({
                 {isOpen && filteredOptions.length > 0 ? (
                     <div
                         ref={listRef}
-                        className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border shadow-md"
-                        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+                        className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md"
+                        onScroll={(event) =>
+                            setScrollTop(event.currentTarget.scrollTop)
+                        }
                     >
                         <div
                             style={{
-                                height: filteredOptions.length * CITY_ROW_HEIGHT,
+                                height:
+                                    filteredOptions.length * CITY_ROW_HEIGHT,
                                 position: 'relative',
                             }}
                         >
                             {visibleOptions.map((option, index) => {
-                                const absoluteIndex = visibleRange.start + index;
+                                const absoluteIndex =
+                                    visibleRange.start + index;
 
                                 return (
                                     <button
@@ -565,7 +574,8 @@ function CityAutocompleteField({
                                                 : 'hover:bg-muted'
                                         }`}
                                         style={{
-                                            top: absoluteIndex * CITY_ROW_HEIGHT,
+                                            top:
+                                                absoluteIndex * CITY_ROW_HEIGHT,
                                             height: CITY_ROW_HEIGHT,
                                         }}
                                         onMouseEnter={() =>
@@ -654,9 +664,8 @@ export function InterviewForm({
     const [cnhAttachmentFile, setCnhAttachmentFile] = useState<File | null>(
         null,
     );
-    const [workCardAttachmentFile, setWorkCardAttachmentFile] = useState<File | null>(
-        null,
-    );
+    const [workCardAttachmentFile, setWorkCardAttachmentFile] =
+        useState<File | null>(null);
     const startAvailabilitySelectValue =
         formData.start_availability_note === 'ira_retornar'
             ? 'ira_retornar'
@@ -707,18 +716,16 @@ export function InterviewForm({
 
     const hasLinkedCurriculum = hasText(formData.curriculum_id);
 
-    const hasInheritedCurriculumCnh =
-        hasLinkedCurriculum
-            ? (selectedCurriculumOption?.has_cnh_attachment ??
-              initialData?.curriculum?.has_cnh_attachment ??
-              false)
-            : false;
-    const hasInheritedCurriculumWorkCard =
-        hasLinkedCurriculum
-            ? (selectedCurriculumOption?.has_work_card_attachment ??
-              initialData?.curriculum?.has_work_card_attachment ??
-              false)
-            : false;
+    const hasInheritedCurriculumCnh = hasLinkedCurriculum
+        ? (selectedCurriculumOption?.has_cnh_attachment ??
+          initialData?.curriculum?.has_cnh_attachment ??
+          false)
+        : false;
+    const hasInheritedCurriculumWorkCard = hasLinkedCurriculum
+        ? (selectedCurriculumOption?.has_work_card_attachment ??
+          initialData?.curriculum?.has_work_card_attachment ??
+          false)
+        : false;
 
     useEffect(() => {
         if (isHrReproved && formData.guep_status !== 'nao_fazer') {
@@ -808,13 +815,16 @@ export function InterviewForm({
                     formData.live_animals_transport_experience ? '1' : '0',
                 ) &&
                 hasText(formData.accident_history ? '1' : '0') &&
-                (!formData.accident_history || hasText(formData.accident_details)),
+                (!formData.accident_history ||
+                    hasText(formData.accident_details)),
 
             hasText(formData.schedule_availability) &&
                 hasText(formData.knows_company_contact ? '1' : '0') &&
-                (!formData.knows_company_contact || hasText(formData.contact_name)),
+                (!formData.knows_company_contact ||
+                    hasText(formData.contact_name)),
 
-            hasText(formData.last_salary) && hasText(formData.salary_expectation),
+            hasText(formData.last_salary) &&
+                hasText(formData.salary_expectation),
 
             hasText(formData.candidate_interest) &&
                 hasText(formData.availability_matches ? '1' : '0') &&
@@ -989,7 +999,9 @@ export function InterviewForm({
             relevant_experience: formData.relevant_experience.trim() || null,
             truck_types_operated: formData.truck_types_operated.trim() || null,
             last_salary: currencyInputToNumber(formData.last_salary),
-            salary_expectation: currencyInputToNumber(formData.salary_expectation),
+            salary_expectation: currencyInputToNumber(
+                formData.salary_expectation,
+            ),
             salary_observation: formData.salary_observation.trim() || null,
             overall_score:
                 formData.overall_score === ''
@@ -1206,7 +1218,10 @@ export function InterviewForm({
                                 type="date"
                                 value={formData.birth_date}
                                 onChange={(event) =>
-                                    updateField('birth_date', event.target.value)
+                                    updateField(
+                                        'birth_date',
+                                        event.target.value,
+                                    )
                                 }
                             />
                         </FormField>
@@ -1392,16 +1407,20 @@ export function InterviewForm({
                                 onChange={(value) => updateField('ear', value)}
                             />
                         </FormField>
-                        <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
-                            <div className="md:col-span-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                        <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                            <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground md:col-span-2">
                                 <p>
                                     Anexos herdados do currículo vinculado:{' '}
                                     <span className="font-medium text-foreground">
-                                        CNH {hasInheritedCurriculumCnh ? 'OK' : '-'}
+                                        CNH{' '}
+                                        {hasInheritedCurriculumCnh ? 'OK' : '-'}
                                     </span>{' '}
                                     |{' '}
                                     <span className="font-medium text-foreground">
-                                        CT {hasInheritedCurriculumWorkCard ? 'OK' : '-'}
+                                        CT{' '}
+                                        {hasInheritedCurriculumWorkCard
+                                            ? 'OK'
+                                            : '-'}
                                     </span>
                                 </p>
                             </div>
@@ -1410,7 +1429,9 @@ export function InterviewForm({
                                 accept="image/jpeg,image/jpg,image/png,image/webp"
                                 hint="JPG, PNG ou WEBP (max. 5 MB)."
                                 error={errors.candidate_photo_file}
-                                currentName={initialData?.candidate_photo_original_name}
+                                currentName={
+                                    initialData?.candidate_photo_original_name
+                                }
                                 currentUrl={initialData?.candidate_photo_url}
                                 onChange={(file) => {
                                     setCandidatePhotoFile(file);
@@ -1425,7 +1446,9 @@ export function InterviewForm({
                                 accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                                 hint="JPG, PNG, WEBP ou PDF (max. 8 MB)."
                                 error={errors.cnh_attachment_file}
-                                currentName={initialData?.cnh_attachment_original_name}
+                                currentName={
+                                    initialData?.cnh_attachment_original_name
+                                }
                                 currentUrl={initialData?.cnh_attachment_url}
                                 onChange={(file) => {
                                     setCnhAttachmentFile(file);
@@ -1440,8 +1463,12 @@ export function InterviewForm({
                                 accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                                 hint="JPG, PNG, WEBP ou PDF (max. 8 MB)."
                                 error={errors.work_card_attachment_file}
-                                currentName={initialData?.work_card_attachment_original_name}
-                                currentUrl={initialData?.work_card_attachment_url}
+                                currentName={
+                                    initialData?.work_card_attachment_original_name
+                                }
+                                currentUrl={
+                                    initialData?.work_card_attachment_url
+                                }
                                 onChange={(file) => {
                                     setWorkCardAttachmentFile(file);
                                     setErrors((prev) => ({
@@ -1610,7 +1637,9 @@ export function InterviewForm({
                                             error={errors.last_exit_reason}
                                         >
                                             <Input
-                                                value={formData.last_exit_reason}
+                                                value={
+                                                    formData.last_exit_reason
+                                                }
                                                 onChange={(event) =>
                                                     updateField(
                                                         'last_exit_reason',
@@ -1629,7 +1658,9 @@ export function InterviewForm({
                                         >
                                             <Input
                                                 type="date"
-                                                value={formData.last_period_start}
+                                                value={
+                                                    formData.last_period_start
+                                                }
                                                 onChange={(event) =>
                                                     updateField(
                                                         'last_period_start',
@@ -1664,7 +1695,9 @@ export function InterviewForm({
                                     >
                                         <textarea
                                             className={textAreaClassName}
-                                            value={formData.last_company_observation}
+                                            value={
+                                                formData.last_company_observation
+                                            }
                                             onChange={(event) =>
                                                 updateField(
                                                     'last_company_observation',
@@ -1681,7 +1714,9 @@ export function InterviewForm({
                                             <div className="md:col-span-3">
                                                 <FormField
                                                     label="Penúltima empresa"
-                                                    error={errors.previous_company}
+                                                    error={
+                                                        errors.previous_company
+                                                    }
                                                 >
                                                     <Input
                                                         value={
@@ -1736,7 +1771,9 @@ export function InterviewForm({
                                         <div className="grid gap-4 md:grid-cols-6">
                                             <FormField
                                                 label="Tipo da saída"
-                                                error={errors.previous_exit_type}
+                                                error={
+                                                    errors.previous_exit_type
+                                                }
                                             >
                                                 <Select
                                                     value={
@@ -1839,7 +1876,9 @@ export function InterviewForm({
                                                 }
                                             >
                                                 <textarea
-                                                    className={textAreaClassName}
+                                                    className={
+                                                        textAreaClassName
+                                                    }
                                                     value={
                                                         formData.previous_company_observation
                                                     }
@@ -1867,7 +1906,9 @@ export function InterviewForm({
                                                                 value={
                                                                     formData.other_company
                                                                 }
-                                                                onChange={(event) =>
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
                                                                     updateField(
                                                                         'other_company',
                                                                         event
@@ -1881,7 +1922,9 @@ export function InterviewForm({
                                                     <div className="md:col-span-3">
                                                         <CityAutocompleteField
                                                             label="Cidade"
-                                                            error={errors.other_city}
+                                                            error={
+                                                                errors.other_city
+                                                            }
                                                             value={
                                                                 formData.other_city
                                                             }
@@ -1891,19 +1934,25 @@ export function InterviewForm({
                                                                     value,
                                                                 )
                                                             }
-                                                            cityOptions={cityOptions}
+                                                            cityOptions={
+                                                                cityOptions
+                                                            }
                                                         />
                                                     </div>
                                                     <div className="md:col-span-4">
                                                         <FormField
                                                             label="Função"
-                                                            error={errors.other_role}
+                                                            error={
+                                                                errors.other_role
+                                                            }
                                                         >
                                                             <Input
                                                                 value={
                                                                     formData.other_role
                                                                 }
-                                                                onChange={(event) =>
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
                                                                     updateField(
                                                                         'other_role',
                                                                         event
@@ -1927,7 +1976,9 @@ export function InterviewForm({
                                                                 value={
                                                                     formData.other_exit_reason
                                                                 }
-                                                                onChange={(event) =>
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
                                                                     updateField(
                                                                         'other_exit_reason',
                                                                         event
@@ -1952,7 +2003,9 @@ export function InterviewForm({
                                                                 value={
                                                                     formData.other_period_start
                                                                 }
-                                                                onChange={(event) =>
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
                                                                     updateField(
                                                                         'other_period_start',
                                                                         event
@@ -1975,7 +2028,9 @@ export function InterviewForm({
                                                                 value={
                                                                     formData.other_period_end
                                                                 }
-                                                                onChange={(event) =>
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
                                                                     updateField(
                                                                         'other_period_end',
                                                                         event
@@ -2473,7 +2528,9 @@ export function InterviewForm({
                                     Math.min(current + 1, sections.length - 1),
                                 )
                             }
-                            disabled={submitting || !stepRequiredCompletion[step]}
+                            disabled={
+                                submitting || !stepRequiredCompletion[step]
+                            }
                         >
                             Próxima etapa
                         </Button>

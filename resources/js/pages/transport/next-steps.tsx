@@ -363,13 +363,16 @@ export default function TransportNextStepsPage() {
         const matchingFuncao =
             normalizedCargo.length > 0
                 ? funcoesList.find(
-                      (funcao) => normalizeText(funcao.nome) === normalizedCargo,
+                      (funcao) =>
+                          normalizeText(funcao.nome) === normalizedCargo,
                   )
                 : undefined;
 
         const preferredUnidade =
             candidate.hiring_unidade_id &&
-            unidadesList.some((unidade) => unidade.id === candidate.hiring_unidade_id)
+            unidadesList.some(
+                (unidade) => unidade.id === candidate.hiring_unidade_id,
+            )
                 ? String(candidate.hiring_unidade_id)
                 : '';
 
@@ -384,7 +387,10 @@ export default function TransportNextStepsPage() {
             email: candidate.email,
             unidade_id: preferredUnidade,
             funcao_id: matchingFuncao ? String(matchingFuncao.id) : '',
-            data_admissao: (candidate.start_availability_date ?? '').slice(0, 10),
+            data_admissao: (candidate.start_availability_date ?? '').slice(
+                0,
+                10,
+            ),
         };
     }
 
@@ -414,7 +420,10 @@ export default function TransportNextStepsPage() {
         const clientErrors: Record<string, string> = {};
         const nome = formData.nome.trim();
         const cpf = sanitizeDigits(formData.cpf);
-        const rg = formData.rg.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
+        const rg = formData.rg
+            .trim()
+            .toUpperCase()
+            .replace(/[^0-9A-Z]/g, '');
         const cnh = sanitizeDigits(formData.cnh);
         const telefone = sanitizeDigits(formData.telefone);
         const email = formData.email.trim();
@@ -449,23 +458,22 @@ export default function TransportNextStepsPage() {
         setFormErrors({});
 
         try {
-            const created = await apiPost<WrappedResponse<ColaboradorCreateResponse>>(
-                '/registry/colaboradores',
-                {
-                    unidade_id: Number(formData.unidade_id),
-                    funcao_id: Number(formData.funcao_id),
-                    nome,
-                    apelido: normalizeNullable(formData.apelido),
-                    ativo: true,
-                    cpf,
-                    rg: rg || null,
-                    cnh: cnh || null,
-                    validade_cnh: normalizeNullable(formData.validade_cnh),
-                    data_admissao: normalizeNullable(formData.data_admissao),
-                    telefone: telefone || null,
-                    email: email || null,
-                },
-            );
+            const created = await apiPost<
+                WrappedResponse<ColaboradorCreateResponse>
+            >('/registry/colaboradores', {
+                unidade_id: Number(formData.unidade_id),
+                funcao_id: Number(formData.funcao_id),
+                nome,
+                apelido: normalizeNullable(formData.apelido),
+                ativo: true,
+                cpf,
+                rg: rg || null,
+                cnh: cnh || null,
+                validade_cnh: normalizeNullable(formData.validade_cnh),
+                data_admissao: normalizeNullable(formData.data_admissao),
+                telefone: telefone || null,
+                email: email || null,
+            });
 
             const hiringResponse = await apiPatch<HiringStatusResponse>(
                 `/next-steps/${candidateToCreate.id}/hiring-status`,
@@ -483,9 +491,12 @@ export default function TransportNextStepsPage() {
             if (submitError instanceof ApiError) {
                 if (submitError.errors) {
                     const flattenedErrors: Record<string, string> = {};
-                    Object.entries(submitError.errors).forEach(([field, list]) => {
-                        flattenedErrors[field] = list[0] ?? 'Campo inválido.';
-                    });
+                    Object.entries(submitError.errors).forEach(
+                        ([field, list]) => {
+                            flattenedErrors[field] =
+                                list[0] ?? 'Campo inválido.';
+                        },
+                    );
                     setFormErrors((previous) => ({
                         ...previous,
                         ...flattenedErrors,
@@ -612,280 +623,301 @@ export default function TransportNextStepsPage() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
+                        <Dialog
+                            open={formOpen}
+                            onOpenChange={(open) => {
+                                if (formSubmitting) return;
+                                setFormOpen(open);
+                                if (!open) {
+                                    setCandidateToCreate(null);
+                                    setFormData(emptyColaboradorForm);
+                                    setFormErrors({});
+                                    setHiringItemId(null);
+                                }
+                            }}
+                        >
+                            <DialogContent className="sm:max-w-3xl">
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        Cadastrar colaborador contratado
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Dados da entrevista já foram
+                                        pré-preenchidos. Complete apenas o
+                                        necessário para finalizar o cadastro.
+                                    </DialogDescription>
+                                </DialogHeader>
 
-                    <Dialog
-                        open={formOpen}
-                        onOpenChange={(open) => {
-                            if (formSubmitting) return;
-                            setFormOpen(open);
-                            if (!open) {
-                                setCandidateToCreate(null);
-                                setFormData(emptyColaboradorForm);
-                                setFormErrors({});
-                                setHiringItemId(null);
-                            }
-                        }}
-                    >
-                        <DialogContent className="sm:max-w-3xl">
-                            <DialogHeader>
-                                <DialogTitle>Cadastrar colaborador contratado</DialogTitle>
-                                <DialogDescription>
-                                    Dados da entrevista já foram pré-preenchidos. Complete
-                                    apenas o necessário para finalizar o cadastro.
-                                </DialogDescription>
-                            </DialogHeader>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label htmlFor="modal-nome">Nome</Label>
+                                        <Input
+                                            id="modal-nome"
+                                            value={formData.nome}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    nome: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        {formErrors.nome ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.nome}
+                                            </p>
+                                        ) : null}
+                                    </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label htmlFor="modal-nome">Nome</Label>
-                                    <Input
-                                        id="modal-nome"
-                                        value={formData.nome}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                nome: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    {formErrors.nome ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.nome}
-                                        </p>
-                                    ) : null}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-apelido">
+                                            Apelido
+                                        </Label>
+                                        <Input
+                                            id="modal-apelido"
+                                            value={formData.apelido}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    apelido: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-cpf">CPF</Label>
+                                        <Input
+                                            id="modal-cpf"
+                                            value={formData.cpf}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    cpf: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        {formErrors.cpf ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.cpf}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-rg">RG</Label>
+                                        <Input
+                                            id="modal-rg"
+                                            value={formData.rg}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    rg: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        {formErrors.rg ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.rg}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-cnh">CNH</Label>
+                                        <Input
+                                            id="modal-cnh"
+                                            value={formData.cnh}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    cnh: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        {formErrors.cnh ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.cnh}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-validade-cnh">
+                                            Validade CNH
+                                        </Label>
+                                        <Input
+                                            id="modal-validade-cnh"
+                                            type="date"
+                                            value={formData.validade_cnh}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    validade_cnh:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-telefone">
+                                            Telefone
+                                        </Label>
+                                        <Input
+                                            id="modal-telefone"
+                                            value={formData.telefone}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    telefone:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        {formErrors.telefone ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.telefone}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-email">
+                                            E-mail
+                                        </Label>
+                                        <Input
+                                            id="modal-email"
+                                            value={formData.email}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    email: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Unidade</Label>
+                                        <Select
+                                            value={formData.unidade_id}
+                                            onValueChange={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    unidade_id: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {unidades.map((unidade) => (
+                                                    <SelectItem
+                                                        key={unidade.id}
+                                                        value={String(
+                                                            unidade.id,
+                                                        )}
+                                                    >
+                                                        {unidade.nome}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {formErrors.unidade_id ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.unidade_id}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Função</Label>
+                                        <Select
+                                            value={formData.funcao_id}
+                                            onValueChange={(value) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    funcao_id: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {funcoes.map((funcao) => (
+                                                    <SelectItem
+                                                        key={funcao.id}
+                                                        value={String(
+                                                            funcao.id,
+                                                        )}
+                                                    >
+                                                        {funcao.nome}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {formErrors.funcao_id ? (
+                                            <p className="text-xs text-destructive">
+                                                {formErrors.funcao_id}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="modal-admissao">
+                                            Data de admissão
+                                        </Label>
+                                        <Input
+                                            id="modal-admissao"
+                                            type="date"
+                                            value={formData.data_admissao}
+                                            onChange={(event) =>
+                                                setFormData((previous) => ({
+                                                    ...previous,
+                                                    data_admissao:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-apelido">Apelido</Label>
-                                    <Input
-                                        id="modal-apelido"
-                                        value={formData.apelido}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                apelido: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-cpf">CPF</Label>
-                                    <Input
-                                        id="modal-cpf"
-                                        value={formData.cpf}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                cpf: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    {formErrors.cpf ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.cpf}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-rg">RG</Label>
-                                    <Input
-                                        id="modal-rg"
-                                        value={formData.rg}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                rg: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    {formErrors.rg ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.rg}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-cnh">CNH</Label>
-                                    <Input
-                                        id="modal-cnh"
-                                        value={formData.cnh}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                cnh: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    {formErrors.cnh ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.cnh}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-validade-cnh">Validade CNH</Label>
-                                    <Input
-                                        id="modal-validade-cnh"
-                                        type="date"
-                                        value={formData.validade_cnh}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                validade_cnh: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-telefone">Telefone</Label>
-                                    <Input
-                                        id="modal-telefone"
-                                        value={formData.telefone}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                telefone: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                    {formErrors.telefone ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.telefone}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-email">E-mail</Label>
-                                    <Input
-                                        id="modal-email"
-                                        value={formData.email}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                email: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Unidade</Label>
-                                    <Select
-                                        value={formData.unidade_id}
-                                        onValueChange={(value) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                unidade_id: value,
-                                            }))
-                                        }
+                                <DialogFooter>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setFormOpen(false);
+                                            setCandidateToCreate(null);
+                                            setFormData(emptyColaboradorForm);
+                                            setFormErrors({});
+                                            setHiringItemId(null);
+                                        }}
+                                        disabled={formSubmitting}
                                     >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {unidades.map((unidade) => (
-                                                <SelectItem
-                                                    key={unidade.id}
-                                                    value={String(unidade.id)}
-                                                >
-                                                    {unidade.nome}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {formErrors.unidade_id ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.unidade_id}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Função</Label>
-                                    <Select
-                                        value={formData.funcao_id}
-                                        onValueChange={(value) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                funcao_id: value,
-                                            }))
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            void submitCollaboratorFromInterview()
                                         }
+                                        disabled={formSubmitting}
                                     >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {funcoes.map((funcao) => (
-                                                <SelectItem
-                                                    key={funcao.id}
-                                                    value={String(funcao.id)}
-                                                >
-                                                    {funcao.nome}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {formErrors.funcao_id ? (
-                                        <p className="text-xs text-destructive">
-                                            {formErrors.funcao_id}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="modal-admissao">Data de admissão</Label>
-                                    <Input
-                                        id="modal-admissao"
-                                        type="date"
-                                        value={formData.data_admissao}
-                                        onChange={(event) =>
-                                            setFormData((previous) => ({
-                                                ...previous,
-                                                data_admissao: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                            </div>
-
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setFormOpen(false);
-                                        setCandidateToCreate(null);
-                                        setFormData(emptyColaboradorForm);
-                                        setFormErrors({});
-                                        setHiringItemId(null);
-                                    }}
-                                    disabled={formSubmitting}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={() => void submitCollaboratorFromInterview()}
-                                    disabled={formSubmitting}
-                                >
-                                    {formSubmitting ? (
-                                        <>
-                                            <LoaderCircle className="size-4 animate-spin" />
-                                            Salvando...
-                                        </>
-                                    ) : (
-                                        'Salvar colaborador'
-                                    )}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                                        {formSubmitting ? (
+                                            <>
+                                                <LoaderCircle className="size-4 animate-spin" />
+                                                Salvando...
+                                            </>
+                                        ) : (
+                                            'Salvar colaborador'
+                                        )}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                         <h2 className="text-2xl font-semibold">
                             Próximos Passos
                         </h2>

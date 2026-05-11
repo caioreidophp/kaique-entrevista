@@ -132,7 +132,11 @@ function normalizeApiErrorMessage(message?: string): string {
     return normalized;
 }
 
-function contextualizeErrorMessage(path: string, method: string, message: string): string {
+function contextualizeErrorMessage(
+    path: string,
+    method: string,
+    message: string,
+): string {
     const lowerPath = path.toLowerCase();
 
     if (lowerPath.includes('/import') && method !== 'GET') {
@@ -213,7 +217,10 @@ async function request<T>(
             if (!token) {
                 clearStoredUser();
                 redirectToLogin();
-                throw new ApiError(401, 'Sessão expirada. Faça login novamente.');
+                throw new ApiError(
+                    401,
+                    'Sessão expirada. Faça login novamente.',
+                );
             }
 
             headers.Authorization = `Bearer ${token}`;
@@ -247,7 +254,9 @@ async function request<T>(
                     break;
                 }
 
-                const backoffMs = Math.min(2_000, 250 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 120);
+                const backoffMs =
+                    Math.min(2_000, 250 * 2 ** (attempt - 1)) +
+                    Math.floor(Math.random() * 120);
                 await delay(backoffMs);
             } catch (error) {
                 let fallback = new ApiError(
@@ -255,7 +264,10 @@ async function request<T>(
                     'Falha inesperada na comunicação com o servidor.',
                 );
 
-                if (error instanceof DOMException && error.name === 'AbortError') {
+                if (
+                    error instanceof DOMException &&
+                    error.name === 'AbortError'
+                ) {
                     fallback = new ApiError(
                         408,
                         'A requisição demorou mais do que o esperado. Tente novamente.',
@@ -280,7 +292,9 @@ async function request<T>(
                     throw fallback;
                 }
 
-                const backoffMs = Math.min(2_000, 250 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 120);
+                const backoffMs =
+                    Math.min(2_000, 250 * 2 ** (attempt - 1)) +
+                    Math.floor(Math.random() * 120);
                 await delay(backoffMs);
             } finally {
                 window.clearTimeout(timeoutId);
@@ -288,7 +302,13 @@ async function request<T>(
         }
 
         if (!response) {
-            throw (lastError ?? new ApiError(500, 'Falha inesperada na comunicação com o servidor.'));
+            throw (
+                lastError ??
+                new ApiError(
+                    500,
+                    'Falha inesperada na comunicação com o servidor.',
+                )
+            );
         }
 
         if (response.status === 401) {
@@ -302,10 +322,12 @@ async function request<T>(
             return undefined as T;
         }
 
-        let json: ({
-            message?: string;
-            errors?: ApiValidationErrors;
-        } & T) | null = null;
+        let json:
+            | ({
+                  message?: string;
+                  errors?: ApiValidationErrors;
+              } & T)
+            | null = null;
 
         try {
             json = (await response.json()) as {
@@ -362,7 +384,10 @@ export function apiGet<T>(path: string, auth = true): Promise<T> {
     return request<T>(path, { method: 'GET', auth });
 }
 
-export function apiGetWithConfig<T>(path: string, config: Omit<RequestConfig, 'method' | 'body'> = {}): Promise<T> {
+export function apiGetWithConfig<T>(
+    path: string,
+    config: Omit<RequestConfig, 'method' | 'body'> = {},
+): Promise<T> {
     return request<T>(path, { ...config, method: 'GET' });
 }
 
@@ -386,7 +411,10 @@ export function apiDelete(path: string): Promise<void> {
     return request<void>(path, { method: 'DELETE', auth: true });
 }
 
-export async function apiDownload(path: string, fallbackFileName: string): Promise<void> {
+export async function apiDownload(
+    path: string,
+    fallbackFileName: string,
+): Promise<void> {
     const token = getAuthToken();
 
     if (!token) {
@@ -396,7 +424,10 @@ export async function apiDownload(path: string, fallbackFileName: string): Promi
     }
 
     const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), DOWNLOAD_TIMEOUT_MS);
+    const timeoutId = window.setTimeout(
+        () => abortController.abort(),
+        DOWNLOAD_TIMEOUT_MS,
+    );
 
     let response: Response;
 
@@ -411,7 +442,10 @@ export async function apiDownload(path: string, fallbackFileName: string): Promi
         });
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-            throw new ApiError(408, 'Download demorou além do esperado. Tente novamente.');
+            throw new ApiError(
+                408,
+                'Download demorou além do esperado. Tente novamente.',
+            );
         }
 
         throw new ApiError(0, 'Falha de conexão durante download.');
@@ -444,7 +478,8 @@ export async function apiDownload(path: string, fallbackFileName: string): Promi
     }
 
     const blob = await response.blob();
-    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const contentDisposition =
+        response.headers.get('content-disposition') ?? '';
     const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
     const fileName = match?.[1] ?? fallbackFileName;
 
