@@ -10,6 +10,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { DashboardSummary } from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
 import { formatDateTimeBR, formatPercentBR } from '@/lib/transport-format';
-import type { DashboardSummary } from '@/types/driver-interview';
 
 type FunnelStep = {
     key: string;

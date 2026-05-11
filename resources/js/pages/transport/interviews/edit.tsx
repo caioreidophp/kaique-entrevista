@@ -1,6 +1,11 @@
 import { router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterview,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { InterviewForm } from '@/components/transport/interview-form';
 import { Notification } from '@/components/transport/notification';
@@ -10,11 +15,6 @@ import {
     syncInterviewAttachments,
 } from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
-import type {
-    ApiPaginatedResponse,
-    DriverInterview,
-    InterviewCurriculumListItem,
-} from '@/types/driver-interview';
 
 interface EditPageProps {
     interviewId: number;

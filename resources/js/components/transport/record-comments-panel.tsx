@@ -1,17 +1,17 @@
 import { LoaderCircle, MessageSquareText, Send, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Notification } from '@/components/transport/notification';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiError, apiDelete, apiGet, apiPost } from '@/lib/api-client';
-import { getStoredUser } from '@/lib/transport-session';
 import type {
     RecordCommentEntry,
     RecordCommentListResponse,
     RecordCommentModuleKey,
     RecordCommentStoreResponse,
 } from '@/types/record-comments';
+import { Notification } from '@/components/transport/notification';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ApiError, apiDelete, apiGet, apiPost } from '@/lib/api-client';
+import { getStoredUser } from '@/lib/transport-session';
 
 interface RecordCommentsPanelProps {
     moduleKey: RecordCommentModuleKey;

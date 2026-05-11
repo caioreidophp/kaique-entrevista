@@ -1,5 +1,12 @@
 import { LoaderCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+    FreightExecutionMetrics,
+    FreightMonthlyResponse,
+    FreightOperationalReportResponse,
+    FreightTimelineResponse,
+    FreightUnit,
+} from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -18,13 +25,6 @@ import {
     formatDateBR,
     formatIntegerBR,
 } from '@/lib/transport-format';
-import type {
-    FreightExecutionMetrics,
-    FreightMonthlyResponse,
-    FreightOperationalReportResponse,
-    FreightTimelineResponse,
-    FreightUnit,
-} from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;

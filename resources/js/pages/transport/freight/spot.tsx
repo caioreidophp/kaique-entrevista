@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { FreightSpotEntry, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,6 @@ import {
     moneyMaskBR,
     toNumberSafe,
 } from '@/lib/transport-format';
-import type { FreightSpotEntry, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;

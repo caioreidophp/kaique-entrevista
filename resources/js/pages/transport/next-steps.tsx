@@ -7,6 +7,10 @@ import {
     SquareArrowOutUpRight,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    NextStepCandidate,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
@@ -32,10 +36,6 @@ import {
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiGet, ApiError, apiPatch, apiPost } from '@/lib/api-client';
 import { getAuthToken } from '@/lib/transport-auth';
-import type {
-    ApiPaginatedResponse,
-    NextStepCandidate,
-} from '@/types/driver-interview';
 
 interface ColaboradorLookupResponse {
     data: Array<{ id: number }>;

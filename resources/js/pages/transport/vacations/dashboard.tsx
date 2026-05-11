@@ -5,7 +5,7 @@ import {
     Clock3,
     LoaderCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -319,7 +319,7 @@ export default function VacationsDashboardPage() {
     const [reportStartDate, setReportStartDate] = useState(monthStart);
     const [reportEndDate, setReportEndDate] = useState(monthEnd);
 
-    function buildDashboardPath(): string {
+    const buildDashboardPath = useCallback((): string => {
         const params = new URLSearchParams();
 
         if (selectedUnit !== 'all') {
@@ -331,9 +331,9 @@ export default function VacationsDashboardPage() {
         return suffix
             ? `/payroll/vacations/dashboard?${suffix}`
             : '/payroll/vacations/dashboard';
-    }
+    }, [selectedUnit]);
 
-    function loadDashboard(): Promise<void> {
+    const loadDashboard = useCallback((): Promise<void> => {
         setLoadingDashboard(true);
 
         return apiGet<WrappedResponse<VacationDashboard>>(buildDashboardPath())
@@ -345,17 +345,17 @@ export default function VacationsDashboardPage() {
                 });
             })
             .finally(() => setLoadingDashboard(false));
-    }
+    }, [buildDashboardPath]);
 
     useEffect(() => {
-        void loadDashboard();
-    }, [selectedUnit]);
+        void Promise.resolve().then(loadDashboard);
+    }, [loadDashboard]);
 
-    useEffect(() => {
+    const fetchReports = useCallback((startDate: string, endDate: string) => {
         setLoadingReports(true);
 
-        apiGet<WrappedResponse<VacationReports>>(
-            `/payroll/vacations/reports?start_date=${reportStartDate}&end_date=${reportEndDate}`,
+        return apiGet<WrappedResponse<VacationReports>>(
+            `/payroll/vacations/reports?start_date=${startDate}&end_date=${endDate}`,
         )
             .then((response) => setReports(response.data))
             .catch(() =>
@@ -367,6 +367,12 @@ export default function VacationsDashboardPage() {
             )
             .finally(() => setLoadingReports(false));
     }, []);
+
+    useEffect(() => {
+        void Promise.resolve().then(() =>
+            fetchReports(reportStartDate, reportEndDate),
+        );
+    }, [fetchReports, reportEndDate, reportStartDate]);
 
     const timelineGraph = useMemo(() => {
         if (!data?.timeline?.length) {
@@ -512,19 +518,7 @@ export default function VacationsDashboardPage() {
             return;
         }
 
-        setLoadingReports(true);
-        apiGet<WrappedResponse<VacationReports>>(
-            `/payroll/vacations/reports?start_date=${reportStartDate}&end_date=${reportEndDate}`,
-        )
-            .then((response) => setReports(response.data))
-            .catch(() =>
-                setNotification({
-                    message:
-                        'Não foi possível carregar os relatórios por período.',
-                    variant: 'error',
-                }),
-            )
-            .finally(() => setLoadingReports(false));
+        void fetchReports(reportStartDate, reportEndDate);
     }
 
     function openTimelineEdit(

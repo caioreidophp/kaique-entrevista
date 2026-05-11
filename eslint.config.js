@@ -45,7 +45,15 @@ export default [
             'import/order': [
                 'error',
                 {
-                    groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+                    groups: [
+                        'builtin',
+                        'external',
+                        'type',
+                        'parent',
+                        'sibling',
+                        'index',
+                        'internal',
+                    ],
                     alphabetize: {
                         order: 'asc',
                         caseInsensitive: true,

@@ -1,6 +1,10 @@
 import { LoaderCircle, Save } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IMaskInput } from 'react-imask';
+import type {
+    DriverInterview,
+    DriverInterviewFormData,
+} from '@/types/driver-interview';
 import { FormStepper } from '@/components/transport/form-stepper';
 import { Notification } from '@/components/transport/notification';
 import { ObservationsWidget } from '@/components/transport/observations-widget';
@@ -17,10 +21,6 @@ import {
 } from '@/components/ui/select';
 import { ApiError } from '@/lib/api-client';
 import { compareTextPtBr, includesTextPtBr } from '@/lib/transport-text';
-import type {
-    DriverInterview,
-    DriverInterviewFormData,
-} from '@/types/driver-interview';
 
 interface InterviewFormProps {
     mode: 'create' | 'edit';

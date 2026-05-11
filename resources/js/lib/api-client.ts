@@ -1,10 +1,10 @@
+import type { ApiValidationErrors } from '@/types/driver-interview';
 import {
     clearAuthToken,
     getAuthToken,
     redirectToLogin,
 } from '@/lib/transport-auth';
 import { clearStoredUser } from '@/lib/transport-session';
-import type { ApiValidationErrors } from '@/types/driver-interview';
 
 const API_BASE = '/api';
 

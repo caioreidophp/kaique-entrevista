@@ -1,5 +1,6 @@
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { FreightOperationalReportResponse } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR } from '@/lib/transport-format';
-import type { FreightOperationalReportResponse } from '@/types/freight';
 
 export default function TransportFreightOperationalReportPage() {
     const currentYear = new Date().getFullYear();

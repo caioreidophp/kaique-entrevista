@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,6 @@ import {
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR, formatIntegerBR } from '@/lib/transport-format';
-import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;

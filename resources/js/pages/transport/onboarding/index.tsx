@@ -8,6 +8,11 @@ import {
     WandSparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    OnboardingItem,
+    OnboardingRecord,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
@@ -25,11 +30,6 @@ import {
 } from '@/components/ui/select';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ApiError, apiGet, apiPatch, apiPost } from '@/lib/api-client';
-import type {
-    ApiPaginatedResponse,
-    OnboardingItem,
-    OnboardingRecord,
-} from '@/types/driver-interview';
 
 type ExamStatus = '' | 'a_agendar' | 'agendado' | 'realizado' | 'ok';
 type YesNo = '' | 'sim' | 'nao';

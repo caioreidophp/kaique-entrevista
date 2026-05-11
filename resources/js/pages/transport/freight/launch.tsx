@@ -7,6 +7,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import type { FreightEntry, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,6 @@ import {
     toNumberSafe,
 } from '@/lib/transport-format';
 import { compareTextPtBr, startsWithTextPtBr } from '@/lib/transport-text';
-import type { FreightEntry, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;

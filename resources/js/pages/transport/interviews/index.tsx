@@ -1,6 +1,13 @@
 import { Link } from '@inertiajs/react';
 import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterviewListItem,
+    GuepStatus,
+    HrStatus,
+    InterviewCurriculumStatus,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
@@ -30,13 +37,6 @@ import { usePersistedState } from '@/hooks/use-persisted-state';
 import { ApiError, apiDelete, apiGet, apiPatch } from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
 import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
-import type {
-    ApiPaginatedResponse,
-    DriverInterviewListItem,
-    GuepStatus,
-    HrStatus,
-    InterviewCurriculumStatus,
-} from '@/types/driver-interview';
 
 function hrStatusLabel(status: HrStatus): string {
     if (status === 'aprovado') return 'Aprovado';

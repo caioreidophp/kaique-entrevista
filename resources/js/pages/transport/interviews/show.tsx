@@ -1,6 +1,12 @@
 import { Link } from '@inertiajs/react';
 import { Download, LoaderCircle, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    DriverInterview,
+    GuepStatus,
+    HrStatus,
+    InterviewCurriculumStatus,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
@@ -9,12 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
 import { getAuthToken } from '@/lib/transport-auth';
-import type {
-    DriverInterview,
-    GuepStatus,
-    HrStatus,
-    InterviewCurriculumStatus,
-} from '@/types/driver-interview';
 
 interface ShowPageProps {
     interviewId: number;

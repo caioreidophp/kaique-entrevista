@@ -7,6 +7,11 @@ import {
     Table2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type {
+    FreightDashboardResponse,
+    FreightEntry,
+    FreightUnit,
+} from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -27,11 +32,6 @@ import {
     formatIntegerBR,
     formatPercentBR,
 } from '@/lib/transport-format';
-import type {
-    FreightDashboardResponse,
-    FreightEntry,
-    FreightUnit,
-} from '@/types/freight';
 
 interface FreightEntryPaginatedResponse {
     data: FreightEntry[];

@@ -1,5 +1,10 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterviewFormData,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import {
     hasMeaningfulInterviewDraftData,
@@ -22,11 +27,6 @@ import {
 } from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
 import { formatDateTimeBR } from '@/lib/transport-format';
-import type {
-    ApiPaginatedResponse,
-    DriverInterviewFormData,
-    InterviewCurriculumListItem,
-} from '@/types/driver-interview';
 
 const INTERVIEW_DRAFT_STORAGE_KEY = 'transport:interview:create-draft:v1';
 

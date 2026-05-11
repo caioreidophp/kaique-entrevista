@@ -37,6 +37,11 @@ import {
     useRef,
     useState,
 } from 'react';
+import type {
+    TransportGlobalSearchResponse,
+    UserQuickAccessEntry,
+    UserQuickAccessListResponse,
+} from '@/types/record-comments';
 import { Logo } from '@/components/logo';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -70,11 +75,6 @@ import {
     getStoredUser,
     type TransportAuthUser,
 } from '@/lib/transport-session';
-import type {
-    TransportGlobalSearchResponse,
-    UserQuickAccessEntry,
-    UserQuickAccessListResponse,
-} from '@/types/record-comments';
 
 const BobChatButton = lazy(async () => {
     const module = await import('@/components/transport/bob-chat');

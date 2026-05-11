@@ -8,8 +8,14 @@ import {
     Trash2,
     XCircle,
 } from 'lucide-react';
-import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    InterviewCandidateListGroup,
+    InterviewCurriculumListItem,
+    InterviewCurriculumStatus,
+} from '@/types/driver-interview';
+import type { FormEvent } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
@@ -41,12 +47,6 @@ import {
     apiPut,
 } from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
-import type {
-    ApiPaginatedResponse,
-    InterviewCandidateListGroup,
-    InterviewCurriculumListItem,
-    InterviewCurriculumStatus,
-} from '@/types/driver-interview';
 
 type TabKey = 'pendentes' | 'passados' | 'lista-candidatos';
 
