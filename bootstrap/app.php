@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        App\Console\Commands\DatabaseAuditCommand::class,
+        App\Console\Commands\CompareSqliteMysqlCommand::class,
+        App\Console\Commands\MigrateSqliteToMysqlCommand::class,
+        App\Console\Commands\AuditMysqlUniqueCollisionsCommand::class,
+        App\Console\Commands\FixAviariosDuplicatesCommand::class,
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);
 
