@@ -177,16 +177,24 @@ export default function TransportPayrollAdjustmentsPage() {
     const [emprestimoOpen, setEmprestimoOpen] = useState(false);
     const [pensaoOpen, setPensaoOpen] = useState(false);
 
-    const [editingDesconto, setEditingDesconto] = useState<Desconto | null>(null);
-    const [editingEmprestimo, setEditingEmprestimo] = useState<Emprestimo | null>(null);
+    const [editingDesconto, setEditingDesconto] = useState<Desconto | null>(
+        null,
+    );
+    const [editingEmprestimo, setEditingEmprestimo] =
+        useState<Emprestimo | null>(null);
     const [editingPensao, setEditingPensao] = useState<Pensao | null>(null);
 
-    const [descontoForm, setDescontoForm] = useState<DescontoForm>(emptyDesconto);
-    const [emprestimoForm, setEmprestimoForm] = useState<EmprestimoForm>(emptyEmprestimo);
+    const [descontoForm, setDescontoForm] =
+        useState<DescontoForm>(emptyDesconto);
+    const [emprestimoForm, setEmprestimoForm] =
+        useState<EmprestimoForm>(emptyEmprestimo);
     const [pensaoForm, setPensaoForm] = useState<PensaoForm>(emptyPensao);
-    const [descontoCollaboratorSearch, setDescontoCollaboratorSearch] = useState('');
-    const [emprestimoCollaboratorSearch, setEmprestimoCollaboratorSearch] = useState('');
-    const [pensaoCollaboratorSearch, setPensaoCollaboratorSearch] = useState('');
+    const [descontoCollaboratorSearch, setDescontoCollaboratorSearch] =
+        useState('');
+    const [emprestimoCollaboratorSearch, setEmprestimoCollaboratorSearch] =
+        useState('');
+    const [pensaoCollaboratorSearch, setPensaoCollaboratorSearch] =
+        useState('');
     const finePrefillAppliedRef = useRef(false);
 
     const fineDiscountPrefill = useMemo(() => {
@@ -211,12 +219,15 @@ export default function TransportPayrollAdjustmentsPage() {
         return {
             colaboradorId,
             valor,
-            dataReferencia: dataReferencia || new Date().toISOString().slice(0, 10),
+            dataReferencia:
+                dataReferencia || new Date().toISOString().slice(0, 10),
         };
     }, []);
 
     const collaboratorMap = useMemo(() => {
-        return new Map(colaboradores.map((item) => [String(item.id), item.nome]));
+        return new Map(
+            colaboradores.map((item) => [String(item.id), item.nome]),
+        );
     }, [colaboradores]);
 
     const sortedColaboradores = useMemo(() => {
@@ -230,7 +241,9 @@ export default function TransportPayrollAdjustmentsPage() {
 
         if (!term) return sortedColaboradores;
 
-        return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
+        return sortedColaboradores.filter((item) =>
+            item.nome.toLowerCase().includes(term),
+        );
     }, [pensaoCollaboratorSearch, sortedColaboradores]);
 
     const filteredDescontoCollaborators = useMemo(() => {
@@ -238,7 +251,9 @@ export default function TransportPayrollAdjustmentsPage() {
 
         if (!term) return sortedColaboradores;
 
-        return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
+        return sortedColaboradores.filter((item) =>
+            item.nome.toLowerCase().includes(term),
+        );
     }, [descontoCollaboratorSearch, sortedColaboradores]);
 
     const filteredEmprestimoCollaborators = useMemo(() => {
@@ -246,7 +261,9 @@ export default function TransportPayrollAdjustmentsPage() {
 
         if (!term) return sortedColaboradores;
 
-        return sortedColaboradores.filter((item) => item.nome.toLowerCase().includes(term));
+        return sortedColaboradores.filter((item) =>
+            item.nome.toLowerCase().includes(term),
+        );
     }, [emprestimoCollaboratorSearch, sortedColaboradores]);
 
     async function load(): Promise<void> {
@@ -255,7 +272,9 @@ export default function TransportPayrollAdjustmentsPage() {
 
         try {
             const [c, d, e, p] = await Promise.all([
-                apiGet<PaginatedResponse<Colaborador>>('/registry/colaboradores?active=1&per_page=400'),
+                apiGet<PaginatedResponse<Colaborador>>(
+                    '/registry/colaboradores?active=1&per_page=400',
+                ),
                 apiGet<WrappedResponse<Desconto[]>>('/payroll/descontos'),
                 apiGet<WrappedResponse<Emprestimo[]>>('/payroll/emprestimos'),
                 apiGet<WrappedResponse<Pensao[]>>('/payroll/pensoes?ativo=1'),
@@ -267,7 +286,8 @@ export default function TransportPayrollAdjustmentsPage() {
             setPensoes(p.data);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar descontos, empréstimos e pensões.',
+                message:
+                    'Não foi possível carregar descontos, empréstimos e pensões.',
                 variant: 'error',
             });
         } finally {
@@ -304,7 +324,8 @@ export default function TransportPayrollAdjustmentsPage() {
         setDescontoCollaboratorSearch(colaborador.nome);
         setDescontoOpen(true);
         setNotification({
-            message: 'Desconto pré-preenchido a partir da multa. Revise os dados e preencha a descrição antes de salvar.',
+            message:
+                'Desconto pré-preenchido a partir da multa. Revise os dados e preencha a descrição antes de salvar.',
             variant: 'info',
         });
 
@@ -323,15 +344,22 @@ export default function TransportPayrollAdjustmentsPage() {
     }
 
     function openEditDesconto(item: Desconto): void {
-        const fallbackPriorities = item.tipo_saida === 'direto'
-            ? ['salario', 'beneficios', 'extras'] as const
-            : [item.tipo_saida].filter((value): value is 'extras' | 'salario' | 'beneficios' =>
-                value === 'extras' || value === 'salario' || value === 'beneficios',
-            );
+        const fallbackPriorities =
+            item.tipo_saida === 'direto'
+                ? (['salario', 'beneficios', 'extras'] as const)
+                : [item.tipo_saida].filter(
+                      (value): value is 'extras' | 'salario' | 'beneficios' =>
+                          value === 'extras' ||
+                          value === 'salario' ||
+                          value === 'beneficios',
+                  );
 
-        const priorities = (item.tipo_saida_prioridades && item.tipo_saida_prioridades.length > 0
-            ? item.tipo_saida_prioridades
-            : fallbackPriorities) as Array<'extras' | 'salario' | 'beneficios'>;
+        const priorities = (
+            item.tipo_saida_prioridades &&
+            item.tipo_saida_prioridades.length > 0
+                ? item.tipo_saida_prioridades
+                : fallbackPriorities
+        ) as Array<'extras' | 'salario' | 'beneficios'>;
 
         setEditingDesconto(item);
         setDescontoForm({
@@ -346,7 +374,11 @@ export default function TransportPayrollAdjustmentsPage() {
             parcela_atual: String(item.parcela_atual ?? 1),
             data_referencia: item.data_referencia?.slice(0, 10) ?? '',
         });
-        setDescontoCollaboratorSearch(item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '');
+        setDescontoCollaboratorSearch(
+            item.colaborador?.nome ??
+                collaboratorMap.get(String(item.colaborador_id)) ??
+                '',
+        );
         setDescontoOpen(true);
     }
 
@@ -369,7 +401,11 @@ export default function TransportPayrollAdjustmentsPage() {
             data_inicio: item.data_inicio.slice(0, 10),
             ativo: item.ativo,
         });
-        setEmprestimoCollaboratorSearch(item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '');
+        setEmprestimoCollaboratorSearch(
+            item.colaborador?.nome ??
+                collaboratorMap.get(String(item.colaborador_id)) ??
+                '',
+        );
         setEmprestimoOpen(true);
     }
 
@@ -396,11 +432,17 @@ export default function TransportPayrollAdjustmentsPage() {
             observacao: item.observacao ?? '',
             ativo: item.ativo,
         });
-        setPensaoCollaboratorSearch(item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '');
+        setPensaoCollaboratorSearch(
+            item.colaborador?.nome ??
+                collaboratorMap.get(String(item.colaborador_id)) ??
+                '',
+        );
         setPensaoOpen(true);
     }
 
-    async function saveDesconto(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function saveDesconto(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -409,7 +451,10 @@ export default function TransportPayrollAdjustmentsPage() {
             descontoForm.prioridade_1,
             descontoForm.prioridade_2,
             descontoForm.prioridade_3,
-        ].filter((value): value is 'extras' | 'salario' | 'beneficios' => value !== 'none');
+        ].filter(
+            (value): value is 'extras' | 'salario' | 'beneficios' =>
+                value !== 'none',
+        );
 
         const uniquePriorities = Array.from(new Set(priorities));
 
@@ -421,14 +466,21 @@ export default function TransportPayrollAdjustmentsPage() {
             forma_pagamento: 'desconto_folha',
             valor: descontoForm.valor,
             parcelado: descontoForm.parcelado,
-            total_parcelas: descontoForm.parcelado ? Number(descontoForm.total_parcelas) : null,
-            parcela_atual: descontoForm.parcelado ? Number(descontoForm.parcela_atual) : null,
+            total_parcelas: descontoForm.parcelado
+                ? Number(descontoForm.total_parcelas)
+                : null,
+            parcela_atual: descontoForm.parcelado
+                ? Number(descontoForm.parcela_atual)
+                : null,
             data_referencia: descontoForm.data_referencia || null,
         };
 
         try {
             if (editingDesconto) {
-                await apiPut(`/payroll/descontos/${editingDesconto.id}`, payload);
+                await apiPut(
+                    `/payroll/descontos/${editingDesconto.id}`,
+                    payload,
+                );
             } else {
                 await apiPost('/payroll/descontos', payload);
             }
@@ -437,23 +489,35 @@ export default function TransportPayrollAdjustmentsPage() {
             setEditingDesconto(null);
             setDescontoForm(emptyDesconto);
             setNotification({
-                message: editingDesconto ? 'Desconto atualizado com sucesso.' : 'Desconto cadastrado com sucesso.',
+                message: editingDesconto
+                    ? 'Desconto atualizado com sucesso.'
+                    : 'Desconto cadastrado com sucesso.',
                 variant: 'success',
             });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar o desconto.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar o desconto.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function saveEmprestimo(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function saveEmprestimo(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -471,7 +535,10 @@ export default function TransportPayrollAdjustmentsPage() {
 
         try {
             if (editingEmprestimo) {
-                await apiPut(`/payroll/emprestimos/${editingEmprestimo.id}`, payload);
+                await apiPut(
+                    `/payroll/emprestimos/${editingEmprestimo.id}`,
+                    payload,
+                );
             } else {
                 await apiPost('/payroll/emprestimos', payload);
             }
@@ -480,23 +547,35 @@ export default function TransportPayrollAdjustmentsPage() {
             setEditingEmprestimo(null);
             setEmprestimoForm(emptyEmprestimo);
             setNotification({
-                message: editingEmprestimo ? 'Empréstimo atualizado com sucesso.' : 'Empréstimo cadastrado com sucesso.',
+                message: editingEmprestimo
+                    ? 'Empréstimo atualizado com sucesso.'
+                    : 'Empréstimo cadastrado com sucesso.',
                 variant: 'success',
             });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar o empréstimo.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar o empréstimo.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
         }
     }
 
-    async function savePensao(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function savePensao(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -527,16 +606,26 @@ export default function TransportPayrollAdjustmentsPage() {
             setEditingPensao(null);
             setPensaoForm(emptyPensao);
             setNotification({
-                message: editingPensao ? 'Pensão atualizada com sucesso.' : 'Pensão cadastrada com sucesso.',
+                message: editingPensao
+                    ? 'Pensão atualizada com sucesso.'
+                    : 'Pensão cadastrada com sucesso.',
                 variant: 'success',
             });
             await load();
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
-                setNotification({ message: firstError ?? error.message, variant: 'error' });
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
+                setNotification({
+                    message: firstError ?? error.message,
+                    variant: 'error',
+                });
             } else {
-                setNotification({ message: 'Não foi possível salvar a pensão.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível salvar a pensão.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
@@ -547,10 +636,16 @@ export default function TransportPayrollAdjustmentsPage() {
         setDeletingId(id);
         try {
             await apiDelete(`/payroll/descontos/${id}`);
-            setNotification({ message: 'Desconto excluído com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Desconto excluído com sucesso.',
+                variant: 'success',
+            });
             await load();
         } catch {
-            setNotification({ message: 'Não foi possível excluir o desconto.', variant: 'error' });
+            setNotification({
+                message: 'Não foi possível excluir o desconto.',
+                variant: 'error',
+            });
         } finally {
             setDeletingId(null);
         }
@@ -560,10 +655,16 @@ export default function TransportPayrollAdjustmentsPage() {
         setDeletingId(id);
         try {
             await apiDelete(`/payroll/emprestimos/${id}`);
-            setNotification({ message: 'Empréstimo excluído com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Empréstimo excluído com sucesso.',
+                variant: 'success',
+            });
             await load();
         } catch {
-            setNotification({ message: 'Não foi possível excluir o empréstimo.', variant: 'error' });
+            setNotification({
+                message: 'Não foi possível excluir o empréstimo.',
+                variant: 'error',
+            });
         } finally {
             setDeletingId(null);
         }
@@ -573,32 +674,54 @@ export default function TransportPayrollAdjustmentsPage() {
         setDeletingId(id);
         try {
             await apiDelete(`/payroll/pensoes/${id}`);
-            setNotification({ message: 'Pensão excluída com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Pensão excluída com sucesso.',
+                variant: 'success',
+            });
             await load();
         } catch {
-            setNotification({ message: 'Não foi possível excluir a pensão.', variant: 'error' });
+            setNotification({
+                message: 'Não foi possível excluir a pensão.',
+                variant: 'error',
+            });
         } finally {
             setDeletingId(null);
         }
     }
 
     return (
-        <AdminLayout title="Pagamentos - Descontos" active="payroll-adjustments" module="payroll">
+        <AdminLayout
+            title="Pagamentos - Descontos"
+            active="payroll-adjustments"
+            module="payroll"
+        >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">Descontos</h2>
                     <p className="text-sm text-muted-foreground">
-                        Cadastre descontos, empréstimos e pensões para refletir corretamente no fechamento da folha.
+                        Cadastre descontos, empréstimos e pensões para refletir
+                        corretamente no fechamento da folha.
                     </p>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <div className="grid gap-4 lg:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Descontos ({descontos.length})</CardTitle>
-                            <Button type="button" size="sm" onClick={openNewDesconto}>
+                            <CardTitle>
+                                Descontos ({descontos.length})
+                            </CardTitle>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={openNewDesconto}
+                            >
                                 <PlusSquare className="size-4" />
                                 Novo
                             </Button>
@@ -610,32 +733,70 @@ export default function TransportPayrollAdjustmentsPage() {
                                     Carregando...
                                 </div>
                             ) : descontos.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhum desconto cadastrado.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhum desconto cadastrado.
+                                </p>
                             ) : (
                                 <div className="space-y-2">
                                     {descontos.map((item) => (
-                                        <div key={item.id} className="rounded-md border p-3 text-sm">
+                                        <div
+                                            key={item.id}
+                                            className="rounded-md border p-3 text-sm"
+                                        >
                                             <div className="flex items-start justify-between gap-2">
                                                 <div>
-                                                    <p className="font-medium">{item.descricao}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '-'}
+                                                    <p className="font-medium">
+                                                        {item.descricao}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {(item.tipo_saida_prioridades && item.tipo_saida_prioridades.length > 0
-                                                            ? item.tipo_saida_prioridades.join(' → ')
-                                                            : item.tipo_saida)} | {formatCurrencyBR(item.valor)}
+                                                        {item.colaborador
+                                                            ?.nome ??
+                                                            collaboratorMap.get(
+                                                                String(
+                                                                    item.colaborador_id,
+                                                                ),
+                                                            ) ??
+                                                            '-'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {item.tipo_saida_prioridades &&
+                                                        item
+                                                            .tipo_saida_prioridades
+                                                            .length > 0
+                                                            ? item.tipo_saida_prioridades.join(
+                                                                  ' → ',
+                                                              )
+                                                            : item.tipo_saida}{' '}
+                                                        |{' '}
+                                                        {formatCurrencyBR(
+                                                            item.valor,
+                                                        )}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button size="sm" variant="outline" onClick={() => openEditDesconto(item)}>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            openEditDesconto(
+                                                                item,
+                                                            )
+                                                        }
+                                                    >
                                                         <PencilLine className="size-4" />
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="destructive"
-                                                        disabled={deletingId === item.id}
-                                                        onClick={() => void removeDesconto(item.id)}
+                                                        disabled={
+                                                            deletingId ===
+                                                            item.id
+                                                        }
+                                                        onClick={() =>
+                                                            void removeDesconto(
+                                                                item.id,
+                                                            )
+                                                        }
                                                     >
                                                         <Trash2 className="size-4" />
                                                     </Button>
@@ -650,8 +811,14 @@ export default function TransportPayrollAdjustmentsPage() {
 
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Empréstimos ({emprestimos.length})</CardTitle>
-                            <Button type="button" size="sm" onClick={openNewEmprestimo}>
+                            <CardTitle>
+                                Empréstimos ({emprestimos.length})
+                            </CardTitle>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={openNewEmprestimo}
+                            >
                                 <PlusSquare className="size-4" />
                                 Novo
                             </Button>
@@ -663,30 +830,66 @@ export default function TransportPayrollAdjustmentsPage() {
                                     Carregando...
                                 </div>
                             ) : emprestimos.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhum empréstimo cadastrado.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhum empréstimo cadastrado.
+                                </p>
                             ) : (
                                 <div className="space-y-2">
                                     {emprestimos.map((item) => (
-                                        <div key={item.id} className="rounded-md border p-3 text-sm">
+                                        <div
+                                            key={item.id}
+                                            className="rounded-md border p-3 text-sm"
+                                        >
                                             <div className="flex items-start justify-between gap-2">
                                                 <div>
-                                                    <p className="font-medium">{item.descricao}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '-'}
+                                                    <p className="font-medium">
+                                                        {item.descricao}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {formatCurrencyBR(item.valor_total)} total | {formatCurrencyBR(item.valor_parcela)} parcela
+                                                        {item.colaborador
+                                                            ?.nome ??
+                                                            collaboratorMap.get(
+                                                                String(
+                                                                    item.colaborador_id,
+                                                                ),
+                                                            ) ??
+                                                            '-'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {formatCurrencyBR(
+                                                            item.valor_total,
+                                                        )}{' '}
+                                                        total |{' '}
+                                                        {formatCurrencyBR(
+                                                            item.valor_parcela,
+                                                        )}{' '}
+                                                        parcela
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button size="sm" variant="outline" onClick={() => openEditEmprestimo(item)}>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            openEditEmprestimo(
+                                                                item,
+                                                            )
+                                                        }
+                                                    >
                                                         <PencilLine className="size-4" />
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="destructive"
-                                                        disabled={deletingId === item.id}
-                                                        onClick={() => void removeEmprestimo(item.id)}
+                                                        disabled={
+                                                            deletingId ===
+                                                            item.id
+                                                        }
+                                                        onClick={() =>
+                                                            void removeEmprestimo(
+                                                                item.id,
+                                                            )
+                                                        }
                                                     >
                                                         <Trash2 className="size-4" />
                                                     </Button>
@@ -702,7 +905,11 @@ export default function TransportPayrollAdjustmentsPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Pensões ({pensoes.length})</CardTitle>
-                            <Button type="button" size="sm" onClick={openNewPensao}>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={openNewPensao}
+                            >
                                 <PlusSquare className="size-4" />
                                 Nova
                             </Button>
@@ -714,28 +921,58 @@ export default function TransportPayrollAdjustmentsPage() {
                                     Carregando...
                                 </div>
                             ) : pensoes.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Nenhuma pensão cadastrada.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhuma pensão cadastrada.
+                                </p>
                             ) : (
                                 <div className="space-y-2">
                                     {pensoes.map((item) => (
-                                        <div key={item.id} className="rounded-md border p-3 text-sm">
+                                        <div
+                                            key={item.id}
+                                            className="rounded-md border p-3 text-sm"
+                                        >
                                             <div className="flex items-start justify-between gap-2">
                                                 <div>
-                                                    <p className="font-medium">{item.colaborador?.nome ?? collaboratorMap.get(String(item.colaborador_id)) ?? '-'}</p>
-                                                    <p className="text-xs text-muted-foreground">Mãe: {item.nome_beneficiaria}</p>
+                                                    <p className="font-medium">
+                                                        {item.colaborador
+                                                            ?.nome ??
+                                                            collaboratorMap.get(
+                                                                String(
+                                                                    item.colaborador_id,
+                                                                ),
+                                                            ) ??
+                                                            '-'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Mãe:{' '}
+                                                        {item.nome_beneficiaria}
+                                                    </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {item.nome_banco}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <Button size="sm" variant="outline" onClick={() => openEditPensao(item)}>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            openEditPensao(item)
+                                                        }
+                                                    >
                                                         <PencilLine className="size-4" />
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="destructive"
-                                                        disabled={deletingId === item.id}
-                                                        onClick={() => void removePensao(item.id)}
+                                                        disabled={
+                                                            deletingId ===
+                                                            item.id
+                                                        }
+                                                        onClick={() =>
+                                                            void removePensao(
+                                                                item.id,
+                                                            )
+                                                        }
                                                     >
                                                         <Trash2 className="size-4" />
                                                     </Button>
@@ -753,38 +990,65 @@ export default function TransportPayrollAdjustmentsPage() {
             <Dialog open={descontoOpen} onOpenChange={setDescontoOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingDesconto ? 'Editar desconto' : 'Novo desconto'}</DialogTitle>
-                        <DialogDescription>Registre descontos por categoria para refletir no fechamento.</DialogDescription>
+                        <DialogTitle>
+                            {editingDesconto
+                                ? 'Editar desconto'
+                                : 'Novo desconto'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Registre descontos por categoria para refletir no
+                            fechamento.
+                        </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-3" onSubmit={saveDesconto}>
                         <div className="space-y-2">
                             <Label>Colaborador *</Label>
                             <Input
                                 value={descontoCollaboratorSearch}
-                                onChange={(event) => setDescontoCollaboratorSearch(event.target.value)}
+                                onChange={(event) =>
+                                    setDescontoCollaboratorSearch(
+                                        event.target.value,
+                                    )
+                                }
                                 placeholder="Digite para filtrar (ex.: Ada)"
                             />
                             <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/20 p-1">
                                 {filteredDescontoCollaborators.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                    <p className="px-2 py-1 text-xs text-muted-foreground">
+                                        Nenhum colaborador encontrado.
+                                    </p>
                                 ) : (
-                                    filteredDescontoCollaborators.map((item) => {
-                                        const selected = descontoForm.colaborador_id === String(item.id);
+                                    filteredDescontoCollaborators.map(
+                                        (item) => {
+                                            const selected =
+                                                descontoForm.colaborador_id ===
+                                                String(item.id);
 
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
-                                                onClick={() => {
-                                                    setDescontoForm((previous) => ({ ...previous, colaborador_id: String(item.id) }));
-                                                    setDescontoCollaboratorSearch(item.nome);
-                                                }}
-                                            >
-                                                {item.nome}
-                                            </button>
-                                        );
-                                    })
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
+                                                    onClick={() => {
+                                                        setDescontoForm(
+                                                            (previous) => ({
+                                                                ...previous,
+                                                                colaborador_id:
+                                                                    String(
+                                                                        item.id,
+                                                                    ),
+                                                            }),
+                                                        );
+                                                        setDescontoCollaboratorSearch(
+                                                            item.nome,
+                                                        );
+                                                    }}
+                                                >
+                                                    {item.nome}
+                                                </button>
+                                            );
+                                        },
+                                    )
                                 )}
                             </div>
                         </div>
@@ -793,7 +1057,12 @@ export default function TransportPayrollAdjustmentsPage() {
                             <Input
                                 id="desc-desconto"
                                 value={descontoForm.descricao}
-                                onChange={(event) => setDescontoForm((previous) => ({ ...previous, descricao: event.target.value }))}
+                                onChange={(event) =>
+                                    setDescontoForm((previous) => ({
+                                        ...previous,
+                                        descricao: event.target.value,
+                                    }))
+                                }
                             />
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
@@ -801,17 +1070,28 @@ export default function TransportPayrollAdjustmentsPage() {
                                 <Label>Prioridade 1 *</Label>
                                 <Select
                                     value={descontoForm.prioridade_1}
-                                    onValueChange={(value: typeof descontoForm.prioridade_1) =>
-                                        setDescontoForm((previous) => ({ ...previous, prioridade_1: value }))
+                                    onValueChange={(
+                                        value: typeof descontoForm.prioridade_1,
+                                    ) =>
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            prioridade_1: value,
+                                        }))
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="extras">Extras</SelectItem>
-                                        <SelectItem value="salario">Salário mensal</SelectItem>
-                                        <SelectItem value="beneficios">Benefícios</SelectItem>
+                                        <SelectItem value="extras">
+                                            Extras
+                                        </SelectItem>
+                                        <SelectItem value="salario">
+                                            Salário mensal
+                                        </SelectItem>
+                                        <SelectItem value="beneficios">
+                                            Benefícios
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -819,18 +1099,31 @@ export default function TransportPayrollAdjustmentsPage() {
                                 <Label>Prioridade 2 (opcional)</Label>
                                 <Select
                                     value={descontoForm.prioridade_2}
-                                    onValueChange={(value: typeof descontoForm.prioridade_2) =>
-                                        setDescontoForm((previous) => ({ ...previous, prioridade_2: value }))
+                                    onValueChange={(
+                                        value: typeof descontoForm.prioridade_2,
+                                    ) =>
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            prioridade_2: value,
+                                        }))
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sem prioridade 2" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Sem prioridade 2</SelectItem>
-                                        <SelectItem value="extras">Extras</SelectItem>
-                                        <SelectItem value="salario">Salário mensal</SelectItem>
-                                        <SelectItem value="beneficios">Benefícios</SelectItem>
+                                        <SelectItem value="none">
+                                            Sem prioridade 2
+                                        </SelectItem>
+                                        <SelectItem value="extras">
+                                            Extras
+                                        </SelectItem>
+                                        <SelectItem value="salario">
+                                            Salário mensal
+                                        </SelectItem>
+                                        <SelectItem value="beneficios">
+                                            Benefícios
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -840,18 +1133,31 @@ export default function TransportPayrollAdjustmentsPage() {
                                 <Label>Prioridade 3 (opcional)</Label>
                                 <Select
                                     value={descontoForm.prioridade_3}
-                                    onValueChange={(value: typeof descontoForm.prioridade_3) =>
-                                        setDescontoForm((previous) => ({ ...previous, prioridade_3: value }))
+                                    onValueChange={(
+                                        value: typeof descontoForm.prioridade_3,
+                                    ) =>
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            prioridade_3: value,
+                                        }))
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Sem prioridade 3" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Sem prioridade 3</SelectItem>
-                                        <SelectItem value="extras">Extras</SelectItem>
-                                        <SelectItem value="salario">Salário mensal</SelectItem>
-                                        <SelectItem value="beneficios">Benefícios</SelectItem>
+                                        <SelectItem value="none">
+                                            Sem prioridade 3
+                                        </SelectItem>
+                                        <SelectItem value="extras">
+                                            Extras
+                                        </SelectItem>
+                                        <SelectItem value="salario">
+                                            Salário mensal
+                                        </SelectItem>
+                                        <SelectItem value="beneficios">
+                                            Benefícios
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -862,7 +1168,12 @@ export default function TransportPayrollAdjustmentsPage() {
                                     type="text"
                                     inputMode="decimal"
                                     value={descontoForm.valor}
-                                    onChange={(event) => setDescontoForm((previous) => ({ ...previous, valor: event.target.value }))}
+                                    onChange={(event) =>
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            valor: event.target.value,
+                                        }))
+                                    }
                                 />
                             </div>
                         </div>
@@ -871,7 +1182,12 @@ export default function TransportPayrollAdjustmentsPage() {
                                 <Label>Parcelado</Label>
                                 <Select
                                     value={descontoForm.parcelado ? '1' : '0'}
-                                    onValueChange={(value) => setDescontoForm((previous) => ({ ...previous, parcelado: value === '1' }))}
+                                    onValueChange={(value) =>
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            parcelado: value === '1',
+                                        }))
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
@@ -883,48 +1199,74 @@ export default function TransportPayrollAdjustmentsPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="parcelas-desconto">Qtd parcelas</Label>
+                                <Label htmlFor="parcelas-desconto">
+                                    Qtd parcelas
+                                </Label>
                                 <Input
                                     id="parcelas-desconto"
                                     type="number"
                                     min="1"
                                     value={descontoForm.total_parcelas}
                                     onChange={(event) =>
-                                        setDescontoForm((previous) => ({ ...previous, total_parcelas: event.target.value }))
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            total_parcelas: event.target.value,
+                                        }))
                                     }
                                     disabled={!descontoForm.parcelado}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="parcela-atual-desconto">Parcela atual</Label>
+                                <Label htmlFor="parcela-atual-desconto">
+                                    Parcela atual
+                                </Label>
                                 <Input
                                     id="parcela-atual-desconto"
                                     type="number"
                                     min="1"
                                     value={descontoForm.parcela_atual}
                                     onChange={(event) =>
-                                        setDescontoForm((previous) => ({ ...previous, parcela_atual: event.target.value }))
+                                        setDescontoForm((previous) => ({
+                                            ...previous,
+                                            parcela_atual: event.target.value,
+                                        }))
                                     }
                                     disabled={!descontoForm.parcelado}
                                 />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="data-desconto">Data de referência</Label>
+                            <Label htmlFor="data-desconto">
+                                Data de referência
+                            </Label>
                             <Input
                                 id="data-desconto"
                                 type="date"
                                 value={descontoForm.data_referencia}
                                 onChange={(event) =>
-                                    setDescontoForm((previous) => ({ ...previous, data_referencia: event.target.value }))
+                                    setDescontoForm((previous) => ({
+                                        ...previous,
+                                        data_referencia: event.target.value,
+                                    }))
                                 }
                             />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setDescontoOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDescontoOpen(false)}
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={saving || !descontoForm.colaborador_id || !descontoForm.descricao.trim()}>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    saving ||
+                                    !descontoForm.colaborador_id ||
+                                    !descontoForm.descricao.trim()
+                                }
+                            >
                                 {saving ? (
                                     <>
                                         <LoaderCircle className="size-4 animate-spin" />
@@ -942,38 +1284,66 @@ export default function TransportPayrollAdjustmentsPage() {
             <Dialog open={emprestimoOpen} onOpenChange={setEmprestimoOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingEmprestimo ? 'Editar empréstimo' : 'Novo empréstimo'}</DialogTitle>
-                        <DialogDescription>Informe valores para compor o ganho mensal com empréstimos.</DialogDescription>
+                        <DialogTitle>
+                            {editingEmprestimo
+                                ? 'Editar empréstimo'
+                                : 'Novo empréstimo'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Informe valores para compor o ganho mensal com
+                            empréstimos.
+                        </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-3" onSubmit={saveEmprestimo}>
                         <div className="space-y-2">
                             <Label>Colaborador *</Label>
                             <Input
                                 value={emprestimoCollaboratorSearch}
-                                onChange={(event) => setEmprestimoCollaboratorSearch(event.target.value)}
+                                onChange={(event) =>
+                                    setEmprestimoCollaboratorSearch(
+                                        event.target.value,
+                                    )
+                                }
                                 placeholder="Digite para filtrar (ex.: Ada)"
                             />
                             <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/20 p-1">
-                                {filteredEmprestimoCollaborators.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                {filteredEmprestimoCollaborators.length ===
+                                0 ? (
+                                    <p className="px-2 py-1 text-xs text-muted-foreground">
+                                        Nenhum colaborador encontrado.
+                                    </p>
                                 ) : (
-                                    filteredEmprestimoCollaborators.map((item) => {
-                                        const selected = emprestimoForm.colaborador_id === String(item.id);
+                                    filteredEmprestimoCollaborators.map(
+                                        (item) => {
+                                            const selected =
+                                                emprestimoForm.colaborador_id ===
+                                                String(item.id);
 
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
-                                                onClick={() => {
-                                                    setEmprestimoForm((previous) => ({ ...previous, colaborador_id: String(item.id) }));
-                                                    setEmprestimoCollaboratorSearch(item.nome);
-                                                }}
-                                            >
-                                                {item.nome}
-                                            </button>
-                                        );
-                                    })
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
+                                                    onClick={() => {
+                                                        setEmprestimoForm(
+                                                            (previous) => ({
+                                                                ...previous,
+                                                                colaborador_id:
+                                                                    String(
+                                                                        item.id,
+                                                                    ),
+                                                            }),
+                                                        );
+                                                        setEmprestimoCollaboratorSearch(
+                                                            item.nome,
+                                                        );
+                                                    }}
+                                                >
+                                                    {item.nome}
+                                                </button>
+                                            );
+                                        },
+                                    )
                                 )}
                             </div>
                         </div>
@@ -983,69 +1353,97 @@ export default function TransportPayrollAdjustmentsPage() {
                                 id="desc-emprestimo"
                                 value={emprestimoForm.descricao}
                                 onChange={(event) =>
-                                    setEmprestimoForm((previous) => ({ ...previous, descricao: event.target.value }))
+                                    setEmprestimoForm((previous) => ({
+                                        ...previous,
+                                        descricao: event.target.value,
+                                    }))
                                 }
                             />
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="valor-total">Valor total *</Label>
+                                <Label htmlFor="valor-total">
+                                    Valor total *
+                                </Label>
                                 <Input
                                     id="valor-total"
                                     type="text"
                                     inputMode="decimal"
                                     value={emprestimoForm.valor_total}
                                     onChange={(event) =>
-                                        setEmprestimoForm((previous) => ({ ...previous, valor_total: event.target.value }))
+                                        setEmprestimoForm((previous) => ({
+                                            ...previous,
+                                            valor_total: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="valor-parcela">Valor parcela *</Label>
+                                <Label htmlFor="valor-parcela">
+                                    Valor parcela *
+                                </Label>
                                 <Input
                                     id="valor-parcela"
                                     type="text"
                                     inputMode="decimal"
                                     value={emprestimoForm.valor_parcela}
                                     onChange={(event) =>
-                                        setEmprestimoForm((previous) => ({ ...previous, valor_parcela: event.target.value }))
+                                        setEmprestimoForm((previous) => ({
+                                            ...previous,
+                                            valor_parcela: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                         </div>
                         <div className="grid gap-3 md:grid-cols-3">
                             <div className="space-y-2">
-                                <Label htmlFor="total-parcelas">Total de parcelas *</Label>
+                                <Label htmlFor="total-parcelas">
+                                    Total de parcelas *
+                                </Label>
                                 <Input
                                     id="total-parcelas"
                                     type="number"
                                     min="1"
                                     value={emprestimoForm.total_parcelas}
                                     onChange={(event) =>
-                                        setEmprestimoForm((previous) => ({ ...previous, total_parcelas: event.target.value }))
+                                        setEmprestimoForm((previous) => ({
+                                            ...previous,
+                                            total_parcelas: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="parcelas-pagas">Parcelas pagas</Label>
+                                <Label htmlFor="parcelas-pagas">
+                                    Parcelas pagas
+                                </Label>
                                 <Input
                                     id="parcelas-pagas"
                                     type="number"
                                     min="0"
                                     value={emprestimoForm.parcelas_pagas}
                                     onChange={(event) =>
-                                        setEmprestimoForm((previous) => ({ ...previous, parcelas_pagas: event.target.value }))
+                                        setEmprestimoForm((previous) => ({
+                                            ...previous,
+                                            parcelas_pagas: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="data-inicio">Data início *</Label>
+                                <Label htmlFor="data-inicio">
+                                    Data início *
+                                </Label>
                                 <Input
                                     id="data-inicio"
                                     type="date"
                                     value={emprestimoForm.data_inicio}
                                     onChange={(event) =>
-                                        setEmprestimoForm((previous) => ({ ...previous, data_inicio: event.target.value }))
+                                        setEmprestimoForm((previous) => ({
+                                            ...previous,
+                                            data_inicio: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
@@ -1055,7 +1453,10 @@ export default function TransportPayrollAdjustmentsPage() {
                             <Select
                                 value={emprestimoForm.ativo ? '1' : '0'}
                                 onValueChange={(value) =>
-                                    setEmprestimoForm((previous) => ({ ...previous, ativo: value === '1' }))
+                                    setEmprestimoForm((previous) => ({
+                                        ...previous,
+                                        ativo: value === '1',
+                                    }))
                                 }
                             >
                                 <SelectTrigger>
@@ -1068,12 +1469,20 @@ export default function TransportPayrollAdjustmentsPage() {
                             </Select>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setEmprestimoOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEmprestimoOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={saving || !emprestimoForm.colaborador_id || !emprestimoForm.descricao.trim()}
+                                disabled={
+                                    saving ||
+                                    !emprestimoForm.colaborador_id ||
+                                    !emprestimoForm.descricao.trim()
+                                }
                             >
                                 {saving ? (
                                     <>
@@ -1092,9 +1501,12 @@ export default function TransportPayrollAdjustmentsPage() {
             <Dialog open={pensaoOpen} onOpenChange={setPensaoOpen}>
                 <DialogContent className="max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>{editingPensao ? 'Editar pensão' : 'Nova pensão'}</DialogTitle>
+                        <DialogTitle>
+                            {editingPensao ? 'Editar pensão' : 'Nova pensão'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Cadastre os dados da pensão (beneficiária/mãe). O valor será informado no lançamento de salário.
+                            Cadastre os dados da pensão (beneficiária/mãe). O
+                            valor será informado no lançamento de salário.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1103,15 +1515,23 @@ export default function TransportPayrollAdjustmentsPage() {
                             <Label>Colaborador *</Label>
                             <Input
                                 value={pensaoCollaboratorSearch}
-                                onChange={(event) => setPensaoCollaboratorSearch(event.target.value)}
+                                onChange={(event) =>
+                                    setPensaoCollaboratorSearch(
+                                        event.target.value,
+                                    )
+                                }
                                 placeholder="Digite para filtrar (ex.: Ad)"
                             />
                             <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/20 p-1">
                                 {filteredPensaoCollaborators.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-muted-foreground">Nenhum colaborador encontrado.</p>
+                                    <p className="px-2 py-1 text-xs text-muted-foreground">
+                                        Nenhum colaborador encontrado.
+                                    </p>
                                 ) : (
                                     filteredPensaoCollaborators.map((item) => {
-                                        const selected = pensaoForm.colaborador_id === String(item.id);
+                                        const selected =
+                                            pensaoForm.colaborador_id ===
+                                            String(item.id);
 
                                         return (
                                             <button
@@ -1119,8 +1539,16 @@ export default function TransportPayrollAdjustmentsPage() {
                                                 type="button"
                                                 className={`w-full rounded px-2 py-1 text-left text-sm ${selected ? 'bg-primary/15 font-medium' : 'hover:bg-muted'}`}
                                                 onClick={() => {
-                                                    setPensaoForm((previous) => ({ ...previous, colaborador_id: String(item.id) }));
-                                                    setPensaoCollaboratorSearch(item.nome);
+                                                    setPensaoForm(
+                                                        (previous) => ({
+                                                            ...previous,
+                                                            colaborador_id:
+                                                                String(item.id),
+                                                        }),
+                                                    );
+                                                    setPensaoCollaboratorSearch(
+                                                        item.nome,
+                                                    );
                                                 }}
                                             >
                                                 {item.nome}
@@ -1133,22 +1561,34 @@ export default function TransportPayrollAdjustmentsPage() {
 
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="nome-beneficiaria">Nome da mãe/beneficiária *</Label>
+                                <Label htmlFor="nome-beneficiaria">
+                                    Nome da mãe/beneficiária *
+                                </Label>
                                 <Input
                                     id="nome-beneficiaria"
                                     value={pensaoForm.nome_beneficiaria}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, nome_beneficiaria: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            nome_beneficiaria:
+                                                event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="cpf-beneficiaria">CPF da beneficiária</Label>
+                                <Label htmlFor="cpf-beneficiaria">
+                                    CPF da beneficiária
+                                </Label>
                                 <Input
                                     id="cpf-beneficiaria"
                                     value={pensaoForm.cpf_beneficiaria}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, cpf_beneficiaria: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            cpf_beneficiaria:
+                                                event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
@@ -1156,22 +1596,32 @@ export default function TransportPayrollAdjustmentsPage() {
 
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="nome-banco-pensao">Nome do banco *</Label>
+                                <Label htmlFor="nome-banco-pensao">
+                                    Nome do banco *
+                                </Label>
                                 <Input
                                     id="nome-banco-pensao"
                                     value={pensaoForm.nome_banco}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, nome_banco: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            nome_banco: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="numero-banco-pensao">Número do banco</Label>
+                                <Label htmlFor="numero-banco-pensao">
+                                    Número do banco
+                                </Label>
                                 <Input
                                     id="numero-banco-pensao"
                                     value={pensaoForm.numero_banco}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, numero_banco: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            numero_banco: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
@@ -1179,32 +1629,47 @@ export default function TransportPayrollAdjustmentsPage() {
 
                         <div className="grid gap-3 md:grid-cols-3">
                             <div className="space-y-2">
-                                <Label htmlFor="numero-agencia-pensao">Número da agência *</Label>
+                                <Label htmlFor="numero-agencia-pensao">
+                                    Número da agência *
+                                </Label>
                                 <Input
                                     id="numero-agencia-pensao"
                                     value={pensaoForm.numero_agencia}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, numero_agencia: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            numero_agencia: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="tipo-conta-pensao">Tipo de conta *</Label>
+                                <Label htmlFor="tipo-conta-pensao">
+                                    Tipo de conta *
+                                </Label>
                                 <Input
                                     id="tipo-conta-pensao"
                                     value={pensaoForm.tipo_conta}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, tipo_conta: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            tipo_conta: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="numero-conta-pensao">Número da conta *</Label>
+                                <Label htmlFor="numero-conta-pensao">
+                                    Número da conta *
+                                </Label>
                                 <Input
                                     id="numero-conta-pensao"
                                     value={pensaoForm.numero_conta}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, numero_conta: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            numero_conta: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
@@ -1212,13 +1677,16 @@ export default function TransportPayrollAdjustmentsPage() {
 
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="tipo-pix-pensao">Tipo da chave PIX</Label>
+                                <Label htmlFor="tipo-pix-pensao">
+                                    Tipo da chave PIX
+                                </Label>
                                 <Select
                                     value={pensaoForm.tipo_chave_pix || 'none'}
                                     onValueChange={(value) =>
                                         setPensaoForm((previous) => ({
                                             ...previous,
-                                            tipo_chave_pix: value === 'none' ? '' : value,
+                                            tipo_chave_pix:
+                                                value === 'none' ? '' : value,
                                         }))
                                     }
                                 >
@@ -1226,21 +1694,34 @@ export default function TransportPayrollAdjustmentsPage() {
                                         <SelectValue placeholder="Selecione" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Sem chave PIX</SelectItem>
+                                        <SelectItem value="none">
+                                            Sem chave PIX
+                                        </SelectItem>
                                         <SelectItem value="CPF">CPF</SelectItem>
-                                        <SelectItem value="Celular">Celular</SelectItem>
-                                        <SelectItem value="Email">Email</SelectItem>
-                                        <SelectItem value="Aleatorio">Aleatorio</SelectItem>
+                                        <SelectItem value="Celular">
+                                            Celular
+                                        </SelectItem>
+                                        <SelectItem value="Email">
+                                            Email
+                                        </SelectItem>
+                                        <SelectItem value="Aleatorio">
+                                            Aleatorio
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="chave-pix-pensao">Chave PIX</Label>
+                                <Label htmlFor="chave-pix-pensao">
+                                    Chave PIX
+                                </Label>
                                 <Input
                                     id="chave-pix-pensao"
                                     value={pensaoForm.chave_pix}
                                     onChange={(event) =>
-                                        setPensaoForm((previous) => ({ ...previous, chave_pix: event.target.value }))
+                                        setPensaoForm((previous) => ({
+                                            ...previous,
+                                            chave_pix: event.target.value,
+                                        }))
                                     }
                                 />
                             </div>
@@ -1252,7 +1733,10 @@ export default function TransportPayrollAdjustmentsPage() {
                                 id="obs-pensao"
                                 value={pensaoForm.observacao}
                                 onChange={(event) =>
-                                    setPensaoForm((previous) => ({ ...previous, observacao: event.target.value }))
+                                    setPensaoForm((previous) => ({
+                                        ...previous,
+                                        observacao: event.target.value,
+                                    }))
                                 }
                             />
                         </div>
@@ -1261,7 +1745,12 @@ export default function TransportPayrollAdjustmentsPage() {
                             <Label>Ativo</Label>
                             <Select
                                 value={pensaoForm.ativo ? '1' : '0'}
-                                onValueChange={(value) => setPensaoForm((previous) => ({ ...previous, ativo: value === '1' }))}
+                                onValueChange={(value) =>
+                                    setPensaoForm((previous) => ({
+                                        ...previous,
+                                        ativo: value === '1',
+                                    }))
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue />
@@ -1274,7 +1763,11 @@ export default function TransportPayrollAdjustmentsPage() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setPensaoOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setPensaoOpen(false)}
+                            >
                                 Cancelar
                             </Button>
                             <Button

@@ -22,6 +22,27 @@ class UpdateInterviewCurriculumRequest extends FormRequest
             'role_name' => ['required', 'string', 'max:120'],
             'unit_name' => ['required', 'string', 'max:120'],
             'observacao' => ['nullable', 'string', 'max:500'],
+            'status' => [
+                'nullable',
+                'string',
+                'in:pendente,convocado_entrevista,descartado,recusado,aguardando_entrevista,aprovado_entrevista,reprovado_entrevista',
+            ],
+            'interview_date' => [
+                'nullable',
+                'date',
+                'required_if:status,convocado_entrevista,aguardando_entrevista,aprovado_entrevista',
+            ],
+            'interview_time' => ['nullable', 'date_format:H:i'],
+            'discard_reason' => [
+                'nullable',
+                'string',
+                'max:1000',
+                'required_if:status,descartado,recusado,reprovado_entrevista',
+            ],
+            'treatment_notes' => ['nullable', 'string', 'max:1000'],
+            'confirmed_interview_date' => ['nullable', 'date'],
+            'confirmed_interview_time' => ['nullable', 'date_format:H:i'],
+            'confirmation_notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -35,6 +56,8 @@ class UpdateInterviewCurriculumRequest extends FormRequest
             'phone.required' => 'O telefone é obrigatório.',
             'role_name.required' => 'A função é obrigatória.',
             'unit_name.required' => 'A unidade é obrigatória.',
+            'interview_date.required_if' => 'Informe a data da entrevista ao convocar o candidato.',
+            'discard_reason.required_if' => 'Informe o motivo ao descartar o candidato.',
         ];
     }
 }

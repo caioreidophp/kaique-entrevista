@@ -64,11 +64,16 @@ export default function VacationsLaunchPage() {
 
     const [selectedCollaboratorId, setSelectedCollaboratorId] = useState('');
     const [collaboratorQuery, setCollaboratorQuery] = useState('');
-    const [collaboratorDropdownOpen, setCollaboratorDropdownOpen] = useState(false);
-    const [tipo, setTipo] = useState<'confirmado' | 'previsao' | 'passada'>('confirmado');
+    const [collaboratorDropdownOpen, setCollaboratorDropdownOpen] =
+        useState(false);
+    const [tipo, setTipo] = useState<'confirmado' | 'previsao' | 'passada'>(
+        'confirmado',
+    );
     const [comAbono, setComAbono] = useState(true);
     const [diasFerias, setDiasFerias] = useState<20 | 30>(20);
-    const [dataInicio, setDataInicio] = useState(new Date().toISOString().slice(0, 10));
+    const [dataInicio, setDataInicio] = useState(
+        new Date().toISOString().slice(0, 10),
+    );
     const [periodoAquisitivoInicio, setPeriodoAquisitivoInicio] = useState('');
     const [periodoAquisitivoFim, setPeriodoAquisitivoFim] = useState('');
     const [observacoes, setObservacoes] = useState('');
@@ -81,7 +86,8 @@ export default function VacationsLaunchPage() {
     const selectedCandidate = useMemo(
         () =>
             candidates.find(
-                (item) => String(item.colaborador_id) === selectedCollaboratorId,
+                (item) =>
+                    String(item.colaborador_id) === selectedCollaboratorId,
             ) ?? null,
         [candidates, selectedCollaboratorId],
     );
@@ -95,7 +101,9 @@ export default function VacationsLaunchPage() {
     );
 
     const filteredCandidates = useMemo(() => {
-        const normalizedQuery = collaboratorQuery.trim().toLocaleLowerCase('pt-BR');
+        const normalizedQuery = collaboratorQuery
+            .trim()
+            .toLocaleLowerCase('pt-BR');
 
         if (normalizedQuery.length === 0) {
             return sortedCandidates.slice(0, 20);
@@ -120,7 +128,8 @@ export default function VacationsLaunchPage() {
             .then((response) => setCandidates(response.data))
             .catch(() => {
                 setNotification({
-                    message: 'Não foi possível carregar colaboradores para férias.',
+                    message:
+                        'Não foi possível carregar colaboradores para férias.',
                     variant: 'error',
                 });
             })
@@ -171,17 +180,20 @@ export default function VacationsLaunchPage() {
         setNotification(null);
 
         try {
-            const response = await apiPost<VacationLaunchResponse>('/payroll/vacations', {
-                colaborador_id: Number(selectedCollaboratorId),
-                tipo,
-                com_abono: comAbono,
-                dias_ferias: diasFerias,
-                data_inicio: dataInicio,
-                data_fim: dataFimCalculada,
-                periodo_aquisitivo_inicio: periodoAquisitivoInicio,
-                periodo_aquisitivo_fim: periodoAquisitivoFim,
-                observacoes: observacoes.trim() || null,
-            });
+            const response = await apiPost<VacationLaunchResponse>(
+                '/payroll/vacations',
+                {
+                    colaborador_id: Number(selectedCollaboratorId),
+                    tipo,
+                    com_abono: comAbono,
+                    dias_ferias: diasFerias,
+                    data_inicio: dataInicio,
+                    data_fim: dataFimCalculada,
+                    periodo_aquisitivo_inicio: periodoAquisitivoInicio,
+                    periodo_aquisitivo_fim: periodoAquisitivoFim,
+                    observacoes: observacoes.trim() || null,
+                },
+            );
 
             if (response.approval_required) {
                 setNotification({
@@ -198,7 +210,9 @@ export default function VacationsLaunchPage() {
                 variant: 'success',
             });
 
-            const refreshed = await apiGet<WrappedResponse<VacationRow[]>>('/payroll/vacations/candidates');
+            const refreshed = await apiGet<WrappedResponse<VacationRow[]>>(
+                '/payroll/vacations/candidates',
+            );
             setCandidates(refreshed.data);
 
             setSelectedCollaboratorId('');
@@ -239,20 +253,30 @@ export default function VacationsLaunchPage() {
         >
             <div className="transport-dashboard-page">
                 <div className="transport-dashboard-header">
-                    <p className="transport-dashboard-eyebrow">Controle de férias</p>
-                    <h2 className="transport-dashboard-title">Controle de Férias - Lançar</h2>
+                    <p className="transport-dashboard-eyebrow">
+                        Controle de férias
+                    </p>
+                    <h2 className="transport-dashboard-title">
+                        Controle de Férias - Lançar
+                    </h2>
                     <p className="transport-dashboard-subtitle">
-                        Lançamento com cálculo automático de data fim e fim do período aquisitivo.
+                        Lançamento com cálculo automático de data fim e fim do
+                        período aquisitivo.
                     </p>
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Lançar Férias</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Lançar Férias
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {loading ? (
@@ -268,54 +292,86 @@ export default function VacationsLaunchPage() {
                                         <Input
                                             value={collaboratorQuery}
                                             placeholder="Digite para buscar colaborador"
-                                            onFocus={() => setCollaboratorDropdownOpen(true)}
+                                            onFocus={() =>
+                                                setCollaboratorDropdownOpen(
+                                                    true,
+                                                )
+                                            }
                                             onChange={(event) => {
-                                                const nextValue = event.target.value;
+                                                const nextValue =
+                                                    event.target.value;
                                                 setCollaboratorQuery(nextValue);
-                                                setCollaboratorDropdownOpen(true);
-
-                                                const exactMatch = sortedCandidates.find(
-                                                    (item) =>
-                                                        item.nome.toLocaleLowerCase('pt-BR') ===
-                                                        nextValue.trim().toLocaleLowerCase('pt-BR'),
+                                                setCollaboratorDropdownOpen(
+                                                    true,
                                                 );
+
+                                                const exactMatch =
+                                                    sortedCandidates.find(
+                                                        (item) =>
+                                                            item.nome.toLocaleLowerCase(
+                                                                'pt-BR',
+                                                            ) ===
+                                                            nextValue
+                                                                .trim()
+                                                                .toLocaleLowerCase(
+                                                                    'pt-BR',
+                                                                ),
+                                                    );
 
                                                 setSelectedCollaboratorId(
                                                     exactMatch
-                                                        ? String(exactMatch.colaborador_id)
+                                                        ? String(
+                                                              exactMatch.colaborador_id,
+                                                          )
                                                         : '',
                                                 );
                                             }}
                                             onBlur={() => {
                                                 window.setTimeout(() => {
-                                                    setCollaboratorDropdownOpen(false);
+                                                    setCollaboratorDropdownOpen(
+                                                        false,
+                                                    );
                                                 }, 150);
                                             }}
                                         />
 
                                         {collaboratorDropdownOpen ? (
                                             <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-background shadow-md">
-                                                {filteredCandidates.length > 0 ? (
-                                                    filteredCandidates.map((item) => (
-                                                        <button
-                                                            key={item.colaborador_id}
-                                                            type="button"
-                                                            className="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-muted"
-                                                            onMouseDown={(event) => {
-                                                                event.preventDefault();
-                                                                setSelectedCollaboratorId(
-                                                                    String(item.colaborador_id),
-                                                                );
-                                                                setCollaboratorQuery(item.nome);
-                                                                setCollaboratorDropdownOpen(false);
-                                                            }}
-                                                        >
-                                                            {item.nome}
-                                                        </button>
-                                                    ))
+                                                {filteredCandidates.length >
+                                                0 ? (
+                                                    filteredCandidates.map(
+                                                        (item) => (
+                                                            <button
+                                                                key={
+                                                                    item.colaborador_id
+                                                                }
+                                                                type="button"
+                                                                className="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-muted"
+                                                                onMouseDown={(
+                                                                    event,
+                                                                ) => {
+                                                                    event.preventDefault();
+                                                                    setSelectedCollaboratorId(
+                                                                        String(
+                                                                            item.colaborador_id,
+                                                                        ),
+                                                                    );
+                                                                    setCollaboratorQuery(
+                                                                        item.nome,
+                                                                    );
+                                                                    setCollaboratorDropdownOpen(
+                                                                        false,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                {item.nome}
+                                                            </button>
+                                                        ),
+                                                    )
                                                 ) : (
                                                     <p className="px-3 py-2 text-sm text-muted-foreground">
-                                                        Nenhum colaborador encontrado.
+                                                        Nenhum colaborador
+                                                        encontrado.
                                                     </p>
                                                 )}
                                             </div>
@@ -328,17 +384,26 @@ export default function VacationsLaunchPage() {
                                         <Label>Tipo</Label>
                                         <Select
                                             value={tipo}
-                                            onValueChange={(value: 'confirmado' | 'previsao' | 'passada') =>
-                                                setTipo(value)
-                                            }
+                                            onValueChange={(
+                                                value:
+                                                    | 'confirmado'
+                                                    | 'previsao'
+                                                    | 'passada',
+                                            ) => setTipo(value)}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="confirmado">Confirmado</SelectItem>
-                                                <SelectItem value="previsao">Previsão</SelectItem>
-                                                <SelectItem value="passada">Passada</SelectItem>
+                                                <SelectItem value="confirmado">
+                                                    Confirmado
+                                                </SelectItem>
+                                                <SelectItem value="previsao">
+                                                    Previsão
+                                                </SelectItem>
+                                                <SelectItem value="passada">
+                                                    Passada
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -348,7 +413,8 @@ export default function VacationsLaunchPage() {
                                         <Select
                                             value={String(diasFerias)}
                                             onValueChange={(value) => {
-                                                const nextDays = value === '30' ? 30 : 20;
+                                                const nextDays =
+                                                    value === '30' ? 30 : 20;
                                                 setDiasFerias(nextDays);
                                                 setComAbono(nextDays === 20);
                                             }}
@@ -357,8 +423,12 @@ export default function VacationsLaunchPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="20">20 dias</SelectItem>
-                                                <SelectItem value="30">30 dias</SelectItem>
+                                                <SelectItem value="20">
+                                                    20 dias
+                                                </SelectItem>
+                                                <SelectItem value="30">
+                                                    30 dias
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -368,29 +438,40 @@ export default function VacationsLaunchPage() {
                                         <Select
                                             value={comAbono ? 'sim' : 'nao'}
                                             onValueChange={(value) => {
-                                                const nextComAbono = value === 'sim';
+                                                const nextComAbono =
+                                                    value === 'sim';
                                                 setComAbono(nextComAbono);
-                                                setDiasFerias(nextComAbono ? 20 : 30);
+                                                setDiasFerias(
+                                                    nextComAbono ? 20 : 30,
+                                                );
                                             }}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="sim">Sim (20 dias)</SelectItem>
-                                                <SelectItem value="nao">Não (30 dias)</SelectItem>
+                                                <SelectItem value="sim">
+                                                    Sim (20 dias)
+                                                </SelectItem>
+                                                <SelectItem value="nao">
+                                                    Não (30 dias)
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="ferias-inicio">Dará início</Label>
+                                        <Label htmlFor="ferias-inicio">
+                                            Dará início
+                                        </Label>
                                         <Input
                                             id="ferias-inicio"
                                             type="date"
                                             value={dataInicio}
                                             onChange={(event) =>
-                                                setDataInicio(event.target.value)
+                                                setDataInicio(
+                                                    event.target.value,
+                                                )
                                             }
                                         />
                                     </div>
@@ -398,7 +479,9 @@ export default function VacationsLaunchPage() {
 
                                 <div className="grid gap-3 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label htmlFor="ferias-fim">Data fim (automática)</Label>
+                                        <Label htmlFor="ferias-fim">
+                                            Data fim (automática)
+                                        </Label>
                                         <Input
                                             id="ferias-fim"
                                             type="date"
@@ -408,19 +491,25 @@ export default function VacationsLaunchPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="periodo-inicio">Período aquisitivo início</Label>
+                                        <Label htmlFor="periodo-inicio">
+                                            Período aquisitivo início
+                                        </Label>
                                         <Input
                                             id="periodo-inicio"
                                             type="date"
                                             value={periodoAquisitivoInicio}
                                             onChange={(event) =>
-                                                setPeriodoAquisitivoInicio(event.target.value)
+                                                setPeriodoAquisitivoInicio(
+                                                    event.target.value,
+                                                )
                                             }
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="periodo-fim">Período aquisitivo fim</Label>
+                                        <Label htmlFor="periodo-fim">
+                                            Período aquisitivo fim
+                                        </Label>
                                         <Input
                                             id="periodo-fim"
                                             type="date"
@@ -431,19 +520,26 @@ export default function VacationsLaunchPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="ferias-observacoes">Observações</Label>
+                                    <Label htmlFor="ferias-observacoes">
+                                        Observações
+                                    </Label>
                                     <textarea
                                         id="ferias-observacoes"
-                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                         value={observacoes}
-                                        onChange={(event) => setObservacoes(event.target.value)}
+                                        onChange={(event) =>
+                                            setObservacoes(event.target.value)
+                                        }
                                         placeholder="Observação opcional para aparecer no histórico de férias do cadastro"
                                     />
                                 </div>
 
                                 {selectedCandidate ? (
                                     <p className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                                        Direito atual: {formatDate(selectedCandidate.direito)} • Limite atual: {formatDate(selectedCandidate.limite)}
+                                        Direito atual:{' '}
+                                        {formatDate(selectedCandidate.direito)}{' '}
+                                        • Limite atual:{' '}
+                                        {formatDate(selectedCandidate.limite)}
                                     </p>
                                 ) : null}
 

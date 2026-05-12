@@ -1,6 +1,11 @@
 import { router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterview,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { InterviewForm } from '@/components/transport/interview-form';
 import { Notification } from '@/components/transport/notification';
@@ -10,11 +15,6 @@ import {
     syncInterviewAttachments,
 } from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
-import type {
-    ApiPaginatedResponse,
-    DriverInterview,
-    InterviewCurriculumListItem,
-} from '@/types/driver-interview';
 
 interface EditPageProps {
     interviewId: number;
@@ -69,7 +69,7 @@ export default function TransportInterviewsEditPage({
 
     useEffect(() => {
         apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
-            '/interview-curriculums?tab=pendentes&per_page=200',
+            '/interview-curriculums?tab=vinculaveis&per_page=1000',
         )
             .then((response) => {
                 const options = response.data.map((curriculum) => ({
@@ -82,6 +82,11 @@ export default function TransportInterviewsEditPage({
 
                 if (
                     item?.curriculum &&
+                    ![
+                        'descartado',
+                        'recusado',
+                        'reprovado_entrevista',
+                    ].includes(item.curriculum.status) &&
                     !options.some((option) => option.id === item.curriculum?.id)
                 ) {
                     options.unshift({
@@ -96,10 +101,25 @@ export default function TransportInterviewsEditPage({
                     });
                 }
 
-                setCurriculumOptions(options);
+                setCurriculumOptions(
+                    options.sort((first, second) =>
+                        first.full_name.localeCompare(
+                            second.full_name,
+                            'pt-BR',
+                            { sensitivity: 'base' },
+                        ),
+                    ),
+                );
             })
             .catch(() => {
-                if (item?.curriculum) {
+                if (
+                    item?.curriculum &&
+                    ![
+                        'descartado',
+                        'recusado',
+                        'reprovado_entrevista',
+                    ].includes(item.curriculum.status)
+                ) {
                     setCurriculumOptions([
                         {
                             id: item.curriculum.id,

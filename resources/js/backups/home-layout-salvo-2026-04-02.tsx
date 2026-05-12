@@ -30,7 +30,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
-import { formatCurrencyBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
+import {
+    formatCurrencyBR,
+    formatIntegerBR,
+    formatPercentBR,
+} from '@/lib/transport-format';
 
 interface HomeModule {
     key:
@@ -156,7 +160,11 @@ function formatMetric(label: string, value: number): string {
         return formatPercentBR(value);
     }
 
-    if (label.includes('coverage') || label.includes('share') || label.includes('expired_rate')) {
+    if (
+        label.includes('coverage') ||
+        label.includes('share') ||
+        label.includes('expired_rate')
+    ) {
         return formatPercentBR(value);
     }
 
@@ -200,8 +208,12 @@ const ENABLE_CLASSIC_LAYOUT = false;
 
 export default function TransportHomePage() {
     const [modules, setModules] = useState<HomeModule[]>([]);
-    const [superDashboard, setSuperDashboard] = useState<HomeResponse['super_dashboard'] | null>(null);
-    const [monthOptions, setMonthOptions] = useState<HomeResponse['filters']['month_options']>([]);
+    const [superDashboard, setSuperDashboard] = useState<
+        HomeResponse['super_dashboard'] | null
+    >(null);
+    const [monthOptions, setMonthOptions] = useState<
+        HomeResponse['filters']['month_options']
+    >([]);
     const [periodMode, setPeriodMode] = useState<'1m' | '3m' | 'month'>('1m');
     const [selectedMonth, setSelectedMonth] = useState('');
     const [payrollMonth, setPayrollMonth] = useState('');
@@ -213,7 +225,9 @@ export default function TransportHomePage() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const effectiveLayoutMode: 'classic' | 'super' = ENABLE_CLASSIC_LAYOUT ? layoutMode : 'super';
+    const effectiveLayoutMode: 'classic' | 'super' = ENABLE_CLASSIC_LAYOUT
+        ? layoutMode
+        : 'super';
 
     useEffect(() => {
         setLoading(true);
@@ -260,8 +274,10 @@ export default function TransportHomePage() {
                     setPayrollMonth(nextPayrollMonth);
                 }
 
-                const rangeStart = response.filters.period_start?.slice(0, 10) ?? '-';
-                const rangeEnd = response.filters.period_end?.slice(0, 10) ?? '-';
+                const rangeStart =
+                    response.filters.period_start?.slice(0, 10) ?? '-';
+                const rangeEnd =
+                    response.filters.period_end?.slice(0, 10) ?? '-';
                 setPeriodLabel(`${rangeStart} até ${rangeEnd}`);
             })
             .catch(() =>
@@ -276,7 +292,9 @@ export default function TransportHomePage() {
         window.localStorage.setItem('transport:home:layout', layoutMode);
     }, [layoutMode]);
 
-    const visibleModules = modules.filter((module) => module.key !== 'operations');
+    const visibleModules = modules.filter(
+        (module) => module.key !== 'operations',
+    );
     const freightChartColumns = superDashboard?.freight
         ? [
               ...superDashboard.freight.cards.map((card) => ({
@@ -290,24 +308,25 @@ export default function TransportHomePage() {
                   unidade_id: 0,
                   unidade_nome: superDashboard.freight.company.unidade_nome,
                   total_valor: superDashboard.freight.company.total_valor,
-                  percentual_total: superDashboard.freight.company.percentual_total,
+                  percentual_total:
+                      superDashboard.freight.company.percentual_total,
                   is_company: true,
               },
           ]
         : [];
     const freightChartMax =
         freightChartColumns.length > 0
-            ? Math.max(...freightChartColumns.map((item) => item.total_valor), 1)
+            ? Math.max(
+                  ...freightChartColumns.map((item) => item.total_valor),
+                  1,
+              )
             : 1;
     const freightOnlyUnits = superDashboard?.freight?.cards ?? [];
-    const freightTopUnit = freightOnlyUnits.reduce<
-        | {
-              unidade_nome: string;
-              total_valor: number;
-              percentual_total: number;
-          }
-        | null
-    >((best, current) => {
+    const freightTopUnit = freightOnlyUnits.reduce<{
+        unidade_nome: string;
+        total_valor: number;
+        percentual_total: number;
+    } | null>((best, current) => {
         if (!best || current.total_valor > best.total_valor) {
             return current;
         }
@@ -316,8 +335,10 @@ export default function TransportHomePage() {
     }, null);
     const freightAveragePerUnit =
         freightOnlyUnits.length > 0
-            ? freightOnlyUnits.reduce((sum, unit) => sum + unit.total_valor, 0) /
-              freightOnlyUnits.length
+            ? freightOnlyUnits.reduce(
+                  (sum, unit) => sum + unit.total_valor,
+                  0,
+              ) / freightOnlyUnits.length
             : 0;
 
     return (
@@ -336,14 +357,18 @@ export default function TransportHomePage() {
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
                             type="button"
-                            variant={layoutMode === 'super' ? 'default' : 'outline'}
+                            variant={
+                                layoutMode === 'super' ? 'default' : 'outline'
+                            }
                             onClick={() => setLayoutMode('super')}
                         >
                             Super dashboard
                         </Button>
                         <Button
                             type="button"
-                            variant={layoutMode === 'classic' ? 'default' : 'outline'}
+                            variant={
+                                layoutMode === 'classic' ? 'default' : 'outline'
+                            }
                             onClick={() => setLayoutMode('classic')}
                         >
                             Layout clássico
@@ -366,22 +391,30 @@ export default function TransportHomePage() {
                             <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div>
                                     <CardTitle>Período</CardTitle>
-                                    <CardDescription>{periodLabel}</CardDescription>
+                                    <CardDescription>
+                                        {periodLabel}
+                                    </CardDescription>
                                 </div>
                                 <div className="grid gap-2 md:grid-cols-2">
                                     <Select
                                         value={periodMode}
-                                        onValueChange={(value: '1m' | '3m' | 'month') =>
-                                            setPeriodMode(value)
-                                        }
+                                        onValueChange={(
+                                            value: '1m' | '3m' | 'month',
+                                        ) => setPeriodMode(value)}
                                     >
                                         <SelectTrigger className="w-full md:w-36">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="1m">Último 1 mês</SelectItem>
-                                            <SelectItem value="3m">Últimos 3 meses</SelectItem>
-                                            <SelectItem value="month">Mês específico</SelectItem>
+                                            <SelectItem value="1m">
+                                                Último 1 mês
+                                            </SelectItem>
+                                            <SelectItem value="3m">
+                                                Últimos 3 meses
+                                            </SelectItem>
+                                            <SelectItem value="month">
+                                                Mês específico
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
 
@@ -395,7 +428,10 @@ export default function TransportHomePage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {monthOptions.map((option) => (
-                                                <SelectItem key={option.value} value={option.value}>
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
                                                     {option.label}
                                                 </SelectItem>
                                             ))}
@@ -408,69 +444,83 @@ export default function TransportHomePage() {
                         {superDashboard.freight ? (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Análise de frete por unidade</CardTitle>
+                                    <CardTitle>
+                                        Análise de frete por unidade
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid gap-4 xl:grid-cols-[7fr_3fr]">
                                         <div className="overflow-x-auto pb-1">
                                             <div className="flex min-w-[640px] items-end gap-2 px-1">
-                                                {freightChartColumns.map((column, index) => {
-                                                    const barHeight = Math.max(
-                                                        58,
-                                                        Math.round(
-                                                            (column.total_valor / freightChartMax) * 210,
-                                                        ),
-                                                    );
-                                                    const fillHeight = Math.max(
-                                                        10,
-                                                        Math.min(
-                                                            100,
-                                                            Math.round(
-                                                                column.percentual_total,
-                                                            ),
-                                                        ),
-                                                    );
+                                                {freightChartColumns.map(
+                                                    (column, index) => {
+                                                        const barHeight =
+                                                            Math.max(
+                                                                58,
+                                                                Math.round(
+                                                                    (column.total_valor /
+                                                                        freightChartMax) *
+                                                                        210,
+                                                                ),
+                                                            );
+                                                        const fillHeight =
+                                                            Math.max(
+                                                                10,
+                                                                Math.min(
+                                                                    100,
+                                                                    Math.round(
+                                                                        column.percentual_total,
+                                                                    ),
+                                                                ),
+                                                            );
 
-                                                    return (
-                                                        <div
-                                                            key={`freight-column-${column.unidade_id}-${index}`}
-                                                            className="flex min-w-[108px] flex-col items-center gap-2"
-                                                        >
+                                                        return (
                                                             <div
-                                                                className="relative w-[96px] overflow-hidden rounded-md border bg-background"
-                                                                style={{ height: `${barHeight}px` }}
+                                                                key={`freight-column-${column.unidade_id}-${index}`}
+                                                                className="flex min-w-[108px] flex-col items-center gap-2"
                                                             >
                                                                 <div
-                                                                    className="absolute right-0 bottom-0 left-0 bg-muted"
+                                                                    className="relative w-[96px] overflow-hidden rounded-md border bg-background"
                                                                     style={{
-                                                                        height: `${fillHeight}%`,
+                                                                        height: `${barHeight}px`,
                                                                     }}
-                                                                />
+                                                                >
+                                                                    <div
+                                                                        className="absolute right-0 bottom-0 left-0 bg-muted"
+                                                                        style={{
+                                                                            height: `${fillHeight}%`,
+                                                                        }}
+                                                                    />
 
-                                                                <p className="absolute top-2 right-0 left-0 px-2 text-center text-xs font-medium text-foreground">
-                                                                    {formatCurrencyBR(
-                                                                        column.total_valor,
-                                                                    )}
-                                                                </p>
+                                                                    <p className="absolute top-2 right-0 left-0 px-2 text-center text-xs font-medium text-foreground">
+                                                                        {formatCurrencyBR(
+                                                                            column.total_valor,
+                                                                        )}
+                                                                    </p>
 
-                                                                <p className="absolute right-0 bottom-2 left-0 text-center text-xs text-muted-foreground">
-                                                                    {formatPercentBR(
-                                                                        column.percentual_total,
-                                                                    )}
+                                                                    <p className="absolute right-0 bottom-2 left-0 text-center text-xs text-muted-foreground">
+                                                                        {formatPercentBR(
+                                                                            column.percentual_total,
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+
+                                                                <p className="text-center text-xs font-semibold text-foreground uppercase">
+                                                                    {
+                                                                        column.unidade_nome
+                                                                    }
                                                                 </p>
                                                             </div>
-
-                                                            <p className="text-center text-xs font-semibold text-foreground uppercase">
-                                                                {column.unidade_nome}
-                                                            </p>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    },
+                                                )}
                                             </div>
                                         </div>
 
                                         <div className="space-y-2 rounded-md border p-3 text-sm">
-                                            <p className="font-medium">Resumo de frete</p>
+                                            <p className="font-medium">
+                                                Resumo de frete
+                                            </p>
                                             <div className="space-y-1 text-muted-foreground">
                                                 <p>
                                                     Total empresa:{' '}
@@ -525,48 +575,70 @@ export default function TransportHomePage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                        {superDashboard.vacations.by_unit.map((unit) => (
-                                            <div
-                                                key={`vacation-unit-${unit.unidade_id}`}
-                                                className={`rounded-md border p-3 ${
-                                                    unit.urgent_count > 0
-                                                        ? 'border-amber-300'
-                                                        : ''
-                                                }`}
-                                            >
-                                                <div className="mb-2 flex items-center justify-between gap-2">
-                                                    <p className="text-base font-semibold text-foreground">{unit.unidade_nome}</p>
-                                                    {unit.urgent_count > 0 ? (
-                                                        <Badge className="transport-status-badge border-amber-300 bg-amber-100 text-amber-900">
-                                                            <AlertTriangle className="mr-1 size-3" />
-                                                            {unit.urgent_count} em urgente
-                                                        </Badge>
+                                        {superDashboard.vacations.by_unit.map(
+                                            (unit) => (
+                                                <div
+                                                    key={`vacation-unit-${unit.unidade_id}`}
+                                                    className={`rounded-md border p-3 ${
+                                                        unit.urgent_count > 0
+                                                            ? 'border-amber-300'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                                        <p className="text-base font-semibold text-foreground">
+                                                            {unit.unidade_nome}
+                                                        </p>
+                                                        {unit.urgent_count >
+                                                        0 ? (
+                                                            <Badge className="transport-status-badge border-amber-300 bg-amber-100 text-amber-900">
+                                                                <AlertTriangle className="mr-1 size-3" />
+                                                                {
+                                                                    unit.urgent_count
+                                                                }{' '}
+                                                                em urgente
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge className="transport-status-badge border-emerald-300 bg-emerald-100 text-emerald-900">
+                                                                Sem urgentes
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    {unit.on_vacation.length ===
+                                                    0 ? (
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Ninguém de férias
+                                                            agora.
+                                                        </p>
                                                     ) : (
-                                                        <Badge className="transport-status-badge border-emerald-300 bg-emerald-100 text-emerald-900">
-                                                            Sem urgentes
-                                                        </Badge>
+                                                        <div className="space-y-2 text-sm">
+                                                            {unit.on_vacation.map(
+                                                                (row) => (
+                                                                    <div
+                                                                        key={`vacation-row-${unit.unidade_id}-${row.colaborador_id}`}
+                                                                        className="rounded-md border px-2 py-1.5"
+                                                                    >
+                                                                        <p className="font-medium text-foreground">
+                                                                            {
+                                                                                row.nome
+                                                                            }
+                                                                        </p>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {row.data_inicio ??
+                                                                                '-'}{' '}
+                                                                            até{' '}
+                                                                            {row.data_fim ??
+                                                                                '-'}
+                                                                        </p>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
-
-                                                {unit.on_vacation.length === 0 ? (
-                                                    <p className="text-sm text-muted-foreground">Ninguém de férias agora.</p>
-                                                ) : (
-                                                    <div className="space-y-2 text-sm">
-                                                        {unit.on_vacation.map((row) => (
-                                                            <div
-                                                                key={`vacation-row-${unit.unidade_id}-${row.colaborador_id}`}
-                                                                className="rounded-md border px-2 py-1.5"
-                                                            >
-                                                                <p className="font-medium text-foreground">{row.nome}</p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {row.data_inicio ?? '-'} até {row.data_fim ?? '-'}
-                                                                </p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                            ),
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -575,15 +647,23 @@ export default function TransportHomePage() {
                         {superDashboard.payroll ? (
                             <Card>
                                 <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                    <CardTitle>Pagamentos por unidade</CardTitle>
+                                    <CardTitle>
+                                        Pagamentos por unidade
+                                    </CardTitle>
 
-                                    <Select value={payrollMonth || undefined} onValueChange={setPayrollMonth}>
+                                    <Select
+                                        value={payrollMonth || undefined}
+                                        onValueChange={setPayrollMonth}
+                                    >
                                         <SelectTrigger className="w-full md:w-44">
                                             <SelectValue placeholder="Mês da folha" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {monthOptions.map((option) => (
-                                                <SelectItem key={`payroll-month-${option.value}`} value={option.value}>
+                                                <SelectItem
+                                                    key={`payroll-month-${option.value}`}
+                                                    value={option.value}
+                                                >
                                                     {option.label}
                                                 </SelectItem>
                                             ))}
@@ -595,46 +675,111 @@ export default function TransportHomePage() {
                                         <table className="w-full min-w-[780px] text-sm">
                                             <thead>
                                                 <tr className="border-b text-left text-muted-foreground">
-                                                    <th className="py-2 pr-3 font-medium">Unidade</th>
-                                                    {superDashboard.payroll.columns.map((column) => (
-                                                        <th key={`payroll-col-${column.key}`} className="py-2 pr-3 font-medium">
-                                                            {column.label}
-                                                        </th>
-                                                    ))}
-                                                    <th className="py-2 pr-3 font-medium">Total</th>
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Unidade
+                                                    </th>
+                                                    {superDashboard.payroll.columns.map(
+                                                        (column) => (
+                                                            <th
+                                                                key={`payroll-col-${column.key}`}
+                                                                className="py-2 pr-3 font-medium"
+                                                            >
+                                                                {column.label}
+                                                            </th>
+                                                        ),
+                                                    )}
+                                                    <th className="py-2 pr-3 font-medium">
+                                                        Total
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {superDashboard.payroll.rows.length === 0 ? (
+                                                {superDashboard.payroll.rows
+                                                    .length === 0 ? (
                                                     <tr>
                                                         <td
                                                             className="py-6 text-center text-muted-foreground"
-                                                            colSpan={superDashboard.payroll.columns.length + 2}
+                                                            colSpan={
+                                                                superDashboard
+                                                                    .payroll
+                                                                    .columns
+                                                                    .length + 2
+                                                            }
                                                         >
-                                                            Sem lançamentos para a competência selecionada.
+                                                            Sem lançamentos para
+                                                            a competência
+                                                            selecionada.
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    superDashboard.payroll.rows.map((row) => (
-                                                        <tr key={`payroll-row-${row.unidade_id}`} className="border-b">
-                                                            <td className="py-2 pr-3 font-medium">{row.unidade_nome}</td>
-                                                            {superDashboard.payroll.columns.map((column) => (
-                                                                <td key={`payroll-cell-${row.unidade_id}-${column.key}`} className="py-2 pr-3">
-                                                                    {formatCurrencyBR(row.values[column.key] ?? 0)}
+                                                    superDashboard.payroll.rows.map(
+                                                        (row) => (
+                                                            <tr
+                                                                key={`payroll-row-${row.unidade_id}`}
+                                                                className="border-b"
+                                                            >
+                                                                <td className="py-2 pr-3 font-medium">
+                                                                    {
+                                                                        row.unidade_nome
+                                                                    }
                                                                 </td>
-                                                            ))}
-                                                            <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(row.total)}</td>
-                                                        </tr>
-                                                    ))
+                                                                {superDashboard.payroll.columns.map(
+                                                                    (
+                                                                        column,
+                                                                    ) => (
+                                                                        <td
+                                                                            key={`payroll-cell-${row.unidade_id}-${column.key}`}
+                                                                            className="py-2 pr-3"
+                                                                        >
+                                                                            {formatCurrencyBR(
+                                                                                row
+                                                                                    .values[
+                                                                                    column
+                                                                                        .key
+                                                                                ] ??
+                                                                                    0,
+                                                                            )}
+                                                                        </td>
+                                                                    ),
+                                                                )}
+                                                                <td className="py-2 pr-3 font-semibold">
+                                                                    {formatCurrencyBR(
+                                                                        row.total,
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ),
+                                                    )
                                                 )}
                                                 <tr className="bg-muted/20 font-semibold">
-                                                    <td className="py-2 pr-3">Total</td>
-                                                    {superDashboard.payroll.columns.map((column) => (
-                                                        <td key={`payroll-total-${column.key}`} className="py-2 pr-3">
-                                                            {formatCurrencyBR(superDashboard.payroll.totals.values[column.key] ?? 0)}
-                                                        </td>
-                                                    ))}
-                                                    <td className="py-2 pr-3">{formatCurrencyBR(superDashboard.payroll.totals.total)}</td>
+                                                    <td className="py-2 pr-3">
+                                                        Total
+                                                    </td>
+                                                    {superDashboard.payroll.columns.map(
+                                                        (column) => (
+                                                            <td
+                                                                key={`payroll-total-${column.key}`}
+                                                                className="py-2 pr-3"
+                                                            >
+                                                                {formatCurrencyBR(
+                                                                    superDashboard
+                                                                        .payroll
+                                                                        .totals
+                                                                        .values[
+                                                                        column
+                                                                            .key
+                                                                    ] ?? 0,
+                                                                )}
+                                                            </td>
+                                                        ),
+                                                    )}
+                                                    <td className="py-2 pr-3">
+                                                        {formatCurrencyBR(
+                                                            superDashboard
+                                                                .payroll.totals
+                                                                .total,
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -647,19 +792,37 @@ export default function TransportHomePage() {
                             <div className="grid gap-4 xl:grid-cols-2">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Total de entrevistas por unidade</CardTitle>
+                                        <CardTitle>
+                                            Total de entrevistas por unidade
+                                        </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-2 text-sm">
-                                            {superDashboard.interviews.totals_by_unit.length === 0 ? (
-                                                <p className="text-muted-foreground">Sem entrevistas no período.</p>
+                                            {superDashboard.interviews
+                                                .totals_by_unit.length === 0 ? (
+                                                <p className="text-muted-foreground">
+                                                    Sem entrevistas no período.
+                                                </p>
                                             ) : (
-                                                superDashboard.interviews.totals_by_unit.map((row) => (
-                                                    <div key={`interviews-unit-${row.unidade_id}`} className="flex items-center justify-between rounded border px-3 py-2">
-                                                        <span>{row.unidade_nome}</span>
-                                                        <strong>{formatIntegerBR(row.total_entrevistas)}</strong>
-                                                    </div>
-                                                ))
+                                                superDashboard.interviews.totals_by_unit.map(
+                                                    (row) => (
+                                                        <div
+                                                            key={`interviews-unit-${row.unidade_id}`}
+                                                            className="flex items-center justify-between rounded border px-3 py-2"
+                                                        >
+                                                            <span>
+                                                                {
+                                                                    row.unidade_nome
+                                                                }
+                                                            </span>
+                                                            <strong>
+                                                                {formatIntegerBR(
+                                                                    row.total_entrevistas,
+                                                                )}
+                                                            </strong>
+                                                        </div>
+                                                    ),
+                                                )
                                             )}
                                         </div>
                                     </CardContent>
@@ -667,41 +830,87 @@ export default function TransportHomePage() {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Admissões e demissões recentes</CardTitle>
+                                        <CardTitle>
+                                            Admissões e demissões recentes
+                                        </CardTitle>
                                     </CardHeader>
                                     <CardContent className="grid gap-3 md:grid-cols-2">
                                         <div>
-                                            <p className="mb-2 text-sm font-medium">Admissões</p>
+                                            <p className="mb-2 text-sm font-medium">
+                                                Admissões
+                                            </p>
                                             <div className="max-h-64 space-y-2 overflow-auto pr-1 text-sm">
-                                                {superDashboard.interviews.recent_admissions.length === 0 ? (
-                                                    <p className="text-muted-foreground">Sem admissões recentes.</p>
+                                                {superDashboard.interviews
+                                                    .recent_admissions
+                                                    .length === 0 ? (
+                                                    <p className="text-muted-foreground">
+                                                        Sem admissões recentes.
+                                                    </p>
                                                 ) : (
-                                                    superDashboard.interviews.recent_admissions.map((row) => (
-                                                        <div key={`admission-${row.id}`} className="rounded border px-2 py-1.5">
-                                                            <p className="font-medium">{row.nome}</p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {row.unidade_nome} • {row.funcao_nome} • {row.data ?? '-'}
-                                                            </p>
-                                                        </div>
-                                                    ))
+                                                    superDashboard.interviews.recent_admissions.map(
+                                                        (row) => (
+                                                            <div
+                                                                key={`admission-${row.id}`}
+                                                                className="rounded border px-2 py-1.5"
+                                                            >
+                                                                <p className="font-medium">
+                                                                    {row.nome}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {
+                                                                        row.unidade_nome
+                                                                    }{' '}
+                                                                    •{' '}
+                                                                    {
+                                                                        row.funcao_nome
+                                                                    }{' '}
+                                                                    •{' '}
+                                                                    {row.data ??
+                                                                        '-'}
+                                                                </p>
+                                                            </div>
+                                                        ),
+                                                    )
                                                 )}
                                             </div>
                                         </div>
 
                                         <div>
-                                            <p className="mb-2 text-sm font-medium">Demissões</p>
+                                            <p className="mb-2 text-sm font-medium">
+                                                Demissões
+                                            </p>
                                             <div className="max-h-64 space-y-2 overflow-auto pr-1 text-sm">
-                                                {superDashboard.interviews.recent_dismissals.length === 0 ? (
-                                                    <p className="text-muted-foreground">Sem demissões recentes.</p>
+                                                {superDashboard.interviews
+                                                    .recent_dismissals
+                                                    .length === 0 ? (
+                                                    <p className="text-muted-foreground">
+                                                        Sem demissões recentes.
+                                                    </p>
                                                 ) : (
-                                                    superDashboard.interviews.recent_dismissals.map((row) => (
-                                                        <div key={`dismissal-${row.id}`} className="rounded border px-2 py-1.5">
-                                                            <p className="font-medium">{row.nome}</p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {row.unidade_nome} • {row.funcao_nome} • {row.data ?? '-'}
-                                                            </p>
-                                                        </div>
-                                                    ))
+                                                    superDashboard.interviews.recent_dismissals.map(
+                                                        (row) => (
+                                                            <div
+                                                                key={`dismissal-${row.id}`}
+                                                                className="rounded border px-2 py-1.5"
+                                                            >
+                                                                <p className="font-medium">
+                                                                    {row.nome}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {
+                                                                        row.unidade_nome
+                                                                    }{' '}
+                                                                    •{' '}
+                                                                    {
+                                                                        row.funcao_nome
+                                                                    }{' '}
+                                                                    •{' '}
+                                                                    {row.data ??
+                                                                        '-'}
+                                                                </p>
+                                                            </div>
+                                                        ),
+                                                    )
                                                 )}
                                             </div>
                                         </div>
@@ -748,8 +957,16 @@ export default function TransportHomePage() {
                                                                 ' ',
                                                             )}
                                                     </span>
-                                                    <span className={metricValueClass(label, value)}>
-                                                        {formatMetric(label, value)}
+                                                    <span
+                                                        className={metricValueClass(
+                                                            label,
+                                                            value,
+                                                        )}
+                                                    >
+                                                        {formatMetric(
+                                                            label,
+                                                            value,
+                                                        )}
                                                     </span>
                                                 </div>
                                             ),

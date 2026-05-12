@@ -1,5 +1,7 @@
+import { Link } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +14,6 @@ import {
 } from '@/components/ui/select';
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR, formatIntegerBR } from '@/lib/transport-format';
-import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;
@@ -62,12 +63,7 @@ export default function TransportFreightMonthlyPage() {
             .catch(() => setError('Não foi possível carregar as unidades.'));
     }, []);
 
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoading(true);
-         
-        setError(null);
-
+    const loadData = useCallback(() => {
         const params = new URLSearchParams({
             competencia_mes: month,
             competencia_ano: year,
@@ -77,6 +73,9 @@ export default function TransportFreightMonthlyPage() {
             params.set('unidade_id', unidadeId);
         }
 
+        setLoading(true);
+        setError(null);
+
         apiGet<FreightMonthlyResponse>(
             `/freight/monthly-unit-report?${params.toString()}`,
         )
@@ -85,7 +84,11 @@ export default function TransportFreightMonthlyPage() {
                 setError('Não foi possível carregar o relatório mensal.'),
             )
             .finally(() => setLoading(false));
-    }, [month, year, unidadeId]);
+    }, [month, unidadeId, year]);
+
+    useEffect(() => {
+        void Promise.resolve().then(loadData);
+    }, [loadData]);
 
     return (
         <AdminLayout
@@ -96,12 +99,20 @@ export default function TransportFreightMonthlyPage() {
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">
-                        Análise Mensal por Unidade
+                        Análise mensal por unidade
                     </h2>
                     <p className="text-sm text-muted-foreground">
                         Métricas consolidadas de produtividade e eficiência por
                         unidade no mês.
                     </p>
+                    <div className="mt-2">
+                        <Link
+                            href="/transport/freight/fleet-size-config"
+                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                            Configurar frota mensal
+                        </Link>
+                    </div>
                 </div>
 
                 {error ? (
@@ -253,13 +264,47 @@ export default function TransportFreightMonthlyPage() {
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
                                                 <p className="text-xs text-muted-foreground">
-                                                    Frete por caminhão
+                                                    Frete médio por caminhão
+                                                    trabalhado
                                                 </p>
                                                 <p className="text-xl font-semibold">
                                                     {formatCurrencyBR(
-                                                        item.frete_por_caminhao,
+                                                        item.frete_medio_por_caminhao_trabalhado,
                                                     )}
                                                 </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatIntegerBR(
+                                                        item.caminhoes_trabalhados,
+                                                    )}{' '}
+                                                    caminhão(ões)
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border bg-muted/20 p-3">
+                                                <p className="text-xs text-muted-foreground">
+                                                    Frete médio por caminhão da
+                                                    frota
+                                                </p>
+                                                {item.frota_informada ? (
+                                                    <>
+                                                        <p className="text-xl font-semibold">
+                                                            {formatCurrencyBR(
+                                                                item.frete_medio_por_caminhao_frota ??
+                                                                    0,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Frota cadastrada:{' '}
+                                                            {formatIntegerBR(
+                                                                item.frota_cadastrada ??
+                                                                    0,
+                                                            )}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-sm font-medium text-amber-700">
+                                                        Não informado
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="rounded-md border bg-muted/20 p-3">
                                                 <p className="text-xs text-muted-foreground">

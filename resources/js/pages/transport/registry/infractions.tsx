@@ -50,7 +50,8 @@ export default function TransportRegistryInfractionsPage() {
     const [deleting, setDeleting] = useState(false);
     const [formOpen, setFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<FineInfraction | null>(null);
-    const [deleteCandidate, setDeleteCandidate] = useState<FineInfraction | null>(null);
+    const [deleteCandidate, setDeleteCandidate] =
+        useState<FineInfraction | null>(null);
     const [formData, setFormData] = useState<InfractionFormData>(emptyForm);
     const [notification, setNotification] = useState<{
         message: string;
@@ -62,7 +63,9 @@ export default function TransportRegistryInfractionsPage() {
         setNotification(null);
 
         try {
-            const response = await apiGet<WrappedResponse<FineInfraction[]>>('/registry/infracoes-multa');
+            const response = await apiGet<WrappedResponse<FineInfraction[]>>(
+                '/registry/infracoes-multa',
+            );
             setItems(response.data);
         } catch {
             setNotification({
@@ -93,7 +96,9 @@ export default function TransportRegistryInfractionsPage() {
         setFormOpen(true);
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -173,13 +178,20 @@ export default function TransportRegistryInfractionsPage() {
     }
 
     return (
-        <AdminLayout title="Cadastro - Infrações" active="registry-infractions" module="registry">
+        <AdminLayout
+            title="Cadastro - Infrações"
+            active="registry-infractions"
+            module="registry"
+        >
             <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="text-2xl font-semibold">Cadastro de Infrações</h2>
+                        <h2 className="text-2xl font-semibold">
+                            Cadastro de Infrações
+                        </h2>
                         <p className="text-sm text-muted-foreground">
-                            Mantenha o catálogo de nomes de infração usado no lançamento de multas.
+                            Mantenha o catálogo de nomes de infração usado no
+                            lançamento de multas.
                         </p>
                     </div>
                     <Button type="button" onClick={openCreateDialog}>
@@ -189,7 +201,10 @@ export default function TransportRegistryInfractionsPage() {
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <Card>
@@ -211,20 +226,33 @@ export default function TransportRegistryInfractionsPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-2 pr-3 font-medium">Nome</th>
-                                            <th className="py-2 pr-3 font-medium">Status</th>
-                                            <th className="py-2 text-right font-medium">Ações</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Nome
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Status
+                                            </th>
+                                            <th className="py-2 text-right font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((item) => (
-                                            <tr key={item.id} className="border-b last:border-b-0">
-                                                <td className="py-2 pr-3 font-medium">{item.nome}</td>
+                                            <tr
+                                                key={item.id}
+                                                className="border-b last:border-b-0"
+                                            >
+                                                <td className="py-2 pr-3 font-medium">
+                                                    {item.nome}
+                                                </td>
                                                 <td className="py-2 pr-3">
                                                     <span
                                                         className={`transport-status-badge ${item.ativo ? 'transport-status-success' : 'transport-status-danger'}`}
                                                     >
-                                                        {item.ativo ? 'Ativa' : 'Inativa'}
+                                                        {item.ativo
+                                                            ? 'Ativa'
+                                                            : 'Inativa'}
                                                     </span>
                                                 </td>
                                                 <td className="py-2">
@@ -235,7 +263,11 @@ export default function TransportRegistryInfractionsPage() {
                                                             size="sm"
                                                             title="Editar"
                                                             aria-label="Editar"
-                                                            onClick={() => openEditDialog(item)}
+                                                            onClick={() =>
+                                                                openEditDialog(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <PencilLine className="size-4" />
                                                         </Button>
@@ -246,7 +278,11 @@ export default function TransportRegistryInfractionsPage() {
                                                             className="text-destructive hover:text-destructive"
                                                             title="Excluir"
                                                             aria-label="Excluir"
-                                                            onClick={() => setDeleteCandidate(item)}
+                                                            onClick={() =>
+                                                                setDeleteCandidate(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <Trash2 className="size-4" />
                                                         </Button>
@@ -275,10 +311,13 @@ export default function TransportRegistryInfractionsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingItem ? 'Editar infração' : 'Cadastrar infração'}
+                            {editingItem
+                                ? 'Editar infração'
+                                : 'Cadastrar infração'}
                         </DialogTitle>
                         <DialogDescription>
-                            Defina os nomes de infração usados no módulo de multas.
+                            Defina os nomes de infração usados no módulo de
+                            multas.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -327,7 +366,10 @@ export default function TransportRegistryInfractionsPage() {
                             >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={saving || !formData.nome.trim()}>
+                            <Button
+                                type="submit"
+                                disabled={saving || !formData.nome.trim()}
+                            >
                                 {saving ? (
                                     <>
                                         <LoaderCircle className="size-4 animate-spin" />
@@ -354,7 +396,8 @@ export default function TransportRegistryInfractionsPage() {
                     <DialogHeader>
                         <DialogTitle>Excluir infração</DialogTitle>
                         <DialogDescription>
-                            Deseja realmente excluir a infração <strong>{deleteCandidate?.nome}</strong>?
+                            Deseja realmente excluir a infração{' '}
+                            <strong>{deleteCandidate?.nome}</strong>?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

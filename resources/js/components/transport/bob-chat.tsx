@@ -1,4 +1,11 @@
-import { Bot, LoaderCircle, MessageCircle, Send, Trash2, X } from 'lucide-react';
+import {
+    Bot,
+    LoaderCircle,
+    MessageCircle,
+    Send,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +55,9 @@ export function BobChatButton() {
     const [unreadCount, setUnreadCount] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    const [messages, setMessages] = useState<BobMessage[]>([buildWelcomeMessage()]);
+    const [messages, setMessages] = useState<BobMessage[]>([
+        buildWelcomeMessage(),
+    ]);
 
     const suggestions = useMemo(
         () => [
@@ -60,7 +69,8 @@ export function BobChatButton() {
         [],
     );
 
-    const canClearChat = !loadingHistory && !clearingHistory && messages.length > 0;
+    const canClearChat =
+        !loadingHistory && !clearingHistory && messages.length > 0;
 
     useEffect(() => {
         let active = true;
@@ -69,7 +79,8 @@ export function BobChatButton() {
             setLoadingHistory(true);
 
             try {
-                const response = await apiGet<BobHistoryResponse>('/bob/history');
+                const response =
+                    await apiGet<BobHistoryResponse>('/bob/history');
                 if (!active) return;
 
                 if (response.messages.length === 0) {
@@ -133,7 +144,8 @@ export function BobChatButton() {
                 {
                     id: 'welcome-reset',
                     role: 'bob',
-                    content: 'Conversa reiniciada. Posso consultar lançamentos e lançar fretes para você.',
+                    content:
+                        'Conversa reiniciada. Posso consultar lançamentos e lançar fretes para você.',
                     createdAt: Date.now(),
                 },
             ]);
@@ -205,7 +217,9 @@ export function BobChatButton() {
         <div className="fixed right-3 bottom-3 z-40 print:hidden">
             <div
                 className={`absolute right-0 bottom-14 flex h-[min(74vh,620px)] w-[min(94vw,430px)] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl transition-all duration-200 ${
-                    open ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
+                    open
+                        ? 'pointer-events-auto translate-y-0 opacity-100'
+                        : 'pointer-events-none translate-y-3 opacity-0'
                 }`}
             >
                 <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2.5">
@@ -220,7 +234,9 @@ export function BobChatButton() {
                                 online
                             </span>
                         </p>
-                        <p className="text-[11px] text-muted-foreground">Assistente operacional do sistema</p>
+                        <p className="text-[11px] text-muted-foreground">
+                            Assistente operacional do sistema
+                        </p>
                     </div>
                     <div className="flex items-center gap-1">
                         <Button
@@ -233,7 +249,12 @@ export function BobChatButton() {
                         >
                             <Trash2 className="size-4" />
                         </Button>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => setOpen(false)}>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setOpen(false)}
+                        >
                             <X className="size-4" />
                         </Button>
                     </div>
@@ -259,7 +280,9 @@ export function BobChatButton() {
                             <div>{message.content}</div>
                             <p
                                 className={`mt-1 text-[10px] ${
-                                    message.role === 'user' ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                                    message.role === 'user'
+                                        ? 'text-primary-foreground/80'
+                                        : 'text-muted-foreground'
                                 }`}
                             >
                                 {formatTime(message.createdAt)}
@@ -278,7 +301,9 @@ export function BobChatButton() {
                 </div>
 
                 <div className="border-t bg-card p-2.5">
-                    <div className="mb-2 text-[10px] text-muted-foreground">Atalhos rápidos</div>
+                    <div className="mb-2 text-[10px] text-muted-foreground">
+                        Atalhos rápidos
+                    </div>
 
                     <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
                         {suggestions.map((suggestion) => (

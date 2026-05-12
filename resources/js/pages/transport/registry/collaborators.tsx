@@ -359,7 +359,11 @@ function parseInputDateToUtc(value: string): Date | null {
     const month = Number(monthString);
     const day = Number(dayString);
 
-    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    if (
+        !Number.isFinite(year) ||
+        !Number.isFinite(month) ||
+        !Number.isFinite(day)
+    ) {
         return null;
     }
 
@@ -394,9 +398,11 @@ function resolveProfileVacationRule(
         };
     }
 
-    const rangeDays = Math.floor(
-        (parsedEnd.getTime() - parsedStart.getTime()) / (24 * 60 * 60 * 1000),
-    ) + 1;
+    const rangeDays =
+        Math.floor(
+            (parsedEnd.getTime() - parsedStart.getTime()) /
+                (24 * 60 * 60 * 1000),
+        ) + 1;
 
     if (rangeDays < 17) {
         return {
@@ -462,7 +468,10 @@ function formatCep(value: string | null): string {
 }
 
 function sanitizeRg(value: string): string {
-    return value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 30);
+    return value
+        .toUpperCase()
+        .replace(/[^0-9A-Z]/g, '')
+        .slice(0, 30);
 }
 
 function formatRg(value: string): string {
@@ -527,8 +536,12 @@ export default function TransportRegistryCollaboratorsPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
     const [birthdaysLoading, setBirthdaysLoading] = useState(true);
-    const [todayBirthdays, setTodayBirthdays] = useState<BirthdayCollaborator[]>([]);
-    const [monthBirthdays, setMonthBirthdays] = useState<BirthdayCollaborator[]>([]);
+    const [todayBirthdays, setTodayBirthdays] = useState<
+        BirthdayCollaborator[]
+    >([]);
+    const [monthBirthdays, setMonthBirthdays] = useState<
+        BirthdayCollaborator[]
+    >([]);
 
     const [formOpen, setFormOpen] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -565,7 +578,9 @@ export default function TransportRegistryCollaboratorsPage() {
     const [feriasSaving, setFeriasSaving] = useState(false);
     const [editingFeriasId, setEditingFeriasId] = useState<number | null>(null);
     const [afastamentoModalOpen, setAfastamentoModalOpen] = useState(false);
-    const [editingAfastamentoId, setEditingAfastamentoId] = useState<number | null>(null);
+    const [editingAfastamentoId, setEditingAfastamentoId] = useState<
+        number | null
+    >(null);
     const [feriasDraft, setFeriasDraft] = useState({
         data_inicio: '',
         data_termino: '',
@@ -583,10 +598,15 @@ export default function TransportRegistryCollaboratorsPage() {
     const [quickEditOpen, setQuickEditOpen] = useState(false);
     const [quickEditSaving, setQuickEditSaving] = useState(false);
     const [quickEditLabel, setQuickEditLabel] = useState('');
-    const [quickEditField, setQuickEditField] = useState<keyof ColaboradorFormData | null>(null);
-    const [quickEditType, setQuickEditType] = useState<QuickEditInputType>('text');
+    const [quickEditField, setQuickEditField] = useState<
+        keyof ColaboradorFormData | null
+    >(null);
+    const [quickEditType, setQuickEditType] =
+        useState<QuickEditInputType>('text');
     const [quickEditValue, setQuickEditValue] = useState('');
-    const [quickEditOptions, setQuickEditOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [quickEditOptions, setQuickEditOptions] = useState<
+        Array<{ value: string; label: string }>
+    >([]);
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
 
     const selectedUnidadeName = useMemo(() => {
@@ -741,7 +761,9 @@ export default function TransportRegistryCollaboratorsPage() {
         void loadFeriasForCollaborator(item.id);
     }
 
-    async function loadFeriasForCollaborator(colaboradorId: number): Promise<void> {
+    async function loadFeriasForCollaborator(
+        colaboradorId: number,
+    ): Promise<void> {
         try {
             const response = await apiGet<WrappedResponse<FeriasRegistro[]>>(
                 `/payroll/vacations/collaborators/${colaboradorId}`,
@@ -781,7 +803,8 @@ export default function TransportRegistryCollaboratorsPage() {
         if (editingFeriasId) {
             if (!feriasDraft.data_inicio || !feriasDraft.data_termino) {
                 setNotification({
-                    message: 'Informe data início e data término para lançar férias.',
+                    message:
+                        'Informe data início e data término para lançar férias.',
                     variant: 'error',
                 });
                 return;
@@ -789,7 +812,8 @@ export default function TransportRegistryCollaboratorsPage() {
 
             if (feriasDraft.data_termino < feriasDraft.data_inicio) {
                 setNotification({
-                    message: 'A data término não pode ser menor que a data início.',
+                    message:
+                        'A data término não pode ser menor que a data início.',
                     variant: 'error',
                 });
                 return;
@@ -801,7 +825,8 @@ export default function TransportRegistryCollaboratorsPage() {
 
             if (rowsWithAnyDate.length === 0) {
                 setNotification({
-                    message: 'Adicione pelo menos um período de férias passada para lançar.',
+                    message:
+                        'Adicione pelo menos um período de férias passada para lançar.',
                     variant: 'error',
                 });
                 return;
@@ -813,7 +838,8 @@ export default function TransportRegistryCollaboratorsPage() {
 
             if (hasIncompleteRow) {
                 setNotification({
-                    message: 'Preencha data início e data término em todos os períodos adicionados.',
+                    message:
+                        'Preencha data início e data término em todos os períodos adicionados.',
                     variant: 'error',
                 });
                 return;
@@ -825,7 +851,8 @@ export default function TransportRegistryCollaboratorsPage() {
 
             if (hasInvalidOrder) {
                 setNotification({
-                    message: 'Existe período com término menor que início. Ajuste as datas para continuar.',
+                    message:
+                        'Existe período com término menor que início. Ajuste as datas para continuar.',
                     variant: 'error',
                 });
                 return;
@@ -896,7 +923,11 @@ export default function TransportRegistryCollaboratorsPage() {
             await loadFeriasForCollaborator(detailsItem.id);
 
             setEditingFeriasId(null);
-            setFeriasDraft({ data_inicio: '', data_termino: '', observacoes: '' });
+            setFeriasDraft({
+                data_inicio: '',
+                data_termino: '',
+                observacoes: '',
+            });
             setFeriasDraftRows([{ data_inicio: '', data_termino: '' }]);
             setFeriasModalOpen(false);
             setNotification({
@@ -1096,7 +1127,9 @@ export default function TransportRegistryCollaboratorsPage() {
             numero_agencia_salario: normalizeNullable(
                 source.numero_agencia_salario,
             ),
-            numero_conta_salario: normalizeNullable(source.numero_conta_salario),
+            numero_conta_salario: normalizeNullable(
+                source.numero_conta_salario,
+            ),
             conta_pagamento: normalizeNullable(source.conta_pagamento),
             cartao_beneficio: normalizeNullable(source.cartao_beneficio),
         };
@@ -1111,7 +1144,12 @@ export default function TransportRegistryCollaboratorsPage() {
         if (!detailsItem) return;
 
         const rawValue = formData[field];
-        const value = typeof rawValue === 'boolean' ? (rawValue ? '1' : '0') : String(rawValue ?? '');
+        const value =
+            typeof rawValue === 'boolean'
+                ? rawValue
+                    ? '1'
+                    : '0'
+                : String(rawValue ?? '');
 
         setQuickEditField(field);
         setQuickEditLabel(label);
@@ -1175,7 +1213,9 @@ export default function TransportRegistryCollaboratorsPage() {
         setDetailsItem(refreshed);
         setFormData(collaboratorToFormData(refreshed));
         setItems((previous) =>
-            previous.map((item) => (item.id === refreshed.id ? refreshed : item)),
+            previous.map((item) =>
+                item.id === refreshed.id ? refreshed : item,
+            ),
         );
     }
 
@@ -1198,7 +1238,10 @@ export default function TransportRegistryCollaboratorsPage() {
         }
 
         if (detailsWorkCardAttachmentFile) {
-            payload.append('work_card_attachment_file', detailsWorkCardAttachmentFile);
+            payload.append(
+                'work_card_attachment_file',
+                detailsWorkCardAttachmentFile,
+            );
         }
 
         setDetailsAttachmentSaving(true);
@@ -1237,12 +1280,16 @@ export default function TransportRegistryCollaboratorsPage() {
         }
     }
 
-    async function removeDetailsAttachment(type: 'cnh' | 'work_card'): Promise<void> {
+    async function removeDetailsAttachment(
+        type: 'cnh' | 'work_card',
+    ): Promise<void> {
         if (!detailsItem) return;
 
         const payload = new FormData();
         payload.append(
-            type === 'cnh' ? 'remove_cnh_attachment' : 'remove_work_card_attachment',
+            type === 'cnh'
+                ? 'remove_cnh_attachment'
+                : 'remove_work_card_attachment',
             '1',
         );
 
@@ -1717,7 +1764,9 @@ export default function TransportRegistryCollaboratorsPage() {
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="rounded-md border p-3">
-                                    <p className="mb-2 text-sm font-medium">Aniversariantes de hoje</p>
+                                    <p className="mb-2 text-sm font-medium">
+                                        Aniversariantes de hoje
+                                    </p>
                                     {todayBirthdays.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
                                             Ninguém faz aniversário hoje.
@@ -1725,10 +1774,19 @@ export default function TransportRegistryCollaboratorsPage() {
                                     ) : (
                                         <div className="space-y-2">
                                             {todayBirthdays.map((item) => (
-                                                <div key={`birthday-today-${item.id}`} className="rounded-md border px-2 py-1.5 text-sm">
-                                                    <p className="font-medium">{item.nome}</p>
+                                                <div
+                                                    key={`birthday-today-${item.id}`}
+                                                    className="rounded-md border px-2 py-1.5 text-sm"
+                                                >
+                                                    <p className="font-medium">
+                                                        {item.nome}
+                                                    </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                        {item.funcao?.nome ??
+                                                            '-'}{' '}
+                                                        •{' '}
+                                                        {item.unidade?.nome ??
+                                                            '-'}
                                                     </p>
                                                 </div>
                                             ))}
@@ -1737,23 +1795,37 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
 
                                 <div className="rounded-md border p-3">
-                                    <p className="mb-2 text-sm font-medium">Aniversariantes do mês</p>
+                                    <p className="mb-2 text-sm font-medium">
+                                        Aniversariantes do mês
+                                    </p>
                                     {monthBirthdays.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
-                                            Não há aniversariantes cadastrados neste mês.
+                                            Não há aniversariantes cadastrados
+                                            neste mês.
                                         </p>
                                     ) : (
                                         <div className="max-h-56 space-y-2 overflow-auto pr-1">
                                             {monthBirthdays.map((item) => (
-                                                <div key={`birthday-month-${item.id}`} className="rounded-md border px-2 py-1.5 text-sm">
+                                                <div
+                                                    key={`birthday-month-${item.id}`}
+                                                    className="rounded-md border px-2 py-1.5 text-sm"
+                                                >
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <p className="font-medium">{item.nome}</p>
+                                                        <p className="font-medium">
+                                                            {item.nome}
+                                                        </p>
                                                         <span className="text-xs text-muted-foreground">
-                                                            {dateToView(item.data_nascimento)}
+                                                            {dateToView(
+                                                                item.data_nascimento,
+                                                            )}
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                        {item.funcao?.nome ??
+                                                            '-'}{' '}
+                                                        •{' '}
+                                                        {item.unidade?.nome ??
+                                                            '-'}
                                                     </p>
                                                 </div>
                                             ))}
@@ -1873,45 +1945,74 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={() => toggleSort('nome')}
+                                                    onClick={() =>
+                                                        toggleSort('nome')
+                                                    }
                                                 >
-                                                    Nome <span>{sortIndicator('nome')}</span>
+                                                    Nome{' '}
+                                                    <span>
+                                                        {sortIndicator('nome')}
+                                                    </span>
                                                 </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={() => toggleSort('funcao')}
+                                                    onClick={() =>
+                                                        toggleSort('funcao')
+                                                    }
                                                 >
-                                                    Função <span>{sortIndicator('funcao')}</span>
+                                                    Função{' '}
+                                                    <span>
+                                                        {sortIndicator(
+                                                            'funcao',
+                                                        )}
+                                                    </span>
                                                 </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={() => toggleSort('unidade')}
+                                                    onClick={() =>
+                                                        toggleSort('unidade')
+                                                    }
                                                 >
-                                                    Unidade <span>{sortIndicator('unidade')}</span>
+                                                    Unidade{' '}
+                                                    <span>
+                                                        {sortIndicator(
+                                                            'unidade',
+                                                        )}
+                                                    </span>
                                                 </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={() => toggleSort('cpf')}
+                                                    onClick={() =>
+                                                        toggleSort('cpf')
+                                                    }
                                                 >
-                                                    CPF <span>{sortIndicator('cpf')}</span>
+                                                    CPF{' '}
+                                                    <span>
+                                                        {sortIndicator('cpf')}
+                                                    </span>
                                                 </button>
                                             </th>
                                             <th className="py-2 pr-3 font-medium">
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1 hover:text-foreground"
-                                                    onClick={() => toggleSort('ativo')}
+                                                    onClick={() =>
+                                                        toggleSort('ativo')
+                                                    }
                                                 >
-                                                    Status <span>{sortIndicator('ativo')}</span>
+                                                    Status{' '}
+                                                    <span>
+                                                        {sortIndicator('ativo')}
+                                                    </span>
                                                 </button>
                                             </th>
                                             <th className="py-2 text-right font-medium">
@@ -2204,11 +2305,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                 <div className="space-y-2">
                                     <Label>Adiantamento Salarial (S/N)</Label>
                                     <Select
-                                        value={formData.adiantamento_salarial ? '1' : '0'}
+                                        value={
+                                            formData.adiantamento_salarial
+                                                ? '1'
+                                                : '0'
+                                        }
                                         onValueChange={(value) =>
                                             setFormData((previous) => ({
                                                 ...previous,
-                                                adiantamento_salarial: value === '1',
+                                                adiantamento_salarial:
+                                                    value === '1',
                                             }))
                                         }
                                     >
@@ -2775,7 +2881,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </Label>
                                         <Input
                                             id="agencia-salario"
-                                            value={formData.numero_agencia_salario}
+                                            value={
+                                                formData.numero_agencia_salario
+                                            }
                                             onChange={(event) =>
                                                 setFormData((previous) => ({
                                                     ...previous,
@@ -2791,7 +2899,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </Label>
                                         <Input
                                             id="conta-salario"
-                                            value={formData.numero_conta_salario}
+                                            value={
+                                                formData.numero_conta_salario
+                                            }
                                             onChange={(event) =>
                                                 setFormData((previous) => ({
                                                     ...previous,
@@ -2806,7 +2916,9 @@ export default function TransportRegistryCollaboratorsPage() {
 
                             <div className="grid gap-3 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label>Qual conta usar para pagamento</Label>
+                                    <Label>
+                                        Qual conta usar para pagamento
+                                    </Label>
                                     <Select
                                         value={formData.conta_pagamento}
                                         onValueChange={(value) =>
@@ -2847,7 +2959,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                             <SelectItem value="alelo">
                                                 Alelo
                                             </SelectItem>
-                                            <SelectItem value="vr">VR</SelectItem>
+                                            <SelectItem value="vr">
+                                                VR
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -2942,10 +3056,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     Código
                                                 </p>
                                                 <p className="text-base font-semibold">
-                                                    {String(detailsItem.id).padStart(
-                                                        6,
-                                                        '0',
-                                                    )}
+                                                    {String(
+                                                        detailsItem.id,
+                                                    ).padStart(6, '0')}
                                                 </p>
                                             </div>
                                             <div
@@ -2972,12 +3085,14 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         'funcao_id',
                                                         'Cargo',
                                                         'select',
-                                                        funcoes.map((funcao) => ({
-                                                            value: String(
-                                                                funcao.id,
-                                                            ),
-                                                            label: funcao.nome,
-                                                        })),
+                                                        funcoes.map(
+                                                            (funcao) => ({
+                                                                value: String(
+                                                                    funcao.id,
+                                                                ),
+                                                                label: funcao.nome,
+                                                            }),
+                                                        ),
                                                     )
                                                 }
                                                 title="Dê dois cliques para editar"
@@ -3174,7 +3289,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                         Data nascimento
                                     </p>
                                     <p className="text-sm font-medium">
-                                        {dateToView(detailsItem.data_nascimento)}
+                                        {dateToView(
+                                            detailsItem.data_nascimento,
+                                        )}
                                     </p>
                                 </div>
                                 <div
@@ -3269,7 +3386,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <p className="text-xs tracking-wide text-muted-foreground uppercase">
                                         Salário inicial
                                     </p>
-                                    <p className="text-sm font-medium">R$ 0,00</p>
+                                    <p className="text-sm font-medium">
+                                        R$ 0,00
+                                    </p>
                                 </div>
                             </div>
 
@@ -3342,13 +3461,18 @@ export default function TransportRegistryCollaboratorsPage() {
 
                             {detailsTab === 'contato' ? (
                                 <div className="grid gap-3 md:grid-cols-6">
-                                    <div className="md:col-span-6 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                                        Dica: nesta seção, clique duas vezes em qualquer campo para editar sem sair do perfil.
+                                    <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground md:col-span-6">
+                                        Dica: nesta seção, clique duas vezes em
+                                        qualquer campo para editar sem sair do
+                                        perfil.
                                     </div>
                                     <div
                                         className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/40 md:col-span-1"
                                         onDoubleClick={() =>
-                                            openQuickEdit('telefone', 'Telefone')
+                                            openQuickEdit(
+                                                'telefone',
+                                                'Telefone',
+                                            )
                                         }
                                         title="Dê dois cliques para editar"
                                     >
@@ -3356,7 +3480,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                             Telefone
                                         </p>
                                         <p className="text-sm font-medium">
-                                            {formatPhone(detailsItem.telefone ?? '') || '-'}
+                                            {formatPhone(
+                                                detailsItem.telefone ?? '',
+                                            ) || '-'}
                                         </p>
                                     </div>
                                     <div
@@ -3483,7 +3609,8 @@ export default function TransportRegistryCollaboratorsPage() {
                                             Endereço completo
                                         </p>
                                         <p className="text-sm font-medium">
-                                            {detailsItem.endereco_completo ?? '-'}
+                                            {detailsItem.endereco_completo ??
+                                                '-'}
                                         </p>
                                     </div>
                                 </div>
@@ -3492,7 +3619,9 @@ export default function TransportRegistryCollaboratorsPage() {
                             {detailsTab === 'documentos' ? (
                                 <div className="space-y-4">
                                     <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                                        Envie aqui os documentos do colaborador. Os links abaixo sempre mostram o arquivo atualmente salvo.
+                                        Envie aqui os documentos do colaborador.
+                                        Os links abaixo sempre mostram o arquivo
+                                        atualmente salvo.
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-2">
@@ -3506,17 +3635,23 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                                                 onChange={(event) =>
                                                     setDetailsCnhAttachmentFile(
-                                                        event.target.files?.[0] ?? null,
+                                                        event.target
+                                                            .files?.[0] ?? null,
                                                     )
                                                 }
-                                                disabled={detailsAttachmentSaving}
+                                                disabled={
+                                                    detailsAttachmentSaving
+                                                }
                                             />
                                             <p className="text-xs text-muted-foreground">
-                                                JPG, PNG, WEBP ou PDF (max. 8 MB).
+                                                JPG, PNG, WEBP ou PDF (max. 8
+                                                MB).
                                             </p>
                                             {detailsItem.cnh_attachment_url ? (
                                                 <a
-                                                    href={detailsItem.cnh_attachment_url}
+                                                    href={
+                                                        detailsItem.cnh_attachment_url
+                                                    }
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="inline-flex text-xs font-medium text-primary hover:underline"
@@ -3534,7 +3669,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() =>
-                                                    void removeDetailsAttachment('cnh')
+                                                    void removeDetailsAttachment(
+                                                        'cnh',
+                                                    )
                                                 }
                                                 disabled={
                                                     detailsAttachmentSaving ||
@@ -3555,17 +3692,23 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                                                 onChange={(event) =>
                                                     setDetailsWorkCardAttachmentFile(
-                                                        event.target.files?.[0] ?? null,
+                                                        event.target
+                                                            .files?.[0] ?? null,
                                                     )
                                                 }
-                                                disabled={detailsAttachmentSaving}
+                                                disabled={
+                                                    detailsAttachmentSaving
+                                                }
                                             />
                                             <p className="text-xs text-muted-foreground">
-                                                JPG, PNG, WEBP ou PDF (max. 8 MB).
+                                                JPG, PNG, WEBP ou PDF (max. 8
+                                                MB).
                                             </p>
                                             {detailsItem.work_card_attachment_url ? (
                                                 <a
-                                                    href={detailsItem.work_card_attachment_url}
+                                                    href={
+                                                        detailsItem.work_card_attachment_url
+                                                    }
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="inline-flex text-xs font-medium text-primary hover:underline"
@@ -3583,7 +3726,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() =>
-                                                    void removeDetailsAttachment('work_card')
+                                                    void removeDetailsAttachment(
+                                                        'work_card',
+                                                    )
                                                 }
                                                 disabled={
                                                     detailsAttachmentSaving ||
@@ -3598,7 +3743,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                     <div className="flex justify-end">
                                         <Button
                                             type="button"
-                                            onClick={() => void uploadDetailsAttachments()}
+                                            onClick={() =>
+                                                void uploadDetailsAttachments()
+                                            }
                                             disabled={detailsAttachmentSaving}
                                         >
                                             {detailsAttachmentSaving ? (
@@ -3643,15 +3790,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     <th className="px-3 py-2 font-medium">
                                                         Observações
                                                     </th>
-                                                    <th className="px-3 py-2 font-medium text-right">
+                                                    <th className="px-3 py-2 text-right font-medium">
                                                         Ações
                                                     </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {(feriasByColaborador[
-                                                    detailsItem.id
-                                                ] ?? []).map((item) => (
+                                                {(
+                                                    feriasByColaborador[
+                                                        detailsItem.id
+                                                    ] ?? []
+                                                ).map((item) => (
                                                     <tr
                                                         key={item.id}
                                                         className="border-t"
@@ -3675,22 +3824,29 @@ export default function TransportRegistryCollaboratorsPage() {
                                                                 type="button"
                                                                 size="sm"
                                                                 variant="outline"
-                                                                onClick={() => openFeriasEditModal(item)}
+                                                                onClick={() =>
+                                                                    openFeriasEditModal(
+                                                                        item,
+                                                                    )
+                                                                }
                                                             >
                                                                 Editar
                                                             </Button>
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {(feriasByColaborador[
-                                                    detailsItem.id
-                                                ] ?? []).length === 0 ? (
+                                                {(
+                                                    feriasByColaborador[
+                                                        detailsItem.id
+                                                    ] ?? []
+                                                ).length === 0 ? (
                                                     <tr>
                                                         <td
                                                             colSpan={4}
                                                             className="px-3 py-6 text-center text-muted-foreground"
                                                         >
-                                                            Nenhum lançamento de férias encontrado.
+                                                            Nenhum lançamento de
+                                                            férias encontrado.
                                                         </td>
                                                     </tr>
                                                 ) : null}
@@ -3698,7 +3854,8 @@ export default function TransportRegistryCollaboratorsPage() {
                                         </table>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Esta seção é sincronizada com o painel Controle de Férias.
+                                        Esta seção é sincronizada com o painel
+                                        Controle de Férias.
                                     </p>
                                 </div>
                             ) : null}
@@ -3735,15 +3892,17 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     <th className="px-3 py-2 font-medium">
                                                         Observações
                                                     </th>
-                                                    <th className="px-3 py-2 font-medium text-right">
+                                                    <th className="px-3 py-2 text-right font-medium">
                                                         Ações
                                                     </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {(afastamentosByColaborador[
-                                                    detailsItem.id
-                                                ] ?? []).map((item) => (
+                                                {(
+                                                    afastamentosByColaborador[
+                                                        detailsItem.id
+                                                    ] ?? []
+                                                ).map((item) => (
                                                     <tr
                                                         key={item.id}
                                                         className="cursor-pointer border-t hover:bg-muted/40"
@@ -3787,9 +3946,11 @@ export default function TransportRegistryCollaboratorsPage() {
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {(afastamentosByColaborador[
-                                                    detailsItem.id
-                                                ] ?? []).length === 0 ? (
+                                                {(
+                                                    afastamentosByColaborador[
+                                                        detailsItem.id
+                                                    ] ?? []
+                                                ).length === 0 ? (
                                                     <tr>
                                                         <td
                                                             colSpan={5}
@@ -3809,7 +3970,8 @@ export default function TransportRegistryCollaboratorsPage() {
                             {detailsTab === 'dados_bancarios' ? (
                                 <div className="space-y-4">
                                     <div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                                        Dica: nos dados bancários, clique duas vezes no campo para editar.
+                                        Dica: nos dados bancários, clique duas
+                                        vezes no campo para editar.
                                     </div>
                                     <div className="space-y-3">
                                         <p className="text-sm font-semibold">
@@ -4125,7 +4287,8 @@ export default function TransportRegistryCollaboratorsPage() {
                     <DialogHeader>
                         <DialogTitle>Editar campo</DialogTitle>
                         <DialogDescription>
-                            Atualize <strong>{quickEditLabel}</strong> e grave sem sair do perfil.
+                            Atualize <strong>{quickEditLabel}</strong> e grave
+                            sem sair do perfil.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -4152,7 +4315,9 @@ export default function TransportRegistryCollaboratorsPage() {
                             </Select>
                         ) : (
                             <Input
-                                type={quickEditType === 'date' ? 'date' : 'text'}
+                                type={
+                                    quickEditType === 'date' ? 'date' : 'text'
+                                }
                                 value={quickEditValue}
                                 onChange={(event) =>
                                     setQuickEditValue(event.target.value)
@@ -4216,7 +4381,9 @@ export default function TransportRegistryCollaboratorsPage() {
                             <div className="space-y-3">
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="ferias-inicio">Data início</Label>
+                                        <Label htmlFor="ferias-inicio">
+                                            Data início
+                                        </Label>
                                         <Input
                                             id="ferias-inicio"
                                             type="date"
@@ -4224,13 +4391,16 @@ export default function TransportRegistryCollaboratorsPage() {
                                             onChange={(event) =>
                                                 setFeriasDraft((previous) => ({
                                                     ...previous,
-                                                    data_inicio: event.target.value,
+                                                    data_inicio:
+                                                        event.target.value,
                                                 }))
                                             }
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="ferias-fim">Data término</Label>
+                                        <Label htmlFor="ferias-fim">
+                                            Data término
+                                        </Label>
                                         <Input
                                             id="ferias-fim"
                                             type="date"
@@ -4238,17 +4408,20 @@ export default function TransportRegistryCollaboratorsPage() {
                                             onChange={(event) =>
                                                 setFeriasDraft((previous) => ({
                                                     ...previous,
-                                                    data_termino: event.target.value,
+                                                    data_termino:
+                                                        event.target.value,
                                                 }))
                                             }
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="ferias-obs">Observações</Label>
+                                    <Label htmlFor="ferias-obs">
+                                        Observações
+                                    </Label>
                                     <textarea
                                         id="ferias-obs"
-                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                         value={feriasDraft.observacoes}
                                         onChange={(event) =>
                                             setFeriasDraft((previous) => ({
@@ -4305,7 +4478,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                             </div>
                                             <div className="grid gap-3 sm:grid-cols-2">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor={`ferias-inicio-${index}`}>
+                                                    <Label
+                                                        htmlFor={`ferias-inicio-${index}`}
+                                                    >
                                                         Data início
                                                     </Label>
                                                     <Input
@@ -4323,7 +4498,9 @@ export default function TransportRegistryCollaboratorsPage() {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor={`ferias-fim-${index}`}>
+                                                    <Label
+                                                        htmlFor={`ferias-fim-${index}`}
+                                                    >
                                                         Data término
                                                     </Label>
                                                     <Input
@@ -4347,11 +4524,12 @@ export default function TransportRegistryCollaboratorsPage() {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="ferias-obs">
-                                        Observações (opcional para todos os períodos)
+                                        Observações (opcional para todos os
+                                        períodos)
                                     </Label>
                                     <textarea
                                         id="ferias-obs"
-                                        className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                         value={feriasDraft.observacoes}
                                         onChange={(event) =>
                                             setFeriasDraft((previous) => ({
@@ -4363,9 +4541,10 @@ export default function TransportRegistryCollaboratorsPage() {
                                 </div>
 
                                 <p className="text-xs text-muted-foreground">
-                                    Regra automática: intervalo entre 17 e 27 dias vira
-                                    férias de 20 dias com abono. Intervalo de 28+
-                                    dias vira férias de 30 dias sem abono.
+                                    Regra automática: intervalo entre 17 e 27
+                                    dias vira férias de 20 dias com abono.
+                                    Intervalo de 28+ dias vira férias de 30 dias
+                                    sem abono.
                                 </p>
                             </div>
                         )}
@@ -4470,7 +4649,7 @@ export default function TransportRegistryCollaboratorsPage() {
                             <Label htmlFor="afastamento-obs">Observações</Label>
                             <textarea
                                 id="afastamento-obs"
-                                className="border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex min-h-24 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                className="flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                 value={afastamentoDraft.observacoes}
                                 onChange={(event) =>
                                     setAfastamentoDraft((previous) => ({
@@ -4669,22 +4848,39 @@ export default function TransportRegistryCollaboratorsPage() {
                                                                     title="Copiar número da linha para correção na planilha"
                                                                     onClick={() => {
                                                                         void navigator.clipboard
-                                                                            .writeText(String(errorItem.linha))
-                                                                            .then(() => {
-                                                                                setNotification({
-                                                                                    message: `Linha ${errorItem.linha} copiada.`,
-                                                                                    variant: 'info',
-                                                                                });
-                                                                            })
-                                                                            .catch(() => {
-                                                                                setNotification({
-                                                                                    message: 'Não foi possível copiar a linha.',
-                                                                                    variant: 'error',
-                                                                                });
-                                                                            });
+                                                                            .writeText(
+                                                                                String(
+                                                                                    errorItem.linha,
+                                                                                ),
+                                                                            )
+                                                                            .then(
+                                                                                () => {
+                                                                                    setNotification(
+                                                                                        {
+                                                                                            message: `Linha ${errorItem.linha} copiada.`,
+                                                                                            variant:
+                                                                                                'info',
+                                                                                        },
+                                                                                    );
+                                                                                },
+                                                                            )
+                                                                            .catch(
+                                                                                () => {
+                                                                                    setNotification(
+                                                                                        {
+                                                                                            message:
+                                                                                                'Não foi possível copiar a linha.',
+                                                                                            variant:
+                                                                                                'error',
+                                                                                        },
+                                                                                    );
+                                                                                },
+                                                                            );
                                                                     }}
                                                                 >
-                                                                    {errorItem.linha}
+                                                                    {
+                                                                        errorItem.linha
+                                                                    }
                                                                 </button>
                                                             </td>
                                                             <td className="px-3 py-2">

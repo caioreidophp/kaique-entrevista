@@ -75,8 +75,12 @@ export default function TransportPayrollReportCollaboratorPage() {
         useState<number>(-1);
     const [report, setReport] = useState<ReportResponse | null>(null);
     const currentYear = new Date().getFullYear();
-    const [competenciaInicial, setCompetenciaInicial] = useState(`${currentYear}-01`);
-    const [competenciaFinal, setCompetenciaFinal] = useState(`${currentYear}-12`);
+    const [competenciaInicial, setCompetenciaInicial] = useState(
+        `${currentYear}-01`,
+    );
+    const [competenciaFinal, setCompetenciaFinal] = useState(
+        `${currentYear}-12`,
+    );
     const [loadingCollaborators, setLoadingCollaborators] = useState(true);
     const [loadingReport, setLoadingReport] = useState(false);
     const [hoveredPoint, setHoveredPoint] = useState<{
@@ -94,7 +98,8 @@ export default function TransportPayrollReportCollaboratorPage() {
         const start = new Date();
         start.setDate(end.getDate() - days + 1);
 
-        const toMonth = (value: Date): string => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+        const toMonth = (value: Date): string =>
+            `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
 
         setCompetenciaInicial(toMonth(start));
         setCompetenciaFinal(toMonth(end));
@@ -119,7 +124,9 @@ export default function TransportPayrollReportCollaboratorPage() {
             return sortedCollaborators;
         }
 
-        return sortedCollaborators.filter((item) => includesTextPtBr(item.nome, term));
+        return sortedCollaborators.filter((item) =>
+            includesTextPtBr(item.nome, term),
+        );
     }, [collaboratorQuery, sortedCollaborators]);
 
     function openCollaboratorOptions(): void {
@@ -173,7 +180,10 @@ export default function TransportPayrollReportCollaboratorPage() {
         const height = 190;
         const paddingX = 28;
         const paddingY = 20;
-        const maxValue = Math.max(...monthlySeries.map((item) => item.total_valor), 1);
+        const maxValue = Math.max(
+            ...monthlySeries.map((item) => item.total_valor),
+            1,
+        );
         const minValue = 0;
         const safeRange = Math.max(maxValue - minValue, 1);
 
@@ -181,7 +191,9 @@ export default function TransportPayrollReportCollaboratorPage() {
             const x =
                 monthlySeries.length === 1
                     ? width / 2
-                    : paddingX + (index * (width - paddingX * 2)) / (monthlySeries.length - 1);
+                    : paddingX +
+                      (index * (width - paddingX * 2)) /
+                          (monthlySeries.length - 1);
             const y =
                 paddingY +
                 (1 - (item.total_valor - minValue) / safeRange) *
@@ -191,7 +203,10 @@ export default function TransportPayrollReportCollaboratorPage() {
         });
 
         const path = points
-            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+            .map(
+                (point, index) =>
+                    `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
+            )
             .join(' ');
 
         return { width, height, points, path };
@@ -214,31 +229,34 @@ export default function TransportPayrollReportCollaboratorPage() {
         }
     }, []);
 
-    const loadReport = useCallback(async (id: string): Promise<void> => {
-        if (!id) return;
-        setLoadingReport(true);
-        setNotification(null);
+    const loadReport = useCallback(
+        async (id: string): Promise<void> => {
+            if (!id) return;
+            setLoadingReport(true);
+            setNotification(null);
 
-        try {
-            const params = new URLSearchParams();
-            params.set('colaborador_id', id);
-            params.set('competencia_inicial', competenciaInicial);
-            params.set('competencia_final', competenciaFinal);
+            try {
+                const params = new URLSearchParams();
+                params.set('colaborador_id', id);
+                params.set('competencia_inicial', competenciaInicial);
+                params.set('competencia_final', competenciaFinal);
 
-            const response = await apiGet<ReportResponse>(
-                `/payroll/reports/colaborador?${params.toString()}`,
-            );
-            setReport(response);
-        } catch {
-            setNotification({
-                message:
-                    'Não foi possível carregar o relatório do colaborador.',
-                variant: 'error',
-            });
-        } finally {
-            setLoadingReport(false);
-        }
-    }, [competenciaFinal, competenciaInicial]);
+                const response = await apiGet<ReportResponse>(
+                    `/payroll/reports/colaborador?${params.toString()}`,
+                );
+                setReport(response);
+            } catch {
+                setNotification({
+                    message:
+                        'Não foi possível carregar o relatório do colaborador.',
+                    variant: 'error',
+                });
+            } finally {
+                setLoadingReport(false);
+            }
+        },
+        [competenciaFinal, competenciaInicial],
+    );
 
     useEffect(() => {
         setSelectedId('');
@@ -265,7 +283,8 @@ export default function TransportPayrollReportCollaboratorPage() {
                         Relatório por Colaborador
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                    Histórico mensal consolidado com salário, pensão e descontos.
+                        Histórico mensal consolidado com salário, pensão e
+                        descontos.
                     </p>
                 </div>
 
@@ -387,10 +406,12 @@ export default function TransportPayrollReportCollaboratorPage() {
                                     />
 
                                     {collaboratorOptionsOpen ? (
-                                        <div className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border shadow-md">
-                                            {filteredCollaborators.length === 0 ? (
+                                        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                                            {filteredCollaborators.length ===
+                                            0 ? (
                                                 <p className="px-3 py-2 text-sm text-muted-foreground">
-                                                    Nenhum colaborador encontrado.
+                                                    Nenhum colaborador
+                                                    encontrado.
                                                 </p>
                                             ) : (
                                                 filteredCollaborators.map(
@@ -436,15 +457,21 @@ export default function TransportPayrollReportCollaboratorPage() {
                                     <Button
                                         variant="outline"
                                         disabled={!selectedId}
-                                        onClick={() => void loadReport(selectedId)}
+                                        onClick={() =>
+                                            void loadReport(selectedId)
+                                        }
                                     >
                                         Atualizar
                                     </Button>
                                     <Button
                                         variant="outline"
                                         onClick={() => {
-                                            setCompetenciaInicial(`${currentYear}-01`);
-                                            setCompetenciaFinal(`${currentYear}-12`);
+                                            setCompetenciaInicial(
+                                                `${currentYear}-01`,
+                                            );
+                                            setCompetenciaFinal(
+                                                `${currentYear}-12`,
+                                            );
                                             if (selectedId) {
                                                 void loadReport(selectedId);
                                             }
@@ -457,21 +484,31 @@ export default function TransportPayrollReportCollaboratorPage() {
                         </div>
                         <div className="mt-3 grid gap-3 md:grid-cols-3">
                             <div className="space-y-2">
-                                <Label htmlFor="competencia-inicial">Mês inicial</Label>
+                                <Label htmlFor="competencia-inicial">
+                                    Mês inicial
+                                </Label>
                                 <Input
                                     id="competencia-inicial"
                                     type="month"
                                     value={competenciaInicial}
-                                    onChange={(event) => setCompetenciaInicial(event.target.value)}
+                                    onChange={(event) =>
+                                        setCompetenciaInicial(
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="competencia-final">Mês final</Label>
+                                <Label htmlFor="competencia-final">
+                                    Mês final
+                                </Label>
                                 <Input
                                     id="competencia-final"
                                     type="month"
                                     value={competenciaFinal}
-                                    onChange={(event) => setCompetenciaFinal(event.target.value)}
+                                    onChange={(event) =>
+                                        setCompetenciaFinal(event.target.value)
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
@@ -482,9 +519,27 @@ export default function TransportPayrollReportCollaboratorPage() {
                             </div>
                         </div>
                         <div className="mt-3 flex gap-2">
-                            <Button type="button" variant="outline" onClick={() => applyRangePreset(7)}>7 dias</Button>
-                            <Button type="button" variant="outline" onClick={() => applyRangePreset(30)}>30 dias</Button>
-                            <Button type="button" variant="outline" onClick={() => applyRangePreset(90)}>90 dias</Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => applyRangePreset(7)}
+                            >
+                                7 dias
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => applyRangePreset(30)}
+                            >
+                                30 dias
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => applyRangePreset(90)}
+                            >
+                                90 dias
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -527,7 +582,9 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrencyBR(report.total_acumulado)}
+                                        {formatCurrencyBR(
+                                            report.total_acumulado,
+                                        )}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -551,7 +608,9 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrencyBR(report.total_descontos)}
+                                        {formatCurrencyBR(
+                                            report.total_descontos,
+                                        )}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -563,7 +622,9 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrencyBR(report.media_salarial)}
+                                        {formatCurrencyBR(
+                                            report.media_salarial,
+                                        )}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -575,7 +636,8 @@ export default function TransportPayrollReportCollaboratorPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-lg font-semibold">
-                                        {report.colaborador.unidade?.nome ?? '-'}
+                                        {report.colaborador.unidade?.nome ??
+                                            '-'}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -600,13 +662,14 @@ export default function TransportPayrollReportCollaboratorPage() {
                             <CardContent>
                                 {!monthlyChart ? (
                                     <p className="text-sm text-muted-foreground">
-                                        Sem dados mensais no período selecionado.
+                                        Sem dados mensais no período
+                                        selecionado.
                                     </p>
                                 ) : (
                                     <div className="relative overflow-x-auto">
                                         {hoveredPoint ? (
                                             <div
-                                                className="bg-popover text-popover-foreground pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
+                                                className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow"
                                                 style={{
                                                     left: `${hoveredPoint.xPercent}%`,
                                                     top: `${hoveredPoint.yPercent}%`,
@@ -628,37 +691,64 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                 strokeWidth="2"
                                                 className="text-primary"
                                             />
-                                            {monthlyChart.points.map((point) => (
-                                                <g key={`${point.competencia_ano}-${point.competencia_mes}`}>
-                                                    <circle
-                                                        cx={point.x}
-                                                        cy={point.y}
-                                                        r="4"
-                                                        className="fill-primary"
-                                                        onMouseEnter={() =>
-                                                            setHoveredPoint({
-                                                                xPercent: (point.x / monthlyChart.width) * 100,
-                                                                yPercent: (point.y / monthlyChart.height) * 100,
-                                                                label: `${point.competencia_label} • ${formatCurrencyBR(point.total_valor)}`,
-                                                            })
-                                                        }
-                                                        onMouseLeave={() => setHoveredPoint(null)}
+                                            {monthlyChart.points.map(
+                                                (point) => (
+                                                    <g
+                                                        key={`${point.competencia_ano}-${point.competencia_mes}`}
                                                     >
-                                                        <title>
-                                                            {point.competencia_label}: {formatCurrencyBR(point.total_valor)}
-                                                        </title>
-                                                    </circle>
-                                                    <text
-                                                        x={point.x}
-                                                        y={monthlyChart.height - 4}
-                                                        textAnchor="middle"
-                                                        fontSize="10"
-                                                        className="fill-muted-foreground"
-                                                    >
-                                                        {point.competencia_label}
-                                                    </text>
-                                                </g>
-                                            ))}
+                                                        <circle
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r="4"
+                                                            className="fill-primary"
+                                                            onMouseEnter={() =>
+                                                                setHoveredPoint(
+                                                                    {
+                                                                        xPercent:
+                                                                            (point.x /
+                                                                                monthlyChart.width) *
+                                                                            100,
+                                                                        yPercent:
+                                                                            (point.y /
+                                                                                monthlyChart.height) *
+                                                                            100,
+                                                                        label: `${point.competencia_label} • ${formatCurrencyBR(point.total_valor)}`,
+                                                                    },
+                                                                )
+                                                            }
+                                                            onMouseLeave={() =>
+                                                                setHoveredPoint(
+                                                                    null,
+                                                                )
+                                                            }
+                                                        >
+                                                            <title>
+                                                                {
+                                                                    point.competencia_label
+                                                                }
+                                                                :{' '}
+                                                                {formatCurrencyBR(
+                                                                    point.total_valor,
+                                                                )}
+                                                            </title>
+                                                        </circle>
+                                                        <text
+                                                            x={point.x}
+                                                            y={
+                                                                monthlyChart.height -
+                                                                4
+                                                            }
+                                                            textAnchor="middle"
+                                                            fontSize="10"
+                                                            className="fill-muted-foreground"
+                                                        >
+                                                            {
+                                                                point.competencia_label
+                                                            }
+                                                        </text>
+                                                    </g>
+                                                ),
+                                            )}
                                         </svg>
                                     </div>
                                 )}
@@ -679,7 +769,9 @@ export default function TransportPayrollReportCollaboratorPage() {
                                         </p>
                                     ) : (
                                         report.timeline.map((item) => {
-                                            const salarioBruto = item.total_pagamentos + item.total_descontos;
+                                            const salarioBruto =
+                                                item.total_pagamentos +
+                                                item.total_descontos;
 
                                             return (
                                                 <div
@@ -697,7 +789,9 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                             }
                                                         </span>
                                                         <span className="font-semibold">
-                                                            {formatCurrencyBR(item.total_valor)}
+                                                            {formatCurrencyBR(
+                                                                item.total_valor,
+                                                            )}
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
@@ -709,13 +803,28 @@ export default function TransportPayrollReportCollaboratorPage() {
                                                         </span>
                                                     </div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
-                                                        Salário líquido: {formatCurrencyBR(item.total_pagamentos)} | Descontos: {formatCurrencyBR(item.total_descontos)} | Salário bruto: {formatCurrencyBR(salarioBruto)}
+                                                        Salário líquido:{' '}
+                                                        {formatCurrencyBR(
+                                                            item.total_pagamentos,
+                                                        )}{' '}
+                                                        | Descontos:{' '}
+                                                        {formatCurrencyBR(
+                                                            item.total_descontos,
+                                                        )}{' '}
+                                                        | Salário bruto:{' '}
+                                                        {formatCurrencyBR(
+                                                            salarioBruto,
+                                                        )}
                                                     </div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
-                                                        Pensão: {formatCurrencyBR(item.total_pensoes)}
+                                                        Pensão:{' '}
+                                                        {formatCurrencyBR(
+                                                            item.total_pensoes,
+                                                        )}
                                                     </div>
                                                     <div className="mt-1 text-xs text-muted-foreground">
-                                                        Lançamentos no mês: {item.total_lancamentos}
+                                                        Lançamentos no mês:{' '}
+                                                        {item.total_lancamentos}
                                                     </div>
                                                 </div>
                                             );

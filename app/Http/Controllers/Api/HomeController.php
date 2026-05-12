@@ -722,8 +722,8 @@ class HomeController extends Controller
                     'freight_avg_km_current_month' => $freightKmMes > 0
                         ? round($freightTotalMes / $freightKmMes, 2)
                         : 0.0,
-                    'freight_third_share_current_month' => $freightTotalMes > 0
-                        ? round(($freightTotalTerceirosMes / $freightTotalMes) * 100, 2)
+                    'freight_third_share_current_month' => ($freightTotalMes + $freightTotalTerceirosMes) > 0
+                        ? round(($freightTotalTerceirosMes / ($freightTotalMes + $freightTotalTerceirosMes)) * 100, 2)
                         : 0.0,
                 ],
             ];

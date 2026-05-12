@@ -187,14 +187,19 @@ export default function VacationsListPage() {
     const [funcaoFilter, setFuncaoFilter] = useState('all');
     const [limiteFilter, setLimiteFilter] = useState('todos');
     const [nameFilter, setNameFilter] = useState('');
-    const [candidateSortBy, setCandidateSortBy] = useState<CandidateSortBy>('limite');
-    const [candidateSortDirection, setCandidateSortDirection] = useState<SortDirection>('asc');
-    const [launchedSortBy, setLaunchedSortBy] = useState<LaunchedSortBy>('data_inicio');
-    const [launchedSortDirection, setLaunchedSortDirection] = useState<SortDirection>('desc');
+    const [candidateSortBy, setCandidateSortBy] =
+        useState<CandidateSortBy>('limite');
+    const [candidateSortDirection, setCandidateSortDirection] =
+        useState<SortDirection>('asc');
+    const [launchedSortBy, setLaunchedSortBy] =
+        useState<LaunchedSortBy>('data_inicio');
+    const [launchedSortDirection, setLaunchedSortDirection] =
+        useState<SortDirection>('desc');
     const [savingEdit, setSavingEdit] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleteCandidate, setDeleteCandidate] = useState<VacationLaunchedRow | null>(null);
+    const [deleteCandidate, setDeleteCandidate] =
+        useState<VacationLaunchedRow | null>(null);
     const [editOpen, setEditOpen] = useState(false);
     const [editForm, setEditForm] = useState<EditLaunchedForm | null>(null);
     const [notification, setNotification] = useState<{
@@ -339,7 +344,10 @@ export default function VacationsListPage() {
                     : null;
 
                 setNotification({
-                    message: firstError ?? error.message ?? 'Não foi possível atualizar o lançamento.',
+                    message:
+                        firstError ??
+                        error.message ??
+                        'Não foi possível atualizar o lançamento.',
                     variant: 'error',
                 });
             } else {
@@ -368,7 +376,9 @@ export default function VacationsListPage() {
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({
-                    message: error.message ?? 'Não foi possível excluir o lançamento.',
+                    message:
+                        error.message ??
+                        'Não foi possível excluir o lançamento.',
                     variant: 'error',
                 });
             } else {
@@ -428,10 +438,12 @@ export default function VacationsListPage() {
                 const leftValue = String(left[candidateSortBy] ?? '');
                 const rightValue = String(right[candidateSortBy] ?? '');
 
-                return leftValue.localeCompare(rightValue, 'pt-BR', {
-                    numeric: true,
-                    sensitivity: 'base',
-                }) * direction;
+                return (
+                    leftValue.localeCompare(rightValue, 'pt-BR', {
+                        numeric: true,
+                        sensitivity: 'base',
+                    }) * direction
+                );
             });
     }, [candidateSortBy, candidateSortDirection, candidates, nameFilter]);
 
@@ -451,10 +463,12 @@ export default function VacationsListPage() {
                 const leftValue = String(left[launchedSortBy] ?? '');
                 const rightValue = String(right[launchedSortBy] ?? '');
 
-                return leftValue.localeCompare(rightValue, 'pt-BR', {
-                    numeric: true,
-                    sensitivity: 'base',
-                }) * direction;
+                return (
+                    leftValue.localeCompare(rightValue, 'pt-BR', {
+                        numeric: true,
+                        sensitivity: 'base',
+                    }) * direction
+                );
             });
     }, [launched, launchedSortBy, launchedSortDirection, nameFilter]);
 
@@ -466,28 +480,40 @@ export default function VacationsListPage() {
         >
             <div className="transport-dashboard-page">
                 <div className="transport-dashboard-header">
-                    <p className="transport-dashboard-eyebrow">Controle de férias</p>
-                    <h2 className="transport-dashboard-title">Lista de Férias</h2>
+                    <p className="transport-dashboard-eyebrow">
+                        Controle de férias
+                    </p>
+                    <h2 className="transport-dashboard-title">
+                        Lista de Férias
+                    </h2>
                     <p className="transport-dashboard-subtitle">
-                        Duas visões separadas para férias pendentes e férias já lançadas.
+                        Duas visões separadas para férias pendentes e férias já
+                        lançadas.
                     </p>
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 <div className="transport-tab-group">
                     <Button
                         type="button"
-                        variant={activeTab === 'a-realizar' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'a-realizar' ? 'default' : 'outline'
+                        }
                         onClick={() => setActiveTab('a-realizar')}
                     >
                         A realizar
                     </Button>
                     <Button
                         type="button"
-                        variant={activeTab === 'realizadas' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'realizadas' ? 'default' : 'outline'
+                        }
                         onClick={() => setActiveTab('realizadas')}
                     >
                         Realizadas
@@ -496,7 +522,9 @@ export default function VacationsListPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Filtros
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-3 md:grid-cols-4">
                         <div className="space-y-2">
@@ -504,21 +532,31 @@ export default function VacationsListPage() {
                             <Input
                                 id="vacation-name-filter"
                                 value={nameFilter}
-                                onChange={(event) => setNameFilter(event.target.value)}
+                                onChange={(event) =>
+                                    setNameFilter(event.target.value)
+                                }
                                 placeholder="Buscar por nome"
                             />
                         </div>
 
                         <div className="space-y-2">
                             <Label>Unidade</Label>
-                            <Select value={unidadeFilter} onValueChange={handleUnidadeFilterChange}>
+                            <Select
+                                value={unidadeFilter}
+                                onValueChange={handleUnidadeFilterChange}
+                            >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas as unidades</SelectItem>
+                                    <SelectItem value="all">
+                                        Todas as unidades
+                                    </SelectItem>
                                     {unidades.map((item) => (
-                                        <SelectItem key={item.id} value={String(item.id)}>
+                                        <SelectItem
+                                            key={item.id}
+                                            value={String(item.id)}
+                                        >
                                             {item.nome}
                                         </SelectItem>
                                     ))}
@@ -528,14 +566,22 @@ export default function VacationsListPage() {
 
                         <div className="space-y-2">
                             <Label>Função</Label>
-                            <Select value={funcaoFilter} onValueChange={handleFuncaoFilterChange}>
+                            <Select
+                                value={funcaoFilter}
+                                onValueChange={handleFuncaoFilterChange}
+                            >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas as funções</SelectItem>
+                                    <SelectItem value="all">
+                                        Todas as funções
+                                    </SelectItem>
                                     {funcoes.map((item) => (
-                                        <SelectItem key={item.id} value={String(item.id)}>
+                                        <SelectItem
+                                            key={item.id}
+                                            value={String(item.id)}
+                                        >
                                             {item.nome}
                                         </SelectItem>
                                     ))}
@@ -545,16 +591,27 @@ export default function VacationsListPage() {
 
                         <div className="space-y-2">
                             <Label>Vencimento</Label>
-                            <Select value={limiteFilter} onValueChange={handleLimiteFilterChange}>
+                            <Select
+                                value={limiteFilter}
+                                onValueChange={handleLimiteFilterChange}
+                            >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="todos">Todos</SelectItem>
-                                    <SelectItem value="vencidas">Vencidas</SelectItem>
-                                    <SelectItem value="a_vencer">A vencer</SelectItem>
-                                    <SelectItem value="proximos_4_meses">Próximos 4 meses</SelectItem>
-                                    <SelectItem value="proximos_2_meses">Próximos 2 meses</SelectItem>
+                                    <SelectItem value="vencidas">
+                                        Vencidas
+                                    </SelectItem>
+                                    <SelectItem value="a_vencer">
+                                        A vencer
+                                    </SelectItem>
+                                    <SelectItem value="proximos_4_meses">
+                                        Próximos 4 meses
+                                    </SelectItem>
+                                    <SelectItem value="proximos_2_meses">
+                                        Próximos 2 meses
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -578,8 +635,11 @@ export default function VacationsListPage() {
                         ) : activeTab === 'a-realizar' ? (
                             filteredCandidates.length === 0 ? (
                                 <div className="transport-empty-state">
-                                    <strong>Nenhum colaborador encontrado</strong>
-                                    Ajuste os filtros para localizar férias pendentes ou próximas do vencimento.
+                                    <strong>
+                                        Nenhum colaborador encontrado
+                                    </strong>
+                                    Ajuste os filtros para localizar férias
+                                    pendentes ou próximas do vencimento.
                                 </div>
                             ) : (
                                 <div className="transport-table-scroll">
@@ -589,75 +649,171 @@ export default function VacationsListPage() {
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Nome"
-                                                        active={candidateSortBy === 'nome'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('nome')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'nome'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'nome',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Função"
-                                                        active={candidateSortBy === 'funcao'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('funcao')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'funcao'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'funcao',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Unidade"
-                                                        active={candidateSortBy === 'unidade'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('unidade')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'unidade'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'unidade',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Início Período"
-                                                        active={candidateSortBy === 'periodo_aquisitivo_inicio'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('periodo_aquisitivo_inicio')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'periodo_aquisitivo_inicio'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'periodo_aquisitivo_inicio',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Fim Período"
-                                                        active={candidateSortBy === 'periodo_aquisitivo_fim'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('periodo_aquisitivo_fim')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'periodo_aquisitivo_fim'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'periodo_aquisitivo_fim',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Direito"
-                                                        active={candidateSortBy === 'direito'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('direito')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'direito'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'direito',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
                                                 <th className="py-2 pr-3">
                                                     <SortHeader
                                                         label="Limite"
-                                                        active={candidateSortBy === 'limite'}
-                                                        direction={candidateSortDirection}
-                                                        onClick={() => toggleCandidateSort('limite')}
+                                                        active={
+                                                            candidateSortBy ===
+                                                            'limite'
+                                                        }
+                                                        direction={
+                                                            candidateSortDirection
+                                                        }
+                                                        onClick={() =>
+                                                            toggleCandidateSort(
+                                                                'limite',
+                                                            )
+                                                        }
                                                     />
                                                 </th>
-                                                <th className="py-2 pr-3 font-medium">Status</th>
+                                                <th className="py-2 pr-3 font-medium">
+                                                    Status
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredCandidates.map((item) => (
-                                                <tr key={item.colaborador_id} className="border-b last:border-b-0">
-                                                    <td className="py-2 pr-3 font-medium">{item.nome}</td>
-                                                    <td className="py-2 pr-3">{item.funcao ?? '-'}</td>
-                                                    <td className="py-2 pr-3">{item.unidade ?? '-'}</td>
-                                                    <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_inicio)}</td>
-                                                    <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_fim)}</td>
-                                                    <td className="py-2 pr-3">{formatDate(item.direito)}</td>
-                                                    <td className="py-2 pr-3">{formatDate(item.limite)}</td>
+                                                <tr
+                                                    key={item.colaborador_id}
+                                                    className="border-b last:border-b-0"
+                                                >
+                                                    <td className="py-2 pr-3 font-medium">
+                                                        {item.nome}
+                                                    </td>
                                                     <td className="py-2 pr-3">
-                                                        <span className={vacationStatusClass(item.status)}>
-                                                            {vacationStatusLabel(item.status)}
+                                                        {item.funcao ?? '-'}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {item.unidade ?? '-'}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {formatDate(
+                                                            item.periodo_aquisitivo_inicio,
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {formatDate(
+                                                            item.periodo_aquisitivo_fim,
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {formatDate(
+                                                            item.direito,
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        {formatDate(
+                                                            item.limite,
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        <span
+                                                            className={vacationStatusClass(
+                                                                item.status,
+                                                            )}
+                                                        >
+                                                            {vacationStatusLabel(
+                                                                item.status,
+                                                            )}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -669,7 +825,8 @@ export default function VacationsListPage() {
                         ) : filteredLaunched.length === 0 ? (
                             <div className="transport-empty-state">
                                 <strong>Nenhum lançamento encontrado</strong>
-                                Ainda não há férias lançadas para os filtros selecionados.
+                                Ainda não há férias lançadas para os filtros
+                                selecionados.
                             </div>
                         ) : (
                             <div className="transport-table-scroll">
@@ -679,94 +836,214 @@ export default function VacationsListPage() {
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Nome"
-                                                    active={launchedSortBy === 'nome'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('nome')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'nome'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'nome',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Função"
-                                                    active={launchedSortBy === 'funcao'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('funcao')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'funcao'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'funcao',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Unidade"
-                                                    active={launchedSortBy === 'unidade'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('unidade')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'unidade'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'unidade',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Início"
-                                                    active={launchedSortBy === 'data_inicio'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('data_inicio')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'data_inicio'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'data_inicio',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Fim"
-                                                    active={launchedSortBy === 'data_fim'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('data_fim')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'data_fim'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'data_fim',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Início Período"
-                                                    active={launchedSortBy === 'periodo_aquisitivo_inicio'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('periodo_aquisitivo_inicio')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'periodo_aquisitivo_inicio'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'periodo_aquisitivo_inicio',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Fim Período"
-                                                    active={launchedSortBy === 'periodo_aquisitivo_fim'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('periodo_aquisitivo_fim')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'periodo_aquisitivo_fim'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'periodo_aquisitivo_fim',
+                                                        )
+                                                    }
                                                 />
                                             </th>
                                             <th className="py-2 pr-3">
                                                 <SortHeader
                                                     label="Dias"
-                                                    active={launchedSortBy === 'dias_ferias'}
-                                                    direction={launchedSortDirection}
-                                                    onClick={() => toggleLaunchedSort('dias_ferias')}
+                                                    active={
+                                                        launchedSortBy ===
+                                                        'dias_ferias'
+                                                    }
+                                                    direction={
+                                                        launchedSortDirection
+                                                    }
+                                                    onClick={() =>
+                                                        toggleLaunchedSort(
+                                                            'dias_ferias',
+                                                        )
+                                                    }
                                                 />
                                             </th>
-                                                <th className="py-2 pr-3 font-medium">Tipo</th>
-                                            <th className="py-2 pr-3 font-medium">Abono</th>
-                                            <th className="py-2 pr-3 font-medium">Autor</th>
-                                                <th className="py-2 pr-3 font-medium">Ações</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Tipo
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Abono
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Autor
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredLaunched.map((item) => (
-                                            <tr key={item.id} className="border-b last:border-b-0">
-                                                <td className="py-2 pr-3 font-medium">{item.nome ?? '-'}</td>
-                                                <td className="py-2 pr-3">{item.funcao ?? '-'}</td>
-                                                <td className="py-2 pr-3">{item.unidade ?? '-'}</td>
-                                                <td className="py-2 pr-3">{formatDate(item.data_inicio)}</td>
-                                                <td className="py-2 pr-3">{formatDate(item.data_fim)}</td>
-                                                <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_inicio)}</td>
-                                                <td className="py-2 pr-3">{formatDate(item.periodo_aquisitivo_fim)}</td>
-                                                <td className="py-2 pr-3">{item.dias_ferias}</td>
-                                                <td className="py-2 pr-3">{item.tipo === 'previsao' ? 'Previsão' : item.tipo === 'passada' ? 'Passada' : 'Confirmado'}</td>
-                                                <td className="py-2 pr-3">{item.com_abono ? 'Com abono' : 'Sem abono'}</td>
-                                                <td className="py-2 pr-3">{item.autor ?? '-'}</td>
+                                            <tr
+                                                key={item.id}
+                                                className="border-b last:border-b-0"
+                                            >
+                                                <td className="py-2 pr-3 font-medium">
+                                                    {item.nome ?? '-'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.funcao ?? '-'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.unidade ?? '-'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {formatDate(
+                                                        item.data_inicio,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {formatDate(item.data_fim)}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {formatDate(
+                                                        item.periodo_aquisitivo_inicio,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {formatDate(
+                                                        item.periodo_aquisitivo_fim,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.dias_ferias}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.tipo === 'previsao'
+                                                        ? 'Previsão'
+                                                        : item.tipo ===
+                                                            'passada'
+                                                          ? 'Passada'
+                                                          : 'Confirmado'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.com_abono
+                                                        ? 'Com abono'
+                                                        : 'Sem abono'}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {item.autor ?? '-'}
+                                                </td>
                                                 <td className="py-2 pr-3">
                                                     <div className="flex items-center gap-2">
                                                         <Button
                                                             type="button"
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={() => openEdit(item)}
+                                                            onClick={() =>
+                                                                openEdit(item)
+                                                            }
                                                         >
                                                             <Pencil className="size-3.5" />
                                                             Editar
@@ -775,10 +1052,18 @@ export default function VacationsListPage() {
                                                             type="button"
                                                             variant="destructive"
                                                             size="sm"
-                                                            onClick={() => requestDelete(item)}
-                                                            disabled={deletingId === item.id}
+                                                            onClick={() =>
+                                                                requestDelete(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                deletingId ===
+                                                                item.id
+                                                            }
                                                         >
-                                                            {deletingId === item.id ? (
+                                                            {deletingId ===
+                                                            item.id ? (
                                                                 <LoaderCircle className="size-3.5 animate-spin" />
                                                             ) : (
                                                                 <Trash2 className="size-3.5" />
@@ -807,7 +1092,9 @@ export default function VacationsListPage() {
                 >
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Excluir lançamento de férias</DialogTitle>
+                            <DialogTitle>
+                                Excluir lançamento de férias
+                            </DialogTitle>
                             <DialogDescription>
                                 {deleteCandidate
                                     ? `Deseja excluir o lançamento de férias de ${deleteCandidate.nome ?? 'colaborador'}? Esta ação não pode ser desfeita.`
@@ -832,7 +1119,10 @@ export default function VacationsListPage() {
                                 variant="destructive"
                                 onClick={async () => {
                                     if (deleteCandidate) {
-                                        const deleted = await removeLaunched(deleteCandidate);
+                                        const deleted =
+                                            await removeLaunched(
+                                                deleteCandidate,
+                                            );
 
                                         if (deleted) {
                                             setDeleteOpen(false);
@@ -866,7 +1156,9 @@ export default function VacationsListPage() {
                 >
                     <DialogContent className="max-w-3xl">
                         <DialogHeader>
-                            <DialogTitle>Editar lançamento de férias</DialogTitle>
+                            <DialogTitle>
+                                Editar lançamento de férias
+                            </DialogTitle>
                             <DialogDescription>
                                 Atualize os dados do lançamento selecionado.
                             </DialogDescription>
@@ -879,7 +1171,12 @@ export default function VacationsListPage() {
                                         <Label>Tipo</Label>
                                         <Select
                                             value={editForm.tipo}
-                                            onValueChange={(value: 'confirmado' | 'previsao' | 'passada') =>
+                                            onValueChange={(
+                                                value:
+                                                    | 'confirmado'
+                                                    | 'previsao'
+                                                    | 'passada',
+                                            ) =>
                                                 setEditForm((previous) =>
                                                     previous
                                                         ? {
@@ -894,9 +1191,15 @@ export default function VacationsListPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="confirmado">Confirmado</SelectItem>
-                                                <SelectItem value="previsao">Previsão</SelectItem>
-                                                <SelectItem value="passada">Passada</SelectItem>
+                                                <SelectItem value="confirmado">
+                                                    Confirmado
+                                                </SelectItem>
+                                                <SelectItem value="previsao">
+                                                    Previsão
+                                                </SelectItem>
+                                                <SelectItem value="passada">
+                                                    Passada
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -906,13 +1209,17 @@ export default function VacationsListPage() {
                                         <Select
                                             value={String(editForm.dias_ferias)}
                                             onValueChange={(value) => {
-                                                const nextDays = value === '30' ? 30 : 20;
+                                                const nextDays =
+                                                    value === '30' ? 30 : 20;
                                                 setEditForm((previous) =>
                                                     previous
                                                         ? {
                                                               ...previous,
-                                                              dias_ferias: nextDays,
-                                                              com_abono: nextDays === 20,
+                                                              dias_ferias:
+                                                                  nextDays,
+                                                              com_abono:
+                                                                  nextDays ===
+                                                                  20,
                                                           }
                                                         : previous,
                                                 );
@@ -922,8 +1229,12 @@ export default function VacationsListPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="20">20 dias</SelectItem>
-                                                <SelectItem value="30">30 dias</SelectItem>
+                                                <SelectItem value="20">
+                                                    20 dias
+                                                </SelectItem>
+                                                <SelectItem value="30">
+                                                    30 dias
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -931,15 +1242,24 @@ export default function VacationsListPage() {
                                     <div className="space-y-2">
                                         <Label>Abono</Label>
                                         <Select
-                                            value={editForm.com_abono ? 'sim' : 'nao'}
+                                            value={
+                                                editForm.com_abono
+                                                    ? 'sim'
+                                                    : 'nao'
+                                            }
                                             onValueChange={(value) => {
-                                                const nextAbono = value === 'sim';
+                                                const nextAbono =
+                                                    value === 'sim';
                                                 setEditForm((previous) =>
                                                     previous
                                                         ? {
                                                               ...previous,
-                                                              com_abono: nextAbono,
-                                                              dias_ferias: nextAbono ? 20 : 30,
+                                                              com_abono:
+                                                                  nextAbono,
+                                                              dias_ferias:
+                                                                  nextAbono
+                                                                      ? 20
+                                                                      : 30,
                                                           }
                                                         : previous,
                                                 );
@@ -949,8 +1269,12 @@ export default function VacationsListPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="sim">Com abono</SelectItem>
-                                                <SelectItem value="nao">Sem abono</SelectItem>
+                                                <SelectItem value="sim">
+                                                    Com abono
+                                                </SelectItem>
+                                                <SelectItem value="nao">
+                                                    Sem abono
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -967,7 +1291,9 @@ export default function VacationsListPage() {
                                                     previous
                                                         ? {
                                                               ...previous,
-                                                              data_inicio: event.target.value,
+                                                              data_inicio:
+                                                                  event.target
+                                                                      .value,
                                                           }
                                                         : previous,
                                                 )
@@ -984,7 +1310,9 @@ export default function VacationsListPage() {
                                                     previous
                                                         ? {
                                                               ...previous,
-                                                              data_fim: event.target.value,
+                                                              data_fim:
+                                                                  event.target
+                                                                      .value,
                                                           }
                                                         : previous,
                                                 )
@@ -998,14 +1326,17 @@ export default function VacationsListPage() {
                                         <Label>Período aquisitivo início</Label>
                                         <Input
                                             type="date"
-                                            value={editForm.periodo_aquisitivo_inicio}
+                                            value={
+                                                editForm.periodo_aquisitivo_inicio
+                                            }
                                             onChange={(event) =>
                                                 setEditForm((previous) =>
                                                     previous
                                                         ? {
                                                               ...previous,
                                                               periodo_aquisitivo_inicio:
-                                                                  event.target.value,
+                                                                  event.target
+                                                                      .value,
                                                           }
                                                         : previous,
                                                 )
@@ -1016,14 +1347,17 @@ export default function VacationsListPage() {
                                         <Label>Período aquisitivo fim</Label>
                                         <Input
                                             type="date"
-                                            value={editForm.periodo_aquisitivo_fim}
+                                            value={
+                                                editForm.periodo_aquisitivo_fim
+                                            }
                                             onChange={(event) =>
                                                 setEditForm((previous) =>
                                                     previous
                                                         ? {
                                                               ...previous,
                                                               periodo_aquisitivo_fim:
-                                                                  event.target.value,
+                                                                  event.target
+                                                                      .value,
                                                           }
                                                         : previous,
                                                 )

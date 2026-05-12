@@ -1,17 +1,17 @@
 import { LoaderCircle, MessageSquareText, Send, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Notification } from '@/components/transport/notification';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiError, apiDelete, apiGet, apiPost } from '@/lib/api-client';
-import { getStoredUser } from '@/lib/transport-session';
 import type {
     RecordCommentEntry,
     RecordCommentListResponse,
     RecordCommentModuleKey,
     RecordCommentStoreResponse,
 } from '@/types/record-comments';
+import { Notification } from '@/components/transport/notification';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ApiError, apiDelete, apiGet, apiPost } from '@/lib/api-client';
+import { getStoredUser } from '@/lib/transport-session';
 
 interface RecordCommentsPanelProps {
     moduleKey: RecordCommentModuleKey;
@@ -42,7 +42,10 @@ function renderTextWithMentions(text: string): React.ReactNode {
     return parts.map((part, index) => {
         if (part.startsWith('@') && part.length > 1) {
             return (
-                <span key={`${part}-${index}`} className="font-medium text-primary">
+                <span
+                    key={`${part}-${index}`}
+                    className="font-medium text-primary"
+                >
                     {part}
                 </span>
             );
@@ -103,11 +106,14 @@ export function RecordCommentsPanel({
         setNotice(null);
 
         try {
-            const response = await apiPost<RecordCommentStoreResponse>('/record-comments', {
-                module_key: moduleKey,
-                record_id: recordId,
-                body: body.trim(),
-            });
+            const response = await apiPost<RecordCommentStoreResponse>(
+                '/record-comments',
+                {
+                    module_key: moduleKey,
+                    record_id: recordId,
+                    body: body.trim(),
+                },
+            );
 
             setItems((previous) => [response.data, ...previous]);
             setBody('');
@@ -132,7 +138,9 @@ export function RecordCommentsPanel({
     async function handleDelete(comment: RecordCommentEntry): Promise<void> {
         try {
             await apiDelete(`/record-comments/${comment.id}`);
-            setItems((previous) => previous.filter((item) => item.id !== comment.id));
+            setItems((previous) =>
+                previous.filter((item) => item.id !== comment.id),
+            );
             setNotice({
                 message: 'Comentário removido com sucesso.',
                 variant: 'success',
@@ -168,7 +176,10 @@ export function RecordCommentsPanel({
             </CardHeader>
             <CardContent className="space-y-4">
                 {notice ? (
-                    <Notification message={notice.message} variant={notice.variant} />
+                    <Notification
+                        message={notice.message}
+                        variant={notice.variant}
+                    />
                 ) : null}
 
                 {recordId ? (
@@ -185,10 +196,14 @@ export function RecordCommentsPanel({
                             onChange={(event) => setBody(event.target.value)}
                             rows={3}
                             placeholder="Use @nome ou @email para mencionar alguém."
-                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/30"
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                         />
                         <div className="flex justify-end">
-                            <Button type="button" onClick={() => void handleSend()} disabled={!canSend}>
+                            <Button
+                                type="button"
+                                onClick={() => void handleSend()}
+                                disabled={!canSend}
+                            >
                                 {saving ? (
                                     <>
                                         <LoaderCircle className="size-4 animate-spin" />
@@ -205,7 +220,8 @@ export function RecordCommentsPanel({
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        Selecione um registro para visualizar e publicar comentários.
+                        Selecione um registro para visualizar e publicar
+                        comentários.
                     </p>
                 )}
 
@@ -233,7 +249,8 @@ export function RecordCommentsPanel({
                                     <div className="mb-2 flex items-start justify-between gap-3">
                                         <div>
                                             <p className="text-sm font-medium">
-                                                {comment.author?.name ?? 'Usuário removido'}
+                                                {comment.author?.name ??
+                                                    'Usuário removido'}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {formatDate(comment.created_at)}
@@ -241,9 +258,14 @@ export function RecordCommentsPanel({
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {comment.mentioned_users.length > 0 ? (
+                                            {comment.mentioned_users.length >
+                                            0 ? (
                                                 <Badge variant="secondary">
-                                                    {comment.mentioned_users.length} menção(ões)
+                                                    {
+                                                        comment.mentioned_users
+                                                            .length
+                                                    }{' '}
+                                                    menção(ões)
                                                 </Badge>
                                             ) : null}
                                             {canDelete ? (
@@ -251,7 +273,11 @@ export function RecordCommentsPanel({
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => void handleDelete(comment)}
+                                                    onClick={() =>
+                                                        void handleDelete(
+                                                            comment,
+                                                        )
+                                                    }
                                                     className="size-7"
                                                     title="Remover comentário"
                                                 >
@@ -261,7 +287,7 @@ export function RecordCommentsPanel({
                                         </div>
                                     </div>
 
-                                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
                                         {renderTextWithMentions(comment.body)}
                                     </p>
                                 </article>

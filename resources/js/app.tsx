@@ -15,7 +15,10 @@ interface AppErrorBoundaryState {
     hasError: boolean;
 }
 
-class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+class AppErrorBoundary extends Component<
+    AppErrorBoundaryProps,
+    AppErrorBoundaryState
+> {
     state: AppErrorBoundaryState = {
         hasError: false,
     };
@@ -39,9 +42,12 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
             return (
                 <div className="flex min-h-screen items-center justify-center bg-muted/10 px-4">
                     <div className="w-full max-w-lg rounded-xl border bg-card p-6 shadow-sm">
-                        <h1 className="text-xl font-semibold">Falha ao carregar o painel</h1>
+                        <h1 className="text-xl font-semibold">
+                            Falha ao carregar o painel
+                        </h1>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Ocorreu um erro inesperado. Atualize a pagina para recarregar o sistema.
+                            Ocorreu um erro inesperado. Atualize a pagina para
+                            recarregar o sistema.
                         </p>
                         <div className="mt-4 flex items-center justify-end gap-2">
                             <button

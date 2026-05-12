@@ -4,7 +4,6 @@ import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -12,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiGet } from '@/lib/api-client';
 import { formatCurrencyBR } from '@/lib/transport-format';
 
@@ -43,8 +43,12 @@ export default function TransportPayrollReportUnitPage() {
     const currentYear = new Date().getFullYear();
     const [unidades, setUnidades] = useState<Unidade[]>([]);
     const [unidadeId, setUnidadeId] = useState('');
-    const [competenciaInicial, setCompetenciaInicial] = useState(`${currentYear}-01`);
-    const [competenciaFinal, setCompetenciaFinal] = useState(`${currentYear}-12`);
+    const [competenciaInicial, setCompetenciaInicial] = useState(
+        `${currentYear}-01`,
+    );
+    const [competenciaFinal, setCompetenciaFinal] = useState(
+        `${currentYear}-12`,
+    );
     const [report, setReport] = useState<UnitReport | null>(null);
     const [loading, setLoading] = useState(true);
     const [hoveredPoint, setHoveredPoint] = useState<{
@@ -62,7 +66,8 @@ export default function TransportPayrollReportUnitPage() {
         const start = new Date();
         start.setDate(end.getDate() - days + 1);
 
-        const toMonth = (value: Date): string => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+        const toMonth = (value: Date): string =>
+            `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
 
         setCompetenciaInicial(toMonth(start));
         setCompetenciaFinal(toMonth(end));
@@ -75,15 +80,22 @@ export default function TransportPayrollReportUnitPage() {
         const height = 190;
         const paddingX = 28;
         const paddingY = 20;
-        const maxValue = Math.max(...report.evolucao_mensal.map((item) => item.total_valor), 1);
+        const maxValue = Math.max(
+            ...report.evolucao_mensal.map((item) => item.total_valor),
+            1,
+        );
         const safeRange = Math.max(maxValue, 1);
 
         const points = report.evolucao_mensal.map((item, index) => {
             const x =
                 report.evolucao_mensal.length === 1
                     ? width / 2
-                    : paddingX + (index * (width - paddingX * 2)) / (report.evolucao_mensal.length - 1);
-            const y = paddingY + (1 - item.total_valor / safeRange) * (height - paddingY * 2);
+                    : paddingX +
+                      (index * (width - paddingX * 2)) /
+                          (report.evolucao_mensal.length - 1);
+            const y =
+                paddingY +
+                (1 - item.total_valor / safeRange) * (height - paddingY * 2);
 
             return {
                 ...item,
@@ -94,7 +106,10 @@ export default function TransportPayrollReportUnitPage() {
         });
 
         const path = points
-            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+            .map(
+                (point, index) =>
+                    `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
+            )
             .join(' ');
 
         return { width, height, points, path };
@@ -199,31 +214,59 @@ export default function TransportPayrollReportUnitPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="competencia-inicial">Mês inicial</Label>
+                                <Label htmlFor="competencia-inicial">
+                                    Mês inicial
+                                </Label>
                                 <input
                                     id="competencia-inicial"
                                     type="month"
                                     value={competenciaInicial}
-                                    onChange={(event) => setCompetenciaInicial(event.target.value)}
-                                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+                                    onChange={(event) =>
+                                        setCompetenciaInicial(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="competencia-final">Mês final</Label>
+                                <Label htmlFor="competencia-final">
+                                    Mês final
+                                </Label>
                                 <input
                                     id="competencia-final"
                                     type="month"
                                     value={competenciaFinal}
-                                    onChange={(event) => setCompetenciaFinal(event.target.value)}
-                                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+                                    onChange={(event) =>
+                                        setCompetenciaFinal(event.target.value)
+                                    }
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                             </div>
                         </div>
                         <div className="mt-4 flex justify-end">
                             <div className="mr-auto flex gap-2">
-                                <Button type="button" variant="outline" onClick={() => applyRangePreset(7)}>7 dias</Button>
-                                <Button type="button" variant="outline" onClick={() => applyRangePreset(30)}>30 dias</Button>
-                                <Button type="button" variant="outline" onClick={() => applyRangePreset(90)}>90 dias</Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyRangePreset(7)}
+                                >
+                                    7 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyRangePreset(30)}
+                                >
+                                    30 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => applyRangePreset(90)}
+                                >
+                                    90 dias
+                                </Button>
                             </div>
                             <Button
                                 variant="outline"
@@ -275,7 +318,9 @@ export default function TransportPayrollReportUnitPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrencyBR(report.total_pago_periodo)}
+                                        {formatCurrencyBR(
+                                            report.total_pago_periodo,
+                                        )}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -299,7 +344,9 @@ export default function TransportPayrollReportUnitPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-2xl font-semibold">
-                                        {formatCurrencyBR(report.media_salarial_mes)}
+                                        {formatCurrencyBR(
+                                            report.media_salarial_mes,
+                                        )}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -337,18 +384,18 @@ export default function TransportPayrollReportUnitPage() {
                                             Sem histórico para exibir.
                                         </p>
                                     ) : (
-                                            <div className="relative overflow-x-auto">
-                                                {hoveredPoint ? (
-                                                    <div
-                                                        className="bg-popover text-popover-foreground pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow"
-                                                        style={{
-                                                            left: `${hoveredPoint.xPercent}%`,
-                                                            top: `${hoveredPoint.yPercent}%`,
-                                                        }}
-                                                    >
-                                                        {hoveredPoint.label}
-                                                    </div>
-                                                ) : null}
+                                        <div className="relative overflow-x-auto">
+                                            {hoveredPoint ? (
+                                                <div
+                                                    className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow"
+                                                    style={{
+                                                        left: `${hoveredPoint.xPercent}%`,
+                                                        top: `${hoveredPoint.yPercent}%`,
+                                                    }}
+                                                >
+                                                    {hoveredPoint.label}
+                                                </div>
+                                            ) : null}
                                             <svg
                                                 width={chartData.width}
                                                 height={chartData.height}
@@ -362,37 +409,62 @@ export default function TransportPayrollReportUnitPage() {
                                                     strokeWidth="2"
                                                     className="text-primary"
                                                 />
-                                                {chartData.points.map((point) => (
-                                                    <g key={`${point.competencia_ano}-${point.competencia_mes}`}>
-                                                        <circle
-                                                            cx={point.x}
-                                                            cy={point.y}
-                                                            r="4"
-                                                            className="fill-primary"
-                                                            onMouseEnter={() =>
-                                                                setHoveredPoint({
-                                                                    xPercent: (point.x / chartData.width) * 100,
-                                                                    yPercent: (point.y / chartData.height) * 100,
-                                                                    label: `${point.label} • ${formatCurrencyBR(point.total_valor)}`,
-                                                                })
-                                                            }
-                                                            onMouseLeave={() => setHoveredPoint(null)}
+                                                {chartData.points.map(
+                                                    (point) => (
+                                                        <g
+                                                            key={`${point.competencia_ano}-${point.competencia_mes}`}
                                                         >
-                                                            <title>
-                                                                {point.label}: {formatCurrencyBR(point.total_valor)}
-                                                            </title>
-                                                        </circle>
-                                                        <text
-                                                            x={point.x}
-                                                            y={chartData.height - 4}
-                                                            textAnchor="middle"
-                                                            fontSize="10"
-                                                            className="fill-muted-foreground"
-                                                        >
-                                                            {point.label}
-                                                        </text>
-                                                    </g>
-                                                ))}
+                                                            <circle
+                                                                cx={point.x}
+                                                                cy={point.y}
+                                                                r="4"
+                                                                className="fill-primary"
+                                                                onMouseEnter={() =>
+                                                                    setHoveredPoint(
+                                                                        {
+                                                                            xPercent:
+                                                                                (point.x /
+                                                                                    chartData.width) *
+                                                                                100,
+                                                                            yPercent:
+                                                                                (point.y /
+                                                                                    chartData.height) *
+                                                                                100,
+                                                                            label: `${point.label} • ${formatCurrencyBR(point.total_valor)}`,
+                                                                        },
+                                                                    )
+                                                                }
+                                                                onMouseLeave={() =>
+                                                                    setHoveredPoint(
+                                                                        null,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <title>
+                                                                    {
+                                                                        point.label
+                                                                    }
+                                                                    :{' '}
+                                                                    {formatCurrencyBR(
+                                                                        point.total_valor,
+                                                                    )}
+                                                                </title>
+                                                            </circle>
+                                                            <text
+                                                                x={point.x}
+                                                                y={
+                                                                    chartData.height -
+                                                                    4
+                                                                }
+                                                                textAnchor="middle"
+                                                                fontSize="10"
+                                                                className="fill-muted-foreground"
+                                                            >
+                                                                {point.label}
+                                                            </text>
+                                                        </g>
+                                                    ),
+                                                )}
                                             </svg>
                                         </div>
                                     )}

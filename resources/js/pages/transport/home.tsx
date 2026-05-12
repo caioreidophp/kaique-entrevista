@@ -23,7 +23,11 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
-import { formatCurrencyBR, formatIntegerBR, formatPercentBR } from '@/lib/transport-format';
+import {
+    formatCurrencyBR,
+    formatIntegerBR,
+    formatPercentBR,
+} from '@/lib/transport-format';
 
 interface HomeModule {
     key:
@@ -76,7 +80,11 @@ function formatMetric(label: string, value: number): string {
         return formatPercentBR(value);
     }
 
-    if (label.includes('coverage') || label.includes('share') || label.includes('expired_rate')) {
+    if (
+        label.includes('coverage') ||
+        label.includes('share') ||
+        label.includes('expired_rate')
+    ) {
         return formatPercentBR(value);
     }
 
@@ -133,7 +141,9 @@ export default function TransportHomePage() {
             .finally(() => setLoading(false));
     }, []);
 
-    const visibleModules = modules.filter((module) => module.key !== 'operations');
+    const visibleModules = modules.filter(
+        (module) => module.key !== 'operations',
+    );
 
     return (
         <AdminLayout title="Home" active="home">
@@ -192,8 +202,16 @@ export default function TransportHomePage() {
                                                                 ' ',
                                                             )}
                                                     </span>
-                                                    <span className={metricValueClass(label, value)}>
-                                                        {formatMetric(label, value)}
+                                                    <span
+                                                        className={metricValueClass(
+                                                            label,
+                                                            value,
+                                                        )}
+                                                    >
+                                                        {formatMetric(
+                                                            label,
+                                                            value,
+                                                        )}
                                                     </span>
                                                 </div>
                                             ),

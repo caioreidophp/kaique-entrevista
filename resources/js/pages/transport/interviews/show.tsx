@@ -1,6 +1,12 @@
 import { Link } from '@inertiajs/react';
 import { Download, LoaderCircle, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    DriverInterview,
+    GuepStatus,
+    HrStatus,
+    InterviewCurriculumStatus,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { RecordCommentsPanel } from '@/components/transport/record-comments-panel';
@@ -9,12 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api-client';
 import { getAuthToken } from '@/lib/transport-auth';
-import type {
-    DriverInterview,
-    GuepStatus,
-    HrStatus,
-    InterviewCurriculumStatus,
-} from '@/types/driver-interview';
 
 interface ShowPageProps {
     interviewId: number;
@@ -272,7 +272,9 @@ export default function TransportInterviewsShowPage({
                                 <AttachmentLink
                                     label="Foto do candidato"
                                     url={item.candidate_photo_url}
-                                    fileName={item.candidate_photo_original_name}
+                                    fileName={
+                                        item.candidate_photo_original_name
+                                    }
                                 />
                                 <AttachmentLink
                                     label="Anexo CNH"
@@ -282,12 +284,17 @@ export default function TransportInterviewsShowPage({
                                 <AttachmentLink
                                     label="Carteira de Trabalho"
                                     url={item.work_card_attachment_url}
-                                    fileName={item.work_card_attachment_original_name}
+                                    fileName={
+                                        item.work_card_attachment_original_name
+                                    }
                                 />
                                 <AttachmentLink
                                     label="Currículo"
                                     url={item.curriculum?.document_url ?? null}
-                                    fileName={item.curriculum?.document_original_name ?? null}
+                                    fileName={
+                                        item.curriculum
+                                            ?.document_original_name ?? null
+                                    }
                                 />
                                 <Item
                                     label="Status currículo"

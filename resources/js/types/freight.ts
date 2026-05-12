@@ -83,16 +83,31 @@ export interface FreightOperationalReportResponse {
     };
     abatedouro: {
         resumo: FreightExecutionMetrics;
-        por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+        por_unidade: Array<
+            FreightExecutionMetrics & {
+                unidade_id: number;
+                unidade_nome: string | null;
+            }
+        >;
     };
     kaique: {
         integracao: {
             resumo: FreightExecutionMetrics;
-            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+            por_unidade: Array<
+                FreightExecutionMetrics & {
+                    unidade_id: number;
+                    unidade_nome: string | null;
+                }
+            >;
         };
         spot: {
             resumo: FreightExecutionMetrics;
-            por_unidade: Array<FreightExecutionMetrics & { unidade_id: number; unidade_nome: string | null }>;
+            por_unidade: Array<
+                FreightExecutionMetrics & {
+                    unidade_id: number;
+                    unidade_nome: string | null;
+                }
+            >;
         };
         percentual_spot_total: number;
     };
@@ -149,7 +164,10 @@ export interface FreightDashboardResponse {
         total_viagens_terceiros: number;
         total_aves: number;
         dias_trabalhados: number;
+        frota_total_cadastrada: number | null;
         frete_por_caminhao: number;
+        frete_medio_por_caminhao_trabalhado: number;
+        frete_medio_por_caminhao_frota: number | null;
         frete_por_dia_trabalhado: number;
         media_reais_por_km: number;
         media_frete_por_km: number;
@@ -174,9 +192,14 @@ export interface FreightDashboardResponse {
         total_viagens_kaique: number;
         total_frete_terceiros: number;
         total_frete_programado: number;
-        total_frota_unidade: number;
+        total_frota_unidade: number | null;
+        frota_cadastrada: number | null;
+        frota_informada: boolean;
+        total_caminhoes_trabalhados: number;
         dias_trabalhados: number;
         frete_por_caminhao: number;
+        frete_medio_por_caminhao_trabalhado: number;
+        frete_medio_por_caminhao_frota: number | null;
         frete_por_dia_trabalhado: number;
         frete_por_km: number;
         frete_liquido_por_km: number;
@@ -203,7 +226,12 @@ export interface FreightMonthlyResponse {
         total_frete_liquido: number;
         total_km_rodado: number;
         total_aves_transportadas: number;
+        caminhoes_trabalhados: number;
+        frota_cadastrada: number | null;
+        frota_informada: boolean;
         frete_por_caminhao: number;
+        frete_medio_por_caminhao_trabalhado: number;
+        frete_medio_por_caminhao_frota: number | null;
         frete_por_dia_trabalhado: number;
         media_reais_por_km: number;
         media_frete_por_km: number;

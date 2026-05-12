@@ -106,6 +106,10 @@ Route::prefix('transport')->group(function (): void {
             return Inertia::render('transport/freight/monthly');
         })->name('transport.freight.monthly');
 
+        Route::get('fleet-size-config', function () {
+            return Inertia::render('transport/freight/fleet-size-config');
+        })->name('transport.freight.fleet-size-config');
+
         Route::get('timeline', function () {
             return Inertia::render('transport/freight/timeline');
         })->name('transport.freight.timeline');
@@ -201,6 +205,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('collaborators', function () {
             return Inertia::render('transport/registry/collaborators');
         })->name('transport.registry.collaborators');
+
+        Route::get('units', function () {
+            return Inertia::render('transport/registry/units');
+        })->name('transport.registry.units');
 
         Route::get('users', function () {
             return Inertia::render('transport/registry/users');

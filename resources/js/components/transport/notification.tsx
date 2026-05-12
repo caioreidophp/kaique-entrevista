@@ -30,7 +30,10 @@ export function Notification({
 }: NotificationProps) {
     const Icon = IconByVariant[variant];
     const [dismissedKey, setDismissedKey] = useState<string | null>(null);
-    const notificationKey = useMemo(() => `${variant}:${message}`, [variant, message]);
+    const notificationKey = useMemo(
+        () => `${variant}:${message}`,
+        [variant, message],
+    );
     const isVisible = dismissedKey !== notificationKey;
 
     useEffect(() => {
@@ -58,10 +61,12 @@ export function Notification({
         >
             <div className="flex items-start gap-2">
                 <Icon className="mt-0.5 size-4 shrink-0" />
-                <span className="whitespace-pre-line leading-relaxed">{message}</span>
+                <span className="leading-relaxed whitespace-pre-line">
+                    {message}
+                </span>
                 <button
                     type="button"
-                    className="ml-2 inline-flex size-5 items-center justify-center rounded text-current/70 transition-colors hover:bg-black/5 hover:text-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="ml-2 inline-flex size-5 items-center justify-center rounded text-current/70 transition-colors hover:bg-black/5 hover:text-current focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
                     onClick={() => {
                         setDismissedKey(notificationKey);
                         onClose?.();

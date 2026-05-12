@@ -37,10 +37,16 @@ export function splitInterviewPayload(payload: Record<string, unknown>): {
     const attachments: InterviewAttachmentPayload = {
         candidate_photo_file: toOptionalFile(payload.candidate_photo_file),
         cnh_attachment_file: toOptionalFile(payload.cnh_attachment_file),
-        work_card_attachment_file: toOptionalFile(payload.work_card_attachment_file),
-        remove_candidate_photo: toOptionalBoolean(payload.remove_candidate_photo),
+        work_card_attachment_file: toOptionalFile(
+            payload.work_card_attachment_file,
+        ),
+        remove_candidate_photo: toOptionalBoolean(
+            payload.remove_candidate_photo,
+        ),
         remove_cnh_attachment: toOptionalBoolean(payload.remove_cnh_attachment),
-        remove_work_card_attachment: toOptionalBoolean(payload.remove_work_card_attachment),
+        remove_work_card_attachment: toOptionalBoolean(
+            payload.remove_work_card_attachment,
+        ),
     };
 
     return { data, attachments };
@@ -54,7 +60,10 @@ export async function syncInterviewAttachments(
     let hasChanges = false;
 
     if (attachments.candidate_photo_file) {
-        formData.append('candidate_photo_file', attachments.candidate_photo_file);
+        formData.append(
+            'candidate_photo_file',
+            attachments.candidate_photo_file,
+        );
         hasChanges = true;
     }
 
@@ -64,7 +73,10 @@ export async function syncInterviewAttachments(
     }
 
     if (attachments.work_card_attachment_file) {
-        formData.append('work_card_attachment_file', attachments.work_card_attachment_file);
+        formData.append(
+            'work_card_attachment_file',
+            attachments.work_card_attachment_file,
+        );
         hasChanges = true;
     }
 

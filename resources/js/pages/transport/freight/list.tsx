@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { FileSpreadsheet, Pencil, Plus, Trash2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { FreightSpotEntry } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ApiError, apiDelete, apiDownload, apiGet } from '@/lib/api-client';
-import { formatCurrencyBR, formatDateBR, formatIntegerBR } from '@/lib/transport-format';
-import type { FreightSpotEntry } from '@/types/freight';
+import {
+    formatCurrencyBR,
+    formatDateBR,
+    formatIntegerBR,
+} from '@/lib/transport-format';
 
 interface WrappedResponse<T> {
     data: T;
@@ -97,7 +101,8 @@ export default function FreightList() {
     const [spotLoading, setSpotLoading] = useState(false);
     const [deletingSpotId, setDeletingSpotId] = useState<number | null>(null);
     const [spotDeleteConfirmOpen, setSpotDeleteConfirmOpen] = useState(false);
-    const [spotDeleteCandidate, setSpotDeleteCandidate] = useState<FreightSpotEntry | null>(null);
+    const [spotDeleteCandidate, setSpotDeleteCandidate] =
+        useState<FreightSpotEntry | null>(null);
     const latestLoadSeqRef = useRef(0);
 
     useEffect(() => {
@@ -114,14 +119,23 @@ export default function FreightList() {
 
     async function loadUnits(): Promise<void> {
         try {
-            const unitsResponse = await apiGet<WrappedResponse<FreightUnit[]>>('/registry/unidades');
+            const unitsResponse =
+                await apiGet<WrappedResponse<FreightUnit[]>>(
+                    '/registry/unidades',
+                );
             setUnits(unitsResponse.data);
         } catch {
-            setNotification({ message: 'Erro ao carregar unidades', variant: 'error' });
+            setNotification({
+                message: 'Erro ao carregar unidades',
+                variant: 'error',
+            });
         }
     }
 
-    async function loadData(options?: { expectedMissingId?: number; reset?: boolean }): Promise<void> {
+    async function loadData(options?: {
+        expectedMissingId?: number;
+        reset?: boolean;
+    }): Promise<void> {
         const seq = Date.now();
         latestLoadSeqRef.current = seq;
         const pageToLoad = options?.reset ? 1 : currentPage + 1;
@@ -150,7 +164,9 @@ export default function FreightList() {
                 params.set('end_date', filterDate);
             }
 
-            const freightResponse = await apiGet<FreightEntryPaginatedResponse>(`/freight/entries?${params.toString()}`);
+            const freightResponse = await apiGet<FreightEntryPaginatedResponse>(
+                `/freight/entries?${params.toString()}`,
+            );
 
             if (latestLoadSeqRef.current !== seq) {
                 return;
@@ -160,7 +176,9 @@ export default function FreightList() {
 
             if (options?.expectedMissingId) {
                 for (let attempt = 0; attempt < 3; attempt += 1) {
-                    const stillPresent = loadedItems.some((item) => item.id === options.expectedMissingId);
+                    const stillPresent = loadedItems.some(
+                        (item) => item.id === options.expectedMissingId,
+                    );
 
                     if (!stillPresent) {
                         break;
@@ -218,7 +236,9 @@ export default function FreightList() {
                 params.set('end_date', filterDate);
             }
 
-            const response = await apiGet<FreightSpotPaginatedResponse>(`/freight/spot-entries?${params.toString()}`);
+            const response = await apiGet<FreightSpotPaginatedResponse>(
+                `/freight/spot-entries?${params.toString()}`,
+            );
             setSpotItems(response.data);
         } catch (error) {
             let message = 'Erro ao carregar fretes spot';
@@ -278,10 +298,15 @@ export default function FreightList() {
 
         try {
             await apiDelete(`/freight/spot-entries/${item.id}`);
-            setSpotItems((previous) => previous.filter((entry) => entry.id !== item.id));
+            setSpotItems((previous) =>
+                previous.filter((entry) => entry.id !== item.id),
+            );
             setSpotDeleteConfirmOpen(false);
             setSpotDeleteCandidate(null);
-            setNotification({ message: 'Frete spot excluído com sucesso.', variant: 'success' });
+            setNotification({
+                message: 'Frete spot excluído com sucesso.',
+                variant: 'success',
+            });
         } catch (error) {
             let message = 'Não foi possível excluir o frete spot.';
 
@@ -336,8 +361,14 @@ export default function FreightList() {
         }
 
         const visibleCount = Math.ceil(TABLE_VIEWPORT_HEIGHT / ROW_HEIGHT);
-        const startIndex = Math.max(0, Math.floor(tableScrollTop / ROW_HEIGHT) - ROW_OVERSCAN);
-        const endIndex = Math.min(total, startIndex + visibleCount + ROW_OVERSCAN * 2);
+        const startIndex = Math.max(
+            0,
+            Math.floor(tableScrollTop / ROW_HEIGHT) - ROW_OVERSCAN,
+        );
+        const endIndex = Math.min(
+            total,
+            startIndex + visibleCount + ROW_OVERSCAN * 2,
+        );
 
         return {
             startIndex,
@@ -378,10 +409,20 @@ export default function FreightList() {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button type="button" size="sm" variant="default" onClick={() => router.get('/transport/freight/list')}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="default"
+                        onClick={() => router.get('/transport/freight/list')}
+                    >
                         Integração
                     </Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => router.get('/transport/freight/spot')}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.get('/transport/freight/spot')}
+                    >
                         Spot
                     </Button>
                 </div>
@@ -442,7 +483,12 @@ export default function FreightList() {
                                 >
                                     Limpar filtros
                                 </Button>
-                                <Button type="button" variant="outline" onClick={() => void handleExportXlsx()} title="Exportar XLSX">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => void handleExportXlsx()}
+                                    title="Exportar XLSX"
+                                >
                                     <FileSpreadsheet className="size-4 text-green-600" />
                                 </Button>
                             </div>
@@ -479,7 +525,11 @@ export default function FreightList() {
                             <div
                                 className="overflow-auto rounded-md border"
                                 style={{ maxHeight: TABLE_VIEWPORT_HEIGHT }}
-                                onScroll={(event) => setTableScrollTop(event.currentTarget.scrollTop)}
+                                onScroll={(event) =>
+                                    setTableScrollTop(
+                                        event.currentTarget.scrollTop,
+                                    )
+                                }
                             >
                                 <table className="w-full text-sm">
                                     <thead>
@@ -516,76 +566,103 @@ export default function FreightList() {
                                     <tbody>
                                         {virtualization.topPadding > 0 ? (
                                             <tr>
-                                                <td colSpan={9} style={{ height: virtualization.topPadding }} />
+                                                <td
+                                                    colSpan={9}
+                                                    style={{
+                                                        height: virtualization.topPadding,
+                                                    }}
+                                                />
                                             </tr>
                                         ) : null}
 
-                                        {virtualization.visibleItems.map((item) => (
-                                            <tr
-                                                key={item.id}
-                                                className="border-b hover:bg-muted/40"
-                                            >
-                                                <td className="px-4 py-3">
-                                                    {formatDateBR(item.data)}
-                                                </td>
-                                                <td className="px-4 py-3 capitalize">
+                                        {virtualization.visibleItems.map(
+                                            (item) => (
+                                                <tr
+                                                    key={item.id}
+                                                    className="border-b hover:bg-muted/40"
+                                                >
+                                                    <td className="px-4 py-3">
+                                                        {formatDateBR(
+                                                            item.data,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 capitalize">
                                                         {item.dia_semana ?? '-'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {unitMap[item.unidade_id] ||
-                                                        'N/A'}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {formatCurrencyBR(item.frete_total)}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {formatIntegerBR(item.cargas)}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {formatIntegerBR(item.aves)}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {formatIntegerBR(item.veiculos)}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {formatIntegerBR(item.km_rodado)}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex justify-center gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() =>
-                                                                handleEdit(item)
-                                                            }
-                                                            title="Editar"
-                                                        >
-                                                            <Pencil className="size-4 text-green-600" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-destructive hover:text-destructive"
-                                                            onClick={() => {
-                                                                setEditingItem(
-                                                                    item,
-                                                                );
-                                                                setDeleteConfirmOpen(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            title="Deletar"
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {unitMap[
+                                                            item.unidade_id
+                                                        ] || 'N/A'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {formatCurrencyBR(
+                                                            item.frete_total,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {formatIntegerBR(
+                                                            item.cargas,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {formatIntegerBR(
+                                                            item.aves,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {formatIntegerBR(
+                                                            item.veiculos,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {formatIntegerBR(
+                                                            item.km_rodado,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex justify-center gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() =>
+                                                                    handleEdit(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                                title="Editar"
+                                                            >
+                                                                <Pencil className="size-4 text-green-600" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-destructive hover:text-destructive"
+                                                                onClick={() => {
+                                                                    setEditingItem(
+                                                                        item,
+                                                                    );
+                                                                    setDeleteConfirmOpen(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                                title="Deletar"
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
 
                                         {virtualization.bottomPadding > 0 ? (
                                             <tr>
-                                                <td colSpan={9} style={{ height: virtualization.bottomPadding }} />
+                                                <td
+                                                    colSpan={9}
+                                                    style={{
+                                                        height: virtualization.bottomPadding,
+                                                    }}
+                                                />
                                             </tr>
                                         ) : null}
                                     </tbody>
@@ -601,7 +678,9 @@ export default function FreightList() {
                                     onClick={() => void loadData()}
                                     disabled={loadingMore}
                                 >
-                                    {loadingMore ? 'Carregando...' : 'Carregar mais'}
+                                    {loadingMore
+                                        ? 'Carregando...'
+                                        : 'Carregar mais'}
                                 </Button>
                             </div>
                         ) : null}
@@ -610,39 +689,90 @@ export default function FreightList() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Fretes Spot ({formatIntegerBR(spotItems.length)})</CardTitle>
+                        <CardTitle>
+                            Fretes Spot ({formatIntegerBR(spotItems.length)})
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {spotLoading ? (
-                            <div className="py-8 text-center text-muted-foreground">Carregando fretes spot...</div>
+                            <div className="py-8 text-center text-muted-foreground">
+                                Carregando fretes spot...
+                            </div>
                         ) : spotItems.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">Nenhum frete spot encontrado</div>
+                            <div className="py-8 text-center text-muted-foreground">
+                                Nenhum frete spot encontrado
+                            </div>
                         ) : (
                             <div className="overflow-auto rounded-md border">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b">
-                                            <th className="px-4 py-3 text-left font-semibold">Data</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Frota origem</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Frete Spot (R$)</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Cargas</th>
-                                            <th className="px-4 py-3 text-right font-semibold">Aves</th>
-                                            <th className="px-4 py-3 text-right font-semibold">KM</th>
-                                            <th className="px-4 py-3 text-center font-semibold">Ações</th>
+                                            <th className="px-4 py-3 text-left font-semibold">
+                                                Data
+                                            </th>
+                                            <th className="px-4 py-3 text-left font-semibold">
+                                                Frota origem
+                                            </th>
+                                            <th className="px-4 py-3 text-right font-semibold">
+                                                Frete Spot (R$)
+                                            </th>
+                                            <th className="px-4 py-3 text-right font-semibold">
+                                                Cargas
+                                            </th>
+                                            <th className="px-4 py-3 text-right font-semibold">
+                                                Aves
+                                            </th>
+                                            <th className="px-4 py-3 text-right font-semibold">
+                                                KM
+                                            </th>
+                                            <th className="px-4 py-3 text-center font-semibold">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {spotItems.map((item) => (
-                                            <tr key={`spot-${item.id}`} className="border-b hover:bg-muted/40">
-                                                <td className="px-4 py-3">{formatDateBR(item.data)}</td>
-                                                <td className="px-4 py-3">{item.unidade_origem?.nome ?? 'N/A'}</td>
-                                                <td className="px-4 py-3 text-right">{formatCurrencyBR(item.frete_spot)}</td>
-                                                <td className="px-4 py-3 text-right">{formatIntegerBR(item.cargas)}</td>
-                                                <td className="px-4 py-3 text-right">{formatIntegerBR(item.aves)}</td>
-                                                <td className="px-4 py-3 text-right">{formatIntegerBR(item.km_rodado)}</td>
+                                            <tr
+                                                key={`spot-${item.id}`}
+                                                className="border-b hover:bg-muted/40"
+                                            >
+                                                <td className="px-4 py-3">
+                                                    {formatDateBR(item.data)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {item.unidade_origem
+                                                        ?.nome ?? 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {formatCurrencyBR(
+                                                        item.frete_spot,
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {formatIntegerBR(
+                                                        item.cargas,
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {formatIntegerBR(item.aves)}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {formatIntegerBR(
+                                                        item.km_rodado,
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex justify-center gap-2">
-                                                        <Button size="sm" variant="ghost" onClick={() => handleSpotEdit(item)} title="Editar spot">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() =>
+                                                                handleSpotEdit(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            title="Editar spot"
+                                                        >
                                                             <Pencil className="size-4 text-green-600" />
                                                         </Button>
                                                         <Button
@@ -650,8 +780,12 @@ export default function FreightList() {
                                                             variant="ghost"
                                                             className="text-destructive hover:text-destructive"
                                                             onClick={() => {
-                                                                setSpotDeleteCandidate(item);
-                                                                setSpotDeleteConfirmOpen(true);
+                                                                setSpotDeleteCandidate(
+                                                                    item,
+                                                                );
+                                                                setSpotDeleteConfirmOpen(
+                                                                    true,
+                                                                );
                                                             }}
                                                             title="Excluir spot"
                                                         >
@@ -745,7 +879,9 @@ export default function FreightList() {
                             }}
                             disabled={deletingSpotId !== null}
                         >
-                            {deletingSpotId !== null ? 'Deletando...' : 'Deletar'}
+                            {deletingSpotId !== null
+                                ? 'Deletando...'
+                                : 'Deletar'}
                         </Button>
                     </div>
                 </DialogContent>

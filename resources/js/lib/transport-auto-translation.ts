@@ -61,9 +61,9 @@ function shouldTranslateText(value: string): boolean {
     }
 
     if (
-        /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(trimmed)
-        || /^https?:\/\//i.test(trimmed)
-        || trimmed.startsWith('/')
+        /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(trimmed) ||
+        /^https?:\/\//i.test(trimmed) ||
+        trimmed.startsWith('/')
     ) {
         return false;
     }
@@ -104,7 +104,10 @@ function getTranslationCache(): Map<string, string> {
 
                 if (parsed && typeof parsed === 'object') {
                     Object.entries(parsed).forEach(([key, value]) => {
-                        if (typeof key === 'string' && typeof value === 'string') {
+                        if (
+                            typeof key === 'string' &&
+                            typeof value === 'string'
+                        ) {
                             cache.set(key, value);
                         }
                     });
@@ -342,9 +345,17 @@ export function mountTransportAutoTranslation(
             return;
         }
 
-        queueElementAttributes(node, attributeOriginals, pendingAttributes, refreshOriginal);
+        queueElementAttributes(
+            node,
+            attributeOriginals,
+            pendingAttributes,
+            refreshOriginal,
+        );
 
-        const textWalker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+        const textWalker = document.createTreeWalker(
+            node,
+            NodeFilter.SHOW_TEXT,
+        );
 
         while (textWalker.nextNode()) {
             const currentText = textWalker.currentNode;
@@ -354,7 +365,10 @@ export function mountTransportAutoTranslation(
             }
         }
 
-        const elementWalker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
+        const elementWalker = document.createTreeWalker(
+            node,
+            NodeFilter.SHOW_ELEMENT,
+        );
 
         while (elementWalker.nextNode()) {
             const currentElement = elementWalker.currentNode;
@@ -380,7 +394,8 @@ export function mountTransportAutoTranslation(
         const textJobs = Array.from(pendingTextNodes)
             .filter((node) => node.isConnected)
             .map((node) => {
-                const original = textOriginals.get(node) ?? node.textContent ?? '';
+                const original =
+                    textOriginals.get(node) ?? node.textContent ?? '';
 
                 if (!shouldTranslateText(original)) {
                     return null;
@@ -392,7 +407,15 @@ export function mountTransportAutoTranslation(
                     normalized: normalizeText(original),
                 };
             })
-            .filter((job): job is { node: Text; original: string; normalized: string } => Boolean(job));
+            .filter(
+                (
+                    job,
+                ): job is {
+                    node: Text;
+                    original: string;
+                    normalized: string;
+                } => Boolean(job),
+            );
 
         pendingTextNodes.clear();
 
@@ -446,7 +469,11 @@ export function mountTransportAutoTranslation(
         const translations = new Map<string, string>();
         const batchSize = 6;
 
-        for (let index = 0; index < uniqueOriginals.length; index += batchSize) {
+        for (
+            let index = 0;
+            index < uniqueOriginals.length;
+            index += batchSize
+        ) {
             const batch = uniqueOriginals.slice(index, index + batchSize);
 
             const results = await Promise.all(
@@ -466,17 +493,22 @@ export function mountTransportAutoTranslation(
 
         try {
             textJobs.forEach((job) => {
-                const translated = translations.get(job.normalized) ?? job.normalized;
+                const translated =
+                    translations.get(job.normalized) ?? job.normalized;
 
                 if (!job.node.isConnected || translated === job.normalized) {
                     return;
                 }
 
-                job.node.textContent = withOriginalPadding(job.original, translated);
+                job.node.textContent = withOriginalPadding(
+                    job.original,
+                    translated,
+                );
             });
 
             attributeJobs.forEach((job) => {
-                const translated = translations.get(job.normalized) ?? job.normalized;
+                const translated =
+                    translations.get(job.normalized) ?? job.normalized;
 
                 if (!job.element.isConnected || translated === job.normalized) {
                     return;
@@ -498,16 +530,21 @@ export function mountTransportAutoTranslation(
         }
 
         mutations.forEach((mutation) => {
-            if (mutation.type === 'characterData' && mutation.target instanceof Text) {
+            if (
+                mutation.type === 'characterData' &&
+                mutation.target instanceof Text
+            ) {
                 queueTextNode(mutation.target, true);
                 return;
             }
 
             if (
-                mutation.type === 'attributes'
-                && mutation.target instanceof HTMLElement
-                && mutation.attributeName
-                && (TRANSLATABLE_ATTRIBUTES as readonly string[]).includes(mutation.attributeName)
+                mutation.type === 'attributes' &&
+                mutation.target instanceof HTMLElement &&
+                mutation.attributeName &&
+                (TRANSLATABLE_ATTRIBUTES as readonly string[]).includes(
+                    mutation.attributeName,
+                )
             ) {
                 queueAttribute(
                     mutation.target,

@@ -40,11 +40,13 @@ export default function TransportLoginPage() {
     const [showDemoCta, setShowDemoCta] = useState(false);
     const demoEnabled = import.meta.env.VITE_TRANSPORT_DEMO_ENABLED !== 'false';
     const demoEmail =
-        (import.meta.env.VITE_TRANSPORT_DEMO_EMAIL as string | undefined)?.trim() ||
-        'demo@demo';
+        (
+            import.meta.env.VITE_TRANSPORT_DEMO_EMAIL as string | undefined
+        )?.trim() || 'demo@demo';
     const demoPassword =
-        (import.meta.env.VITE_TRANSPORT_DEMO_PASSWORD as string | undefined)?.trim() ||
-        'demo';
+        (
+            import.meta.env.VITE_TRANSPORT_DEMO_PASSWORD as string | undefined
+        )?.trim() || 'demo';
 
     useEffect(() => {
         document
@@ -81,7 +83,9 @@ export default function TransportLoginPage() {
                 }
 
                 await fetchCurrentUser(true);
-                await apiGet<{ valid: boolean; reason?: string }>('/panel-session');
+                await apiGet<{ valid: boolean; reason?: string }>(
+                    '/panel-session',
+                );
 
                 if (!active) return;
                 router.visit('/transport/home');
@@ -89,7 +93,9 @@ export default function TransportLoginPage() {
                 if (!active) return;
                 clearAuthToken();
                 clearStoredUser();
-                setMessage('Sua sessão anterior expirou. Faça login novamente.');
+                setMessage(
+                    'Sua sessão anterior expirou. Faça login novamente.',
+                );
             }
         };
 
@@ -128,10 +134,7 @@ export default function TransportLoginPage() {
             router.visit('/transport/home');
         } catch (error) {
             if (error instanceof ApiError) {
-                setMessage(
-                    error.message
-                    || 'E-mail ou senha inválidos.',
-                );
+                setMessage(error.message || 'E-mail ou senha inválidos.');
             } else {
                 setMessage('Não foi possível realizar login.');
             }
@@ -168,7 +171,8 @@ export default function TransportLoginPage() {
                             {showDemoCta ? (
                                 <div className="rounded-md border bg-muted/25 p-3">
                                     <p className="text-xs text-muted-foreground">
-                                        Primeiro acesso? Use o preenchimento rapido da conta de demonstracao.
+                                        Primeiro acesso? Use o preenchimento
+                                        rapido da conta de demonstracao.
                                     </p>
                                     <Button
                                         type="button"

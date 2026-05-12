@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 import type { TwoFactorSecretKey, TwoFactorSetupData } from '@/types';
+import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 
 export type UseTwoFactorAuthReturn = {
     qrCodeSvg: string | null;
@@ -58,7 +58,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             );
             setManualSetupKey(key);
         } catch {
-            setErrors((prev) => [...prev, 'Falha ao carregar a chave de configuração.']);
+            setErrors((prev) => [
+                ...prev,
+                'Falha ao carregar a chave de configuração.',
+            ]);
             setManualSetupKey(null);
         }
     }, []);
@@ -79,7 +82,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const codes = await fetchJson<string[]>(recoveryCodes.url());
             setRecoveryCodesList(codes);
         } catch {
-            setErrors((prev) => [...prev, 'Falha ao carregar os códigos de recuperação.']);
+            setErrors((prev) => [
+                ...prev,
+                'Falha ao carregar os códigos de recuperação.',
+            ]);
             setRecoveryCodesList([]);
         }
     }, [clearErrors]);

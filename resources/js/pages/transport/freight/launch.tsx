@@ -1,5 +1,13 @@
 import { LoaderCircle, Pencil, Trash2, Upload } from 'lucide-react';
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    type ChangeEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+import type { FreightEntry, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
@@ -35,7 +43,6 @@ import {
     toNumberSafe,
 } from '@/lib/transport-format';
 import { compareTextPtBr, startsWithTextPtBr } from '@/lib/transport-text';
-import type { FreightEntry, FreightUnit } from '@/types/freight';
 
 interface WrappedResponse<T> {
     data: T;
@@ -291,7 +298,10 @@ function StartsWithAutocompleteInput({
     }, [options, searchTerm]);
 
     const highlightedIndex =
-        open && filtered.length > 0 && activeIndex >= 0 && activeIndex < filtered.length
+        open &&
+        filtered.length > 0 &&
+        activeIndex >= 0 &&
+        activeIndex < filtered.length
             ? activeIndex
             : -1;
 
@@ -362,7 +372,10 @@ function StartsWithAutocompleteInput({
                     }
 
                     if (event.key === 'Enter') {
-                        if (highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+                        if (
+                            highlightedIndex >= 0 &&
+                            highlightedIndex < filtered.length
+                        ) {
                             event.preventDefault();
                             selectOption(filtered[highlightedIndex]);
                         }
@@ -370,20 +383,23 @@ function StartsWithAutocompleteInput({
                     }
                 }}
                 onChange={(event) => {
-                    const nextValue = normalize ? normalize(event.target.value) : event.target.value;
+                    const nextValue = normalize
+                        ? normalize(event.target.value)
+                        : event.target.value;
                     onChange(nextValue);
                     openOptions();
                 }}
             />
 
             {open && filtered.length > 0 ? (
-                <div className="bg-popover text-popover-foreground absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-md border shadow-md">
+                <div className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md">
                     {filtered.map((option) => (
                         <button
                             key={option}
                             type="button"
                             className={`w-full px-3 py-2 text-left text-sm hover:bg-muted ${
-                                highlightedIndex >= 0 && filtered[highlightedIndex] === option
+                                highlightedIndex >= 0 &&
+                                filtered[highlightedIndex] === option
                                     ? 'bg-muted'
                                     : ''
                             }`}
@@ -409,7 +425,9 @@ export default function TransportFreightLaunchPage() {
     const [placasOptions, setPlacasOptions] = useState<string[]>([]);
     const [aviariosOptions, setAviariosOptions] = useState<string[]>([]);
     const [form, setForm] = useState<FormDataState>(emptyForm);
-    const [canceledLoadDetails, setCanceledLoadDetails] = useState<CanceledLoadDetailForm[]>([]);
+    const [canceledLoadDetails, setCanceledLoadDetails] = useState<
+        CanceledLoadDetailForm[]
+    >([]);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [entriesLoading, setEntriesLoading] = useState(false);
@@ -419,7 +437,9 @@ export default function TransportFreightLaunchPage() {
     const [entriesTotal, setEntriesTotal] = useState(0);
     const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
     const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
-    const [deleteCandidate, setDeleteCandidate] = useState<FreightEntry | null>(null);
+    const [deleteCandidate, setDeleteCandidate] = useState<FreightEntry | null>(
+        null,
+    );
     const [filterStartDate, setFilterStartDate] = useState(currentMonthStart);
     const [filterEndDate, setFilterEndDate] = useState(today);
     const [filterUnidadeId, setFilterUnidadeId] = useState('all');
@@ -428,10 +448,12 @@ export default function TransportFreightLaunchPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
     const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
-    const [kmOutlierConfirmed, setKmOutlierConfirmed] = useState(false);
     const spreadsheetInputRef = useRef<HTMLInputElement | null>(null);
 
-    const kaiqueKmAtual = useMemo(() => toNumberOrZero(form.kaique_geral_km), [form.kaique_geral_km]);
+    const kaiqueKmAtual = useMemo(
+        () => toNumberOrZero(form.kaique_geral_km),
+        [form.kaique_geral_km],
+    );
     const kmOutlier = useMemo(() => {
         if (kaiqueKmAtual <= 0) {
             return false;
@@ -441,51 +463,63 @@ export default function TransportFreightLaunchPage() {
     }, [kaiqueKmAtual]);
 
     const buildEntriesQuery = useCallback(
-        (page = 1, customStartDate = filterStartDate, customEndDate = filterEndDate, customUnidadeId = filterUnidadeId): string => {
-        const params = new URLSearchParams();
-        params.set('per_page', '25');
-        params.set('page', String(page));
+        (
+            page = 1,
+            customStartDate = filterStartDate,
+            customEndDate = filterEndDate,
+            customUnidadeId = filterUnidadeId,
+        ): string => {
+            const params = new URLSearchParams();
+            params.set('per_page', '25');
+            params.set('page', String(page));
 
-        if (customStartDate) {
-            params.set('start_date', customStartDate);
-        }
+            if (customStartDate) {
+                params.set('start_date', customStartDate);
+            }
 
-        if (customEndDate) {
-            params.set('end_date', customEndDate);
-        }
+            if (customEndDate) {
+                params.set('end_date', customEndDate);
+            }
 
-        if (customUnidadeId !== 'all') {
-            params.set('unidade_id', customUnidadeId);
-        }
+            if (customUnidadeId !== 'all') {
+                params.set('unidade_id', customUnidadeId);
+            }
 
-        return params.toString();
-    },
-    [filterEndDate, filterStartDate, filterUnidadeId],
+            return params.toString();
+        },
+        [filterEndDate, filterStartDate, filterUnidadeId],
     );
 
-    const loadEntries = useCallback(async (page = 1): Promise<void> => {
-        setEntriesLoading(true);
+    const loadEntries = useCallback(
+        async (page = 1): Promise<void> => {
+            setEntriesLoading(true);
 
-        try {
-            const response = await apiGet<FreightEntryPaginatedResponse>(
-                `/freight/entries?${buildEntriesQuery(page)}`,
-            );
-            setEntries(response.data);
-            setEntriesCurrentPage(response.current_page);
-            setEntriesLastPage(response.last_page);
-            setEntriesTotal(response.total);
-        } catch {
-            setNotification({
-                message: 'Não foi possível carregar a lista de lançamentos de frete.',
-                variant: 'error',
-            });
-        } finally {
-            setEntriesLoading(false);
-        }
-    }, [buildEntriesQuery]);
+            try {
+                const response = await apiGet<FreightEntryPaginatedResponse>(
+                    `/freight/entries?${buildEntriesQuery(page)}`,
+                );
+                setEntries(response.data);
+                setEntriesCurrentPage(response.current_page);
+                setEntriesLastPage(response.last_page);
+                setEntriesTotal(response.total);
+            } catch {
+                setNotification({
+                    message:
+                        'Não foi possível carregar a lista de lançamentos de frete.',
+                    variant: 'error',
+                });
+            } finally {
+                setEntriesLoading(false);
+            }
+        },
+        [buildEntriesQuery],
+    );
 
     useEffect(() => {
-        const count = Math.max(0, Math.trunc(toNumberOrZero(form.canceladas_escaladas_viagens)));
+        const count = Math.max(
+            0,
+            Math.trunc(toNumberOrZero(form.canceladas_escaladas_viagens)),
+        );
 
         setCanceledLoadDetails((previous) => {
             if (previous.length === count) return previous;
@@ -515,26 +549,34 @@ export default function TransportFreightLaunchPage() {
                 setPlacasOptions(
                     placasResponse.data
                         .map((item) => item.placa)
-                        .sort((first, second) => compareTextPtBr(first, second)),
+                        .sort((first, second) =>
+                            compareTextPtBr(first, second),
+                        ),
                 );
 
                 setAviariosOptions(
                     aviariosResponse.data
                         .map((item) => {
                             const kmText =
-                                item.km !== null && item.km !== undefined && String(item.km) !== ''
+                                item.km !== null &&
+                                item.km !== undefined &&
+                                String(item.km) !== ''
                                     ? ` - ${item.km} km`
                                     : '';
 
                             return `${item.nome} (${item.cidade})${kmText}`;
                         })
-                        .sort((first, second) => compareTextPtBr(first, second)),
+                        .sort((first, second) =>
+                            compareTextPtBr(first, second),
+                        ),
                 );
 
                 if (unidadesResponse.data.length > 0) {
                     setForm((previous) => ({
                         ...previous,
-                        unidade_id: previous.unidade_id || String(unidadesResponse.data[0].id),
+                        unidade_id:
+                            previous.unidade_id ||
+                            String(unidadesResponse.data[0].id),
                     }));
                 }
 
@@ -542,7 +584,8 @@ export default function TransportFreightLaunchPage() {
             })
             .catch(() => {
                 setNotification({
-                    message: 'Não foi possível carregar unidades, placas e aviários para lançamento.',
+                    message:
+                        'Não foi possível carregar unidades, placas e aviários para lançamento.',
                     variant: 'error',
                 });
             })
@@ -576,10 +619,6 @@ export default function TransportFreightLaunchPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [entries]);
 
-    useEffect(() => {
-        setKmOutlierConfirmed(false);
-    }, [form.kaique_geral_km, form.data, form.unidade_id]);
-
     async function handleSubmit(): Promise<void> {
         if (!form.data || !form.unidade_id || !form.veiculos) {
             setNotification({
@@ -602,16 +641,6 @@ export default function TransportFreightLaunchPage() {
                 message: 'Informe pelo menos uma carga/viagem no lançamento.',
                 variant: 'error',
             });
-            return;
-        }
-
-        if (kmOutlier && !kmOutlierConfirmed) {
-            setKmOutlierConfirmed(true);
-            setNotification({
-                message: `KM fora da faixa de referência (1.000 a 15.000): ${formatDecimalBR(kaiqueKmAtual, 2)} km. Clique em salvar novamente para confirmar o lançamento.`,
-                variant: 'info',
-            });
-
             return;
         }
 
@@ -638,14 +667,30 @@ export default function TransportFreightLaunchPage() {
             abatedouro_viagens: toIntegerOrZero(form.abatedouro_viagens),
             abatedouro_aves: toIntegerOrZero(form.abatedouro_aves),
             abatedouro_km: toNumberOrZero(form.abatedouro_km),
-            canceladas_sem_escalar_frete: toNumberOrZero(form.canceladas_sem_escalar_frete),
-            canceladas_sem_escalar_viagens: toIntegerOrZero(form.canceladas_sem_escalar_viagens),
-            canceladas_sem_escalar_aves: toIntegerOrZero(form.canceladas_sem_escalar_aves),
-            canceladas_sem_escalar_km: toNumberOrZero(form.canceladas_sem_escalar_km),
-            canceladas_escaladas_frete: toNumberOrZero(form.canceladas_escaladas_frete),
-            canceladas_escaladas_viagens: toIntegerOrZero(form.canceladas_escaladas_viagens),
-            canceladas_escaladas_aves: toIntegerOrZero(form.canceladas_escaladas_aves),
-            canceladas_escaladas_km: toNumberOrZero(form.canceladas_escaladas_km),
+            canceladas_sem_escalar_frete: toNumberOrZero(
+                form.canceladas_sem_escalar_frete,
+            ),
+            canceladas_sem_escalar_viagens: toIntegerOrZero(
+                form.canceladas_sem_escalar_viagens,
+            ),
+            canceladas_sem_escalar_aves: toIntegerOrZero(
+                form.canceladas_sem_escalar_aves,
+            ),
+            canceladas_sem_escalar_km: toNumberOrZero(
+                form.canceladas_sem_escalar_km,
+            ),
+            canceladas_escaladas_frete: toNumberOrZero(
+                form.canceladas_escaladas_frete,
+            ),
+            canceladas_escaladas_viagens: toIntegerOrZero(
+                form.canceladas_escaladas_viagens,
+            ),
+            canceladas_escaladas_aves: toIntegerOrZero(
+                form.canceladas_escaladas_aves,
+            ),
+            canceladas_escaladas_km: toNumberOrZero(
+                form.canceladas_escaladas_km,
+            ),
             placas: null,
             obs: form.obs || null,
             cargas_canceladas_detalhes: canceledLoadDetails.map((item) => ({
@@ -658,8 +703,14 @@ export default function TransportFreightLaunchPage() {
 
         try {
             const response = editingEntryId
-                ? await apiPut<WrappedResponse<FreightEntry>>(`/freight/entries/${editingEntryId}`, payload)
-                : await apiPost<WrappedResponse<FreightEntry>>('/freight/entries', payload);
+                ? await apiPut<WrappedResponse<FreightEntry>>(
+                      `/freight/entries/${editingEntryId}`,
+                      payload,
+                  )
+                : await apiPost<WrappedResponse<FreightEntry>>(
+                      '/freight/entries',
+                      payload,
+                  );
 
             setNotification({
                 message: editingEntryId
@@ -678,9 +729,14 @@ export default function TransportFreightLaunchPage() {
             await loadEntries(entriesCurrentPage);
         } catch (error) {
             if (error instanceof ApiError) {
-                const firstError = error.errors ? Object.values(error.errors)[0]?.[0] : null;
+                const firstError = error.errors
+                    ? Object.values(error.errors)[0]?.[0]
+                    : null;
                 setNotification({
-                    message: firstError ?? error.message ?? 'Não foi possível salvar o lançamento.',
+                    message:
+                        firstError ??
+                        error.message ??
+                        'Não foi possível salvar o lançamento.',
                     variant: 'error',
                 });
             } else {
@@ -695,35 +751,118 @@ export default function TransportFreightLaunchPage() {
     }
 
     function startEdit(entry: FreightEntry): void {
-        const programadoFrete = Number((entry as Partial<FreightEntry>).programado_frete ?? entry.frete_programado ?? 0);
-        const programadoViagens = Number((entry as Partial<FreightEntry>).programado_viagens ?? entry.cargas_programadas ?? 0);
-        const programadoAves = Number((entry as Partial<FreightEntry>).programado_aves ?? entry.aves_programadas ?? 0);
-        const programadoKm = Number((entry as Partial<FreightEntry>).programado_km ?? entry.km_programado ?? entry.km_rodado ?? 0);
+        const programadoFrete = Number(
+            (entry as Partial<FreightEntry>).programado_frete ??
+                entry.frete_programado ??
+                0,
+        );
+        const programadoViagens = Number(
+            (entry as Partial<FreightEntry>).programado_viagens ??
+                entry.cargas_programadas ??
+                0,
+        );
+        const programadoAves = Number(
+            (entry as Partial<FreightEntry>).programado_aves ??
+                entry.aves_programadas ??
+                0,
+        );
+        const programadoKm = Number(
+            (entry as Partial<FreightEntry>).programado_km ??
+                entry.km_programado ??
+                entry.km_rodado ??
+                0,
+        );
 
-        const kaiqueFrete = Number((entry as Partial<FreightEntry>).kaique_geral_frete ?? entry.frete_total ?? 0);
-        const kaiqueViagens = Number((entry as Partial<FreightEntry>).kaique_geral_viagens ?? entry.cargas ?? 0);
-        const kaiqueAves = Number((entry as Partial<FreightEntry>).kaique_geral_aves ?? entry.aves ?? 0);
-        const kaiqueKm = Number((entry as Partial<FreightEntry>).kaique_geral_km ?? entry.km_rodado ?? 0);
+        const kaiqueFrete = Number(
+            (entry as Partial<FreightEntry>).kaique_geral_frete ??
+                entry.frete_total ??
+                0,
+        );
+        const kaiqueViagens = Number(
+            (entry as Partial<FreightEntry>).kaique_geral_viagens ??
+                entry.cargas ??
+                0,
+        );
+        const kaiqueAves = Number(
+            (entry as Partial<FreightEntry>).kaique_geral_aves ??
+                entry.aves ??
+                0,
+        );
+        const kaiqueKm = Number(
+            (entry as Partial<FreightEntry>).kaique_geral_km ??
+                entry.km_rodado ??
+                0,
+        );
 
-        const terceirosFrete = Number((entry as Partial<FreightEntry>).terceiros_frete ?? entry.frete_terceiros ?? 0);
-        const terceirosViagens = Number((entry as Partial<FreightEntry>).terceiros_viagens ?? entry.viagens_terceiros ?? 0);
-        const terceirosAves = Number((entry as Partial<FreightEntry>).terceiros_aves ?? entry.aves_terceiros ?? 0);
-        const terceirosKm = Number((entry as Partial<FreightEntry>).terceiros_km ?? entry.km_terceiros ?? 0);
+        const terceirosFrete = Number(
+            (entry as Partial<FreightEntry>).terceiros_frete ??
+                entry.frete_terceiros ??
+                0,
+        );
+        const terceirosViagens = Number(
+            (entry as Partial<FreightEntry>).terceiros_viagens ??
+                entry.viagens_terceiros ??
+                0,
+        );
+        const terceirosAves = Number(
+            (entry as Partial<FreightEntry>).terceiros_aves ??
+                entry.aves_terceiros ??
+                0,
+        );
+        const terceirosKm = Number(
+            (entry as Partial<FreightEntry>).terceiros_km ??
+                entry.km_terceiros ??
+                0,
+        );
 
-        const abatedouroFrete = Number((entry as Partial<FreightEntry>).abatedouro_frete ?? entry.frete_liquido ?? 0);
-        const abatedouroViagens = Number((entry as Partial<FreightEntry>).abatedouro_viagens ?? entry.cargas_liq ?? 0);
-        const abatedouroAves = Number((entry as Partial<FreightEntry>).abatedouro_aves ?? entry.aves_liq ?? 0);
-        const abatedouroKm = Number((entry as Partial<FreightEntry>).abatedouro_km ?? 0);
+        const abatedouroFrete = Number(
+            (entry as Partial<FreightEntry>).abatedouro_frete ??
+                entry.frete_liquido ??
+                0,
+        );
+        const abatedouroViagens = Number(
+            (entry as Partial<FreightEntry>).abatedouro_viagens ??
+                entry.cargas_liq ??
+                0,
+        );
+        const abatedouroAves = Number(
+            (entry as Partial<FreightEntry>).abatedouro_aves ??
+                entry.aves_liq ??
+                0,
+        );
+        const abatedouroKm = Number(
+            (entry as Partial<FreightEntry>).abatedouro_km ?? 0,
+        );
 
-        const canceladasSemEscalarFrete = Number((entry as Partial<FreightEntry>).canceladas_sem_escalar_frete ?? 0);
-        const canceladasSemEscalarViagens = Number((entry as Partial<FreightEntry>).canceladas_sem_escalar_viagens ?? entry.nao_escaladas ?? 0);
-        const canceladasSemEscalarAves = Number((entry as Partial<FreightEntry>).canceladas_sem_escalar_aves ?? 0);
-        const canceladasSemEscalarKm = Number((entry as Partial<FreightEntry>).canceladas_sem_escalar_km ?? 0);
+        const canceladasSemEscalarFrete = Number(
+            (entry as Partial<FreightEntry>).canceladas_sem_escalar_frete ?? 0,
+        );
+        const canceladasSemEscalarViagens = Number(
+            (entry as Partial<FreightEntry>).canceladas_sem_escalar_viagens ??
+                entry.nao_escaladas ??
+                0,
+        );
+        const canceladasSemEscalarAves = Number(
+            (entry as Partial<FreightEntry>).canceladas_sem_escalar_aves ?? 0,
+        );
+        const canceladasSemEscalarKm = Number(
+            (entry as Partial<FreightEntry>).canceladas_sem_escalar_km ?? 0,
+        );
 
-        const canceladasEscaladasFrete = Number((entry as Partial<FreightEntry>).canceladas_escaladas_frete ?? 0);
-        const canceladasEscaladasViagens = Number((entry as Partial<FreightEntry>).canceladas_escaladas_viagens ?? entry.cargas_canceladas_escaladas ?? 0);
-        const canceladasEscaladasAves = Number((entry as Partial<FreightEntry>).canceladas_escaladas_aves ?? 0);
-        const canceladasEscaladasKm = Number((entry as Partial<FreightEntry>).canceladas_escaladas_km ?? 0);
+        const canceladasEscaladasFrete = Number(
+            (entry as Partial<FreightEntry>).canceladas_escaladas_frete ?? 0,
+        );
+        const canceladasEscaladasViagens = Number(
+            (entry as Partial<FreightEntry>).canceladas_escaladas_viagens ??
+                entry.cargas_canceladas_escaladas ??
+                0,
+        );
+        const canceladasEscaladasAves = Number(
+            (entry as Partial<FreightEntry>).canceladas_escaladas_aves ?? 0,
+        );
+        const canceladasEscaladasKm = Number(
+            (entry as Partial<FreightEntry>).canceladas_escaladas_km ?? 0,
+        );
 
         setEditingEntryId(entry.id);
         setForm({
@@ -746,12 +885,22 @@ export default function TransportFreightLaunchPage() {
             abatedouro_viagens: toIntegerString(abatedouroViagens),
             abatedouro_aves: toIntegerString(abatedouroAves),
             abatedouro_km: toDecimalString(abatedouroKm),
-            canceladas_sem_escalar_frete: toDecimalString(canceladasSemEscalarFrete),
-            canceladas_sem_escalar_viagens: toIntegerString(canceladasSemEscalarViagens),
-            canceladas_sem_escalar_aves: toIntegerString(canceladasSemEscalarAves),
+            canceladas_sem_escalar_frete: toDecimalString(
+                canceladasSemEscalarFrete,
+            ),
+            canceladas_sem_escalar_viagens: toIntegerString(
+                canceladasSemEscalarViagens,
+            ),
+            canceladas_sem_escalar_aves: toIntegerString(
+                canceladasSemEscalarAves,
+            ),
             canceladas_sem_escalar_km: toDecimalString(canceladasSemEscalarKm),
-            canceladas_escaladas_frete: toDecimalString(canceladasEscaladasFrete),
-            canceladas_escaladas_viagens: toIntegerString(canceladasEscaladasViagens),
+            canceladas_escaladas_frete: toDecimalString(
+                canceladasEscaladasFrete,
+            ),
+            canceladas_escaladas_viagens: toIntegerString(
+                canceladasEscaladasViagens,
+            ),
             canceladas_escaladas_aves: toIntegerString(canceladasEscaladasAves),
             canceladas_escaladas_km: toDecimalString(canceladasEscaladasKm),
             obs: entry.obs ?? '',
@@ -784,7 +933,12 @@ export default function TransportFreightLaunchPage() {
             await loadEntries(entriesCurrentPage);
         } catch (error) {
             if (error instanceof ApiError) {
-                setNotification({ message: error.message ?? 'Não foi possível excluir o lançamento.', variant: 'error' });
+                setNotification({
+                    message:
+                        error.message ??
+                        'Não foi possível excluir o lançamento.',
+                    variant: 'error',
+                });
             } else {
                 setNotification({
                     message: 'Não foi possível excluir o lançamento.',
@@ -808,7 +962,9 @@ export default function TransportFreightLaunchPage() {
         const prefill = data.prefill;
 
         if (!prefill) {
-            throw new Error('Não foi possível interpretar os dados da planilha para pré-preenchimento.');
+            throw new Error(
+                'Não foi possível interpretar os dados da planilha para pré-preenchimento.',
+            );
         }
 
         setEditingEntryId(null);
@@ -821,30 +977,94 @@ export default function TransportFreightLaunchPage() {
                     ? String(prefill.unidade_id)
                     : previous.unidade_id,
             veiculos: toIntegerString(Number(prefill.veiculos ?? 0)),
-            programado_frete: toDecimalString(Number(prefill.programado_frete ?? prefill.frete_programado ?? 0)),
-            programado_viagens: toIntegerString(Number(prefill.programado_viagens ?? prefill.cargas_programadas ?? 0)),
-            programado_aves: toIntegerString(Number(prefill.programado_aves ?? prefill.aves_programadas ?? 0)),
-            programado_km: toDecimalString(Number(prefill.programado_km ?? prefill.km_programado ?? 0)),
-            kaique_geral_frete: toDecimalString(Number(prefill.kaique_geral_frete ?? prefill.frete_total ?? 0)),
-            kaique_geral_viagens: toIntegerString(Number(prefill.kaique_geral_viagens ?? prefill.cargas ?? 0)),
-            kaique_geral_aves: toIntegerString(Number(prefill.kaique_geral_aves ?? prefill.aves ?? 0)),
-            kaique_geral_km: toDecimalString(Number(prefill.kaique_geral_km ?? prefill.km_rodado ?? 0)),
-            terceiros_frete: toDecimalString(Number(prefill.terceiros_frete ?? prefill.frete_terceiros ?? 0)),
-            terceiros_viagens: toIntegerString(Number(prefill.terceiros_viagens ?? prefill.viagens_terceiros ?? 0)),
-            terceiros_aves: toIntegerString(Number(prefill.terceiros_aves ?? prefill.aves_terceiros ?? 0)),
-            terceiros_km: toDecimalString(Number(prefill.terceiros_km ?? prefill.km_terceiros ?? 0)),
-            abatedouro_frete: toDecimalString(Number(prefill.abatedouro_frete ?? prefill.frete_liquido ?? 0)),
-            abatedouro_viagens: toIntegerString(Number(prefill.abatedouro_viagens ?? prefill.cargas_liq ?? 0)),
-            abatedouro_aves: toIntegerString(Number(prefill.abatedouro_aves ?? prefill.aves_liq ?? 0)),
+            programado_frete: toDecimalString(
+                Number(
+                    prefill.programado_frete ?? prefill.frete_programado ?? 0,
+                ),
+            ),
+            programado_viagens: toIntegerString(
+                Number(
+                    prefill.programado_viagens ??
+                        prefill.cargas_programadas ??
+                        0,
+                ),
+            ),
+            programado_aves: toIntegerString(
+                Number(
+                    prefill.programado_aves ?? prefill.aves_programadas ?? 0,
+                ),
+            ),
+            programado_km: toDecimalString(
+                Number(prefill.programado_km ?? prefill.km_programado ?? 0),
+            ),
+            kaique_geral_frete: toDecimalString(
+                Number(prefill.kaique_geral_frete ?? prefill.frete_total ?? 0),
+            ),
+            kaique_geral_viagens: toIntegerString(
+                Number(prefill.kaique_geral_viagens ?? prefill.cargas ?? 0),
+            ),
+            kaique_geral_aves: toIntegerString(
+                Number(prefill.kaique_geral_aves ?? prefill.aves ?? 0),
+            ),
+            kaique_geral_km: toDecimalString(
+                Number(prefill.kaique_geral_km ?? prefill.km_rodado ?? 0),
+            ),
+            terceiros_frete: toDecimalString(
+                Number(prefill.terceiros_frete ?? prefill.frete_terceiros ?? 0),
+            ),
+            terceiros_viagens: toIntegerString(
+                Number(
+                    prefill.terceiros_viagens ?? prefill.viagens_terceiros ?? 0,
+                ),
+            ),
+            terceiros_aves: toIntegerString(
+                Number(prefill.terceiros_aves ?? prefill.aves_terceiros ?? 0),
+            ),
+            terceiros_km: toDecimalString(
+                Number(prefill.terceiros_km ?? prefill.km_terceiros ?? 0),
+            ),
+            abatedouro_frete: toDecimalString(
+                Number(prefill.abatedouro_frete ?? prefill.frete_liquido ?? 0),
+            ),
+            abatedouro_viagens: toIntegerString(
+                Number(prefill.abatedouro_viagens ?? prefill.cargas_liq ?? 0),
+            ),
+            abatedouro_aves: toIntegerString(
+                Number(prefill.abatedouro_aves ?? prefill.aves_liq ?? 0),
+            ),
             abatedouro_km: toDecimalString(Number(prefill.abatedouro_km ?? 0)),
-            canceladas_sem_escalar_frete: toDecimalString(Number(prefill.canceladas_sem_escalar_frete ?? 0)),
-            canceladas_sem_escalar_viagens: toIntegerString(Number(prefill.canceladas_sem_escalar_viagens ?? prefill.nao_escaladas ?? 0)),
-            canceladas_sem_escalar_aves: toIntegerString(Number(prefill.canceladas_sem_escalar_aves ?? 0)),
-            canceladas_sem_escalar_km: toDecimalString(Number(prefill.canceladas_sem_escalar_km ?? 0)),
-            canceladas_escaladas_frete: toDecimalString(Number(prefill.canceladas_escaladas_frete ?? 0)),
-            canceladas_escaladas_viagens: toIntegerString(Number(prefill.canceladas_escaladas_viagens ?? prefill.cargas_canceladas_escaladas ?? 0)),
-            canceladas_escaladas_aves: toIntegerString(Number(prefill.canceladas_escaladas_aves ?? 0)),
-            canceladas_escaladas_km: toDecimalString(Number(prefill.canceladas_escaladas_km ?? 0)),
+            canceladas_sem_escalar_frete: toDecimalString(
+                Number(prefill.canceladas_sem_escalar_frete ?? 0),
+            ),
+            canceladas_sem_escalar_viagens: toIntegerString(
+                Number(
+                    prefill.canceladas_sem_escalar_viagens ??
+                        prefill.nao_escaladas ??
+                        0,
+                ),
+            ),
+            canceladas_sem_escalar_aves: toIntegerString(
+                Number(prefill.canceladas_sem_escalar_aves ?? 0),
+            ),
+            canceladas_sem_escalar_km: toDecimalString(
+                Number(prefill.canceladas_sem_escalar_km ?? 0),
+            ),
+            canceladas_escaladas_frete: toDecimalString(
+                Number(prefill.canceladas_escaladas_frete ?? 0),
+            ),
+            canceladas_escaladas_viagens: toIntegerString(
+                Number(
+                    prefill.canceladas_escaladas_viagens ??
+                        prefill.cargas_canceladas_escaladas ??
+                        0,
+                ),
+            ),
+            canceladas_escaladas_aves: toIntegerString(
+                Number(prefill.canceladas_escaladas_aves ?? 0),
+            ),
+            canceladas_escaladas_km: toDecimalString(
+                Number(prefill.canceladas_escaladas_km ?? 0),
+            ),
             obs: String(prefill.obs ?? ''),
         }));
 
@@ -859,10 +1079,11 @@ export default function TransportFreightLaunchPage() {
                 obs: String(item.obs ?? ''),
             })),
         );
-
     }
 
-    async function handleSpreadsheetSelected(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    async function handleSpreadsheetSelected(
+        event: ChangeEvent<HTMLInputElement>,
+    ): Promise<void> {
         const file = event.target.files?.[0];
         event.target.value = '';
 
@@ -884,19 +1105,26 @@ export default function TransportFreightLaunchPage() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch('/api/freight/entries/import-spreadsheet-preview', {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    Authorization: `Bearer ${token}`,
+            const response = await fetch(
+                '/api/freight/entries/import-spreadsheet-preview',
+                {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
                 },
-                body: formData,
-            });
+            );
 
-            const json = (await response.json().catch(() => ({}))) as SpreadsheetPreviewResponse;
+            const json = (await response
+                .json()
+                .catch(() => ({}))) as SpreadsheetPreviewResponse;
 
             if (!response.ok) {
-                throw new Error(json.message ?? 'Não foi possível importar a planilha JBS.');
+                throw new Error(
+                    json.message ?? 'Não foi possível importar a planilha JBS.',
+                );
             }
 
             applySpreadsheetPrefill(json);
@@ -905,7 +1133,8 @@ export default function TransportFreightLaunchPage() {
                 message:
                     (json.warnings?.length ?? 0) > 0
                         ? `Planilha carregada para conferência com avisos: ${json.warnings?.join(' | ')}`
-                        : (json.message ?? 'Planilha carregada para conferência. Revise e clique em Salvar lançamento.'),
+                        : (json.message ??
+                          'Planilha carregada para conferência. Revise e clique em Salvar lançamento.'),
                 variant: (json.warnings?.length ?? 0) > 0 ? 'info' : 'success',
             });
         } catch (error) {
@@ -991,18 +1220,25 @@ export default function TransportFreightLaunchPage() {
         if (field === 'unidade_id') return `max-w-xs ${highlight}`;
         if (field === 'data') return `max-w-[220px] ${highlight}`;
         if (moneyFields.has(field)) return `max-w-[220px] ${highlight}`;
-        if (decimalThousandsFields.has(field)) return `max-w-[190px] ${highlight}`;
-        if (integerThousandsFields.has(field)) return `max-w-[170px] ${highlight}`;
+        if (decimalThousandsFields.has(field))
+            return `max-w-[190px] ${highlight}`;
+        if (integerThousandsFields.has(field))
+            return `max-w-[170px] ${highlight}`;
         return `max-w-[220px] ${highlight}`;
     }
 
     return (
-        <AdminLayout title="Gestão de Fretes - Lançar" active="freight-launch" module="freight">
+        <AdminLayout
+            title="Gestão de Fretes - Lançar"
+            active="freight-launch"
+            module="freight"
+        >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">Lançar Fretes</h2>
                     <p className="text-sm text-muted-foreground">
-                        Um único lançamento para alimentar visão diária, mensal, dashboard e linha do tempo.
+                        Um único lançamento para alimentar visão diária, mensal,
+                        dashboard e linha do tempo.
                     </p>
                 </div>
 
@@ -1036,7 +1272,12 @@ export default function TransportFreightLaunchPage() {
                     </Button>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <Card>
                     <CardHeader>
@@ -1051,60 +1292,164 @@ export default function TransportFreightLaunchPage() {
                         ) : (
                             <div className="space-y-6">
                                 {sections.map((section, sectionIndex) => (
-                                    <div key={sectionIndex} className="space-y-3 rounded-md border p-3">
-                                        <p className="text-sm font-semibold">{section.title}</p>
+                                    <div
+                                        key={sectionIndex}
+                                        className="space-y-3 rounded-md border p-3"
+                                    >
+                                        <p className="text-sm font-semibold">
+                                            {section.title}
+                                        </p>
                                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                            {section.fields.map(([field, label, type]) => (
-                                            <div key={field} className="space-y-2">
-                                                <Label htmlFor={field}>{label}</Label>
-                                                {type === 'select' ? (
-                                                    <Select
-                                                        value={form.unidade_id}
-                                                        onValueChange={(value) =>
-                                                            setForm((previous) => ({
-                                                                ...previous,
-                                                                unidade_id: value,
-                                                            }))
-                                                        }
+                                            {section.fields.map(
+                                                ([field, label, type]) => (
+                                                    <div
+                                                        key={field}
+                                                        className="space-y-2"
                                                     >
-                                                        <SelectTrigger id={field} className={fieldInputClass(field)}>
-                                                            <SelectValue placeholder="Selecione" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {unidades.map((unidade) => (
-                                                                <SelectItem key={unidade.id} value={String(unidade.id)}>
-                                                                    {unidade.nome}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <Input
-                                                        id={field}
-                                                        className={fieldInputClass(field)}
-                                                        type={moneyFields.has(field) || integerThousandsFields.has(field) || decimalThousandsFields.has(field) ? 'text' : type}
-                                                        inputMode={moneyFields.has(field) || decimalThousandsFields.has(field) ? 'decimal' : type === 'number' || integerThousandsFields.has(field) ? 'numeric' : undefined}
-                                                        step={type === 'number' ? '0.01' : undefined}
-                                                        value={form[field as keyof FormDataState]}
-                                                        onChange={(event) => {
-                                                            const value =
-                                                                moneyFields.has(field)
-                                                                    ? moneyMaskBR(event.target.value)
-                                                                                                                                            : integerThousandsFields.has(field)
-                                                                                                                                            ? integerThousandsMaskBR(event.target.value)
-                                                                                                                                                : decimalThousandsFields.has(field)
-                                                                                                                                                ? decimalThousandsMaskBR(event.target.value)
-                                                                    : event.target.value;
+                                                        <Label htmlFor={field}>
+                                                            {label}
+                                                        </Label>
+                                                        {type === 'select' ? (
+                                                            <Select
+                                                                value={
+                                                                    form.unidade_id
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    setForm(
+                                                                        (
+                                                                            previous,
+                                                                        ) => ({
+                                                                            ...previous,
+                                                                            unidade_id:
+                                                                                value,
+                                                                        }),
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger
+                                                                    id={field}
+                                                                    className={fieldInputClass(
+                                                                        field,
+                                                                    )}
+                                                                >
+                                                                    <SelectValue placeholder="Selecione" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {unidades.map(
+                                                                        (
+                                                                            unidade,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    unidade.id
+                                                                                }
+                                                                                value={String(
+                                                                                    unidade.id,
+                                                                                )}
+                                                                            >
+                                                                                {
+                                                                                    unidade.nome
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ) : (
+                                                            <Input
+                                                                id={field}
+                                                                className={fieldInputClass(
+                                                                    field,
+                                                                )}
+                                                                type={
+                                                                    moneyFields.has(
+                                                                        field,
+                                                                    ) ||
+                                                                    integerThousandsFields.has(
+                                                                        field,
+                                                                    ) ||
+                                                                    decimalThousandsFields.has(
+                                                                        field,
+                                                                    )
+                                                                        ? 'text'
+                                                                        : type
+                                                                }
+                                                                inputMode={
+                                                                    moneyFields.has(
+                                                                        field,
+                                                                    ) ||
+                                                                    decimalThousandsFields.has(
+                                                                        field,
+                                                                    )
+                                                                        ? 'decimal'
+                                                                        : type ===
+                                                                                'number' ||
+                                                                            integerThousandsFields.has(
+                                                                                field,
+                                                                            )
+                                                                          ? 'numeric'
+                                                                          : undefined
+                                                                }
+                                                                step={
+                                                                    type ===
+                                                                    'number'
+                                                                        ? '0.01'
+                                                                        : undefined
+                                                                }
+                                                                value={
+                                                                    form[
+                                                                        field as keyof FormDataState
+                                                                    ]
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) => {
+                                                                    const value =
+                                                                        moneyFields.has(
+                                                                            field,
+                                                                        )
+                                                                            ? moneyMaskBR(
+                                                                                  event
+                                                                                      .target
+                                                                                      .value,
+                                                                              )
+                                                                            : integerThousandsFields.has(
+                                                                                    field,
+                                                                                )
+                                                                              ? integerThousandsMaskBR(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                )
+                                                                              : decimalThousandsFields.has(
+                                                                                      field,
+                                                                                  )
+                                                                                ? decimalThousandsMaskBR(
+                                                                                      event
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                                : event
+                                                                                      .target
+                                                                                      .value;
 
-                                                            setForm((previous) => ({
-                                                                ...previous,
-                                                                [field]: value,
-                                                            }));
-                                                        }}
-                                                    />
-                                                )}
-                                            </div>
-                                            ))}
+                                                                    setForm(
+                                                                        (
+                                                                            previous,
+                                                                        ) => ({
+                                                                            ...previous,
+                                                                            [field]:
+                                                                                value,
+                                                                        }),
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -1112,82 +1457,199 @@ export default function TransportFreightLaunchPage() {
                                 {canceledLoadDetails.length > 0 ? (
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle>Cargas Canceladas Escaladas</CardTitle>
+                                            <CardTitle>
+                                                Cargas Canceladas Escaladas
+                                            </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
-                                            {canceledLoadDetails.map((item, index) => (
-                                                <div key={index} className="space-y-3 rounded-md border p-3">
-                                                    <p className="text-sm font-medium">Carga Cancelada {index + 1}</p>
-                                                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`cancelada-placa-${index}`}>Placa</Label>
-                                                            <StartsWithAutocompleteInput
-                                                                id={`cancelada-placa-${index}`}
-                                                                value={item.placa}
-                                                                options={placasOptions}
-                                                                inputClassName="border-2 bg-muted/20 font-medium"
-                                                                normalize={(nextValue) => nextValue.toUpperCase()}
-                                                                onChange={(nextValue) =>
-                                                                    setCanceledLoadDetails((previous) => {
-                                                                        const next = [...previous];
-                                                                        next[index] = { ...next[index], placa: nextValue };
-                                                                        return next;
-                                                                    })
-                                                                }
-                                                                placeholder="ABC1D23"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`cancelada-aviario-${index}`}>Aviário</Label>
-                                                            <StartsWithAutocompleteInput
-                                                                id={`cancelada-aviario-${index}`}
-                                                                value={item.aviario}
-                                                                options={aviariosOptions}
-                                                                inputClassName="border-2 bg-muted/20 font-medium"
-                                                                onChange={(nextValue) =>
-                                                                    setCanceledLoadDetails((previous) => {
-                                                                        const next = [...previous];
-                                                                        next[index] = { ...next[index], aviario: nextValue };
-                                                                        return next;
-                                                                    })
-                                                                }
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`cancelada-valor-${index}`}>Valor</Label>
-                                                            <Input
-                                                                id={`cancelada-valor-${index}`}
-                                                                className="border-2 bg-muted/20 font-medium"
-                                                                type="text"
-                                                                inputMode="decimal"
-                                                                value={item.valor}
-                                                                onChange={(event) =>
-                                                                    setCanceledLoadDetails((previous) => {
-                                                                        const next = [...previous];
-                                                                        next[index] = { ...next[index], valor: moneyMaskBR(event.target.value) };
-                                                                        return next;
-                                                                    })
-                                                                }
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor={`cancelada-obs-${index}`}>Obs.</Label>
-                                                            <Input
-                                                                id={`cancelada-obs-${index}`}
-                                                                className="border-2 bg-muted/20 font-medium"
-                                                                value={item.obs}
-                                                                onChange={(event) =>
-                                                                    setCanceledLoadDetails((previous) => {
-                                                                        const next = [...previous];
-                                                                        next[index] = { ...next[index], obs: event.target.value };
-                                                                        return next;
-                                                                    })
-                                                                }
-                                                            />
+                                            {canceledLoadDetails.map(
+                                                (item, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="space-y-3 rounded-md border p-3"
+                                                    >
+                                                        <p className="text-sm font-medium">
+                                                            Carga Cancelada{' '}
+                                                            {index + 1}
+                                                        </p>
+                                                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                                                            <div className="space-y-2">
+                                                                <Label
+                                                                    htmlFor={`cancelada-placa-${index}`}
+                                                                >
+                                                                    Placa
+                                                                </Label>
+                                                                <StartsWithAutocompleteInput
+                                                                    id={`cancelada-placa-${index}`}
+                                                                    value={
+                                                                        item.placa
+                                                                    }
+                                                                    options={
+                                                                        placasOptions
+                                                                    }
+                                                                    inputClassName="border-2 bg-muted/20 font-medium"
+                                                                    normalize={(
+                                                                        nextValue,
+                                                                    ) =>
+                                                                        nextValue.toUpperCase()
+                                                                    }
+                                                                    onChange={(
+                                                                        nextValue,
+                                                                    ) =>
+                                                                        setCanceledLoadDetails(
+                                                                            (
+                                                                                previous,
+                                                                            ) => {
+                                                                                const next =
+                                                                                    [
+                                                                                        ...previous,
+                                                                                    ];
+                                                                                next[
+                                                                                    index
+                                                                                ] =
+                                                                                    {
+                                                                                        ...next[
+                                                                                            index
+                                                                                        ],
+                                                                                        placa: nextValue,
+                                                                                    };
+                                                                                return next;
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    placeholder="ABC1D23"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label
+                                                                    htmlFor={`cancelada-aviario-${index}`}
+                                                                >
+                                                                    Aviário
+                                                                </Label>
+                                                                <StartsWithAutocompleteInput
+                                                                    id={`cancelada-aviario-${index}`}
+                                                                    value={
+                                                                        item.aviario
+                                                                    }
+                                                                    options={
+                                                                        aviariosOptions
+                                                                    }
+                                                                    inputClassName="border-2 bg-muted/20 font-medium"
+                                                                    onChange={(
+                                                                        nextValue,
+                                                                    ) =>
+                                                                        setCanceledLoadDetails(
+                                                                            (
+                                                                                previous,
+                                                                            ) => {
+                                                                                const next =
+                                                                                    [
+                                                                                        ...previous,
+                                                                                    ];
+                                                                                next[
+                                                                                    index
+                                                                                ] =
+                                                                                    {
+                                                                                        ...next[
+                                                                                            index
+                                                                                        ],
+                                                                                        aviario:
+                                                                                            nextValue,
+                                                                                    };
+                                                                                return next;
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label
+                                                                    htmlFor={`cancelada-valor-${index}`}
+                                                                >
+                                                                    Valor
+                                                                </Label>
+                                                                <Input
+                                                                    id={`cancelada-valor-${index}`}
+                                                                    className="border-2 bg-muted/20 font-medium"
+                                                                    type="text"
+                                                                    inputMode="decimal"
+                                                                    value={
+                                                                        item.valor
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setCanceledLoadDetails(
+                                                                            (
+                                                                                previous,
+                                                                            ) => {
+                                                                                const next =
+                                                                                    [
+                                                                                        ...previous,
+                                                                                    ];
+                                                                                next[
+                                                                                    index
+                                                                                ] =
+                                                                                    {
+                                                                                        ...next[
+                                                                                            index
+                                                                                        ],
+                                                                                        valor: moneyMaskBR(
+                                                                                            event
+                                                                                                .target
+                                                                                                .value,
+                                                                                        ),
+                                                                                    };
+                                                                                return next;
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label
+                                                                    htmlFor={`cancelada-obs-${index}`}
+                                                                >
+                                                                    Obs.
+                                                                </Label>
+                                                                <Input
+                                                                    id={`cancelada-obs-${index}`}
+                                                                    className="border-2 bg-muted/20 font-medium"
+                                                                    value={
+                                                                        item.obs
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setCanceledLoadDetails(
+                                                                            (
+                                                                                previous,
+                                                                            ) => {
+                                                                                const next =
+                                                                                    [
+                                                                                        ...previous,
+                                                                                    ];
+                                                                                next[
+                                                                                    index
+                                                                                ] =
+                                                                                    {
+                                                                                        ...next[
+                                                                                            index
+                                                                                        ],
+                                                                                        obs: event
+                                                                                            .target
+                                                                                            .value,
+                                                                                    };
+                                                                                return next;
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ),
+                                            )}
                                         </CardContent>
                                     </Card>
                                 ) : null}
@@ -1199,7 +1661,9 @@ export default function TransportFreightLaunchPage() {
                                             id="obs"
                                             value={form.obs}
                                             className="flex min-h-16 w-full rounded-md border-2 border-input bg-muted/20 px-3 py-2 text-base font-medium shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                            onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                                            onChange={(
+                                                event: ChangeEvent<HTMLTextAreaElement>,
+                                            ) =>
                                                 setForm((previous) => ({
                                                     ...previous,
                                                     obs: event.target.value,
@@ -1220,8 +1684,11 @@ export default function TransportFreightLaunchPage() {
                                                     setEditingEntryId(null);
                                                     setForm((previous) => ({
                                                         ...emptyForm,
-                                                        unidade_id: previous.unidade_id,
-                                                        data: new Date().toISOString().slice(0, 10),
+                                                        unidade_id:
+                                                            previous.unidade_id,
+                                                        data: new Date()
+                                                            .toISOString()
+                                                            .slice(0, 10),
                                                     }));
                                                     setCanceledLoadDetails([]);
                                                 }}
@@ -1232,13 +1699,15 @@ export default function TransportFreightLaunchPage() {
                                         ) : null}
                                         {kmOutlier ? (
                                             <div className="max-w-[360px] rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
-                                                KM fora da faixa de referência (1.000 a 15.000).
-                                                {kmOutlierConfirmed ? ' Clique em salvar para confirmar.' : ''}
+                                                KM fora da faixa de referência
+                                                (1.000 a 15.000). Esse alerta é
+                                                apenas informativo e não
+                                                bloqueia o lançamento.
                                             </div>
                                         ) : null}
-                                        <Button 
-                                            type="button" 
-                                            onClick={() => void handleSubmit()} 
+                                        <Button
+                                            type="button"
+                                            onClick={() => void handleSubmit()}
                                             disabled={saving}
                                             data-save-action="true"
                                         >
@@ -1247,8 +1716,10 @@ export default function TransportFreightLaunchPage() {
                                                     <LoaderCircle className="size-4 animate-spin" />
                                                     Salvando...
                                                 </>
+                                            ) : editingEntryId ? (
+                                                'Salvar alterações'
                                             ) : (
-                                                editingEntryId ? 'Salvar alterações' : 'Salvar lançamento'
+                                                'Salvar lançamento'
                                             )}
                                         </Button>
                                     </div>
@@ -1265,21 +1736,29 @@ export default function TransportFreightLaunchPage() {
                     <CardContent className="space-y-4">
                         <div className="grid gap-3 md:grid-cols-4">
                             <div className="space-y-2">
-                                <Label htmlFor="filter-start-date">Data inicial</Label>
+                                <Label htmlFor="filter-start-date">
+                                    Data inicial
+                                </Label>
                                 <Input
                                     id="filter-start-date"
                                     type="date"
                                     value={filterStartDate}
-                                    onChange={(event) => setFilterStartDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setFilterStartDate(event.target.value)
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="filter-end-date">Data final</Label>
+                                <Label htmlFor="filter-end-date">
+                                    Data final
+                                </Label>
                                 <Input
                                     id="filter-end-date"
                                     type="date"
                                     value={filterEndDate}
-                                    onChange={(event) => setFilterEndDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setFilterEndDate(event.target.value)
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
@@ -1292,9 +1771,14 @@ export default function TransportFreightLaunchPage() {
                                         <SelectValue placeholder="Todas" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
+                                        <SelectItem value="all">
+                                            Todas
+                                        </SelectItem>
                                         {unidades.map((unidade) => (
-                                            <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                            <SelectItem
+                                                key={unidade.id}
+                                                value={String(unidade.id)}
+                                            >
                                                 {unidade.nome}
                                             </SelectItem>
                                         ))}
@@ -1337,39 +1821,98 @@ export default function TransportFreightLaunchPage() {
                         <div className="space-y-3 md:hidden">
                             {entriesLoading ? (
                                 <div className="space-y-2">
-                                    {Array.from({ length: 4 }).map((_, index) => (
-                                        <div key={`mobile-entry-skeleton-${index}`} className="rounded-md border p-3">
-                                            <Skeleton className="mb-2 h-4 w-48" />
-                                            <Skeleton className="mb-2 h-3 w-full" />
-                                            <Skeleton className="h-3 w-2/3" />
-                                        </div>
-                                    ))}
+                                    {Array.from({ length: 4 }).map(
+                                        (_, index) => (
+                                            <div
+                                                key={`mobile-entry-skeleton-${index}`}
+                                                className="rounded-md border p-3"
+                                            >
+                                                <Skeleton className="mb-2 h-4 w-48" />
+                                                <Skeleton className="mb-2 h-3 w-full" />
+                                                <Skeleton className="h-3 w-2/3" />
+                                            </div>
+                                        ),
+                                    )}
                                 </div>
                             ) : entries.length === 0 ? (
                                 <div className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
-                                    Nenhum lançamento encontrado para os filtros informados.
+                                    Nenhum lançamento encontrado para os filtros
+                                    informados.
                                 </div>
                             ) : (
                                 entries.map((entry) => (
-                                    <div key={`mobile-${entry.id}`} className="space-y-2 rounded-md border p-3 transition-colors hover:bg-muted/30">
+                                    <div
+                                        key={`mobile-${entry.id}`}
+                                        className="space-y-2 rounded-md border p-3 transition-colors hover:bg-muted/30"
+                                    >
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
-                                                <p className="text-sm font-semibold">{entry.unidade?.nome ?? `#${entry.unidade_id}`}</p>
-                                                <p className="text-xs text-muted-foreground">{formatDateBR(entry.data, entry.data)}</p>
+                                                <p className="text-sm font-semibold">
+                                                    {entry.unidade?.nome ??
+                                                        `#${entry.unidade_id}`}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatDateBR(
+                                                        entry.data,
+                                                        entry.data,
+                                                    )}
+                                                </p>
                                             </div>
-                                            <p className="text-sm font-semibold">{formatCurrencyBR(Number((entry as Partial<FreightEntry>).kaique_geral_frete ?? entry.frete_total ?? 0))}</p>
+                                            <p className="text-sm font-semibold">
+                                                {formatCurrencyBR(
+                                                    Number(
+                                                        (
+                                                            entry as Partial<FreightEntry>
+                                                        ).kaique_geral_frete ??
+                                                            entry.frete_total ??
+                                                            0,
+                                                    ),
+                                                )}
+                                            </p>
                                         </div>
                                         <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                                             <div>
-                                                <p className="font-medium text-foreground">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_viagens ?? entry.cargas ?? 0))}</p>
+                                                <p className="font-medium text-foreground">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            )
+                                                                .kaique_geral_viagens ??
+                                                                entry.cargas ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </p>
                                                 <p>Cargas</p>
                                             </div>
                                             <div>
-                                                <p className="font-medium text-foreground">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_aves ?? entry.aves ?? 0))}</p>
+                                                <p className="font-medium text-foreground">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            )
+                                                                .kaique_geral_aves ??
+                                                                entry.aves ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </p>
                                                 <p>Aves</p>
                                             </div>
                                             <div>
-                                                <p className="font-medium text-foreground">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_km ?? entry.km_rodado ?? 0))}</p>
+                                                <p className="font-medium text-foreground">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            ).kaique_geral_km ??
+                                                                entry.km_rodado ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </p>
                                                 <p>Km</p>
                                             </div>
                                         </div>
@@ -1387,10 +1930,15 @@ export default function TransportFreightLaunchPage() {
                                                 type="button"
                                                 variant="destructive"
                                                 size="sm"
-                                                onClick={() => requestDelete(entry)}
-                                                disabled={deletingEntryId === entry.id}
+                                                onClick={() =>
+                                                    requestDelete(entry)
+                                                }
+                                                disabled={
+                                                    deletingEntryId === entry.id
+                                                }
                                             >
-                                                {deletingEntryId === entry.id ? (
+                                                {deletingEntryId ===
+                                                entry.id ? (
                                                     <LoaderCircle className="size-4 animate-spin" />
                                                 ) : (
                                                     <Trash2 className="size-4" />
@@ -1407,39 +1955,119 @@ export default function TransportFreightLaunchPage() {
                             <table className="min-w-full text-sm">
                                 <thead className="bg-muted/40 text-left">
                                     <tr>
-                                        <th className="px-3 py-2 font-medium">Data</th>
-                                        <th className="px-3 py-2 font-medium">Unidade</th>
-                                        <th className="px-3 py-2 font-medium">Frete</th>
-                                        <th className="px-3 py-2 font-medium">Cargas</th>
-                                        <th className="px-3 py-2 font-medium">Aves</th>
-                                        <th className="px-3 py-2 font-medium">Km</th>
-                                        <th className="px-3 py-2 font-medium">Ações</th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Data
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Unidade
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Frete
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Cargas
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Aves
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Km
+                                        </th>
+                                        <th className="px-3 py-2 font-medium">
+                                            Ações
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {entriesLoading ? (
-                                        Array.from({ length: 6 }).map((_, index) => (
-                                            <tr key={`desktop-entry-skeleton-${index}`} className="border-t">
-                                                <td className="px-3 py-2" colSpan={7}>
-                                                    <Skeleton className="h-6 w-full" />
-                                                </td>
-                                            </tr>
-                                        ))
+                                        Array.from({ length: 6 }).map(
+                                            (_, index) => (
+                                                <tr
+                                                    key={`desktop-entry-skeleton-${index}`}
+                                                    className="border-t"
+                                                >
+                                                    <td
+                                                        className="px-3 py-2"
+                                                        colSpan={7}
+                                                    >
+                                                        <Skeleton className="h-6 w-full" />
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )
                                     ) : entries.length === 0 ? (
                                         <tr>
-                                            <td className="px-3 py-6 text-center text-muted-foreground" colSpan={7}>
-                                                Nenhum lançamento encontrado para os filtros informados.
+                                            <td
+                                                className="px-3 py-6 text-center text-muted-foreground"
+                                                colSpan={7}
+                                            >
+                                                Nenhum lançamento encontrado
+                                                para os filtros informados.
                                             </td>
                                         </tr>
                                     ) : (
                                         entries.map((entry) => (
-                                            <tr key={entry.id} className="border-t hover:bg-muted/30">
-                                                <td className="px-3 py-2">{formatDateBR(entry.data, entry.data)}</td>
-                                                <td className="px-3 py-2">{entry.unidade?.nome ?? `#${entry.unidade_id}`}</td>
-                                                <td className="px-3 py-2">{formatCurrencyBR(Number((entry as Partial<FreightEntry>).kaique_geral_frete ?? entry.frete_total ?? 0))}</td>
-                                                <td className="px-3 py-2">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_viagens ?? entry.cargas ?? 0))}</td>
-                                                <td className="px-3 py-2">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_aves ?? entry.aves ?? 0))}</td>
-                                                <td className="px-3 py-2">{toIntegerString(Number((entry as Partial<FreightEntry>).kaique_geral_km ?? entry.km_rodado ?? 0))}</td>
+                                            <tr
+                                                key={entry.id}
+                                                className="border-t hover:bg-muted/30"
+                                            >
+                                                <td className="px-3 py-2">
+                                                    {formatDateBR(
+                                                        entry.data,
+                                                        entry.data,
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {entry.unidade?.nome ??
+                                                        `#${entry.unidade_id}`}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {formatCurrencyBR(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            )
+                                                                .kaique_geral_frete ??
+                                                                entry.frete_total ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            )
+                                                                .kaique_geral_viagens ??
+                                                                entry.cargas ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            )
+                                                                .kaique_geral_aves ??
+                                                                entry.aves ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {toIntegerString(
+                                                        Number(
+                                                            (
+                                                                entry as Partial<FreightEntry>
+                                                            ).kaique_geral_km ??
+                                                                entry.km_rodado ??
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </td>
                                                 <td className="px-3 py-2">
                                                     <div className="flex gap-2">
                                                         <Button
@@ -1448,7 +2076,9 @@ export default function TransportFreightLaunchPage() {
                                                             size="sm"
                                                             title="Editar"
                                                             aria-label="Editar"
-                                                            onClick={() => startEdit(entry)}
+                                                            onClick={() =>
+                                                                startEdit(entry)
+                                                            }
                                                         >
                                                             <Pencil className="size-4" />
                                                         </Button>
@@ -1457,12 +2087,30 @@ export default function TransportFreightLaunchPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="text-destructive hover:text-destructive"
-                                                            title={deletingEntryId === entry.id ? 'Excluindo...' : 'Excluir'}
-                                                            aria-label={deletingEntryId === entry.id ? 'Excluindo' : 'Excluir'}
-                                                            onClick={() => requestDelete(entry)}
-                                                            disabled={deletingEntryId === entry.id}
+                                                            title={
+                                                                deletingEntryId ===
+                                                                entry.id
+                                                                    ? 'Excluindo...'
+                                                                    : 'Excluir'
+                                                            }
+                                                            aria-label={
+                                                                deletingEntryId ===
+                                                                entry.id
+                                                                    ? 'Excluindo'
+                                                                    : 'Excluir'
+                                                            }
+                                                            onClick={() =>
+                                                                requestDelete(
+                                                                    entry,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                deletingEntryId ===
+                                                                entry.id
+                                                            }
                                                         >
-                                                            {deletingEntryId === entry.id ? (
+                                                            {deletingEntryId ===
+                                                            entry.id ? (
                                                                 <LoaderCircle className="size-4 animate-spin" />
                                                             ) : (
                                                                 <Trash2 className="size-4" />
@@ -1479,15 +2127,21 @@ export default function TransportFreightLaunchPage() {
 
                         <div className="flex items-center justify-between pt-2">
                             <p className="text-sm text-muted-foreground">
-                                Página {entriesCurrentPage} de {entriesLastPage} · {entriesTotal} lançamento(s)
+                                Página {entriesCurrentPage} de {entriesLastPage}{' '}
+                                · {entriesTotal} lançamento(s)
                             </p>
                             <div className="flex gap-2">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => void loadEntries(entriesCurrentPage - 1)}
-                                    disabled={entriesLoading || entriesCurrentPage <= 1}
+                                    onClick={() =>
+                                        void loadEntries(entriesCurrentPage - 1)
+                                    }
+                                    disabled={
+                                        entriesLoading ||
+                                        entriesCurrentPage <= 1
+                                    }
                                 >
                                     Anterior
                                 </Button>
@@ -1495,8 +2149,13 @@ export default function TransportFreightLaunchPage() {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => void loadEntries(entriesCurrentPage + 1)}
-                                    disabled={entriesLoading || entriesCurrentPage >= entriesLastPage}
+                                    onClick={() =>
+                                        void loadEntries(entriesCurrentPage + 1)
+                                    }
+                                    disabled={
+                                        entriesLoading ||
+                                        entriesCurrentPage >= entriesLastPage
+                                    }
                                 >
                                     Próxima
                                 </Button>
@@ -1524,7 +2183,11 @@ export default function TransportFreightLaunchPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setDeleteCandidate(null)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteCandidate(null)}
+                        >
                             Cancelar
                         </Button>
                         <Button
@@ -1532,16 +2195,23 @@ export default function TransportFreightLaunchPage() {
                             variant="destructive"
                             onClick={() => {
                                 if (!deleteCandidate) return;
-                                void handleDelete(deleteCandidate).finally(() => setDeleteCandidate(null));
+                                void handleDelete(deleteCandidate).finally(() =>
+                                    setDeleteCandidate(null),
+                                );
                             }}
-                            disabled={!deleteCandidate || deletingEntryId === deleteCandidate.id}
+                            disabled={
+                                !deleteCandidate ||
+                                deletingEntryId === deleteCandidate.id
+                            }
                         >
-                            {deleteCandidate && deletingEntryId === deleteCandidate.id ? 'Excluindo...' : 'Confirmar exclusão'}
+                            {deleteCandidate &&
+                            deletingEntryId === deleteCandidate.id
+                                ? 'Excluindo...'
+                                : 'Confirmar exclusão'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
         </AdminLayout>
     );
 }

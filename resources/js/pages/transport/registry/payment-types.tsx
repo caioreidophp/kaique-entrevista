@@ -117,7 +117,9 @@ export default function TransportRegistryPaymentTypesPage() {
         setFormOpen(true);
     }
 
-    async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+    async function handleSubmit(
+        event: React.FormEvent<HTMLFormElement>,
+    ): Promise<void> {
         event.preventDefault();
         setSaving(true);
         setNotification(null);
@@ -131,7 +133,10 @@ export default function TransportRegistryPaymentTypesPage() {
             };
 
             if (editingItem) {
-                await apiPut(`/registry/tipos-pagamento/${editingItem.id}`, payload);
+                await apiPut(
+                    `/registry/tipos-pagamento/${editingItem.id}`,
+                    payload,
+                );
             } else {
                 await apiPost('/registry/tipos-pagamento', payload);
             }
@@ -210,7 +215,8 @@ export default function TransportRegistryPaymentTypesPage() {
                             Cadastro de Tipo de Pagamentos
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                            Defina os tipos usados nos lançamentos de pagamentos.
+                            Defina os tipos usados nos lançamentos de
+                            pagamentos.
                         </p>
                     </div>
                     <Button type="button" onClick={openCreateDialog}>
@@ -245,11 +251,21 @@ export default function TransportRegistryPaymentTypesPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-2 pr-3 font-medium">Nome</th>
-                                            <th className="py-2 pr-3 font-medium">Gera encargos</th>
-                                            <th className="py-2 pr-3 font-medium">Categoria</th>
-                                            <th className="py-2 pr-3 font-medium">Forma pagamento</th>
-                                            <th className="py-2 text-right font-medium">Ações</th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Nome
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Gera encargos
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Categoria
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Forma pagamento
+                                            </th>
+                                            <th className="py-2 text-right font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -258,15 +274,23 @@ export default function TransportRegistryPaymentTypesPage() {
                                                 key={item.id}
                                                 className="border-b last:border-b-0"
                                             >
-                                                <td className="py-2 pr-3 font-medium">{item.nome}</td>
-                                                <td className="py-2 pr-3">
-                                                    {item.gera_encargos ? 'Sim' : 'Não'}
+                                                <td className="py-2 pr-3 font-medium">
+                                                    {item.nome}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {categoriaLabel(item.categoria)}
+                                                    {item.gera_encargos
+                                                        ? 'Sim'
+                                                        : 'Não'}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {formaLabel(item.forma_pagamento)}
+                                                    {categoriaLabel(
+                                                        item.categoria,
+                                                    )}
+                                                </td>
+                                                <td className="py-2 pr-3">
+                                                    {formaLabel(
+                                                        item.forma_pagamento,
+                                                    )}
                                                 </td>
                                                 <td className="py-2">
                                                     <div className="flex justify-end gap-2">
@@ -276,7 +300,11 @@ export default function TransportRegistryPaymentTypesPage() {
                                                             size="sm"
                                                             title="Editar"
                                                             aria-label="Editar"
-                                                            onClick={() => openEditDialog(item)}
+                                                            onClick={() =>
+                                                                openEditDialog(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <PencilLine className="size-4" />
                                                         </Button>
@@ -287,7 +315,11 @@ export default function TransportRegistryPaymentTypesPage() {
                                                             className="text-destructive hover:text-destructive"
                                                             title="Excluir"
                                                             aria-label="Excluir"
-                                                            onClick={() => setDeleteCandidate(item)}
+                                                            onClick={() =>
+                                                                setDeleteCandidate(
+                                                                    item,
+                                                                )
+                                                            }
                                                         >
                                                             <Trash2 className="size-4" />
                                                         </Button>
@@ -321,7 +353,8 @@ export default function TransportRegistryPaymentTypesPage() {
                                 : 'Cadastrar tipo de pagamento'}
                         </DialogTitle>
                         <DialogDescription>
-                            Configure nome, encargos, categoria e forma de pagamento.
+                            Configure nome, encargos, categoria e forma de
+                            pagamento.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -377,9 +410,15 @@ export default function TransportRegistryPaymentTypesPage() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="salario">Salário</SelectItem>
-                                    <SelectItem value="beneficios">Benefícios</SelectItem>
-                                    <SelectItem value="extras">Extras</SelectItem>
+                                    <SelectItem value="salario">
+                                        Salário
+                                    </SelectItem>
+                                    <SelectItem value="beneficios">
+                                        Benefícios
+                                    </SelectItem>
+                                    <SelectItem value="extras">
+                                        Extras
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -401,10 +440,18 @@ export default function TransportRegistryPaymentTypesPage() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="deposito">Depósito</SelectItem>
-                                    <SelectItem value="cartao_vr">Cartão VR</SelectItem>
-                                    <SelectItem value="cartao_va">Cartão VA</SelectItem>
-                                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                                    <SelectItem value="deposito">
+                                        Depósito
+                                    </SelectItem>
+                                    <SelectItem value="cartao_vr">
+                                        Cartão VR
+                                    </SelectItem>
+                                    <SelectItem value="cartao_va">
+                                        Cartão VA
+                                    </SelectItem>
+                                    <SelectItem value="dinheiro">
+                                        Dinheiro
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -450,7 +497,9 @@ export default function TransportRegistryPaymentTypesPage() {
                     </DialogHeader>
 
                     <div className="rounded-md border bg-muted/20 p-3 text-sm">
-                        <p className="font-medium">{deleteCandidate?.nome ?? '-'}</p>
+                        <p className="font-medium">
+                            {deleteCandidate?.nome ?? '-'}
+                        </p>
                     </div>
 
                     <DialogFooter>

@@ -1,4 +1,11 @@
-import { Eye, FileSpreadsheet, LoaderCircle, PencilLine, Printer, Trash2 } from 'lucide-react';
+import {
+    Eye,
+    FileSpreadsheet,
+    LoaderCircle,
+    PencilLine,
+    Printer,
+    Trash2,
+} from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -22,7 +29,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { usePersistedState } from '@/hooks/use-persisted-state';
-import { ApiError, apiDelete, apiDownload, apiGet, apiPost, apiPut } from '@/lib/api-client';
+import {
+    ApiError,
+    apiDelete,
+    apiDownload,
+    apiGet,
+    apiPost,
+    apiPut,
+} from '@/lib/api-client';
 import { formatCurrencyBR, formatDateBR } from '@/lib/transport-format';
 
 interface Unidade {
@@ -239,7 +253,9 @@ function formatCpf(value: string | null | undefined): string {
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
 }
 
-function parsePensionValuesFromObservation(observacao: string | null | undefined): Map<number, number> {
+function parsePensionValuesFromObservation(
+    observacao: string | null | undefined,
+): Map<number, number> {
     if (!observacao) return new Map();
 
     try {
@@ -252,9 +268,16 @@ function parsePensionValuesFromObservation(observacao: string | null | undefined
                 pensaoId: Number(item.pensao_id ?? 0),
                 valor: Number(item.valor ?? 0),
             }))
-            .filter((item) => item.pensaoId > 0 && Number.isFinite(item.valor) && item.valor > 0);
+            .filter(
+                (item) =>
+                    item.pensaoId > 0 &&
+                    Number.isFinite(item.valor) &&
+                    item.valor > 0,
+            );
 
-        return new Map(entries.map((item) => [item.pensaoId, item.valor] as const));
+        return new Map(
+            entries.map((item) => [item.pensaoId, item.valor] as const),
+        );
     } catch {
         return new Map();
     }
@@ -269,12 +292,18 @@ function normalizePaymentName(value: string | null | undefined): string {
         .toLowerCase();
 }
 
-function parseWorkDaysFromObservation(observacao: string | null | undefined): number | null {
+function parseWorkDaysFromObservation(
+    observacao: string | null | undefined,
+): number | null {
     if (!observacao) return null;
 
     try {
         const parsed = JSON.parse(observacao) as Record<string, unknown>;
-        const rawValue = parsed.dias_uteis ?? parsed.diasUteis ?? parsed.work_days ?? parsed.workDays;
+        const rawValue =
+            parsed.dias_uteis ??
+            parsed.diasUteis ??
+            parsed.work_days ??
+            parsed.workDays;
         const numericValue = Number(rawValue ?? 0);
 
         if (!Number.isFinite(numericValue) || numericValue <= 0) {
@@ -295,8 +324,12 @@ export default function TransportPayrollListPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [printingLaunchKey, setPrintingLaunchKey] = useState<string | null>(null);
-    const [exportingLaunchKey, setExportingLaunchKey] = useState<string | null>(null);
+    const [printingLaunchKey, setPrintingLaunchKey] = useState<string | null>(
+        null,
+    );
+    const [exportingLaunchKey, setExportingLaunchKey] = useState<string | null>(
+        null,
+    );
 
     const [monthFilter, setMonthFilter, resetMonthFilter] = usePersistedState(
         'transport:payroll:list:monthFilter',
@@ -306,10 +339,8 @@ export default function TransportPayrollListPage() {
         'transport:payroll:list:yearFilter',
         defaultYear,
     );
-    const [unidadeFilter, setUnidadeFilter, resetUnidadeFilter] = usePersistedState(
-        'transport:payroll:list:unidadeFilter',
-        'all',
-    );
+    const [unidadeFilter, setUnidadeFilter, resetUnidadeFilter] =
+        usePersistedState('transport:payroll:list:unidadeFilter', 'all');
 
     const [totalRows, setTotalRows] = useState(0);
 
@@ -318,15 +349,23 @@ export default function TransportPayrollListPage() {
         variant: 'success' | 'error' | 'info';
     } | null>(null);
 
-    const [deleteCandidate, setDeleteCandidate] = useState<GroupedPayment | null>(null);
-    const [deleteLaunchCandidate, setDeleteLaunchCandidate] = useState<LaunchGroup | null>(null);
-    const [editCandidate, setEditCandidate] = useState<GroupedPayment | null>(null);
+    const [deleteCandidate, setDeleteCandidate] =
+        useState<GroupedPayment | null>(null);
+    const [deleteLaunchCandidate, setDeleteLaunchCandidate] =
+        useState<LaunchGroup | null>(null);
+    const [editCandidate, setEditCandidate] = useState<GroupedPayment | null>(
+        null,
+    );
     const [editDate, setEditDate] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [editValues, setEditValues] = useState<Record<number, string>>({});
 
-    const [expandedLaunchKey, setExpandedLaunchKey] = useState<string | null>(null);
-    const [launchSorts, setLaunchSorts] = useState<Record<string, SortState>>({});
+    const [expandedLaunchKey, setExpandedLaunchKey] = useState<string | null>(
+        null,
+    );
+    const [launchSorts, setLaunchSorts] = useState<Record<string, SortState>>(
+        {},
+    );
 
     const monthOptions = useMemo(
         () => [
@@ -364,7 +403,8 @@ export default function TransportPayrollListPage() {
             const key = [
                 item.colaborador_id,
                 item.unidade_id,
-                item.data_pagamento ?? `${item.competencia_ano}-${String(item.competencia_mes).padStart(2, '0')}-01`,
+                item.data_pagamento ??
+                    `${item.competencia_ano}-${String(item.competencia_mes).padStart(2, '0')}-01`,
                 item.descricao ?? '',
             ].join('|');
 
@@ -397,9 +437,15 @@ export default function TransportPayrollListPage() {
 
         groupedItems.forEach((item) => {
             const reference = item.allItems[0];
-            const competenciaMes = Number(reference?.competencia_mes ?? now.getMonth() + 1);
-            const competenciaAno = Number(reference?.competencia_ano ?? now.getFullYear());
-            const dataBase = item.data_pagamento ?? `${competenciaAno}-${String(competenciaMes).padStart(2, '0')}-01`;
+            const competenciaMes = Number(
+                reference?.competencia_mes ?? now.getMonth() + 1,
+            );
+            const competenciaAno = Number(
+                reference?.competencia_ano ?? now.getFullYear(),
+            );
+            const dataBase =
+                item.data_pagamento ??
+                `${competenciaAno}-${String(competenciaMes).padStart(2, '0')}-01`;
             const key = [
                 item.descricao,
                 item.unidade?.id ?? 'no-unit',
@@ -441,8 +487,12 @@ export default function TransportPayrollListPage() {
         });
 
         return Array.from(map.values()).sort((a, b) => {
-            const dateA = a.data_pagamento ?? `${a.competencia_ano}-${String(a.competencia_mes).padStart(2, '0')}-01`;
-            const dateB = b.data_pagamento ?? `${b.competencia_ano}-${String(b.competencia_mes).padStart(2, '0')}-01`;
+            const dateA =
+                a.data_pagamento ??
+                `${a.competencia_ano}-${String(a.competencia_mes).padStart(2, '0')}-01`;
+            const dateB =
+                b.data_pagamento ??
+                `${b.competencia_ano}-${String(b.competencia_mes).padStart(2, '0')}-01`;
 
             return dateB.localeCompare(dateA);
         });
@@ -452,15 +502,20 @@ export default function TransportPayrollListPage() {
         try {
             const [unitsRes, tiposRes, pensoesRes] = await Promise.all([
                 apiGet<WrappedResponse<Unidade[]>>('/registry/unidades'),
-                apiGet<WrappedResponse<TipoPagamento[]>>('/registry/tipos-pagamento'),
-                apiGet<WrappedResponse<PensaoColaborador[]>>('/payroll/pensoes?ativo=1'),
+                apiGet<WrappedResponse<TipoPagamento[]>>(
+                    '/registry/tipos-pagamento',
+                ),
+                apiGet<WrappedResponse<PensaoColaborador[]>>(
+                    '/payroll/pensoes?ativo=1',
+                ),
             ]);
             setUnidades(unitsRes.data);
             setTipos(tiposRes.data);
             setPensoes(pensoesRes.data);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar filtros e tipos de pagamento.',
+                message:
+                    'Não foi possível carregar filtros e tipos de pagamento.',
                 variant: 'error',
             });
         }
@@ -485,7 +540,9 @@ export default function TransportPayrollListPage() {
         setNotification(null);
 
         try {
-            const firstPage = await apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(page)}`);
+            const firstPage = await apiGet<PaginatedResponse<Pagamento>>(
+                `/payroll/pagamentos?${buildQuery(page)}`,
+            );
             let mergedItems = [...firstPage.data];
 
             if (firstPage.last_page > firstPage.current_page) {
@@ -496,7 +553,9 @@ export default function TransportPayrollListPage() {
 
                 const remainingResponses = await Promise.all(
                     remainingPages.map((nextPage) =>
-                        apiGet<PaginatedResponse<Pagamento>>(`/payroll/pagamentos?${buildQuery(nextPage)}`),
+                        apiGet<PaginatedResponse<Pagamento>>(
+                            `/payroll/pagamentos?${buildQuery(nextPage)}`,
+                        ),
                     ),
                 );
 
@@ -525,7 +584,8 @@ export default function TransportPayrollListPage() {
 
     function launchHasBenefits(launch: LaunchGroup): boolean {
         return launch.tipoIds.some((tipoId) => {
-            const rawName = tipos.find((item) => item.id === tipoId)?.nome ?? '';
+            const rawName =
+                tipos.find((item) => item.id === tipoId)?.nome ?? '';
             const normalizedTypeName = normalizePaymentName(rawName);
 
             return (
@@ -539,7 +599,9 @@ export default function TransportPayrollListPage() {
         });
     }
 
-    async function exportLaunchBenefitsXlsx(launch: LaunchGroup): Promise<void> {
+    async function exportLaunchBenefitsXlsx(
+        launch: LaunchGroup,
+    ): Promise<void> {
         const paymentIds = Array.from(
             new Set(
                 launch.colaboradores.flatMap((grouped) =>
@@ -550,7 +612,8 @@ export default function TransportPayrollListPage() {
 
         if (paymentIds.length === 0) {
             setNotification({
-                message: 'Nenhum pagamento encontrado para exportar neste lançamento.',
+                message:
+                    'Nenhum pagamento encontrado para exportar neste lançamento.',
                 variant: 'info',
             });
             return;
@@ -561,8 +624,12 @@ export default function TransportPayrollListPage() {
         const params = new URLSearchParams();
         params.set('pagamento_ids', paymentIds.join(','));
 
-        const launchDate = launch.data_pagamento ? launch.data_pagamento.replaceAll('-', '') : `${launch.competencia_ano}${String(launch.competencia_mes).padStart(2, '0')}`;
-        const launchSlug = normalizePaymentName(launch.descricao || 'lancamento')
+        const launchDate = launch.data_pagamento
+            ? launch.data_pagamento.replaceAll('-', '')
+            : `${launch.competencia_ano}${String(launch.competencia_mes).padStart(2, '0')}`;
+        const launchSlug = normalizePaymentName(
+            launch.descricao || 'lancamento',
+        )
             .replaceAll(' ', '_')
             .slice(0, 40);
 
@@ -576,7 +643,8 @@ export default function TransportPayrollListPage() {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
                 setNotification({
-                    message: 'Não foi possível exportar o Excel deste lançamento.',
+                    message:
+                        'Não foi possível exportar o Excel deste lançamento.',
                     variant: 'error',
                 });
             }
@@ -610,7 +678,10 @@ export default function TransportPayrollListPage() {
         });
     }
 
-    function toggleLaunchSort(launchKey: string, nextKey: SortState['key']): void {
+    function toggleLaunchSort(
+        launchKey: string,
+        nextKey: SortState['key'],
+    ): void {
         setLaunchSorts((previous) => {
             const current = previous[launchKey] ?? {
                 key: 'colaborador',
@@ -637,8 +708,14 @@ export default function TransportPayrollListPage() {
         });
     }
 
-    function getSortIndicator(launchKey: string, key: SortState['key']): string {
-        const sort = launchSorts[launchKey] ?? { key: 'colaborador', direction: 'asc' as const };
+    function getSortIndicator(
+        launchKey: string,
+        key: SortState['key'],
+    ): string {
+        const sort = launchSorts[launchKey] ?? {
+            key: 'colaborador',
+            direction: 'asc' as const,
+        };
 
         if (sort.key !== key) return '';
 
@@ -646,21 +723,40 @@ export default function TransportPayrollListPage() {
     }
 
     function getSortedCollaborators(launch: LaunchGroup): GroupedPayment[] {
-        const sort = launchSorts[launch.key] ?? { key: 'colaborador', direction: 'asc' as const };
+        const sort = launchSorts[launch.key] ?? {
+            key: 'colaborador',
+            direction: 'asc' as const,
+        };
         const rows = [...launch.colaboradores];
 
         rows.sort((first, second) => {
-            const firstTotal = launch.tipoIds.reduce((acc, tipoId) => acc + Number(first.byType.get(tipoId)?.valor ?? 0), 0);
-            const secondTotal = launch.tipoIds.reduce((acc, tipoId) => acc + Number(second.byType.get(tipoId)?.valor ?? 0), 0);
-            const firstPrimaryType = Number(first.byType.get(launch.tipoIds[0] ?? 0)?.valor ?? 0);
-            const secondPrimaryType = Number(second.byType.get(launch.tipoIds[0] ?? 0)?.valor ?? 0);
+            const firstTotal = launch.tipoIds.reduce(
+                (acc, tipoId) =>
+                    acc + Number(first.byType.get(tipoId)?.valor ?? 0),
+                0,
+            );
+            const secondTotal = launch.tipoIds.reduce(
+                (acc, tipoId) =>
+                    acc + Number(second.byType.get(tipoId)?.valor ?? 0),
+                0,
+            );
+            const firstPrimaryType = Number(
+                first.byType.get(launch.tipoIds[0] ?? 0)?.valor ?? 0,
+            );
+            const secondPrimaryType = Number(
+                second.byType.get(launch.tipoIds[0] ?? 0)?.valor ?? 0,
+            );
 
             let comparison = 0;
 
             if (sort.key === 'colaborador') {
-                comparison = first.colaborador.nome.localeCompare(second.colaborador.nome, 'pt-BR', {
-                    sensitivity: 'base',
-                });
+                comparison = first.colaborador.nome.localeCompare(
+                    second.colaborador.nome,
+                    'pt-BR',
+                    {
+                        sensitivity: 'base',
+                    },
+                );
             } else if (sort.key === 'valor') {
                 comparison = firstPrimaryType - secondPrimaryType;
             } else {
@@ -668,9 +764,13 @@ export default function TransportPayrollListPage() {
             }
 
             if (comparison === 0) {
-                comparison = first.colaborador.nome.localeCompare(second.colaborador.nome, 'pt-BR', {
-                    sensitivity: 'base',
-                });
+                comparison = first.colaborador.nome.localeCompare(
+                    second.colaborador.nome,
+                    'pt-BR',
+                    {
+                        sensitivity: 'base',
+                    },
+                );
             }
 
             return sort.direction === 'asc' ? comparison : -comparison;
@@ -681,12 +781,16 @@ export default function TransportPayrollListPage() {
 
     function openEditDialog(item: GroupedPayment): void {
         setEditCandidate(item);
-        setEditDate(item.data_pagamento ? item.data_pagamento.slice(0, 10) : '');
+        setEditDate(
+            item.data_pagamento ? item.data_pagamento.slice(0, 10) : '',
+        );
         setEditDescription(item.descricao === '-' ? '' : item.descricao);
 
         const values: Record<number, string> = {};
         tipos.forEach((tipo) => {
-            values[tipo.id] = item.byType.get(tipo.id)?.valor ? String(item.byType.get(tipo.id)?.valor) : '0';
+            values[tipo.id] = item.byType.get(tipo.id)?.valor
+                ? String(item.byType.get(tipo.id)?.valor)
+                : '0';
         });
         setEditValues(values);
     }
@@ -707,15 +811,25 @@ export default function TransportPayrollListPage() {
         setNotification(null);
 
         try {
-            await Promise.all(payloads.map((entry) => apiPut(`/payroll/pagamentos/${entry.id}`, entry.payload)));
-            setNotification({ message: 'Pagamentos atualizados com sucesso.', variant: 'success' });
+            await Promise.all(
+                payloads.map((entry) =>
+                    apiPut(`/payroll/pagamentos/${entry.id}`, entry.payload),
+                ),
+            );
+            setNotification({
+                message: 'Pagamentos atualizados com sucesso.',
+                variant: 'success',
+            });
             setEditCandidate(null);
             await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível atualizar os pagamentos.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível atualizar os pagamentos.',
+                    variant: 'error',
+                });
             }
         } finally {
             setSaving(false);
@@ -728,15 +842,25 @@ export default function TransportPayrollListPage() {
         setDeleting(true);
 
         try {
-            await Promise.all(deleteCandidate.allItems.map((item) => apiDelete(`/payroll/pagamentos/${item.id}`)));
-            setNotification({ message: 'Lançamento excluído com sucesso.', variant: 'success' });
+            await Promise.all(
+                deleteCandidate.allItems.map((item) =>
+                    apiDelete(`/payroll/pagamentos/${item.id}`),
+                ),
+            );
+            setNotification({
+                message: 'Lançamento excluído com sucesso.',
+                variant: 'success',
+            });
             setDeleteCandidate(null);
             await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível excluir o lançamento.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível excluir o lançamento.',
+                    variant: 'error',
+                });
             }
         } finally {
             setDeleting(false);
@@ -762,8 +886,13 @@ export default function TransportPayrollListPage() {
         setDeleting(true);
 
         try {
-            await Promise.all(paymentIds.map((id) => apiDelete(`/payroll/pagamentos/${id}`)));
-            setNotification({ message: 'Pagamento completo excluído com sucesso.', variant: 'success' });
+            await Promise.all(
+                paymentIds.map((id) => apiDelete(`/payroll/pagamentos/${id}`)),
+            );
+            setNotification({
+                message: 'Pagamento completo excluído com sucesso.',
+                variant: 'success',
+            });
             if (expandedLaunchKey === deleteLaunchCandidate.key) {
                 setExpandedLaunchKey(null);
             }
@@ -773,7 +902,10 @@ export default function TransportPayrollListPage() {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível excluir o pagamento completo.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível excluir o pagamento completo.',
+                    variant: 'error',
+                });
             }
         } finally {
             setDeleting(false);
@@ -786,62 +918,80 @@ export default function TransportPayrollListPage() {
         const pensionValues: Record<string, string> = {};
         const workDaysByCollaborator: Record<number, string> = {};
 
-        const candidates: LaunchDraftCandidate[] = launch.colaboradores.map((row) => {
-            selectedCollaborators[row.colaborador.id] = true;
-            const existingWorkDays = row.allItems
-                .map((payment) => parseWorkDaysFromObservation(payment.observacao))
-                .find((value) => value !== null);
+        const candidates: LaunchDraftCandidate[] = launch.colaboradores.map(
+            (row) => {
+                selectedCollaborators[row.colaborador.id] = true;
+                const existingWorkDays = row.allItems
+                    .map((payment) =>
+                        parseWorkDaysFromObservation(payment.observacao),
+                    )
+                    .find((value) => value !== null);
 
-            workDaysByCollaborator[row.colaborador.id] = String(existingWorkDays ?? 0);
+                workDaysByCollaborator[row.colaborador.id] = String(
+                    existingWorkDays ?? 0,
+                );
 
-            const pagamentosExistentesPorTipo: Record<string, { id: number; valor: number }> = {};
+                const pagamentosExistentesPorTipo: Record<
+                    string,
+                    { id: number; valor: number }
+                > = {};
 
-            launch.tipoIds.forEach((tipoId) => {
-                const pagamento = row.byType.get(tipoId);
-                if (!pagamento) return;
+                launch.tipoIds.forEach((tipoId) => {
+                    const pagamento = row.byType.get(tipoId);
+                    if (!pagamento) return;
 
-                pagamentosExistentesPorTipo[String(tipoId)] = {
-                    id: pagamento.id,
-                    valor: Number(pagamento.valor ?? 0),
-                };
-                values[`${row.colaborador.id}:${tipoId}`] = String(pagamento.valor ?? '0');
-            });
-
-            const salaryObservation = row.allItems
-                .map((payment) => payment.observacao)
-                .find((value) => Boolean(value));
-            const launchPensionValues = parsePensionValuesFromObservation(salaryObservation);
-
-            const collaboratorPensoes = pensoes
-                .filter((pensao) => pensao.ativo && pensao.colaborador_id === row.colaborador.id)
-                .map((pensao) => {
-                    const value = launchPensionValues.get(pensao.id);
-                    if (value && value > 0) {
-                        pensionValues[`${row.colaborador.id}:${pensao.id}`] = String(value);
-                    }
-
-                    return {
-                        id: pensao.id,
-                        nome_beneficiaria: pensao.nome_beneficiaria,
-                        cpf_beneficiaria: pensao.cpf_beneficiaria,
-                        nome_banco: pensao.nome_banco,
-                        numero_agencia: pensao.numero_agencia,
-                        tipo_conta: pensao.tipo_conta,
-                        numero_conta: pensao.numero_conta,
-                        tipo_chave_pix: pensao.tipo_chave_pix,
-                        chave_pix: pensao.chave_pix,
+                    pagamentosExistentesPorTipo[String(tipoId)] = {
+                        id: pagamento.id,
+                        valor: Number(pagamento.valor ?? 0),
                     };
+                    values[`${row.colaborador.id}:${tipoId}`] = String(
+                        pagamento.valor ?? '0',
+                    );
                 });
 
-            return {
-                id: row.colaborador.id,
-                nome: row.colaborador.nome,
-                cpf: row.colaborador.cpf ?? '',
-                unidade: launch.unidade ?? undefined,
-                pagamentos_existentes_por_tipo: pagamentosExistentesPorTipo,
-                pensoes: collaboratorPensoes,
-            };
-        });
+                const salaryObservation = row.allItems
+                    .map((payment) => payment.observacao)
+                    .find((value) => Boolean(value));
+                const launchPensionValues =
+                    parsePensionValuesFromObservation(salaryObservation);
+
+                const collaboratorPensoes = pensoes
+                    .filter(
+                        (pensao) =>
+                            pensao.ativo &&
+                            pensao.colaborador_id === row.colaborador.id,
+                    )
+                    .map((pensao) => {
+                        const value = launchPensionValues.get(pensao.id);
+                        if (value && value > 0) {
+                            pensionValues[
+                                `${row.colaborador.id}:${pensao.id}`
+                            ] = String(value);
+                        }
+
+                        return {
+                            id: pensao.id,
+                            nome_beneficiaria: pensao.nome_beneficiaria,
+                            cpf_beneficiaria: pensao.cpf_beneficiaria,
+                            nome_banco: pensao.nome_banco,
+                            numero_agencia: pensao.numero_agencia,
+                            tipo_conta: pensao.tipo_conta,
+                            numero_conta: pensao.numero_conta,
+                            tipo_chave_pix: pensao.tipo_chave_pix,
+                            chave_pix: pensao.chave_pix,
+                        };
+                    });
+
+                return {
+                    id: row.colaborador.id,
+                    nome: row.colaborador.nome,
+                    cpf: row.colaborador.cpf ?? '',
+                    unidade: launch.unidade ?? undefined,
+                    pagamentos_existentes_por_tipo: pagamentosExistentesPorTipo,
+                    pensoes: collaboratorPensoes,
+                };
+            },
+        );
 
         const snapshot: LaunchDraftSnapshot = {
             version: 1,
@@ -865,7 +1015,10 @@ export default function TransportPayrollListPage() {
         };
 
         if (typeof window !== 'undefined') {
-            window.localStorage.setItem(PAYROLL_LAUNCH_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
+            window.localStorage.setItem(
+                PAYROLL_LAUNCH_DRAFT_STORAGE_KEY,
+                JSON.stringify(snapshot),
+            );
             window.location.href = '/transport/payroll/launch';
         }
     }
@@ -894,7 +1047,9 @@ export default function TransportPayrollListPage() {
 
                     if (!categoria) return;
 
-                    categoriaTotais[categoria] += Number(row.byType.get(tipoId)?.valor ?? 0);
+                    categoriaTotais[categoria] += Number(
+                        row.byType.get(tipoId)?.valor ?? 0,
+                    );
                 });
 
                 return {
@@ -903,11 +1058,14 @@ export default function TransportPayrollListPage() {
                 };
             });
 
-            const preview = await apiPost<LaunchDiscountPreviewResponse>('/payroll/launch-discount-preview', {
-                competencia_mes: launch.competencia_mes,
-                competencia_ano: launch.competencia_ano,
-                rows: payloadRows,
-            });
+            const preview = await apiPost<LaunchDiscountPreviewResponse>(
+                '/payroll/launch-discount-preview',
+                {
+                    competencia_mes: launch.competencia_mes,
+                    competencia_ano: launch.competencia_ano,
+                    rows: payloadRows,
+                },
+            );
 
             const previewMap = new Map<number, LaunchCollaboratorPreview>();
             preview.data.forEach((item) => {
@@ -916,13 +1074,21 @@ export default function TransportPayrollListPage() {
 
             if (isSalaryOnly) {
                 const salaryOnlyRows = [...launch.colaboradores].sort((a, b) =>
-                    a.colaborador.nome.localeCompare(b.colaborador.nome, 'pt-BR', { sensitivity: 'base' }),
+                    a.colaborador.nome.localeCompare(
+                        b.colaborador.nome,
+                        'pt-BR',
+                        { sensitivity: 'base' },
+                    ),
                 );
-                const pensionByCollaborator = new Map<number, PensaoColaborador[]>();
+                const pensionByCollaborator = new Map<
+                    number,
+                    PensaoColaborador[]
+                >();
 
                 pensoes.forEach((item) => {
                     if (!item.ativo) return;
-                    const current = pensionByCollaborator.get(item.colaborador_id) ?? [];
+                    const current =
+                        pensionByCollaborator.get(item.colaborador_id) ?? [];
                     current.push(item);
                     pensionByCollaborator.set(item.colaborador_id, current);
                 });
@@ -936,17 +1102,21 @@ export default function TransportPayrollListPage() {
                     const collaborator = row.colaborador;
                     const previewItem = previewMap.get(collaborator.id);
                     const baseLiquid = Number(previewItem?.total_liquido ?? 0);
-                    const collaboratorPensoes = pensionByCollaborator.get(collaborator.id) ?? [];
+                    const collaboratorPensoes =
+                        pensionByCollaborator.get(collaborator.id) ?? [];
                     const salaryObservation = row.allItems
                         .map((payment) => payment.observacao)
                         .find((value) => Boolean(value));
-                    const launchPensionValues = parsePensionValuesFromObservation(salaryObservation);
+                    const launchPensionValues =
+                        parsePensionValuesFromObservation(salaryObservation);
 
                     let pensionAppliedTotal = 0;
                     const pensionRowsForCollaborator: Array<string> = [];
 
                     collaboratorPensoes.forEach((pensao) => {
-                        const pensionValue = Number(launchPensionValues.get(pensao.id) ?? 0);
+                        const pensionValue = Number(
+                            launchPensionValues.get(pensao.id) ?? 0,
+                        );
                         if (pensionValue <= 0) return;
                         const applied = pensionValue;
                         pensionAppliedTotal += applied;
@@ -969,22 +1139,25 @@ export default function TransportPayrollListPage() {
                     });
 
                     const collaboratorPay = Math.max(baseLiquid, 0);
-                    const isParticular = collaborator.conta_pagamento === 'particular';
+                    const isParticular =
+                        collaborator.conta_pagamento === 'particular';
                     const targetRows = isParticular ? specialRows : salaryRows;
 
                     const bankName = isParticular
-                        ? collaborator.nome_banco ?? '-'
-                        : collaborator.banco_salario ?? 'CONTA SALÁRIO';
+                        ? (collaborator.nome_banco ?? '-')
+                        : (collaborator.banco_salario ?? 'CONTA SALÁRIO');
                     const agency = isParticular
-                        ? collaborator.numero_agencia ?? '-'
-                        : collaborator.numero_agencia_salario ?? '-';
+                        ? (collaborator.numero_agencia ?? '-')
+                        : (collaborator.numero_agencia_salario ?? '-');
                     const accountType = isParticular
-                        ? collaborator.tipo_conta ?? '-'
+                        ? (collaborator.tipo_conta ?? '-')
                         : 'SAL';
                     const accountNumber = isParticular
-                        ? collaborator.numero_conta ?? '-'
-                        : collaborator.numero_conta_salario ?? '-';
-                    const pix = isParticular ? collaborator.chave_pix ?? '-' : '-';
+                        ? (collaborator.numero_conta ?? '-')
+                        : (collaborator.numero_conta_salario ?? '-');
+                    const pix = isParticular
+                        ? (collaborator.chave_pix ?? '-')
+                        : '-';
 
                     targetRows.push(`
                         <tr>
@@ -1094,7 +1267,8 @@ export default function TransportPayrollListPage() {
 
                 if (!printHtmlWithFallback(htmlSalary)) {
                     setNotification({
-                        message: 'Não foi possível preparar a impressão no navegador.',
+                        message:
+                            'Não foi possível preparar a impressão no navegador.',
                         variant: 'error',
                     });
                 }
@@ -1103,7 +1277,12 @@ export default function TransportPayrollListPage() {
 
             const sortedRows = getSortedCollaborators(launch);
 
-            type PaymentColumnKey = 'vr' | 'premio' | 'vt' | 'extras' | 'cestaBasica';
+            type PaymentColumnKey =
+                | 'vr'
+                | 'premio'
+                | 'vt'
+                | 'extras'
+                | 'cestaBasica';
 
             const paymentColumnLabels: Record<PaymentColumnKey, string> = {
                 vr: 'VR',
@@ -1135,7 +1314,10 @@ export default function TransportPayrollListPage() {
                     return 'cestaBasica';
                 }
 
-                if (tipo?.categoria === 'extras' || normalizedTypeName.includes('extra')) {
+                if (
+                    tipo?.categoria === 'extras' ||
+                    normalizedTypeName.includes('extra')
+                ) {
                     return 'extras';
                 }
 
@@ -1147,7 +1329,9 @@ export default function TransportPayrollListPage() {
             const spreadsheetRows = sortedRows.map((row) => {
                 const collaboratorPreview = previewMap.get(row.colaborador.id);
                 const workDays = row.allItems
-                    .map((payment) => parseWorkDaysFromObservation(payment.observacao))
+                    .map((payment) =>
+                        parseWorkDaysFromObservation(payment.observacao),
+                    )
                     .find((value) => value !== null);
 
                 const paymentValues: Record<PaymentColumnKey, number> = {
@@ -1170,9 +1354,13 @@ export default function TransportPayrollListPage() {
                     paymentValues[columnKey] += amount;
                 });
 
-                const descontos = Number(collaboratorPreview?.total_descontado ?? 0);
+                const descontos = Number(
+                    collaboratorPreview?.total_descontado ?? 0,
+                );
                 const totalCartoes =
-                    paymentValues.vr + paymentValues.premio + paymentValues.cestaBasica;
+                    paymentValues.vr +
+                    paymentValues.premio +
+                    paymentValues.cestaBasica;
                 const pagarDinheiro =
                     paymentValues.vt + paymentValues.extras - descontos;
 
@@ -1187,7 +1375,13 @@ export default function TransportPayrollListPage() {
             });
 
             const orderedPaymentColumns = (
-                ['vr', 'premio', 'vt', 'extras', 'cestaBasica'] as PaymentColumnKey[]
+                [
+                    'vr',
+                    'premio',
+                    'vt',
+                    'extras',
+                    'cestaBasica',
+                ] as PaymentColumnKey[]
             ).filter((key) => selectedPaymentColumns.has(key));
 
             const totalByPaymentColumn = orderedPaymentColumns.reduce(
@@ -1203,19 +1397,20 @@ export default function TransportPayrollListPage() {
             );
 
             const hasCardColumns =
-                orderedPaymentColumns.includes('vr')
-                || orderedPaymentColumns.includes('premio')
-                || orderedPaymentColumns.includes('cestaBasica');
+                orderedPaymentColumns.includes('vr') ||
+                orderedPaymentColumns.includes('premio') ||
+                orderedPaymentColumns.includes('cestaBasica');
             const hasCashColumns =
-                orderedPaymentColumns.includes('vt')
-                || orderedPaymentColumns.includes('extras');
+                orderedPaymentColumns.includes('vt') ||
+                orderedPaymentColumns.includes('extras');
             const totalDescontado = spreadsheetRows.reduce(
                 (acc, row) => acc + row.descontos,
                 0,
             );
             const includeDiscountColumn = totalDescontado > 0;
             const includeTotalCardsColumn = hasCardColumns;
-            const includePagarDinheiroColumn = hasCashColumns || includeDiscountColumn;
+            const includePagarDinheiroColumn =
+                hasCashColumns || includeDiscountColumn;
             const totalCartoes = spreadsheetRows.reduce(
                 (acc, row) => acc + row.totalCartoes,
                 0,
@@ -1226,14 +1421,15 @@ export default function TransportPayrollListPage() {
             );
 
             const totalColumnsCount =
-                2
-                + orderedPaymentColumns.length
-                + (includeDiscountColumn ? 1 : 0)
-                + (includeTotalCardsColumn ? 1 : 0)
-                + (includePagarDinheiroColumn ? 1 : 0);
+                2 +
+                orderedPaymentColumns.length +
+                (includeDiscountColumn ? 1 : 0) +
+                (includeTotalCardsColumn ? 1 : 0) +
+                (includePagarDinheiroColumn ? 1 : 0);
 
             const tableRows = spreadsheetRows
-                .map((row) => `
+                .map(
+                    (row) => `
                     <tr>
                         <td>${escapeHtml(row.nome)}</td>
                         <td>${escapeHtml(row.diasUteis !== null ? String(row.diasUteis) : '-')}</td>
@@ -1247,7 +1443,8 @@ export default function TransportPayrollListPage() {
                         ${includeTotalCardsColumn ? `<td>${escapeHtml(formatCurrencyBR(row.totalCartoes))}</td>` : ''}
                         ${includePagarDinheiroColumn ? `<td>${escapeHtml(formatCurrencyBR(row.pagarDinheiro))}</td>` : ''}
                     </tr>
-                `)
+                `,
+                )
                 .join('');
 
             const footerTotalsRow = `
@@ -1296,7 +1493,10 @@ export default function TransportPayrollListPage() {
                                 <th>NOME</th>
                                 <th>DIAS ÚTEIS</th>
                                 ${orderedPaymentColumns
-                                    .map((key) => `<th>${paymentColumnLabels[key]}</th>`)
+                                    .map(
+                                        (key) =>
+                                            `<th>${paymentColumnLabels[key]}</th>`,
+                                    )
                                     .join('')}
                                 ${includeDiscountColumn ? '<th>DESCONTOS</th>' : ''}
                                 ${includeTotalCardsColumn ? '<th>TOTAL CARTÕES</th>' : ''}
@@ -1322,7 +1522,8 @@ export default function TransportPayrollListPage() {
 
             if (!printHtmlWithFallback(html)) {
                 setNotification({
-                    message: 'Não foi possível preparar a impressão no navegador.',
+                    message:
+                        'Não foi possível preparar a impressão no navegador.',
                     variant: 'error',
                 });
             }
@@ -1330,7 +1531,10 @@ export default function TransportPayrollListPage() {
             if (error instanceof ApiError) {
                 setNotification({ message: error.message, variant: 'error' });
             } else {
-                setNotification({ message: 'Não foi possível gerar a planilha agrupada.', variant: 'error' });
+                setNotification({
+                    message: 'Não foi possível gerar a planilha agrupada.',
+                    variant: 'error',
+                });
             }
         } finally {
             setPrintingLaunchKey(null);
@@ -1338,33 +1542,53 @@ export default function TransportPayrollListPage() {
     }
 
     return (
-        <AdminLayout title="Pagamentos - Lista de Pagamentos" active="payroll-list" module="payroll">
+        <AdminLayout
+            title="Pagamentos - Lista de Pagamentos"
+            active="payroll-list"
+            module="payroll"
+        >
             <div className="transport-dashboard-page">
                 <div className="transport-dashboard-header">
                     <p className="transport-dashboard-eyebrow">Pagamentos</p>
-                    <h2 className="transport-dashboard-title">Lista de Pagamentos</h2>
+                    <h2 className="transport-dashboard-title">
+                        Lista de Pagamentos
+                    </h2>
                     <p className="transport-dashboard-subtitle">
-                        Cada linha representa um lançamento por nome/descrição. Expanda para ver os colaboradores.
+                        Cada linha representa um lançamento por nome/descrição.
+                        Expanda para ver os colaboradores.
                     </p>
                 </div>
 
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Filtros
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-4">
                             <div className="space-y-2">
                                 <Label>Mês</Label>
-                                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                                <Select
+                                    value={monthFilter}
+                                    onValueChange={setMonthFilter}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {monthOptions.map((month) => (
-                                            <SelectItem key={month.value} value={month.value}>
+                                            <SelectItem
+                                                key={month.value}
+                                                value={month.value}
+                                            >
                                                 {month.label}
                                             </SelectItem>
                                         ))}
@@ -1373,7 +1597,10 @@ export default function TransportPayrollListPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Ano</Label>
-                                <Select value={yearFilter} onValueChange={setYearFilter}>
+                                <Select
+                                    value={yearFilter}
+                                    onValueChange={setYearFilter}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -1388,14 +1615,22 @@ export default function TransportPayrollListPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Unidade</Label>
-                                <Select value={unidadeFilter} onValueChange={setUnidadeFilter}>
+                                <Select
+                                    value={unidadeFilter}
+                                    onValueChange={setUnidadeFilter}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Todas" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
+                                        <SelectItem value="all">
+                                            Todas
+                                        </SelectItem>
                                         {unidades.map((unit) => (
-                                            <SelectItem key={unit.id} value={String(unit.id)}>
+                                            <SelectItem
+                                                key={unit.id}
+                                                value={String(unit.id)}
+                                            >
                                                 {unit.nome}
                                             </SelectItem>
                                         ))}
@@ -1403,10 +1638,16 @@ export default function TransportPayrollListPage() {
                                 </Select>
                             </div>
                             <div className="flex items-end gap-2">
-                                <Button variant="outline" onClick={() => void load(1)}>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => void load(1)}
+                                >
                                     Aplicar filtros
                                 </Button>
-                                <Button variant="outline" onClick={clearFilters}>
+                                <Button
+                                    variant="outline"
+                                    onClick={clearFilters}
+                                >
                                     Limpar
                                 </Button>
                             </div>
@@ -1416,7 +1657,9 @@ export default function TransportPayrollListPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Lançamentos agrupados ({launchGroups.length})</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Lançamentos agrupados ({launchGroups.length})
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
@@ -1427,59 +1670,129 @@ export default function TransportPayrollListPage() {
                         ) : launchGroups.length === 0 ? (
                             <div className="transport-empty-state">
                                 <strong>Nenhum pagamento encontrado</strong>
-                                Ajuste os filtros ou lance novos pagamentos para visualizar grupos.
+                                Ajuste os filtros ou lance novos pagamentos para
+                                visualizar grupos.
                             </div>
                         ) : (
                             <div className="transport-table-scroll">
                                 <table className="w-full table-fixed text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
-                                            <th className="w-[16%] py-2 pr-3 font-medium">Lançamento</th>
-                                            <th className="w-[10%] py-2 pr-3 font-medium">Unidade</th>
-                                            <th className="py-2 pr-3 font-medium">Tipos</th>
-                                            <th className="w-[9%] py-2 px-3 text-center font-medium">Colaboradores</th>
-                                            <th className="w-[10%] py-2 pr-3 font-medium">Total</th>
-                                            <th className="w-[9%] py-2 pr-3 font-medium">Data</th>
-                                            <th className="w-[26%] py-2 text-right font-medium">Ações</th>
+                                            <th className="w-[16%] py-2 pr-3 font-medium">
+                                                Lançamento
+                                            </th>
+                                            <th className="w-[10%] py-2 pr-3 font-medium">
+                                                Unidade
+                                            </th>
+                                            <th className="py-2 pr-3 font-medium">
+                                                Tipos
+                                            </th>
+                                            <th className="w-[9%] px-3 py-2 text-center font-medium">
+                                                Colaboradores
+                                            </th>
+                                            <th className="w-[10%] py-2 pr-3 font-medium">
+                                                Total
+                                            </th>
+                                            <th className="w-[9%] py-2 pr-3 font-medium">
+                                                Data
+                                            </th>
+                                            <th className="w-[26%] py-2 text-right font-medium">
+                                                Ações
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {launchGroups.map((launch) => {
-                                            const isExpanded = expandedLaunchKey === launch.key;
+                                            const isExpanded =
+                                                expandedLaunchKey ===
+                                                launch.key;
                                             return (
                                                 <Fragment key={launch.key}>
                                                     <tr
                                                         className="cursor-pointer border-b hover:bg-muted/20"
-                                                        onClick={() => toggleLaunchExpanded(launch.key)}
+                                                        onClick={() =>
+                                                            toggleLaunchExpanded(
+                                                                launch.key,
+                                                            )
+                                                        }
                                                     >
-                                                        <td className="py-2 pr-3 font-medium">{launch.descricao}</td>
-                                                        <td className="py-2 pr-3">{launch.unidade?.nome ?? '-'}</td>
+                                                        <td className="py-2 pr-3 font-medium">
+                                                            {launch.descricao}
+                                                        </td>
+                                                        <td className="py-2 pr-3">
+                                                            {launch.unidade
+                                                                ?.nome ?? '-'}
+                                                        </td>
                                                         <td className="py-2 pr-3">
                                                             <div className="flex flex-wrap gap-1">
-                                                                {launch.tipoIds.map((tipoId) => (
-                                                                    <span key={`${launch.key}-${tipoId}`} className="transport-value-pill">
-                                                                        {tipos.find((tipo) => tipo.id === tipoId)?.nome ?? 'Tipo'}
-                                                                    </span>
-                                                                ))}
+                                                                {launch.tipoIds.map(
+                                                                    (
+                                                                        tipoId,
+                                                                    ) => (
+                                                                        <span
+                                                                            key={`${launch.key}-${tipoId}`}
+                                                                            className="transport-value-pill"
+                                                                        >
+                                                                            {tipos.find(
+                                                                                (
+                                                                                    tipo,
+                                                                                ) =>
+                                                                                    tipo.id ===
+                                                                                    tipoId,
+                                                                            )
+                                                                                ?.nome ??
+                                                                                'Tipo'}
+                                                                        </span>
+                                                                    ),
+                                                                )}
                                                             </div>
                                                         </td>
-                                                        <td className="py-2 px-3 text-center align-middle font-medium">{launch.colaboradores.length}</td>
-                                                        <td className="py-2 pr-3 font-semibold">{formatCurrencyBR(launch.total)}</td>
-                                                        <td className="py-2 pr-3">{formatDateBR(launch.data_pagamento)}</td>
+                                                        <td className="px-3 py-2 text-center align-middle font-medium">
+                                                            {
+                                                                launch
+                                                                    .colaboradores
+                                                                    .length
+                                                            }
+                                                        </td>
+                                                        <td className="py-2 pr-3 font-semibold">
+                                                            {formatCurrencyBR(
+                                                                launch.total,
+                                                            )}
+                                                        </td>
+                                                        <td className="py-2 pr-3">
+                                                            {formatDateBR(
+                                                                launch.data_pagamento,
+                                                            )}
+                                                        </td>
                                                         <td className="py-2">
                                                             <div className="flex justify-end gap-2">
-                                                                {launchHasBenefits(launch) ? (
+                                                                {launchHasBenefits(
+                                                                    launch,
+                                                                ) ? (
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        onClick={(event) => {
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) => {
                                                                             event.stopPropagation();
-                                                                            void exportLaunchBenefitsXlsx(launch);
+                                                                            void exportLaunchBenefitsXlsx(
+                                                                                launch,
+                                                                            );
                                                                         }}
-                                                                        disabled={exportingLaunchKey === launch.key}
-                                                                        title={exportingLaunchKey === launch.key ? 'Gerando Excel' : 'Exportar Excel de benefícios'}
+                                                                        disabled={
+                                                                            exportingLaunchKey ===
+                                                                            launch.key
+                                                                        }
+                                                                        title={
+                                                                            exportingLaunchKey ===
+                                                                            launch.key
+                                                                                ? 'Gerando Excel'
+                                                                                : 'Exportar Excel de benefícios'
+                                                                        }
                                                                     >
-                                                                        {exportingLaunchKey === launch.key ? (
+                                                                        {exportingLaunchKey ===
+                                                                        launch.key ? (
                                                                             <LoaderCircle className="size-4 animate-spin text-green-600" />
                                                                         ) : (
                                                                             <FileSpreadsheet className="size-4 text-green-600" />
@@ -1489,20 +1802,32 @@ export default function TransportPayrollListPage() {
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    onClick={(event) => {
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
                                                                         event.stopPropagation();
-                                                                        toggleLaunchExpanded(launch.key);
+                                                                        toggleLaunchExpanded(
+                                                                            launch.key,
+                                                                        );
                                                                     }}
-                                                                    title={isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
+                                                                    title={
+                                                                        isExpanded
+                                                                            ? 'Ocultar detalhes'
+                                                                            : 'Ver detalhes'
+                                                                    }
                                                                 >
                                                                     <Eye className="size-4 text-foreground" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    onClick={(event) => {
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
                                                                         event.stopPropagation();
-                                                                        editFullLaunch(launch);
+                                                                        editFullLaunch(
+                                                                            launch,
+                                                                        );
                                                                     }}
                                                                     title="Editar completo"
                                                                 >
@@ -1511,21 +1836,37 @@ export default function TransportPayrollListPage() {
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    onClick={(event) => {
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
                                                                         event.stopPropagation();
-                                                                        void printLaunch(launch);
+                                                                        void printLaunch(
+                                                                            launch,
+                                                                        );
                                                                     }}
-                                                                    disabled={printingLaunchKey === launch.key}
-                                                                    title={printingLaunchKey === launch.key ? 'Gerando impressão' : 'Imprimir'}
+                                                                    disabled={
+                                                                        printingLaunchKey ===
+                                                                        launch.key
+                                                                    }
+                                                                    title={
+                                                                        printingLaunchKey ===
+                                                                        launch.key
+                                                                            ? 'Gerando impressão'
+                                                                            : 'Imprimir'
+                                                                    }
                                                                 >
                                                                     <Printer className="size-4 text-green-600" />
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="destructive"
-                                                                    onClick={(event) => {
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
                                                                         event.stopPropagation();
-                                                                        setDeleteLaunchCandidate(launch);
+                                                                        setDeleteLaunchCandidate(
+                                                                            launch,
+                                                                        );
                                                                     }}
                                                                     title="Excluir completo"
                                                                 >
@@ -1537,7 +1878,10 @@ export default function TransportPayrollListPage() {
 
                                                     {isExpanded ? (
                                                         <tr className="border-b bg-muted/20">
-                                                            <td colSpan={7} className="p-3">
+                                                            <td
+                                                                colSpan={7}
+                                                                className="p-3"
+                                                            >
                                                                 <div className="transport-table-scroll rounded-md border bg-background">
                                                                     <table className="w-full min-w-[820px] text-sm">
                                                                         <thead className="bg-muted/40">
@@ -1546,76 +1890,175 @@ export default function TransportPayrollListPage() {
                                                                                     <button
                                                                                         type="button"
                                                                                         className="inline-flex items-center"
-                                                                                        onClick={() => toggleLaunchSort(launch.key, 'colaborador')}
+                                                                                        onClick={() =>
+                                                                                            toggleLaunchSort(
+                                                                                                launch.key,
+                                                                                                'colaborador',
+                                                                                            )
+                                                                                        }
                                                                                     >
-                                                                                        Colaborador{getSortIndicator(launch.key, 'colaborador')}
+                                                                                        Colaborador
+                                                                                        {getSortIndicator(
+                                                                                            launch.key,
+                                                                                            'colaborador',
+                                                                                        )}
                                                                                     </button>
                                                                                 </th>
-                                                                                {launch.tipoIds.map((tipoId) => (
-                                                                                    <th key={`${launch.key}-col-${tipoId}`} className="px-2 py-2 text-left font-medium">
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            className="inline-flex items-center"
-                                                                                            onClick={() => toggleLaunchSort(launch.key, 'valor')}
+                                                                                {launch.tipoIds.map(
+                                                                                    (
+                                                                                        tipoId,
+                                                                                    ) => (
+                                                                                        <th
+                                                                                            key={`${launch.key}-col-${tipoId}`}
+                                                                                            className="px-2 py-2 text-left font-medium"
                                                                                         >
-                                                                                            {tipos.find((tipo) => tipo.id === tipoId)?.nome ?? 'Tipo'}
-                                                                                            {getSortIndicator(launch.key, 'valor')}
-                                                                                        </button>
-                                                                                    </th>
-                                                                                ))}
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                className="inline-flex items-center"
+                                                                                                onClick={() =>
+                                                                                                    toggleLaunchSort(
+                                                                                                        launch.key,
+                                                                                                        'valor',
+                                                                                                    )
+                                                                                                }
+                                                                                            >
+                                                                                                {tipos.find(
+                                                                                                    (
+                                                                                                        tipo,
+                                                                                                    ) =>
+                                                                                                        tipo.id ===
+                                                                                                        tipoId,
+                                                                                                )
+                                                                                                    ?.nome ??
+                                                                                                    'Tipo'}
+                                                                                                {getSortIndicator(
+                                                                                                    launch.key,
+                                                                                                    'valor',
+                                                                                                )}
+                                                                                            </button>
+                                                                                        </th>
+                                                                                    ),
+                                                                                )}
                                                                                 <th className="px-2 py-2 text-left font-medium">
                                                                                     <button
                                                                                         type="button"
                                                                                         className="inline-flex items-center"
-                                                                                        onClick={() => toggleLaunchSort(launch.key, 'total')}
+                                                                                        onClick={() =>
+                                                                                            toggleLaunchSort(
+                                                                                                launch.key,
+                                                                                                'total',
+                                                                                            )
+                                                                                        }
                                                                                     >
-                                                                                        Total{getSortIndicator(launch.key, 'total')}
+                                                                                        Total
+                                                                                        {getSortIndicator(
+                                                                                            launch.key,
+                                                                                            'total',
+                                                                                        )}
                                                                                     </button>
                                                                                 </th>
-                                                                                <th className="px-2 py-2 text-right font-medium">Ações</th>
+                                                                                <th className="px-2 py-2 text-right font-medium">
+                                                                                    Ações
+                                                                                </th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
-                                                                            {getSortedCollaborators(launch).map((item) => {
-                                                                                const totalRow = launch.tipoIds.reduce(
-                                                                                    (acc, tipoId) => acc + Number(item.byType.get(tipoId)?.valor ?? 0),
-                                                                                    0,
-                                                                                );
+                                                                            {getSortedCollaborators(
+                                                                                launch,
+                                                                            ).map(
+                                                                                (
+                                                                                    item,
+                                                                                ) => {
+                                                                                    const totalRow =
+                                                                                        launch.tipoIds.reduce(
+                                                                                            (
+                                                                                                acc,
+                                                                                                tipoId,
+                                                                                            ) =>
+                                                                                                acc +
+                                                                                                Number(
+                                                                                                    item.byType.get(
+                                                                                                        tipoId,
+                                                                                                    )
+                                                                                                        ?.valor ??
+                                                                                                        0,
+                                                                                                ),
+                                                                                            0,
+                                                                                        );
 
-                                                                                return (
-                                                                                    <tr key={item.key} className="border-t">
-                                                                                        <td className="px-2 py-2 font-medium">{item.colaborador.nome}</td>
-                                                                                        {launch.tipoIds.map((tipoId) => (
-                                                                                            <td key={`${item.key}-${tipoId}`} className="px-2 py-2">
-                                                                                                {item.byType.has(tipoId)
-                                                                                                    ? formatCurrencyBR(item.byType.get(tipoId)?.valor ?? 0)
-                                                                                                    : '-'}
+                                                                                    return (
+                                                                                        <tr
+                                                                                            key={
+                                                                                                item.key
+                                                                                            }
+                                                                                            className="border-t"
+                                                                                        >
+                                                                                            <td className="px-2 py-2 font-medium">
+                                                                                                {
+                                                                                                    item
+                                                                                                        .colaborador
+                                                                                                        .nome
+                                                                                                }
                                                                                             </td>
-                                                                                        ))}
-                                                                                        <td className="px-2 py-2 font-semibold">{formatCurrencyBR(totalRow)}</td>
-                                                                                        <td className="px-2 py-2">
-                                                                                            <div className="flex justify-end gap-2">
-                                                                                                <Button
-                                                                                                    size="sm"
-                                                                                                    variant="outline"
-                                                                                                    onClick={() => openEditDialog(item)}
-                                                                                                    title="Editar"
-                                                                                                >
-                                                                                                    <PencilLine className="size-4 text-foreground" />
-                                                                                                </Button>
-                                                                                                <Button
-                                                                                                    size="sm"
-                                                                                                    variant="destructive"
-                                                                                                    onClick={() => setDeleteCandidate(item)}
-                                                                                                    title="Excluir"
-                                                                                                >
-                                                                                                    <Trash2 className="size-4" />
-                                                                                                </Button>
-                                                                                            </div>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                );
-                                                                            })}
+                                                                                            {launch.tipoIds.map(
+                                                                                                (
+                                                                                                    tipoId,
+                                                                                                ) => (
+                                                                                                    <td
+                                                                                                        key={`${item.key}-${tipoId}`}
+                                                                                                        className="px-2 py-2"
+                                                                                                    >
+                                                                                                        {item.byType.has(
+                                                                                                            tipoId,
+                                                                                                        )
+                                                                                                            ? formatCurrencyBR(
+                                                                                                                  item.byType.get(
+                                                                                                                      tipoId,
+                                                                                                                  )
+                                                                                                                      ?.valor ??
+                                                                                                                      0,
+                                                                                                              )
+                                                                                                            : '-'}
+                                                                                                    </td>
+                                                                                                ),
+                                                                                            )}
+                                                                                            <td className="px-2 py-2 font-semibold">
+                                                                                                {formatCurrencyBR(
+                                                                                                    totalRow,
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="px-2 py-2">
+                                                                                                <div className="flex justify-end gap-2">
+                                                                                                    <Button
+                                                                                                        size="sm"
+                                                                                                        variant="outline"
+                                                                                                        onClick={() =>
+                                                                                                            openEditDialog(
+                                                                                                                item,
+                                                                                                            )
+                                                                                                        }
+                                                                                                        title="Editar"
+                                                                                                    >
+                                                                                                        <PencilLine className="size-4 text-foreground" />
+                                                                                                    </Button>
+                                                                                                    <Button
+                                                                                                        size="sm"
+                                                                                                        variant="destructive"
+                                                                                                        onClick={() =>
+                                                                                                            setDeleteCandidate(
+                                                                                                                item,
+                                                                                                            )
+                                                                                                        }
+                                                                                                        title="Excluir"
+                                                                                                    >
+                                                                                                        <Trash2 className="size-4" />
+                                                                                                    </Button>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    );
+                                                                                },
+                                                                            )}
                                                                         </tbody>
                                                                     </table>
                                                                 </div>
@@ -1632,9 +2075,12 @@ export default function TransportPayrollListPage() {
 
                         <div className="mt-4 flex items-center justify-between">
                             <p className="text-xs text-muted-foreground">
-                                Total de linhas carregadas: {totalRows} · Total de lançamentos agrupados: {launchGroups.length}
+                                Total de linhas carregadas: {totalRows} · Total
+                                de lançamentos agrupados: {launchGroups.length}
                             </p>
-                            <div className="text-xs text-muted-foreground">Paginação consolidada em uma única visão.</div>
+                            <div className="text-xs text-muted-foreground">
+                                Paginação consolidada em uma única visão.
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -1650,11 +2096,16 @@ export default function TransportPayrollListPage() {
                     <DialogHeader>
                         <DialogTitle>Excluir pagamento completo</DialogTitle>
                         <DialogDescription>
-                            Essa ação exclui todo o lançamento agrupado com todos os colaboradores e tipos.
+                            Essa ação exclui todo o lançamento agrupado com
+                            todos os colaboradores e tipos.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setDeleteLaunchCandidate(null)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteLaunchCandidate(null)}
+                        >
                             Cancelar
                         </Button>
                         <Button
@@ -1686,11 +2137,16 @@ export default function TransportPayrollListPage() {
                     <DialogHeader>
                         <DialogTitle>Excluir lançamento agrupado</DialogTitle>
                         <DialogDescription>
-                            Essa ação exclui todos os tipos de pagamento deste lançamento.
+                            Essa ação exclui todos os tipos de pagamento deste
+                            lançamento.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setDeleteCandidate(null)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteCandidate(null)}
+                        >
                             Cancelar
                         </Button>
                         <Button
@@ -1722,37 +2178,50 @@ export default function TransportPayrollListPage() {
                     <DialogHeader>
                         <DialogTitle>Editar lançamento agrupado</DialogTitle>
                         <DialogDescription>
-                            Edite descrição, data e valores dos tipos já lançados para este colaborador.
+                            Edite descrição, data e valores dos tipos já
+                            lançados para este colaborador.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4">
                         <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="edit-description">Descrição</Label>
+                                <Label htmlFor="edit-description">
+                                    Descrição
+                                </Label>
                                 <Input
                                     id="edit-description"
                                     value={editDescription}
-                                    onChange={(event) => setEditDescription(event.target.value)}
+                                    onChange={(event) =>
+                                        setEditDescription(event.target.value)
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="edit-date">Data pagamento</Label>
+                                <Label htmlFor="edit-date">
+                                    Data pagamento
+                                </Label>
                                 <Input
                                     id="edit-date"
                                     type="date"
                                     value={editDate}
-                                    onChange={(event) => setEditDate(event.target.value)}
+                                    onChange={(event) =>
+                                        setEditDate(event.target.value)
+                                    }
                                 />
                             </div>
                         </div>
 
                         <div className="grid gap-3 md:grid-cols-2">
                             {tipos
-                                .filter((tipo) => editCandidate?.byType.has(tipo.id))
+                                .filter((tipo) =>
+                                    editCandidate?.byType.has(tipo.id),
+                                )
                                 .map((tipo) => (
                                     <div className="space-y-2" key={tipo.id}>
-                                        <Label htmlFor={`tipo-${tipo.id}`}>{tipo.nome}</Label>
+                                        <Label htmlFor={`tipo-${tipo.id}`}>
+                                            {tipo.nome}
+                                        </Label>
                                         <Input
                                             id={`tipo-${tipo.id}`}
                                             type="number"
@@ -1762,7 +2231,8 @@ export default function TransportPayrollListPage() {
                                             onChange={(event) =>
                                                 setEditValues((previous) => ({
                                                     ...previous,
-                                                    [tipo.id]: event.target.value,
+                                                    [tipo.id]:
+                                                        event.target.value,
                                                 }))
                                             }
                                         />
@@ -1772,10 +2242,18 @@ export default function TransportPayrollListPage() {
                     </div>
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setEditCandidate(null)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setEditCandidate(null)}
+                        >
                             Cancelar
                         </Button>
-                        <Button type="button" onClick={() => void saveEdition()} disabled={saving}>
+                        <Button
+                            type="button"
+                            onClick={() => void saveEdition()}
+                            disabled={saving}
+                        >
                             {saving ? (
                                 <>
                                     <LoaderCircle className="size-4 animate-spin" />

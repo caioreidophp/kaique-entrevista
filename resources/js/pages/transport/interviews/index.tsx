@@ -1,6 +1,13 @@
 import { Link } from '@inertiajs/react';
 import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterviewListItem,
+    GuepStatus,
+    HrStatus,
+    InterviewCurriculumStatus,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
 import { Badge } from '@/components/ui/badge';
@@ -30,13 +37,6 @@ import { usePersistedState } from '@/hooks/use-persisted-state';
 import { ApiError, apiDelete, apiGet, apiPatch } from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
 import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
-import type {
-    ApiPaginatedResponse,
-    DriverInterviewListItem,
-    GuepStatus,
-    HrStatus,
-    InterviewCurriculumStatus,
-} from '@/types/driver-interview';
 
 function hrStatusLabel(status: HrStatus): string {
     if (status === 'aprovado') return 'Aprovado';
@@ -58,28 +58,35 @@ function guepStatusLabel(status: GuepStatus): string {
 function hrStatusBadgeClass(status: HrStatus): string {
     if (status === 'aprovado') return 'transport-status-success';
     if (status === 'reprovado') return 'transport-status-danger';
-    if (status === 'em_analise' || status === 'aguardando_vaga') return 'transport-status-warning';
+    if (status === 'em_analise' || status === 'aguardando_vaga')
+        return 'transport-status-warning';
     return 'transport-status-info';
 }
 
 function guepStatusBadgeClass(status: GuepStatus): string {
     if (status === 'aprovado') return 'transport-status-success';
-    if (status === 'reprovado' || status === 'nao_fazer') return 'transport-status-danger';
+    if (status === 'reprovado' || status === 'nao_fazer')
+        return 'transport-status-danger';
     if (status === 'a_fazer') return 'transport-status-warning';
     return 'transport-status-info';
 }
 
 function guepStatusSelectClass(status: GuepStatus): string {
-    if (status === 'aprovado') return 'border-green-300 bg-green-50 text-green-700';
-    if (status === 'reprovado' || status === 'nao_fazer') return 'border-red-300 bg-red-50 text-red-700';
-    if (status === 'a_fazer') return 'border-yellow-300 bg-yellow-50 text-yellow-700';
+    if (status === 'aprovado')
+        return 'border-green-300 bg-green-50 text-green-700';
+    if (status === 'reprovado' || status === 'nao_fazer')
+        return 'border-red-300 bg-red-50 text-red-700';
+    if (status === 'a_fazer')
+        return 'border-yellow-300 bg-yellow-50 text-yellow-700';
     return 'border-blue-300 bg-blue-50 text-blue-700';
 }
 
 function hrStatusSelectClass(status: HrStatus): string {
-    if (status === 'aprovado') return 'border-green-300 bg-green-50 text-green-700';
+    if (status === 'aprovado')
+        return 'border-green-300 bg-green-50 text-green-700';
     if (status === 'reprovado') return 'border-red-300 bg-red-50 text-red-700';
-    if (status === 'em_analise' || status === 'aguardando_vaga') return 'border-yellow-300 bg-yellow-50 text-yellow-700';
+    if (status === 'em_analise' || status === 'aguardando_vaga')
+        return 'border-yellow-300 bg-yellow-50 text-yellow-700';
     return 'border-blue-300 bg-blue-50 text-blue-700';
 }
 
@@ -158,7 +165,8 @@ export default function TransportInterviewsListPage() {
         const start = new Date();
         start.setDate(end.getDate() - days + 1);
 
-        const toIsoDate = (value: Date): string => value.toISOString().slice(0, 10);
+        const toIsoDate = (value: Date): string =>
+            value.toISOString().slice(0, 10);
 
         setDateFromFilter(toIsoDate(start));
         setDateToFilter(toIsoDate(end));
@@ -396,13 +404,25 @@ export default function TransportInterviewsListPage() {
                         }
                     />
                     <div className="flex gap-2">
-                        <Button type="button" variant="outline" onClick={() => applyDatePreset(7)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => applyDatePreset(7)}
+                        >
                             7 dias
                         </Button>
-                        <Button type="button" variant="outline" onClick={() => applyDatePreset(30)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => applyDatePreset(30)}
+                        >
                             30 dias
                         </Button>
-                        <Button type="button" variant="outline" onClick={() => applyDatePreset(90)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => applyDatePreset(90)}
+                        >
                             90 dias
                         </Button>
                     </div>
@@ -422,232 +442,117 @@ export default function TransportInterviewsListPage() {
 
                 <div className="transport-table-card">
                     <div className="transport-table-scroll">
-                    <table className="w-full min-w-[1220px] table-fixed text-sm">
-                        <thead className="bg-muted/40">
-                            <tr>
-                                <th className="w-[220px] px-4 py-3 text-left font-medium">
-                                    Nome
-                                </th>
-                                <th className="w-[100px] px-4 py-3 text-left font-medium">
-                                    Entrevistador
-                                </th>
-                                <th className="w-[160px] px-4 py-3 text-left font-medium">
-                                    Unidade
-                                </th>
-                                <th className="w-[132px] px-2 py-3 text-left font-medium">
-                                    Status GUEP
-                                </th>
-                                <th className="w-[132px] px-2 py-3 text-left font-medium">
-                                    Status RH
-                                </th>
-                                <th className="w-[90px] px-4 py-3 text-left font-medium">
-                                    Data
-                                </th>
-                                <th className="w-[220px] px-2 py-3 text-left font-medium">
-                                    Currículo
-                                </th>
-                                <th className="w-[210px] px-4 py-3 text-right font-medium">
-                                    Ações
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
+                        <table className="w-full min-w-[1220px] table-fixed text-sm">
+                            <thead className="bg-muted/40">
                                 <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="px-4 py-8 text-center text-muted-foreground"
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            <LoaderCircle className="size-4 animate-spin" />
-                                            Carregando...
-                                        </span>
-                                    </td>
+                                    <th className="w-[220px] px-4 py-3 text-left font-medium">
+                                        Nome
+                                    </th>
+                                    <th className="w-[100px] px-4 py-3 text-left font-medium">
+                                        Entrevistador
+                                    </th>
+                                    <th className="w-[160px] px-4 py-3 text-left font-medium">
+                                        Unidade
+                                    </th>
+                                    <th className="w-[132px] px-2 py-3 text-left font-medium">
+                                        Status GUEP
+                                    </th>
+                                    <th className="w-[132px] px-2 py-3 text-left font-medium">
+                                        Status RH
+                                    </th>
+                                    <th className="w-[90px] px-4 py-3 text-left font-medium">
+                                        Data
+                                    </th>
+                                    <th className="w-[220px] px-2 py-3 text-left font-medium">
+                                        Currículo
+                                    </th>
+                                    <th className="w-[210px] px-4 py-3 text-right font-medium">
+                                        Ações
+                                    </th>
                                 </tr>
-                            ) : items.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={8}
-                                        className="px-4 py-8 text-center text-muted-foreground"
-                                    >
-                                        <div className="transport-empty-state mx-auto max-w-md text-left">
-                                            <strong>Nenhuma entrevista encontrada</strong>
-                                            Ajuste os filtros ou cadastre uma nova entrevista para iniciar o acompanhamento.
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                items.map((item) => (
-                                    <tr key={item.id} className="border-t">
-                                        {(() => {
-                                            const canManage =
-                                                viewerRole === 'master_admin' ||
-                                                item.author_id === viewerId;
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr>
+                                        <td
+                                            colSpan={8}
+                                            className="px-4 py-8 text-center text-muted-foreground"
+                                        >
+                                            <span className="inline-flex items-center gap-2">
+                                                <LoaderCircle className="size-4 animate-spin" />
+                                                Carregando...
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ) : items.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={8}
+                                            className="px-4 py-8 text-center text-muted-foreground"
+                                        >
+                                            <div className="transport-empty-state mx-auto max-w-md text-left">
+                                                <strong>
+                                                    Nenhuma entrevista
+                                                    encontrada
+                                                </strong>
+                                                Ajuste os filtros ou cadastre
+                                                uma nova entrevista para iniciar
+                                                o acompanhamento.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    items.map((item) => (
+                                        <tr key={item.id} className="border-t">
+                                            {(() => {
+                                                const canManage =
+                                                    viewerRole ===
+                                                        'master_admin' ||
+                                                    item.author_id === viewerId;
 
-                                            return (
-                                                <>
-                                                    <td className="px-4 py-3 leading-5 font-medium break-words whitespace-normal">
-                                                        {item.full_name}
-                                                    </td>
-                                                    <td className="overflow-hidden px-4 py-3 text-ellipsis whitespace-nowrap">
-                                                        {item.author?.name ??
-                                                            '-'}
-                                                    </td>
-                                                    <td className="overflow-hidden px-4 py-3 text-ellipsis whitespace-nowrap">
-                                                        {item.hiring_unidade
-                                                            ?.nome ?? '-'}
-                                                    </td>
-                                                    <td className="px-2 py-3">
-                                                        {canManage ? (
-                                                            <Select
-                                                                value={
-                                                                    item.guep_status
-                                                                }
-                                                                disabled={
-                                                                    updatingKey ===
-                                                                        `${item.id}:guep_status` ||
-                                                                    item.hr_status ===
-                                                                        'reprovado'
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) =>
-                                                                    handleInlineStatusUpdate(
-                                                                        item,
-                                                                        {
-                                                                            guep_status:
-                                                                                value as GuepStatus,
-                                                                        },
-                                                                        'guep_status',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <SelectTrigger
-                                                                    className={`h-8 w-full rounded-full px-2.5 ${guepStatusSelectClass(item.guep_status)}`}
-                                                                >
-                                                                    {updatingKey ===
-                                                                    `${item.id}:guep_status` ? (
-                                                                        <span className="inline-flex items-center gap-2 text-xs">
-                                                                            <LoaderCircle className="size-3 animate-spin" />
-                                                                            Salvando...
-                                                                        </span>
-                                                                    ) : (
-                                                                        <SelectValue />
-                                                                    )}
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {guepStatusOptions.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        ) : (
-                                                            <Badge className={`transport-status-badge ${guepStatusBadgeClass(item.guep_status)}`}>
-                                                                {guepStatusLabel(
-                                                                    item.guep_status,
-                                                                )}
-                                                            </Badge>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-2 py-3">
-                                                        {canManage ? (
-                                                            <Select
-                                                                value={
-                                                                    item.hr_status
-                                                                }
-                                                                disabled={
-                                                                    updatingKey ===
-                                                                    `${item.id}:hr_status`
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    if (
-                                                                        value ===
-                                                                        item.hr_status
-                                                                    ) {
-                                                                        return;
+                                                return (
+                                                    <>
+                                                        <td className="px-4 py-3 leading-5 font-medium break-words whitespace-normal">
+                                                            {item.full_name}
+                                                        </td>
+                                                        <td className="overflow-hidden px-4 py-3 text-ellipsis whitespace-nowrap">
+                                                            {item.author
+                                                                ?.name ?? '-'}
+                                                        </td>
+                                                        <td className="overflow-hidden px-4 py-3 text-ellipsis whitespace-nowrap">
+                                                            {item.hiring_unidade
+                                                                ?.nome ?? '-'}
+                                                        </td>
+                                                        <td className="px-2 py-3">
+                                                            {canManage ? (
+                                                                <Select
+                                                                    value={
+                                                                        item.guep_status
                                                                     }
-
-                                                                    if (
-                                                                        value ===
-                                                                        'reprovado'
-                                                                    ) {
-                                                                        setRejectionDialog(
+                                                                    disabled={
+                                                                        updatingKey ===
+                                                                            `${item.id}:guep_status` ||
+                                                                        item.hr_status ===
+                                                                            'reprovado'
+                                                                    }
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        handleInlineStatusUpdate(
+                                                                            item,
                                                                             {
-                                                                                item,
-                                                                                reason:
-                                                                                    item.hr_rejection_reason ??
-                                                                                    '',
+                                                                                guep_status:
+                                                                                    value as GuepStatus,
                                                                             },
-                                                                        );
-                                                                        return;
+                                                                            'guep_status',
+                                                                        )
                                                                     }
-
-                                                                    void handleInlineStatusUpdate(
-                                                                        item,
-                                                                        {
-                                                                            hr_status:
-                                                                                value as HrStatus,
-                                                                            hr_rejection_reason:
-                                                                                null,
-                                                                        },
-                                                                        'hr_status',
-                                                                    );
-                                                                }
-                                                                }
-                                                            >
-                                                                {item.hr_status ===
-                                                                    'reprovado' &&
-                                                                item.hr_rejection_reason ? (
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger
-                                                                            asChild
-                                                                        >
-                                                                            <SelectTrigger
-                                                                                className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
-                                                                                title={
-                                                                                    item.hr_rejection_reason
-                                                                                }
-                                                                            >
-                                                                                {updatingKey ===
-                                                                                `${item.id}:hr_status` ? (
-                                                                                    <span className="inline-flex items-center gap-2 text-xs">
-                                                                                        <LoaderCircle className="size-3 animate-spin" />
-                                                                                        Salvando...
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <SelectValue />
-                                                                                )}
-                                                                            </SelectTrigger>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            {
-                                                                                item.hr_rejection_reason
-                                                                            }
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                ) : (
+                                                                >
                                                                     <SelectTrigger
-                                                                        className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
+                                                                        className={`h-8 w-full rounded-full px-2.5 ${guepStatusSelectClass(item.guep_status)}`}
                                                                     >
                                                                         {updatingKey ===
-                                                                        `${item.id}:hr_status` ? (
+                                                                        `${item.id}:guep_status` ? (
                                                                             <span className="inline-flex items-center gap-2 text-xs">
                                                                                 <LoaderCircle className="size-3 animate-spin" />
                                                                                 Salvando...
@@ -656,32 +561,153 @@ export default function TransportInterviewsListPage() {
                                                                             <SelectValue />
                                                                         )}
                                                                     </SelectTrigger>
-                                                                )}
-                                                                <SelectContent>
-                                                                    {hrStatusOptions.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
+                                                                    <SelectContent>
+                                                                        {guepStatusOptions.map(
+                                                                            (
+                                                                                option,
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        option.value
+                                                                                    }
+                                                                                    value={
+                                                                                        option.value
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        option.label
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            ),
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            ) : (
+                                                                <Badge
+                                                                    className={`transport-status-badge ${guepStatusBadgeClass(item.guep_status)}`}
+                                                                >
+                                                                    {guepStatusLabel(
+                                                                        item.guep_status,
                                                                     )}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        ) : (
-                                                            item.hr_status ===
-                                                                'reprovado' &&
-                                                            item.hr_rejection_reason ? (
+                                                                </Badge>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-2 py-3">
+                                                            {canManage ? (
+                                                                <Select
+                                                                    value={
+                                                                        item.hr_status
+                                                                    }
+                                                                    disabled={
+                                                                        updatingKey ===
+                                                                        `${item.id}:hr_status`
+                                                                    }
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) => {
+                                                                        if (
+                                                                            value ===
+                                                                            item.hr_status
+                                                                        ) {
+                                                                            return;
+                                                                        }
+
+                                                                        if (
+                                                                            value ===
+                                                                            'reprovado'
+                                                                        ) {
+                                                                            setRejectionDialog(
+                                                                                {
+                                                                                    item,
+                                                                                    reason:
+                                                                                        item.hr_rejection_reason ??
+                                                                                        '',
+                                                                                },
+                                                                            );
+                                                                            return;
+                                                                        }
+
+                                                                        void handleInlineStatusUpdate(
+                                                                            item,
+                                                                            {
+                                                                                hr_status:
+                                                                                    value as HrStatus,
+                                                                                hr_rejection_reason:
+                                                                                    null,
+                                                                            },
+                                                                            'hr_status',
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    {item.hr_status ===
+                                                                        'reprovado' &&
+                                                                    item.hr_rejection_reason ? (
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger
+                                                                                asChild
+                                                                            >
+                                                                                <SelectTrigger
+                                                                                    className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
+                                                                                    title={
+                                                                                        item.hr_rejection_reason
+                                                                                    }
+                                                                                >
+                                                                                    {updatingKey ===
+                                                                                    `${item.id}:hr_status` ? (
+                                                                                        <span className="inline-flex items-center gap-2 text-xs">
+                                                                                            <LoaderCircle className="size-3 animate-spin" />
+                                                                                            Salvando...
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <SelectValue />
+                                                                                    )}
+                                                                                </SelectTrigger>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                {
+                                                                                    item.hr_rejection_reason
+                                                                                }
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    ) : (
+                                                                        <SelectTrigger
+                                                                            className={`h-8 w-full rounded-full px-2.5 ${hrStatusSelectClass(item.hr_status)}`}
+                                                                        >
+                                                                            {updatingKey ===
+                                                                            `${item.id}:hr_status` ? (
+                                                                                <span className="inline-flex items-center gap-2 text-xs">
+                                                                                    <LoaderCircle className="size-3 animate-spin" />
+                                                                                    Salvando...
+                                                                                </span>
+                                                                            ) : (
+                                                                                <SelectValue />
+                                                                            )}
+                                                                        </SelectTrigger>
+                                                                    )}
+                                                                    <SelectContent>
+                                                                        {hrStatusOptions.map(
+                                                                            (
+                                                                                option,
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        option.value
+                                                                                    }
+                                                                                    value={
+                                                                                        option.value
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        option.label
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            ),
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            ) : item.hr_status ===
+                                                                  'reprovado' &&
+                                                              item.hr_rejection_reason ? (
                                                                 <Tooltip>
                                                                     <TooltipTrigger
                                                                         asChild
@@ -704,116 +730,125 @@ export default function TransportInterviewsListPage() {
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             ) : (
-                                                                <Badge className={`transport-status-badge ${hrStatusBadgeClass(item.hr_status)}`}>
+                                                                <Badge
+                                                                    className={`transport-status-badge ${hrStatusBadgeClass(item.hr_status)}`}
+                                                                >
                                                                     {hrStatusLabel(
                                                                         item.hr_status,
                                                                     )}
                                                                 </Badge>
-                                                            )
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        {formatDateBR(item.created_at)}
-                                                    </td>
-                                                    <td className="px-2 py-3">
-                                                        {item.curriculum ? (
-                                                            <div className="space-y-1">
-                                                                <p className="truncate text-xs font-medium">
-                                                                    {item.curriculum.full_name}
-                                                                </p>
-                                                                <Badge
-                                                                    className={`transport-status-badge ${curriculumStatusBadgeClass(item.curriculum.status)}`}
-                                                                >
-                                                                    {curriculumStatusLabel(
-                                                                        item.curriculum.status,
-                                                                    )}
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            {formatDateBR(
+                                                                item.created_at,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-2 py-3">
+                                                            {item.curriculum ? (
+                                                                <div className="space-y-1">
+                                                                    <p className="truncate text-xs font-medium">
+                                                                        {
+                                                                            item
+                                                                                .curriculum
+                                                                                .full_name
+                                                                        }
+                                                                    </p>
+                                                                    <Badge
+                                                                        className={`transport-status-badge ${curriculumStatusBadgeClass(item.curriculum.status)}`}
+                                                                    >
+                                                                        {curriculumStatusLabel(
+                                                                            item
+                                                                                .curriculum
+                                                                                .status,
+                                                                        )}
+                                                                    </Badge>
+                                                                </div>
+                                                            ) : (
+                                                                <Badge className="transport-status-badge transport-status-warning">
+                                                                    Sem vínculo
                                                                 </Badge>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center justify-end gap-1.5">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="px-2"
+                                                                    title="Ver"
+                                                                    aria-label="Ver"
+                                                                    disabled={
+                                                                        !canManage
+                                                                    }
+                                                                    asChild={
+                                                                        canManage
+                                                                    }
+                                                                >
+                                                                    {canManage ? (
+                                                                        <Link
+                                                                            href={`/transport/interviews/${item.id}`}
+                                                                        >
+                                                                            <Eye className="size-4" />
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <span>
+                                                                            <Eye className="size-4" />
+                                                                        </span>
+                                                                    )}
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="px-2"
+                                                                    title="Editar"
+                                                                    aria-label="Editar"
+                                                                    disabled={
+                                                                        !canManage
+                                                                    }
+                                                                    asChild={
+                                                                        canManage
+                                                                    }
+                                                                >
+                                                                    {canManage ? (
+                                                                        <Link
+                                                                            href={`/transport/interviews/${item.id}/edit`}
+                                                                        >
+                                                                            <Pencil className="size-4" />
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <span>
+                                                                            <Pencil className="size-4" />
+                                                                        </span>
+                                                                    )}
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="px-2 text-destructive hover:text-destructive"
+                                                                    title="Excluir"
+                                                                    aria-label="Excluir"
+                                                                    disabled={
+                                                                        !canManage
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setDeleteCandidate(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 className="size-4" />
+                                                                </Button>
                                                             </div>
-                                                        ) : (
-                                                            <Badge className="transport-status-badge transport-status-warning">
-                                                                Sem vínculo
-                                                            </Badge>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center justify-end gap-1.5">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="px-2"
-                                                                title="Ver"
-                                                                aria-label="Ver"
-                                                                disabled={
-                                                                    !canManage
-                                                                }
-                                                                asChild={
-                                                                    canManage
-                                                                }
-                                                            >
-                                                                {canManage ? (
-                                                                    <Link
-                                                                        href={`/transport/interviews/${item.id}`}
-                                                                    >
-                                                                        <Eye className="size-4" />
-                                                                    </Link>
-                                                                ) : (
-                                                                    <span>
-                                                                        <Eye className="size-4" />
-                                                                    </span>
-                                                                )}
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="px-2"
-                                                                title="Editar"
-                                                                aria-label="Editar"
-                                                                disabled={
-                                                                    !canManage
-                                                                }
-                                                                asChild={
-                                                                    canManage
-                                                                }
-                                                            >
-                                                                {canManage ? (
-                                                                    <Link
-                                                                        href={`/transport/interviews/${item.id}/edit`}
-                                                                    >
-                                                                        <Pencil className="size-4" />
-                                                                    </Link>
-                                                                ) : (
-                                                                    <span>
-                                                                        <Pencil className="size-4" />
-                                                                    </span>
-                                                                )}
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                className="px-2 text-destructive hover:text-destructive"
-                                                                title="Excluir"
-                                                                aria-label="Excluir"
-                                                                disabled={
-                                                                    !canManage
-                                                                }
-                                                                onClick={() =>
-                                                                    setDeleteCandidate(
-                                                                        item,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Trash2 className="size-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </>
-                                            );
-                                        })()}
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                                        </td>
+                                                    </>
+                                                );
+                                            })()}
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

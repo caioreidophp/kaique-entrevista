@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\FinancialApprovalController;
 use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
+use App\Http\Controllers\Api\FreightFleetSizeController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\IntegrationGatewayController;
@@ -286,6 +287,14 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-heavy']);
     Route::get('freight/entries/export-xlsx', [FreightController::class, 'exportXlsx'])
         ->middleware('throttle:transport-heavy');
+    Route::get('freight/fleet-sizes', [FreightFleetSizeController::class, 'index'])
+        ->middleware('throttle:transport-heavy');
+    Route::post('freight/fleet-sizes', [FreightFleetSizeController::class, 'store'])
+        ->middleware('throttle:transport-heavy');
+    Route::put('freight/fleet-sizes/{unitFleetSize}', [FreightFleetSizeController::class, 'update'])
+        ->middleware('throttle:transport-heavy');
+    Route::delete('freight/fleet-sizes/{unitFleetSize}', [FreightFleetSizeController::class, 'destroy'])
+        ->middleware('throttle:transport-heavy');
     Route::post('freight/entries/import-spreadsheet-preview', [FreightController::class, 'previewSpreadsheet'])
         ->middleware('throttle:transport-import');
     Route::post('freight/entries/import-spreadsheet', [FreightController::class, 'importSpreadsheet'])
@@ -316,6 +325,8 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::patch('driver-interviews/{driverInterview}/statuses', [DriverInterviewController::class, 'updateStatuses'])
         ->middleware('throttle:transport-heavy');
     Route::get('interview-curriculums', [InterviewCurriculumController::class, 'index']);
+    Route::get('interview-curriculums/candidate-list', [InterviewCurriculumController::class, 'candidateList'])
+        ->middleware('throttle:transport-heavy');
     Route::post('interview-curriculums', [InterviewCurriculumController::class, 'store'])
         ->middleware('throttle:transport-uploads');
     Route::put('interview-curriculums/{interviewCurriculum}', [InterviewCurriculumController::class, 'update'])
@@ -366,6 +377,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
 
     Route::prefix('registry')->group(function (): void {
         Route::get('unidades', [UnidadeController::class, 'index']);
+        Route::post('unidades', [UnidadeController::class, 'store'])
+            ->middleware('throttle:transport-heavy');
+        Route::put('unidades/{unidade}', [UnidadeController::class, 'update'])
+            ->middleware('throttle:transport-heavy');
         Route::apiResource('funcoes', FuncaoController::class)
             ->middleware('throttle:transport-heavy');
         Route::apiResource('infracoes-multa', MultaInfracaoController::class)

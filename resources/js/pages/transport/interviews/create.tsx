@@ -1,5 +1,10 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import type {
+    ApiPaginatedResponse,
+    DriverInterviewFormData,
+    InterviewCurriculumListItem,
+} from '@/types/driver-interview';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import {
     hasMeaningfulInterviewDraftData,
@@ -22,11 +27,6 @@ import {
 } from '@/lib/interview-attachments';
 import { loadReferenceCitiesCached } from '@/lib/reference-cities-cache';
 import { formatDateTimeBR } from '@/lib/transport-format';
-import type {
-    ApiPaginatedResponse,
-    DriverInterviewFormData,
-    InterviewCurriculumListItem,
-} from '@/types/driver-interview';
 
 const INTERVIEW_DRAFT_STORAGE_KEY = 'transport:interview:create-draft:v1';
 
@@ -112,7 +112,6 @@ export default function TransportInterviewsCreatePage() {
         const raw = window.localStorage.getItem(INTERVIEW_DRAFT_STORAGE_KEY);
 
         if (!raw) {
-             
             setDraftResolved(true);
             return;
         }
@@ -122,7 +121,7 @@ export default function TransportInterviewsCreatePage() {
 
             if (!isInterviewDraftSnapshot(parsed)) {
                 window.localStorage.removeItem(INTERVIEW_DRAFT_STORAGE_KEY);
-                 
+
                 setDraftResolved(true);
                 return;
             }
@@ -137,7 +136,7 @@ export default function TransportInterviewsCreatePage() {
             setResumeDialogOpen(true);
         } catch {
             window.localStorage.removeItem(INTERVIEW_DRAFT_STORAGE_KEY);
-             
+
             setDraftResolved(true);
         }
     }, []);
@@ -150,17 +149,25 @@ export default function TransportInterviewsCreatePage() {
 
     useEffect(() => {
         apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
-            '/interview-curriculums?tab=pendentes&per_page=200',
+            '/interview-curriculums?tab=vinculaveis&per_page=1000',
         )
             .then((response) => {
                 setCurriculumOptions(
-                    response.data.map((curriculum) => ({
-                        id: curriculum.id,
-                        full_name: curriculum.full_name,
-                        has_cnh_attachment: curriculum.has_cnh_attachment,
-                        has_work_card_attachment:
-                            curriculum.has_work_card_attachment,
-                    })),
+                    response.data
+                        .map((curriculum) => ({
+                            id: curriculum.id,
+                            full_name: curriculum.full_name,
+                            has_cnh_attachment: curriculum.has_cnh_attachment,
+                            has_work_card_attachment:
+                                curriculum.has_work_card_attachment,
+                        }))
+                        .sort((first, second) =>
+                            first.full_name.localeCompare(
+                                second.full_name,
+                                'pt-BR',
+                                { sensitivity: 'base' },
+                            ),
+                        ),
                 );
             })
             .catch(() => setCurriculumOptions([]));
@@ -215,7 +222,11 @@ export default function TransportInterviewsCreatePage() {
     }
 
     return (
-        <AdminLayout title="Nova entrevista" active="create" showBobChat={false}>
+        <AdminLayout
+            title="Nova entrevista"
+            active="create"
+            showBobChat={false}
+        >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">{dynamicTitle}</h2>

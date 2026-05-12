@@ -80,7 +80,11 @@ export default function RegistryBirthdaysPage() {
     }, [today]);
 
     return (
-        <AdminLayout title="Cadastro - Aniversariantes" active="registry-birthdays" module="registry">
+        <AdminLayout
+            title="Cadastro - Aniversariantes"
+            active="registry-birthdays"
+            module="registry"
+        >
             <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-semibold">Aniversariantes</h2>
@@ -90,7 +94,10 @@ export default function RegistryBirthdaysPage() {
                 </div>
 
                 {notification ? (
-                    <Notification message={notification.message} variant={notification.variant} />
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
                 ) : null}
 
                 {loading ? (
@@ -116,10 +123,19 @@ export default function RegistryBirthdaysPage() {
                                     ) : (
                                         <div className="space-y-2">
                                             {rowsToday.map((item) => (
-                                                <div key={item.id} className="rounded-md border px-3 py-2 text-sm">
-                                                    <p className="font-medium">{item.nome}</p>
+                                                <div
+                                                    key={item.id}
+                                                    className="rounded-md border px-3 py-2 text-sm"
+                                                >
+                                                    <p className="font-medium">
+                                                        {item.nome}
+                                                    </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                        {item.funcao?.nome ??
+                                                            '-'}{' '}
+                                                        •{' '}
+                                                        {item.unidade?.nome ??
+                                                            '-'}
                                                     </p>
                                                 </div>
                                             ))}
@@ -138,20 +154,32 @@ export default function RegistryBirthdaysPage() {
                                 <CardContent>
                                     {rowsMonth.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
-                                            Não há aniversariantes cadastrados neste mês.
+                                            Não há aniversariantes cadastrados
+                                            neste mês.
                                         </p>
                                     ) : (
                                         <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                                             {rowsMonth.map((item) => (
-                                                <div key={item.id} className="rounded-md border px-3 py-2 text-sm">
+                                                <div
+                                                    key={item.id}
+                                                    className="rounded-md border px-3 py-2 text-sm"
+                                                >
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <p className="font-medium">{item.nome}</p>
+                                                        <p className="font-medium">
+                                                            {item.nome}
+                                                        </p>
                                                         <span className="text-xs text-muted-foreground">
-                                                            {formatDateBR(item.data_nascimento)}
+                                                            {formatDateBR(
+                                                                item.data_nascimento,
+                                                            )}
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {item.funcao?.nome ?? '-'} • {item.unidade?.nome ?? '-'}
+                                                        {item.funcao?.nome ??
+                                                            '-'}{' '}
+                                                        •{' '}
+                                                        {item.unidade?.nome ??
+                                                            '-'}
                                                     </p>
                                                 </div>
                                             ))}

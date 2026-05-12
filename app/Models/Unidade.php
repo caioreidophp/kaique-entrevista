@@ -18,7 +18,18 @@ class Unidade extends Model
     protected $fillable = [
         'nome',
         'slug',
+        'ativo',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'ativo' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {

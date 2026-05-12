@@ -394,7 +394,9 @@ export default function TransportPayrollPage() {
             <div className="transport-dashboard-page">
                 <div className="transport-dashboard-header flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="transport-dashboard-eyebrow">Pagamentos</p>
+                        <p className="transport-dashboard-eyebrow">
+                            Pagamentos
+                        </p>
                         <h2 className="transport-dashboard-title">
                             Módulo Pagamentos
                         </h2>
@@ -417,7 +419,9 @@ export default function TransportPayrollPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Filtros</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Filtros
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-5">
@@ -579,7 +583,9 @@ export default function TransportPayrollPage() {
                                 <LoaderCircle className="size-4 animate-spin" />
                             ) : (
                                 <p className="transport-metric-value">
-                                    {formatCurrencyBR(summary?.total_valor ?? 0)}
+                                    {formatCurrencyBR(
+                                        summary?.total_valor ?? 0,
+                                    )}
                                 </p>
                             )}
                         </CardContent>
@@ -588,7 +594,9 @@ export default function TransportPayrollPage() {
 
                 <Card className="transport-insight-card">
                     <CardHeader>
-                        <CardTitle className="transport-dashboard-section-title">Lançamentos ({total})</CardTitle>
+                        <CardTitle className="transport-dashboard-section-title">
+                            Lançamentos ({total})
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {listLoading ? (
@@ -599,7 +607,8 @@ export default function TransportPayrollPage() {
                         ) : items.length === 0 ? (
                             <div className="transport-empty-state">
                                 <strong>Nenhum lançamento encontrado</strong>
-                                Ajuste os filtros ou cadastre um novo lançamento para esta competência.
+                                Ajuste os filtros ou cadastre um novo lançamento
+                                para esta competência.
                             </div>
                         ) : (
                             <div className="transport-table-scroll">
@@ -649,7 +658,9 @@ export default function TransportPayrollPage() {
                                                     /{item.competencia_ano}
                                                 </td>
                                                 <td className="py-2 pr-3">
-                                                    {formatCurrencyBR(item.valor)}
+                                                    {formatCurrencyBR(
+                                                        item.valor,
+                                                    )}
                                                 </td>
                                                 <td className="py-2 pr-3">
                                                     {item.autor?.name ?? '-'}

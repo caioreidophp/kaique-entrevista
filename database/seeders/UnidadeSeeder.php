@@ -13,15 +13,19 @@ class UnidadeSeeder extends Seeder
     public function run(): void
     {
         $unidades = [
-            ['nome' => 'Amparo', 'slug' => 'amparo'],
-            ['nome' => 'Itapetininga', 'slug' => 'itapetininga'],
-            ['nome' => 'Tatuí', 'slug' => 'tatui'],
+            ['nome' => 'Amparo', 'slug' => 'amparo', 'ativo' => true],
+            ['nome' => 'Itapetininga', 'slug' => 'itapetininga', 'ativo' => true],
+            ['nome' => 'Tatuí', 'slug' => 'tatui', 'ativo' => true],
         ];
 
         foreach ($unidades as $unidade) {
-            Unidade::query()->updateOrCreate(
+            Unidade::query()->withTrashed()->updateOrCreate(
                 ['nome' => $unidade['nome']],
-                ['slug' => $unidade['slug']],
+                [
+                    'slug' => $unidade['slug'],
+                    'ativo' => (bool) $unidade['ativo'],
+                    'deleted_at' => null,
+                ],
             );
         }
     }

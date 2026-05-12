@@ -21,6 +21,10 @@ return new class extends Migration
             $table->string('descricao', 255)->nullable()->after('valor');
             $table->date('data_pagamento')->nullable()->after('descricao');
 
+            if (! Schema::hasIndex('pagamentos', 'pagamentos_colaborador_id_index')) {
+                $table->index('colaborador_id', 'pagamentos_colaborador_id_index');
+            }
+
             $table->dropUnique('pagamentos_colaborador_competencia_unique');
             $table->index('tipo_pagamento_id', 'pagamentos_tipo_pagamento_index');
             $table->index('data_pagamento', 'pagamentos_data_pagamento_index');
@@ -47,6 +51,10 @@ return new class extends Migration
                 ['colaborador_id', 'competencia_mes', 'competencia_ano'],
                 'pagamentos_colaborador_competencia_unique',
             );
+
+            if (Schema::hasIndex('pagamentos', 'pagamentos_colaborador_id_index')) {
+                $table->dropIndex('pagamentos_colaborador_id_index');
+            }
         });
     }
 };

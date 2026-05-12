@@ -1,4 +1,10 @@
-import { AlertTriangle, CalendarClock, LoaderCircle, PlusCircle } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import {
+    AlertTriangle,
+    CalendarClock,
+    LoaderCircle,
+    PlusCircle,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -36,6 +42,18 @@ interface PendingInsightsResponse {
         payroll: {
             pending_collaborators: number;
         };
+        fines: {
+            notifications_pending: number;
+            overdue_open: number;
+            total: number;
+            pending_notifications: Array<{
+                id: number;
+                title: string;
+                subtitle: string;
+                status: string;
+                href: string;
+            }>;
+        };
     };
 }
 
@@ -60,7 +78,13 @@ interface OperationalTask {
     due_at: string | null;
     assigned_to_name: string | null;
     created_by_name: string | null;
-    sla_state: 'overdue' | 'due_24h' | 'due_72h' | 'without_due_date' | 'on_track' | 'closed';
+    sla_state:
+        | 'overdue'
+        | 'due_24h'
+        | 'due_72h'
+        | 'without_due_date'
+        | 'on_track'
+        | 'closed';
 }
 
 interface OperationalTasksResponse {
@@ -115,6 +139,7 @@ interface PendingByUnitResponse {
         active_collaborators: number;
         payroll_pending_collaborators: number;
         freight_canceled_to_receive: number;
+        fines_notifications_pending: number;
         onboarding_open: number;
         onboarding_overdue: number;
     }>;
@@ -148,17 +173,23 @@ function PendingCard({
     return (
         <Card>
             <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground">
+                    {title}
+                </CardTitle>
                 <p className="text-xs text-muted-foreground">{description}</p>
             </CardHeader>
             <CardContent>
-                <p className="text-2xl font-semibold">{formatIntegerBR(value)}</p>
+                <p className="text-2xl font-semibold">
+                    {formatIntegerBR(value)}
+                </p>
             </CardContent>
         </Card>
     );
 }
 
-function priorityBadgeVariant(priority: OperationalTask['priority']): 'secondary' | 'default' | 'destructive' | 'outline' {
+function priorityBadgeVariant(
+    priority: OperationalTask['priority'],
+): 'secondary' | 'default' | 'destructive' | 'outline' {
     if (priority === 'critical') return 'destructive';
     if (priority === 'high') return 'default';
     if (priority === 'low') return 'outline';
@@ -189,11 +220,16 @@ export default function TransportOperationsHubPage() {
         message: string;
         variant: 'success' | 'error' | 'info';
     } | null>(null);
-    const [data, setData] = useState<PendingInsightsResponse['data'] | null>(null);
-    const [taskSummary, setTaskSummary] = useState<OperationalTaskSummaryResponse | null>(null);
+    const [data, setData] = useState<PendingInsightsResponse['data'] | null>(
+        null,
+    );
+    const [taskSummary, setTaskSummary] =
+        useState<OperationalTaskSummaryResponse | null>(null);
     const [tasks, setTasks] = useState<OperationalTask[]>([]);
     const [unidades, setUnidades] = useState<UnidadeOption[]>([]);
-    const [pendingByUnit, setPendingByUnit] = useState<PendingByUnitResponse['data']>([]);
+    const [pendingByUnit, setPendingByUnit] = useState<
+        PendingByUnitResponse['data']
+    >([]);
     const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
     const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
@@ -202,10 +238,20 @@ export default function TransportOperationsHubPage() {
         setError(null);
 
         try {
-            const [pendingResponse, summaryResponse, tasksResponse, unidadesResponse, pendingByUnitResponse] = await Promise.all([
+            const [
+                pendingResponse,
+                summaryResponse,
+                tasksResponse,
+                unidadesResponse,
+                pendingByUnitResponse,
+            ] = await Promise.all([
                 apiGet<PendingInsightsResponse>('/insights/pending'),
-                apiGet<OperationalTaskSummaryResponse>('/operations/tasks/summary'),
-                apiGet<OperationalTasksResponse>('/operations/tasks?status=open&per_page=8'),
+                apiGet<OperationalTaskSummaryResponse>(
+                    '/operations/tasks/summary',
+                ),
+                apiGet<OperationalTasksResponse>(
+                    '/operations/tasks?status=open&per_page=8',
+                ),
                 apiGet<UnidadesResponse>('/registry/unidades'),
                 apiGet<PendingByUnitResponse>('/insights/pending-by-unit'),
             ]);
@@ -221,7 +267,10 @@ export default function TransportOperationsHubPage() {
                     return null;
                 }
 
-                if (current && tasksResponse.data.some((task) => task.id === current)) {
+                if (
+                    current &&
+                    tasksResponse.data.some((task) => task.id === current)
+                ) {
                     return current;
                 }
 
@@ -242,13 +291,14 @@ export default function TransportOperationsHubPage() {
         if (!data) return 0;
 
         return (
-            data.interviews.total
-            + data.vacations.expired
-            + data.vacations.due_2_months
-            + data.freight.canceled_to_receive
-            + data.payroll.pending_collaborators
-            + (taskSummary?.summary.by_status.open ?? 0)
-            + (taskSummary?.summary.by_status.in_progress ?? 0)
+            data.interviews.total +
+            data.vacations.expired +
+            data.vacations.due_2_months +
+            data.freight.canceled_to_receive +
+            data.payroll.pending_collaborators +
+            data.fines.total +
+            (taskSummary?.summary.by_status.open ?? 0) +
+            (taskSummary?.summary.by_status.in_progress ?? 0)
         );
     }, [data, taskSummary]);
 
@@ -282,6 +332,11 @@ export default function TransportOperationsHubPage() {
                 value: data.payroll.pending_collaborators,
             },
             {
+                title: 'Multas e notificacoes',
+                description: 'Pendencias de notificacoes e multas em aberto.',
+                value: data.fines.total,
+            },
+            {
                 title: 'GUEP a fazer',
                 description: 'Entrevistas com GUEP pendente.',
                 value: data.interviews.guep_to_do,
@@ -290,7 +345,10 @@ export default function TransportOperationsHubPage() {
     }, [data]);
 
     const riskByUnit = useMemo(() => {
-        const map = new Map<number, { riskScore: number; overdue: number; due24h: number }>();
+        const map = new Map<
+            number,
+            { riskScore: number; overdue: number; due24h: number }
+        >();
 
         if (!taskSummary) {
             return map;
@@ -314,18 +372,21 @@ export default function TransportOperationsHubPage() {
     const pendingByUnitOrdered = useMemo(() => {
         return [...pendingByUnit].sort((first, second) => {
             const riskFirst = riskByUnit.get(first.unidade_id)?.riskScore ?? 0;
-            const riskSecond = riskByUnit.get(second.unidade_id)?.riskScore ?? 0;
+            const riskSecond =
+                riskByUnit.get(second.unidade_id)?.riskScore ?? 0;
 
             const firstTotal =
-                first.payroll_pending_collaborators
-                + first.freight_canceled_to_receive
-                + first.onboarding_open
-                + (first.onboarding_overdue * 2);
+                first.payroll_pending_collaborators +
+                first.freight_canceled_to_receive +
+                first.fines_notifications_pending +
+                first.onboarding_open +
+                first.onboarding_overdue * 2;
             const secondTotal =
-                second.payroll_pending_collaborators
-                + second.freight_canceled_to_receive
-                + second.onboarding_open
-                + (second.onboarding_overdue * 2);
+                second.payroll_pending_collaborators +
+                second.freight_canceled_to_receive +
+                second.fines_notifications_pending +
+                second.onboarding_open +
+                second.onboarding_overdue * 2;
 
             if (riskSecond !== riskFirst) {
                 return riskSecond - riskFirst;
@@ -353,7 +414,10 @@ export default function TransportOperationsHubPage() {
                 due_at: taskForm.due_at ? taskForm.due_at : null,
                 priority: taskForm.priority,
                 module_key: taskForm.module_key,
-                unidade_id: taskForm.unidade_id === 'none' ? null : Number(taskForm.unidade_id),
+                unidade_id:
+                    taskForm.unidade_id === 'none'
+                        ? null
+                        : Number(taskForm.unidade_id),
             });
 
             setNotification({
@@ -385,12 +449,20 @@ export default function TransportOperationsHubPage() {
                 <div>
                     <h2 className="text-2xl font-semibold">Pendencias</h2>
                     <p className="text-sm text-muted-foreground">
-                        Central de pendencias criticas, tarefas com SLA e prioridades por unidade.
+                        Central de pendencias criticas, tarefas com SLA e
+                        prioridades por unidade.
                     </p>
                 </div>
 
-                {error ? <Notification message={error} variant="error" /> : null}
-                {notification ? <Notification message={notification.message} variant={notification.variant} /> : null}
+                {error ? (
+                    <Notification message={error} variant="error" />
+                ) : null}
+                {notification ? (
+                    <Notification
+                        message={notification.message}
+                        variant={notification.variant}
+                    />
+                ) : null}
 
                 {loading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -405,7 +477,9 @@ export default function TransportOperationsHubPage() {
                                     <CardTitle>Total de pendencias</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-3xl font-semibold">{formatIntegerBR(totalPending)}</p>
+                                    <p className="text-3xl font-semibold">
+                                        {formatIntegerBR(totalPending)}
+                                    </p>
                                 </CardContent>
                             </Card>
 
@@ -415,10 +489,18 @@ export default function TransportOperationsHubPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-1">
                                     <p className="text-3xl font-semibold">
-                                        {formatIntegerBR(taskSummary.summary.by_status.open + taskSummary.summary.by_status.in_progress)}
+                                        {formatIntegerBR(
+                                            taskSummary.summary.by_status.open +
+                                                taskSummary.summary.by_status
+                                                    .in_progress,
+                                        )}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {formatIntegerBR(taskSummary.summary.high_priority_open)} com prioridade alta/critica.
+                                        {formatIntegerBR(
+                                            taskSummary.summary
+                                                .high_priority_open,
+                                        )}{' '}
+                                        com prioridade alta/critica.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -429,10 +511,20 @@ export default function TransportOperationsHubPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-1">
                                     <p className="text-3xl font-semibold">
-                                        {formatIntegerBR(taskSummary.summary.sla.overdue + taskSummary.summary.sla.due_24h)}
+                                        {formatIntegerBR(
+                                            taskSummary.summary.sla.overdue +
+                                                taskSummary.summary.sla.due_24h,
+                                        )}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {formatIntegerBR(taskSummary.summary.sla.overdue)} vencidas e {formatIntegerBR(taskSummary.summary.sla.due_24h)} vencendo em 24h.
+                                        {formatIntegerBR(
+                                            taskSummary.summary.sla.overdue,
+                                        )}{' '}
+                                        vencidas e{' '}
+                                        {formatIntegerBR(
+                                            taskSummary.summary.sla.due_24h,
+                                        )}{' '}
+                                        vencendo em 24h.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -452,19 +544,24 @@ export default function TransportOperationsHubPage() {
                         <div className="grid gap-4 lg:grid-cols-3">
                             <Card className="lg:col-span-2">
                                 <CardHeader>
-                                    <CardTitle>Nova tarefa operacional</CardTitle>
+                                    <CardTitle>
+                                        Nova tarefa operacional
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="grid gap-3 md:grid-cols-2">
                                         <div className="space-y-2 md:col-span-2">
-                                            <Label htmlFor="task-title">Titulo</Label>
+                                            <Label htmlFor="task-title">
+                                                Titulo
+                                            </Label>
                                             <Input
                                                 id="task-title"
                                                 value={taskForm.title}
                                                 onChange={(event) =>
                                                     setTaskForm((previous) => ({
                                                         ...previous,
-                                                        title: event.target.value,
+                                                        title: event.target
+                                                            .value,
                                                     }))
                                                 }
                                                 placeholder="Ex.: Revisar pagamentos pendentes da unidade"
@@ -486,12 +583,24 @@ export default function TransportOperationsHubPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="operations">Operacoes</SelectItem>
-                                                    <SelectItem value="payroll">Pagamentos</SelectItem>
-                                                    <SelectItem value="vacations">Ferias</SelectItem>
-                                                    <SelectItem value="freight">Fretes</SelectItem>
-                                                    <SelectItem value="interviews">Entrevistas</SelectItem>
-                                                    <SelectItem value="programming">Programacao</SelectItem>
+                                                    <SelectItem value="operations">
+                                                        Operacoes
+                                                    </SelectItem>
+                                                    <SelectItem value="payroll">
+                                                        Pagamentos
+                                                    </SelectItem>
+                                                    <SelectItem value="vacations">
+                                                        Ferias
+                                                    </SelectItem>
+                                                    <SelectItem value="freight">
+                                                        Fretes
+                                                    </SelectItem>
+                                                    <SelectItem value="interviews">
+                                                        Entrevistas
+                                                    </SelectItem>
+                                                    <SelectItem value="programming">
+                                                        Programacao
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -503,7 +612,8 @@ export default function TransportOperationsHubPage() {
                                                 onValueChange={(value) =>
                                                     setTaskForm((previous) => ({
                                                         ...previous,
-                                                        priority: value as TaskFormState['priority'],
+                                                        priority:
+                                                            value as TaskFormState['priority'],
                                                     }))
                                                 }
                                             >
@@ -511,9 +621,15 @@ export default function TransportOperationsHubPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="normal">Normal</SelectItem>
-                                                    <SelectItem value="high">Alta</SelectItem>
-                                                    <SelectItem value="critical">Critica</SelectItem>
+                                                    <SelectItem value="normal">
+                                                        Normal
+                                                    </SelectItem>
+                                                    <SelectItem value="high">
+                                                        Alta
+                                                    </SelectItem>
+                                                    <SelectItem value="critical">
+                                                        Critica
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -533,9 +649,16 @@ export default function TransportOperationsHubPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="none">Sem unidade</SelectItem>
+                                                    <SelectItem value="none">
+                                                        Sem unidade
+                                                    </SelectItem>
                                                     {unidades.map((unidade) => (
-                                                        <SelectItem key={unidade.id} value={String(unidade.id)}>
+                                                        <SelectItem
+                                                            key={unidade.id}
+                                                            value={String(
+                                                                unidade.id,
+                                                            )}
+                                                        >
                                                             {unidade.nome}
                                                         </SelectItem>
                                                     ))}
@@ -544,7 +667,9 @@ export default function TransportOperationsHubPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="task-due-at">Prazo (SLA)</Label>
+                                            <Label htmlFor="task-due-at">
+                                                Prazo (SLA)
+                                            </Label>
                                             <Input
                                                 id="task-due-at"
                                                 type="datetime-local"
@@ -552,7 +677,8 @@ export default function TransportOperationsHubPage() {
                                                 onChange={(event) =>
                                                     setTaskForm((previous) => ({
                                                         ...previous,
-                                                        due_at: event.target.value,
+                                                        due_at: event.target
+                                                            .value,
                                                     }))
                                                 }
                                             />
@@ -560,7 +686,13 @@ export default function TransportOperationsHubPage() {
                                     </div>
 
                                     <div className="flex justify-end">
-                                        <Button type="button" onClick={() => void handleCreateTask()} disabled={savingTask}>
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                void handleCreateTask()
+                                            }
+                                            disabled={savingTask}
+                                        >
                                             {savingTask ? (
                                                 <>
                                                     <LoaderCircle className="size-4 animate-spin" />
@@ -583,20 +715,45 @@ export default function TransportOperationsHubPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-2 text-sm">
                                     <div className="flex items-center justify-between rounded-md border p-2">
-                                        <span className="text-muted-foreground">SLA vencido</span>
-                                        <span className="font-semibold text-destructive">{formatIntegerBR(taskSummary.summary.sla.overdue)}</span>
+                                        <span className="text-muted-foreground">
+                                            SLA vencido
+                                        </span>
+                                        <span className="font-semibold text-destructive">
+                                            {formatIntegerBR(
+                                                taskSummary.summary.sla.overdue,
+                                            )}
+                                        </span>
                                     </div>
                                     <div className="flex items-center justify-between rounded-md border p-2">
-                                        <span className="text-muted-foreground">Vencendo em 24h</span>
-                                        <span className="font-semibold">{formatIntegerBR(taskSummary.summary.sla.due_24h)}</span>
+                                        <span className="text-muted-foreground">
+                                            Vencendo em 24h
+                                        </span>
+                                        <span className="font-semibold">
+                                            {formatIntegerBR(
+                                                taskSummary.summary.sla.due_24h,
+                                            )}
+                                        </span>
                                     </div>
                                     <div className="flex items-center justify-between rounded-md border p-2">
-                                        <span className="text-muted-foreground">Vencendo em 72h</span>
-                                        <span className="font-semibold">{formatIntegerBR(taskSummary.summary.sla.due_72h)}</span>
+                                        <span className="text-muted-foreground">
+                                            Vencendo em 72h
+                                        </span>
+                                        <span className="font-semibold">
+                                            {formatIntegerBR(
+                                                taskSummary.summary.sla.due_72h,
+                                            )}
+                                        </span>
                                     </div>
                                     <div className="flex items-center justify-between rounded-md border p-2">
-                                        <span className="text-muted-foreground">Sem prazo</span>
-                                        <span className="font-semibold">{formatIntegerBR(taskSummary.summary.sla.without_due_date)}</span>
+                                        <span className="text-muted-foreground">
+                                            Sem prazo
+                                        </span>
+                                        <span className="font-semibold">
+                                            {formatIntegerBR(
+                                                taskSummary.summary.sla
+                                                    .without_due_date,
+                                            )}
+                                        </span>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -609,66 +766,196 @@ export default function TransportOperationsHubPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {(taskSummary.alerts ?? []).length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem alertas ativos no momento.</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem alertas ativos no momento.
+                                        </p>
                                     ) : (
-                                        (taskSummary.alerts ?? []).map((alert) => (
-                                            <div
-                                                key={alert.code}
-                                                className={`rounded-md border p-3 text-sm ${
-                                                    alert.severity === 'critical'
-                                                        ? 'border-destructive/50 bg-destructive/5'
-                                                        : alert.severity === 'warning'
-                                                            ? 'border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20'
-                                                            : 'border-muted'
-                                                }`}
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <p className="font-semibold">{alert.title}</p>
-                                                    <Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'}>
-                                                        {formatIntegerBR(alert.count)}
-                                                    </Badge>
+                                        (taskSummary.alerts ?? []).map(
+                                            (alert) => (
+                                                <div
+                                                    key={alert.code}
+                                                    className={`rounded-md border p-3 text-sm ${
+                                                        alert.severity ===
+                                                        'critical'
+                                                            ? 'border-destructive/50 bg-destructive/5'
+                                                            : alert.severity ===
+                                                                'warning'
+                                                              ? 'border-amber-400/40 bg-amber-50/60 dark:bg-amber-950/20'
+                                                              : 'border-muted'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <p className="font-semibold">
+                                                            {alert.title}
+                                                        </p>
+                                                        <Badge
+                                                            variant={
+                                                                alert.severity ===
+                                                                'critical'
+                                                                    ? 'destructive'
+                                                                    : 'outline'
+                                                            }
+                                                        >
+                                                            {formatIntegerBR(
+                                                                alert.count,
+                                                            )}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {alert.message}
+                                                    </p>
                                                 </div>
-                                                <p className="mt-1 text-xs text-muted-foreground">{alert.message}</p>
-                                            </div>
-                                        ))
+                                            ),
+                                        )
                                     )}
                                 </CardContent>
                             </Card>
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Tarefas abertas e em execucao</CardTitle>
+                                    <CardTitle>
+                                        Notificacoes de multas pendentes
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {(data.fines.pending_notifications ?? [])
+                                        .length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem notificacoes pendentes no
+                                            momento.
+                                        </p>
+                                    ) : (
+                                        data.fines.pending_notifications.map(
+                                            (item) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="rounded-md border p-3 text-sm"
+                                                >
+                                                    <p className="font-medium">
+                                                        {item.title}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {item.subtitle ||
+                                                            'Sem contexto adicional.'}
+                                                    </p>
+                                                    <div className="mt-2 flex items-center justify-between gap-2">
+                                                        <Badge variant="outline">
+                                                            {item.status}
+                                                        </Badge>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={item.href}
+                                                            >
+                                                                Abrir
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )
+                                    )}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        asChild
+                                    >
+                                        <Link href="/transport/fines/list">
+                                            Ir para multas
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>
+                                        Tarefas abertas e em execucao
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {tasks.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem tarefas abertas no momento.</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem tarefas abertas no momento.
+                                        </p>
                                     ) : (
                                         tasks.map((task) => (
-                                            <div key={task.id} className="rounded-md border p-3">
+                                            <div
+                                                key={task.id}
+                                                className="rounded-md border p-3"
+                                            >
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                                    <p className="text-sm font-semibold">{task.title}</p>
+                                                    <p className="text-sm font-semibold">
+                                                        {task.title}
+                                                    </p>
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant={priorityBadgeVariant(task.priority)}>{priorityLabel(task.priority)}</Badge>
-                                                        <Badge variant={task.sla_state === 'overdue' ? 'destructive' : 'outline'}>
-                                                            {slaLabel(task.sla_state)}
+                                                        <Badge
+                                                            variant={priorityBadgeVariant(
+                                                                task.priority,
+                                                            )}
+                                                        >
+                                                            {priorityLabel(
+                                                                task.priority,
+                                                            )}
+                                                        </Badge>
+                                                        <Badge
+                                                            variant={
+                                                                task.sla_state ===
+                                                                'overdue'
+                                                                    ? 'destructive'
+                                                                    : 'outline'
+                                                            }
+                                                        >
+                                                            {slaLabel(
+                                                                task.sla_state,
+                                                            )}
                                                         </Badge>
                                                     </div>
                                                 </div>
                                                 <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                                                    <p>Modulo: {task.module_key}</p>
-                                                    <p>Unidade: {task.unidade_nome ?? 'Sem unidade'}</p>
-                                                    <p>Responsavel: {task.assigned_to_name ?? task.created_by_name ?? 'Nao definido'}</p>
+                                                    <p>
+                                                        Modulo:{' '}
+                                                        {task.module_key}
+                                                    </p>
+                                                    <p>
+                                                        Unidade:{' '}
+                                                        {task.unidade_nome ??
+                                                            'Sem unidade'}
+                                                    </p>
+                                                    <p>
+                                                        Responsavel:{' '}
+                                                        {task.assigned_to_name ??
+                                                            task.created_by_name ??
+                                                            'Nao definido'}
+                                                    </p>
                                                     <p>
                                                         Prazo:{' '}
-                                                        {task.due_at ? formatDateTimeBR(task.due_at) : 'Sem prazo definido'}
+                                                        {task.due_at
+                                                            ? formatDateTimeBR(
+                                                                  task.due_at,
+                                                              )
+                                                            : 'Sem prazo definido'}
                                                     </p>
                                                 </div>
                                                 <div className="mt-3 flex justify-end">
                                                     <Button
                                                         type="button"
                                                         size="sm"
-                                                        variant={selectedTaskId === task.id ? 'default' : 'outline'}
-                                                        onClick={() => setSelectedTaskId(task.id)}
+                                                        variant={
+                                                            selectedTaskId ===
+                                                            task.id
+                                                                ? 'default'
+                                                                : 'outline'
+                                                        }
+                                                        onClick={() =>
+                                                            setSelectedTaskId(
+                                                                task.id,
+                                                            )
+                                                        }
                                                     >
                                                         Comentarios
                                                     </Button>
@@ -687,49 +974,111 @@ export default function TransportOperationsHubPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Centro de pendencias por unidade</CardTitle>
+                                    <CardTitle>
+                                        Centro de pendencias por unidade
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {pendingByUnitOrdered.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground">Sem pendencias classificadas por unidade.</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Sem pendencias classificadas por
+                                            unidade.
+                                        </p>
                                     ) : (
                                         pendingByUnitOrdered.map((row) => {
-                                            const risk = riskByUnit.get(row.unidade_id);
+                                            const risk = riskByUnit.get(
+                                                row.unidade_id,
+                                            );
                                             const totalPending =
-                                                row.payroll_pending_collaborators
-                                                + row.freight_canceled_to_receive
-                                                + row.onboarding_open;
+                                                row.payroll_pending_collaborators +
+                                                row.freight_canceled_to_receive +
+                                                row.fines_notifications_pending +
+                                                row.onboarding_open;
 
                                             return (
-                                                <div key={`unit-${row.unidade_id}`} className="rounded-md border p-3 text-sm">
+                                                <div
+                                                    key={`unit-${row.unidade_id}`}
+                                                    className="rounded-md border p-3 text-sm"
+                                                >
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="font-medium">{row.unidade_nome}</span>
+                                                        <span className="font-medium">
+                                                            {row.unidade_nome}
+                                                        </span>
                                                         <div className="flex items-center gap-2">
                                                             {risk ? (
-                                                                <Badge variant={risk.overdue > 0 ? 'destructive' : 'outline'}>
-                                                                    Criticidade {formatIntegerBR(risk.riskScore)}
+                                                                <Badge
+                                                                    variant={
+                                                                        risk.overdue >
+                                                                        0
+                                                                            ? 'destructive'
+                                                                            : 'outline'
+                                                                    }
+                                                                >
+                                                                    Criticidade{' '}
+                                                                    {formatIntegerBR(
+                                                                        risk.riskScore,
+                                                                    )}
                                                                 </Badge>
                                                             ) : null}
-                                                            <span className="font-semibold">{formatIntegerBR(totalPending)}</span>
+                                                            <span className="font-semibold">
+                                                                {formatIntegerBR(
+                                                                    totalPending,
+                                                                )}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground">
-                                                        <p>Folha pendente: {formatIntegerBR(row.payroll_pending_collaborators)}</p>
-                                                        <p>Cargas a receber: {formatIntegerBR(row.freight_canceled_to_receive)}</p>
-                                                        <p>Onboarding em aberto: {formatIntegerBR(row.onboarding_open)}</p>
+                                                        <p>
+                                                            Folha pendente:{' '}
+                                                            {formatIntegerBR(
+                                                                row.payroll_pending_collaborators,
+                                                            )}
+                                                        </p>
+                                                        <p>
+                                                            Cargas a receber:{' '}
+                                                            {formatIntegerBR(
+                                                                row.freight_canceled_to_receive,
+                                                            )}
+                                                        </p>
+                                                        <p>
+                                                            Notificacoes de
+                                                            multa:{' '}
+                                                            {formatIntegerBR(
+                                                                row.fines_notifications_pending,
+                                                            )}
+                                                        </p>
+                                                        <p>
+                                                            Onboarding em
+                                                            aberto:{' '}
+                                                            {formatIntegerBR(
+                                                                row.onboarding_open,
+                                                            )}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             );
                                         })
                                     )}
 
-                                    {(taskSummary.summary.sla.overdue > 0 || taskSummary.summary.high_priority_open > 0) ? (
+                                    {taskSummary.summary.sla.overdue > 0 ||
+                                    taskSummary.summary.high_priority_open >
+                                        0 ? (
                                         <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
                                             <div className="flex items-start gap-2">
                                                 <AlertTriangle className="mt-0.5 size-4" />
                                                 <p>
-                                                    Existem {formatIntegerBR(taskSummary.summary.sla.overdue)} tarefa(s) com SLA vencido e{' '}
-                                                    {formatIntegerBR(taskSummary.summary.high_priority_open)} tarefa(s) de alta prioridade em aberto.
+                                                    Existem{' '}
+                                                    {formatIntegerBR(
+                                                        taskSummary.summary.sla
+                                                            .overdue,
+                                                    )}{' '}
+                                                    tarefa(s) com SLA vencido e{' '}
+                                                    {formatIntegerBR(
+                                                        taskSummary.summary
+                                                            .high_priority_open,
+                                                    )}{' '}
+                                                    tarefa(s) de alta prioridade
+                                                    em aberto.
                                                 </p>
                                             </div>
                                         </div>
@@ -737,7 +1086,10 @@ export default function TransportOperationsHubPage() {
                                         <div className="mt-3 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
                                             <div className="flex items-start gap-2">
                                                 <CalendarClock className="mt-0.5 size-4" />
-                                                <p>Sem alertas criticos de SLA neste momento.</p>
+                                                <p>
+                                                    Sem alertas criticos de SLA
+                                                    neste momento.
+                                                </p>
                                             </div>
                                         </div>
                                     )}

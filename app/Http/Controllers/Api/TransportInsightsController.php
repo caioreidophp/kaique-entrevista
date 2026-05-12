@@ -110,6 +110,45 @@ class TransportInsightsController extends Controller
             ->count();
         $payrollPendingCollaborators = max($activeCollaboratorsCount - $launchedPayrollCollaborators, 0);
 
+        $finesScope = $this->visibleUnitIds($request, 'fines');
+        $finesPendingNotificationsQuery = Multa::query()
+            ->where('tipo_registro', 'notificacao')
+            ->where('status', '!=', 'pago')
+            ->when($finesScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $finesScope));
+
+        $finesPendingNotifications = (clone $finesPendingNotificationsQuery)->count();
+
+        $finesOverdueOpen = Multa::query()
+            ->where('tipo_registro', 'multa')
+            ->whereDate('vencimento', '<', $today->toDateString())
+            ->where('status', '!=', 'pago')
+            ->when($finesScope !== null, fn (Builder $query) => $query->whereIn('unidade_id', $finesScope))
+            ->count();
+
+        $finesPendingNotificationItems = (clone $finesPendingNotificationsQuery)
+            ->with(['unidade:id,nome', 'placaFrota:id,placa'])
+            ->orderBy('data')
+            ->orderBy('id')
+            ->limit(5)
+            ->get(['id', 'data', 'status', 'unidade_id', 'placa_frota_id', 'descricao', 'numero_auto_infracao'])
+            ->map(function (Multa $multa): array {
+                $subtitleParts = [
+                    $multa->unidade?->nome,
+                    $multa->placaFrota?->placa,
+                    $multa->data?->toDateString(),
+                ];
+
+                return [
+                    'id' => (int) $multa->id,
+                    'title' => trim((string) ($multa->descricao ?: $multa->numero_auto_infracao ?: 'Notificação pendente')),
+                    'status' => (string) $multa->status,
+                    'subtitle' => implode(' • ', array_values(array_filter($subtitleParts))),
+                    'href' => '/transport/fines/list?tipo_registro=notificacao&highlight='.$multa->id,
+                ];
+            })
+            ->values()
+            ->all();
+
         return response()->json([
             'data' => [
                 'interviews' => [
@@ -127,6 +166,12 @@ class TransportInsightsController extends Controller
                 ],
                 'payroll' => [
                     'pending_collaborators' => $payrollPendingCollaborators,
+                ],
+                'fines' => [
+                    'notifications_pending' => $finesPendingNotifications,
+                    'overdue_open' => $finesOverdueOpen,
+                    'total' => $finesPendingNotifications + $finesOverdueOpen,
+                    'pending_notifications' => $finesPendingNotificationItems,
                 ],
             ],
         ]);
@@ -285,6 +330,14 @@ class TransportInsightsController extends Controller
             ->groupBy('unidade_id')
             ->pluck('total', 'unidade_id');
 
+        $finesNotificationsPendingByUnit = Multa::query()
+            ->selectRaw('unidade_id, COUNT(*) as total')
+            ->where('tipo_registro', 'notificacao')
+            ->where('status', '!=', 'pago')
+            ->when($this->visibleUnitIds($request, 'fines') !== null, fn ($query) => $query->whereIn('unidade_id', $this->visibleUnitIds($request, 'fines')))
+            ->groupBy('unidade_id')
+            ->pluck('total', 'unidade_id');
+
         $onboardingOpenByUnit = Onboarding::query()
             ->selectRaw('colaboradores.unidade_id, COUNT(DISTINCT onboardings.id) as total')
             ->join('colaboradores', 'colaboradores.id', '=', 'onboardings.colaborador_id')
@@ -316,6 +369,7 @@ class TransportInsightsController extends Controller
                     'active_collaborators' => $active,
                     'payroll_pending_collaborators' => max($active - $launched, 0),
                     'freight_canceled_to_receive' => (int) ($freightPendingByUnit[$unit->id] ?? 0),
+                    'fines_notifications_pending' => (int) ($finesNotificationsPendingByUnit[$unit->id] ?? 0),
                     'onboarding_open' => (int) ($onboardingOpenByUnit[$unit->id] ?? 0),
                     'onboarding_overdue' => (int) ($onboardingOverdueByUnit[$unit->id] ?? 0),
                 ];

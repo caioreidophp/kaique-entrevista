@@ -99,10 +99,7 @@ class StoreFreightSpotEntryRequest extends FormRequest
                 $sanitized = str_replace(',', '.', $sanitized);
             }
         } elseif ($hasDot) {
-            if (
-                preg_match('/^-?\d{1,3}(\.\d{3})+$/', $sanitized) === 1
-                || preg_match('/^-?\d+\.\d{3}$/', $sanitized) === 1
-            ) {
+            if (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $sanitized) === 1) {
                 $sanitized = str_replace('.', '', $sanitized);
             }
         }

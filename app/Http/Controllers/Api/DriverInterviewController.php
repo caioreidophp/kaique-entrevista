@@ -390,10 +390,14 @@ class DriverInterviewController extends Controller
             && (int) $currentInterview->curriculum_id === $curriculum->id;
 
         if (! $belongsToCurrentInterview) {
-            abort_unless(
-                $curriculum->status === InterviewCurriculumStatus::Pendente,
+            abort_if(
+                in_array($curriculum->status, [
+                    InterviewCurriculumStatus::Descartado,
+                    InterviewCurriculumStatus::Recusado,
+                    InterviewCurriculumStatus::ReprovadoEntrevista,
+                ], true),
                 422,
-                'Somente currÃ­culos pendentes podem ser vinculados Ã  entrevista.'
+                'Currículos descartados não podem ser vinculados à entrevista.'
             );
 
             $linkedElsewhere = DriverInterview::query()

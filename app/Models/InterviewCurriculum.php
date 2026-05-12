@@ -27,6 +27,15 @@ class InterviewCurriculum extends Model
         'role_name',
         'unit_name',
         'observacao',
+        'interview_date',
+        'interview_time',
+        'discard_reason',
+        'treatment_notes',
+        'treated_at',
+        'treated_by',
+        'confirmed_interview_date',
+        'confirmed_interview_time',
+        'confirmation_notes',
         'document_path',
         'document_original_name',
         'cnh_attachment_path',
@@ -43,6 +52,9 @@ class InterviewCurriculum extends Model
     {
         return [
             'status' => InterviewCurriculumStatus::class,
+            'interview_date' => 'date',
+            'treated_at' => 'datetime',
+            'confirmed_interview_date' => 'date',
         ];
     }
 
@@ -66,6 +78,11 @@ class InterviewCurriculum extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function treatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'treated_by');
     }
 
     public function interviews(): HasMany
