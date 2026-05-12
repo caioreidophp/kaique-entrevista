@@ -1153,7 +1153,7 @@ export function InterviewForm({
                                 }}
                             >
                                 <SelectTrigger className="h-12 text-base">
-                                    <SelectValue placeholder="Selecione um currículo pendente" />
+                                    <SelectValue placeholder="Selecione um currículo disponível" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="__none">
@@ -1171,8 +1171,8 @@ export function InterviewForm({
                             </Select>
                             <p className="text-xs text-muted-foreground">
                                 {curriculumOptions.length > 0
-                                    ? 'Selecione um currículo pendente para importar anexos já cadastrados (CNH/CT), se desejar.'
-                                    : 'Nenhum currículo pendente disponível no momento.'}
+                                    ? 'Selecione um currículo não descartado para importar anexos já cadastrados (CNH/CT), se desejar.'
+                                    : 'Nenhum currículo disponível no momento.'}
                             </p>
                         </FormField>
                     </CardContent>

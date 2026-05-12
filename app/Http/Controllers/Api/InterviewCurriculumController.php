@@ -25,9 +25,9 @@ class InterviewCurriculumController extends Controller
             'Você não possui permissão para listar currículos.'
         );
 
-        $perPage = min(max((int) $request->integer('per_page', 15), 1), 200);
+        $perPage = min(max((int) $request->integer('per_page', 15), 1), 1000);
         $validated = $request->validate([
-            'tab' => ['nullable', 'string', 'in:pendentes,passados,convocados,descartados'],
+            'tab' => ['nullable', 'string', 'in:pendentes,passados,vinculaveis,convocados,descartados'],
             'include_id' => ['nullable', 'integer', 'min:0'],
             'search' => ['nullable', 'string', 'max:255'],
             'role_name' => ['nullable', 'string', 'max:120'],
@@ -129,6 +129,16 @@ class InterviewCurriculumController extends Controller
                 InterviewCurriculumStatus::Recusado->value,
                 InterviewCurriculumStatus::ReprovadoEntrevista->value,
             ]);
+        } elseif ($tab === 'vinculaveis') {
+            $query
+                ->whereNotIn('status', [
+                    InterviewCurriculumStatus::Descartado->value,
+                    InterviewCurriculumStatus::Recusado->value,
+                    InterviewCurriculumStatus::ReprovadoEntrevista->value,
+                ])
+                ->reorder()
+                ->orderBy('full_name')
+                ->orderBy('id');
         } elseif ($tab === 'passados') {
             $query->where('status', '!=', InterviewCurriculumStatus::Pendente->value);
         }

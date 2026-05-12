@@ -149,17 +149,25 @@ export default function TransportInterviewsCreatePage() {
 
     useEffect(() => {
         apiGet<ApiPaginatedResponse<InterviewCurriculumListItem>>(
-            '/interview-curriculums?tab=pendentes&per_page=200',
+            '/interview-curriculums?tab=vinculaveis&per_page=1000',
         )
             .then((response) => {
                 setCurriculumOptions(
-                    response.data.map((curriculum) => ({
-                        id: curriculum.id,
-                        full_name: curriculum.full_name,
-                        has_cnh_attachment: curriculum.has_cnh_attachment,
-                        has_work_card_attachment:
-                            curriculum.has_work_card_attachment,
-                    })),
+                    response.data
+                        .map((curriculum) => ({
+                            id: curriculum.id,
+                            full_name: curriculum.full_name,
+                            has_cnh_attachment: curriculum.has_cnh_attachment,
+                            has_work_card_attachment:
+                                curriculum.has_work_card_attachment,
+                        }))
+                        .sort((first, second) =>
+                            first.full_name.localeCompare(
+                                second.full_name,
+                                'pt-BR',
+                                { sensitivity: 'base' },
+                            ),
+                        ),
                 );
             })
             .catch(() => setCurriculumOptions([]));

@@ -54,6 +54,33 @@ export default [
                         'index',
                         'internal',
                     ],
+                    pathGroups: [
+                        {
+                            pattern: '@/components/**',
+                            group: 'internal',
+                            position: 'before',
+                        },
+                        {
+                            pattern: '@/layouts/**',
+                            group: 'internal',
+                            position: 'before',
+                        },
+                        {
+                            pattern: '@/actions/**',
+                            group: 'internal',
+                            position: 'after',
+                        },
+                        {
+                            pattern: '@/routes/**',
+                            group: 'internal',
+                            position: 'after',
+                        },
+                    ],
+                    pathGroupsExcludedImportTypes: [
+                        'builtin',
+                        'external',
+                        'type',
+                    ],
                     alphabetize: {
                         order: 'asc',
                         caseInsensitive: true,

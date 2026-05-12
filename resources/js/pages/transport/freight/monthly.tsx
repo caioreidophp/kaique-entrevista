@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FreightMonthlyResponse, FreightUnit } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
 import { Notification } from '@/components/transport/notification';
@@ -63,10 +63,7 @@ export default function TransportFreightMonthlyPage() {
             .catch(() => setError('Não foi possível carregar as unidades.'));
     }, []);
 
-    useEffect(() => {
-        setLoading(true);
-        setError(null);
-
+    const loadData = useCallback(() => {
         const params = new URLSearchParams({
             competencia_mes: month,
             competencia_ano: year,
@@ -76,6 +73,9 @@ export default function TransportFreightMonthlyPage() {
             params.set('unidade_id', unidadeId);
         }
 
+        setLoading(true);
+        setError(null);
+
         apiGet<FreightMonthlyResponse>(
             `/freight/monthly-unit-report?${params.toString()}`,
         )
@@ -84,7 +84,11 @@ export default function TransportFreightMonthlyPage() {
                 setError('Não foi possível carregar o relatório mensal.'),
             )
             .finally(() => setLoading(false));
-    }, [month, year, unidadeId]);
+    }, [month, unidadeId, year]);
+
+    useEffect(() => {
+        void Promise.resolve().then(loadData);
+    }, [loadData]);
 
     return (
         <AdminLayout

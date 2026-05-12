@@ -48,7 +48,7 @@ import {
 } from '@/lib/api-client';
 import { formatDateBR } from '@/lib/transport-format';
 
-type TabKey = 'pendentes' | 'passados' | 'lista-candidatos';
+type TabKey = 'pendentes' | 'lista-candidatos';
 
 interface UnidadeOption {
     id: number;
@@ -255,10 +255,7 @@ export default function TransportInterviewCurriculumsPage() {
 
         try {
             const query = new URLSearchParams();
-            query.set(
-                'tab',
-                activeTab === 'pendentes' ? 'pendentes' : 'passados',
-            );
+            query.set('tab', 'pendentes');
             query.set('page', String(page));
             query.set('per_page', '10');
 
@@ -745,15 +742,6 @@ export default function TransportInterviewCurriculumsPage() {
                         onClick={() => setActiveTab('pendentes')}
                     >
                         Pendentes
-                    </Button>
-                    <Button
-                        type="button"
-                        variant={
-                            activeTab === 'passados' ? 'default' : 'outline'
-                        }
-                        onClick={() => setActiveTab('passados')}
-                    >
-                        Passados
                     </Button>
                     <Button
                         type="button"
@@ -1387,8 +1375,8 @@ export default function TransportInterviewCurriculumsPage() {
                         <DialogTitle>Confirmar recusa</DialogTitle>
                         <DialogDescription>
                             Deseja mover o currículo de{' '}
-                            <strong>{refuseTarget?.full_name}</strong> para
-                            passados como recusado?
+                            <strong>{refuseTarget?.full_name}</strong> como
+                            recusado?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
