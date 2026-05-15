@@ -777,7 +777,7 @@ export default function TransportRegistryUsersPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Escopo de dados por mÃ³dulo</Label>
+                            <Label>Escopo de dados por módulo</Label>
                             <div className="max-h-72 space-y-3 overflow-y-auto rounded-md border p-3">
                                 {scopeModules.map((module) => {
                                     const moduleScope = resolveScopeByModule(
@@ -898,7 +898,7 @@ export default function TransportRegistryUsersPage() {
                                                 </div>
                                             ) : (
                                                 <p className="text-xs text-muted-foreground">
-                                                    Este mÃ³dulo usa escopo{' '}
+                                                    Este módulo usa escopo{' '}
                                                     {scopeTypeLabel(
                                                         moduleScope.data_scope,
                                                     ).toLowerCase()}
