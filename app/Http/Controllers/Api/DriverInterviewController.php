@@ -45,6 +45,7 @@ class DriverInterviewController extends Controller
                 'hr_status',
                 'hr_rejection_reason',
                 'guep_status',
+                'overall_score',
                 'curriculum_id',
                 'candidate_photo_path',
                 'cnh_attachment_path',

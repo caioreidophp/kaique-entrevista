@@ -43,6 +43,7 @@ class DriverInterviewListResource extends JsonResource
             'hr_status' => $this->hr_status?->value,
             'hr_rejection_reason' => $this->hr_rejection_reason,
             'guep_status' => $this->guep_status?->value,
+            'overall_score' => $this->overall_score,
             'has_candidate_photo' => (bool) $this->candidate_photo_path,
             'has_cnh_attachment' => (bool) $this->cnh_attachment_path,
             'has_work_card_attachment' => (bool) $this->work_card_attachment_path,

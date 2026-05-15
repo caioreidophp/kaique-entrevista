@@ -124,6 +124,22 @@ function currencyInputToNumber(value: string): number {
     return Number(digits) / 100;
 }
 
+function normalizeScoreInput(value: string): string {
+    const normalized = value.replace(',', '.');
+
+    if (!normalized) {
+        return '';
+    }
+
+    const numeric = Number(normalized);
+
+    if (!Number.isFinite(numeric)) {
+        return '';
+    }
+
+    return String(Math.min(10, Math.max(0, numeric)));
+}
+
 function sanitizeCnhNumber(value: string): string {
     return value.replace(/\D/g, '').slice(0, 11);
 }
@@ -257,7 +273,10 @@ function defaultFormData(
         general_observations: initialData?.general_observations ?? '',
         candidate_interest: initialData?.candidate_interest ?? 'medio',
         availability_matches: initialData?.availability_matches ?? true,
-        overall_score: String(initialData?.overall_score ?? '0'),
+        overall_score:
+            initialData?.overall_score === undefined
+                ? ''
+                : String(initialData.overall_score ?? ''),
         hr_status: initialData?.hr_status ?? 'aguardando_vaga',
         hr_rejection_reason: initialData?.hr_rejection_reason ?? '',
         guep_status: initialData?.guep_status ?? 'aguardando',
@@ -620,7 +639,7 @@ export function InterviewForm({
     const emptyCreateFormData = useMemo(() => defaultFormData(), []);
     const [formData, setFormData] =
         useState<DriverInterviewFormData>(initialFormData);
-    const [step, setStep] = useState(initialStep ?? 0);
+    const [step, setStep] = useState(Math.max(0, initialStep ?? 0));
     const [submitting, setSubmitting] = useState(false);
     const [submitAttempted, setSubmitAttempted] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -790,6 +809,10 @@ export function InterviewForm({
         return baseSteps;
     }, [hasExistingInterview]);
 
+    useEffect(() => {
+        setStep((current) => Math.min(current, sections.length - 1));
+    }, [sections.length]);
+
     const stepRequiredCompletion = useMemo(() => {
         const completion: boolean[] = [
             hasText(formData.hiring_unidade_id),
@@ -829,7 +852,8 @@ export function InterviewForm({
             hasText(formData.candidate_interest) &&
                 hasText(formData.availability_matches ? '1' : '0') &&
                 (!isHrReproved || hasText(formData.hr_rejection_reason)) &&
-                hasText(formData.hr_status),
+                hasText(formData.hr_status) &&
+                hasText(formData.overall_score),
 
             true,
         ];
@@ -888,6 +912,18 @@ export function InterviewForm({
 
         if (!/^[A-Z]{1,2}$/.test(sanitizedCnhCategory)) {
             clientErrors.cnh_category = 'Categoria deve conter 1 ou 2 letras.';
+        }
+
+        const overallScore = Number(formData.overall_score);
+
+        if (
+            !Number.isFinite(overallScore) ||
+            overallScore < 0 ||
+            overallScore > 10 ||
+            overallScore * 2 !== Math.trunc(overallScore * 2)
+        ) {
+            clientErrors.overall_score =
+                'Nota deve ser de 0 a 10, em intervalos de 0,5.';
         }
 
         if (Object.keys(clientErrors).length > 0) {
@@ -1006,7 +1042,7 @@ export function InterviewForm({
             overall_score:
                 formData.overall_score === ''
                     ? 0
-                    : Number(formData.overall_score),
+                    : overallScore,
             start_availability_date:
                 formData.start_availability_note === 'ira_retornar'
                     ? null
@@ -2428,6 +2464,26 @@ export function InterviewForm({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </FormField>
+                            <FormField
+                                label="Nota do entrevistado"
+                                error={errors.overall_score}
+                            >
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    step="0.5"
+                                    value={formData.overall_score}
+                                    onChange={(event) =>
+                                        updateField(
+                                            'overall_score',
+                                            normalizeScoreInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                />
                             </FormField>
                             {formData.hr_status === 'reprovado' ? (
                                 <div className="md:col-span-2">

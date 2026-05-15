@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+﻿import { Link } from '@inertiajs/react';
 import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type {
@@ -41,14 +41,14 @@ import { fetchCurrentUser, getStoredUser } from '@/lib/transport-session';
 function hrStatusLabel(status: HrStatus): string {
     if (status === 'aprovado') return 'Aprovado';
     if (status === 'reprovado') return 'Reprovado';
-    if (status === 'em_analise') return 'Em análise';
+    if (status === 'em_analise') return 'Em anÃ¡lise';
     if (status === 'aguardando_vaga') return 'Aguardando vaga';
     if (status === 'guep') return 'GUEP';
-    return 'Teste prático';
+    return 'Teste prÃ¡tico';
 }
 
 function guepStatusLabel(status: GuepStatus): string {
-    if (status === 'nao_fazer') return 'Não fazer';
+    if (status === 'nao_fazer') return 'NÃ£o fazer';
     if (status === 'a_fazer') return 'A fazer';
     if (status === 'aprovado') return 'Aprovado';
     if (status === 'reprovado') return 'Reprovado';
@@ -90,6 +90,13 @@ function hrStatusSelectClass(status: HrStatus): string {
     return 'border-blue-300 bg-blue-50 text-blue-700';
 }
 
+function formatInterviewScore(score: number): string {
+    return Number(score).toLocaleString('pt-BR', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    });
+}
+
 function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
     if (status === 'recusado') return 'Recusado';
     if (status === 'aguardando_entrevista') return 'Aguardando - Entrevista';
@@ -110,10 +117,10 @@ function curriculumStatusBadgeClass(status: InterviewCurriculumStatus): string {
 const hrStatusOptions: { value: HrStatus; label: string }[] = [
     { value: 'aprovado', label: 'Aprovado' },
     { value: 'reprovado', label: 'Reprovado' },
-    { value: 'em_analise', label: 'Em análise' },
+    { value: 'em_analise', label: 'Em anÃ¡lise' },
     { value: 'aguardando_vaga', label: 'Aguardando vaga' },
     { value: 'guep', label: 'GUEP' },
-    { value: 'teste_pratico', label: 'Teste prático' },
+    { value: 'teste_pratico', label: 'Teste prÃ¡tico' },
 ];
 
 const guepStatusOptions: { value: GuepStatus; label: string }[] = [
@@ -121,7 +128,7 @@ const guepStatusOptions: { value: GuepStatus; label: string }[] = [
     { value: 'a_fazer', label: 'A fazer' },
     { value: 'aprovado', label: 'Aprovado' },
     { value: 'reprovado', label: 'Reprovado' },
-    { value: 'nao_fazer', label: 'Não fazer' },
+    { value: 'nao_fazer', label: 'NÃ£o fazer' },
 ];
 
 export default function TransportInterviewsListPage() {
@@ -201,7 +208,7 @@ export default function TransportInterviewsListPage() {
             setLastPage(response.meta.last_page);
         } catch {
             setNotification({
-                message: 'Não foi possível carregar as entrevistas.',
+                message: 'NÃ£o foi possÃ­vel carregar as entrevistas.',
                 variant: 'error',
             });
         } finally {
@@ -234,14 +241,14 @@ export default function TransportInterviewsListPage() {
         try {
             await apiDelete(`/driver-interviews/${deleteCandidate.id}`);
             setNotification({
-                message: 'Entrevista excluída com sucesso.',
+                message: 'Entrevista excluÃ­da com sucesso.',
                 variant: 'success',
             });
             setDeleteCandidate(null);
             await load(currentPage);
         } catch {
             setNotification({
-                message: 'Não foi possível excluir a entrevista.',
+                message: 'NÃ£o foi possÃ­vel excluir a entrevista.',
                 variant: 'error',
             });
         }
@@ -283,7 +290,7 @@ export default function TransportInterviewsListPage() {
                 });
             } else {
                 setNotification({
-                    message: 'Não foi possível atualizar o status.',
+                    message: 'NÃ£o foi possÃ­vel atualizar o status.',
                     variant: 'error',
                 });
             }
@@ -301,7 +308,7 @@ export default function TransportInterviewsListPage() {
 
         if (!reason) {
             setNotification({
-                message: 'Informe o motivo da reprovação antes de salvar.',
+                message: 'Informe o motivo da reprovaÃ§Ã£o antes de salvar.',
                 variant: 'error',
             });
             return;
@@ -336,7 +343,7 @@ export default function TransportInterviewsListPage() {
                     <h2 className="transport-dashboard-title">Entrevistas</h2>
                     <p className="transport-dashboard-subtitle">
                         Gerencie entrevistas de motoristas com filtros e
-                        paginação operacional.
+                        paginaÃ§Ã£o operacional.
                     </p>
                 </div>
 
@@ -369,7 +376,7 @@ export default function TransportInterviewsListPage() {
                             </SelectItem>
                             <SelectItem value="guep">GUEP</SelectItem>
                             <SelectItem value="teste_pratico">
-                                Teste prático
+                                Teste prÃ¡tico
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -384,7 +391,7 @@ export default function TransportInterviewsListPage() {
                         />
                     ) : (
                         <div className="rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                            Filtro por entrevistador disponível para master
+                            Filtro por entrevistador disponÃ­vel para master
                             admin
                         </div>
                     )}
@@ -442,7 +449,7 @@ export default function TransportInterviewsListPage() {
 
                 <div className="transport-table-card">
                     <div className="transport-table-scroll">
-                        <table className="w-full min-w-[1220px] table-fixed text-sm">
+                        <table className="w-full min-w-[1300px] table-fixed text-sm">
                             <thead className="bg-muted/40">
                                 <tr>
                                     <th className="w-[220px] px-4 py-3 text-left font-medium">
@@ -460,14 +467,17 @@ export default function TransportInterviewsListPage() {
                                     <th className="w-[132px] px-2 py-3 text-left font-medium">
                                         Status RH
                                     </th>
+                                    <th className="w-[80px] px-4 py-3 text-left font-medium">
+                                        Nota
+                                    </th>
                                     <th className="w-[90px] px-4 py-3 text-left font-medium">
                                         Data
                                     </th>
                                     <th className="w-[220px] px-2 py-3 text-left font-medium">
-                                        Currículo
+                                        CurrÃ­culo
                                     </th>
                                     <th className="w-[210px] px-4 py-3 text-right font-medium">
-                                        Ações
+                                        AÃ§Ãµes
                                     </th>
                                 </tr>
                             </thead>
@@ -475,7 +485,7 @@ export default function TransportInterviewsListPage() {
                                 {loading ? (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={9}
                                             className="px-4 py-8 text-center text-muted-foreground"
                                         >
                                             <span className="inline-flex items-center gap-2">
@@ -487,7 +497,7 @@ export default function TransportInterviewsListPage() {
                                 ) : items.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={9}
                                             className="px-4 py-8 text-center text-muted-foreground"
                                         >
                                             <div className="transport-empty-state mx-auto max-w-md text-left">
@@ -740,6 +750,11 @@ export default function TransportInterviewsListPage() {
                                                             )}
                                                         </td>
                                                         <td className="px-4 py-3 whitespace-nowrap">
+                                                            {formatInterviewScore(
+                                                                item.overall_score,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
                                                             {formatDateBR(
                                                                 item.created_at,
                                                             )}
@@ -766,7 +781,7 @@ export default function TransportInterviewsListPage() {
                                                                 </div>
                                                             ) : (
                                                                 <Badge className="transport-status-badge transport-status-warning">
-                                                                    Sem vínculo
+                                                                    Sem vÃ­nculo
                                                                 </Badge>
                                                             )}
                                                         </td>
@@ -854,7 +869,7 @@ export default function TransportInterviewsListPage() {
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-muted-foreground">
-                        Página {currentPage} de {lastPage}
+                        PÃ¡gina {currentPage} de {lastPage}
                     </p>
                     <div className="flex gap-2">
                         <Button
@@ -871,7 +886,7 @@ export default function TransportInterviewsListPage() {
                             disabled={currentPage >= lastPage}
                             onClick={() => load(currentPage + 1)}
                         >
-                            Próxima
+                            PrÃ³xima
                         </Button>
                     </div>
                 </div>
@@ -885,7 +900,7 @@ export default function TransportInterviewsListPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Confirmar exclusão</DialogTitle>
+                        <DialogTitle>Confirmar exclusÃ£o</DialogTitle>
                         <DialogDescription>
                             Deseja realmente excluir a entrevista de{' '}
                             <strong>{deleteCandidate?.full_name}</strong>?
@@ -920,7 +935,7 @@ export default function TransportInterviewsListPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Motivo da reprovação</DialogTitle>
+                        <DialogTitle>Motivo da reprovaÃ§Ã£o</DialogTitle>
                         <DialogDescription>
                             Ao marcar como reprovado, informe o motivo para
                             consulta posterior.
@@ -939,7 +954,7 @@ export default function TransportInterviewsListPage() {
                                         : previous,
                                 )
                             }
-                            placeholder="Descreva o motivo da reprovação"
+                            placeholder="Descreva o motivo da reprovaÃ§Ã£o"
                         />
                     </div>
                     <DialogFooter>

@@ -144,6 +144,7 @@ export interface DriverInterviewListItem {
     hr_status: HrStatus;
     hr_rejection_reason: string | null;
     guep_status: GuepStatus;
+    overall_score: number;
     has_candidate_photo: boolean;
     has_cnh_attachment: boolean;
     has_work_card_attachment: boolean;
