@@ -98,6 +98,7 @@ interface AdminLayoutProps {
         | 'executive-dashboard'
         | 'interviews'
         | 'curriculums'
+        | 'candidate-list'
         | 'create'
         | 'next-steps'
         | 'onboarding'
@@ -212,6 +213,7 @@ const adminLayoutCopy = {
         linkDashboard: 'Dashboard',
         linkInterviews: 'Entrevistas',
         linkCurriculums: 'Currículos',
+        linkCandidateList: 'Lista de candidatos',
         linkNewInterview: 'Nova entrevista',
         linkNextSteps: 'Próximos Passos',
         linkOnboarding: 'Onboarding',
@@ -297,6 +299,7 @@ const adminLayoutCopy = {
         linkDashboard: 'Dashboard',
         linkInterviews: 'Interviews',
         linkCurriculums: 'Resumes',
+        linkCandidateList: 'Candidate list',
         linkNewInterview: 'New interview',
         linkNextSteps: 'Next steps',
         linkOnboarding: 'Onboarding',
@@ -1340,6 +1343,7 @@ export function AdminLayout({
             dashboard: 'sidebar.dashboard.view',
             interviews: 'sidebar.interviews.view',
             curriculums: 'sidebar.curriculums.view',
+            'candidate-list': 'sidebar.curriculums.view',
             create: 'sidebar.interviews.create',
             'next-steps': 'sidebar.next-steps.view',
             onboarding: 'sidebar.onboarding.view',
@@ -1393,6 +1397,11 @@ export function AdminLayout({
                             key: 'curriculums',
                             label: copy.linkCurriculums,
                             href: '/transport/interviews/curriculums',
+                        },
+                        {
+                            key: 'candidate-list',
+                            label: copy.linkCandidateList,
+                            href: '/transport/interviews/candidate-list',
                         },
                         {
                             key: 'create',
@@ -1785,6 +1794,12 @@ export function AdminLayout({
                 key: 'curriculums',
                 label: copy.linkCurriculums,
                 href: '/transport/interviews/curriculums',
+                icon: ScrollText,
+            },
+            {
+                key: 'candidate-list',
+                label: copy.linkCandidateList,
+                href: '/transport/interviews/candidate-list',
                 icon: ScrollText,
             },
             {

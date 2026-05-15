@@ -177,6 +177,10 @@ Route::prefix('transport')->group(function (): void {
         return Inertia::render('transport/interviews/curriculums');
     })->name('transport.interviews.curriculums');
 
+    Route::get('interviews/candidate-list', function () {
+        return Inertia::render('transport/interviews/candidate-list');
+    })->name('transport.interviews.candidate-list');
+
     Route::get('next-steps', function () {
         return Inertia::render('transport/next-steps');
     })->name('transport.next-steps');
