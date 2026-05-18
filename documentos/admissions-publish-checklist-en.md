@@ -1,76 +1,63 @@
-# GitHub + Demo Publication Checklist (US Admissions)
+# Publication Checklist for Reviewers
 
-Use this checklist before sharing the project with admission committees, professors, or recruiters.
+Use this checklist before sharing the repository or live application with a university, professor, mentor, or technical reviewer.
 
-## 1) Repository Presentation
+## Repository
 
-- Project name and short description are clear and professional.
-- README is fully in English and problem-oriented.
-- Architecture, modules, and engineering decisions are documented.
-- Live demo link is visible near the top of README.
-- Screenshots or GIFs are added for core workflows.
-- License is present and correct.
+- README explains the problem, product scope, stack, setup, and quality checks.
+- Architecture, security/performance, and case study documents are linked from README.
+- The repository does not contain private `.env` values or real credentials.
+- Commit history shows steady work and clear messages.
+- GitHub Actions are visible and passing on the shared branch.
+- License and contribution notes are present.
 
-## 2) Proof of Engineering Quality
+## Demo
 
-- Test strategy is explained (regression, contract, E2E).
-- CI status is green on the default branch.
-- Security/reliability controls are documented:
-  - idempotency
-  - rate limiting
-  - auth/permissions
-  - observability
-- Changelog and in-app update log show consistent delivery history.
+- Live app link works over HTTPS.
+- Demo account uses safe sample data.
+- Screens do not expose private phone numbers, documents, addresses, or employee information.
+- A short backup video exists in case the live app is unavailable.
+- The demo focuses on one or two complete workflows instead of every page.
 
-## 3) Demo Readiness
+## Technical Evidence
 
-- A read-only demo account is available.
-- Demo data is realistic but non-sensitive.
-- 2-minute demo script is rehearsed.
-- Fallback video exists in case of temporary outage.
+- Tests can be run locally with `php artisan test` or `composer test`.
+- Frontend checks can be run with `npm run types`, `npm run lint:check`, and `npm run build`.
+- Deployment notes explain how the production environment is maintained.
+- Security and performance notes explain current controls and remaining improvements.
 
-## 4) Production Safety
+## Final Local Checks
 
-- Secrets are not committed.
-- `.env` values are configured only in server environment.
-- Health checks are working.
-- Queue worker and scheduler are active.
-- HTTPS certificate is valid.
+```powershell
+npm run types
+npm run lint:check
+npm run build
+php artisan test
+```
 
-## 5) Final Validation Commands
-
-Run this exact sequence before publishing:
+If production assets need to be refreshed for the current server setup:
 
 ```powershell
 npm run build
-php artisan migrate
 php artisan optimize:clear
 php artisan optimize
 ```
 
-Connectivity smoke check:
+## Submission Pack
 
-```powershell
-$local = Test-NetConnection -ComputerName 127.0.0.1 -Port 8000 -WarningAction SilentlyContinue
-$public = Test-NetConnection -ComputerName app.kaiquetransportes.com.br -Port 443 -WarningAction SilentlyContinue
-if ($local.TcpTestSucceeded) { 'LOCAL:ONLINE:8000' } else { 'LOCAL:OFFLINE:8000' }
-if ($public.TcpTestSucceeded) { 'PUBLIC:ONLINE:443' } else { 'PUBLIC:OFFLINE:443' }
-```
+Prepare these links/files:
 
-## 6) Admissions-Oriented Submission Pack
+- GitHub repository URL.
+- Live demo URL.
+- Short demo video.
+- One-page project summary.
+- Optional: architecture diagram or screenshots of core workflows.
 
-- GitHub repository link.
-- Live demo link.
-- 2-minute demo video link.
-- 1-page technical summary PDF:
-  - problem
-  - architecture
-  - engineering decisions
-  - measurable outcomes
-  - roadmap
+## Reviewer Questions to Prepare For
 
-## 7) Final Self-Check
-
-- If someone opens only README + demo link, can they understand value in under 2 minutes?
-- Is the project presented as real engineering ownership, not only UI work?
-- Are trade-offs and constraints explained honestly?
+- What problem did the project solve?
+- Which parts did you build yourself?
+- What was the hardest technical decision?
+- How do permissions work?
+- How do you prevent duplicate or invalid operational records?
+- How would you improve the project with another month?

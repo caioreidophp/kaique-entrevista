@@ -1,49 +1,67 @@
 # Security and Performance Notes
 
-## Security
+This document summarizes the security and performance posture of the project for technical reviewers. It is not a formal audit, but it records the controls that already exist and the areas that should keep improving.
 
-The platform already includes several production-minded controls:
+## Authentication and Access Control
 
-- Sanctum-authenticated API access
-- Fortify authentication flows
-- Activity logging and security incident surfaces
-- Service-account authentication for integrations
-- Read-only protection for demo accounts
-- Route throttling by sensitivity
-- Idempotency on critical write operations
+- Fortify handles browser authentication flows.
+- Sanctum protects authenticated API access.
+- Transport pages and API endpoints use permission-aware checks.
+- Navigation is filtered by the user's permissions so restricted modules are not advertised in the UI.
+- Demo/read-only protections can be used for walkthrough accounts.
 
-Recent hardening direction:
+## Data Protection
 
-- Environment-aware Content Security Policy
-- Additional browser isolation headers
-- Safer defaults for attachments and embedded content
+- Validation request classes keep write rules explicit.
+- Sensitive workflows use server-side authorization, not only hidden frontend controls.
+- Attachments are stored through Laravel storage paths and served through controlled routes.
+- Browser security headers and Content Security Policy settings are documented for deployment.
+- Environment secrets belong in `.env` files on the server, never in the repository.
 
-## Performance
+## Operational Safety
 
-This system is optimized more for operational stability than synthetic benchmark scores.
+- Critical write paths use duplicate checks, idempotency, or transactions when repeated side effects would be risky.
+- Route-sensitive throttling gives stricter limits to login, upload, import, and heavier endpoints.
+- Activity logging creates a trail for important changes.
+- Queue monitoring endpoints support failed-job inspection and recovery.
+- Async exports reduce pressure on normal request/response flows.
 
-Key strategies:
+## Performance Approach
 
-- Small API client cache for stable reference endpoints
-- Request timeout and retry handling on idempotent operations
-- Queue-backed processing for exports and background deliveries
-- Compact dashboards that summarize high-signal metrics first
-- Permission-aware navigation so users do not load unnecessary surfaces
+This application optimizes for operational speed and predictable support, not synthetic benchmark scores alone.
 
-## UX Impact
+Current strategies:
 
-Performance is not only backend throughput. In operations software, performance also means:
+- Vite production builds with code splitting.
+- Small client-side cache for stable reference data.
+- Timeouts and retry handling for selected API calls.
+- Queue-backed exports and background work.
+- Compact dashboards that surface high-signal information first.
+- Permission-aware menus that avoid loading unnecessary module surfaces.
 
-- finding the right module fast
-- seeing risk without reading every table
-- reducing clicks on repeated tasks
-- keeping dense data readable under pressure
+## User Experience Performance
 
-That is why the recent UI direction emphasizes command-center summaries, alert framing, and clearer visual hierarchy.
+In operations software, performance is also about reducing the time between noticing a problem and taking action.
 
-## Suggested Next Steps
+The UI is designed around:
 
-- Add lightweight frontend route-level loading skeletons for all major modules
-- Capture Lighthouse-style internal metrics for build size and hydration timing
-- Expand feature tests around security headers and authorization boundaries
-- Add screenshots or short walkthrough clips to the GitHub README for reviewers
+- fast filtering and table scanning;
+- visible status controls;
+- compact dashboards;
+- keyboard-friendly navigation where useful;
+- fewer context switches between related workflows.
+
+## Remaining Improvements
+
+- Add more automated coverage for authorization boundaries.
+- Expand tests for security headers and attachment download behavior.
+- Add lightweight frontend performance budgets for build size and page load timing.
+- Publish a short demo video and screenshots for reviewers.
+- Add synthetic monitoring for the public application endpoint.
+
+## Reviewer Checklist
+
+- Check that write endpoints validate and authorize server-side.
+- Check that user-visible module access matches backend permission checks.
+- Check queue and export flows for failure handling.
+- Check that demo data does not include private business or personal information.

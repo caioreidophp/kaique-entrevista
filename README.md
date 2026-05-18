@@ -1,97 +1,73 @@
 # Kaique Transport Operations Platform
 
-A full-stack operations platform built to manage real transport workflows end-to-end: freight launches, payroll cycles, vacations planning, recruitment funnel, onboarding, and auditability.
+Kaique Transport Operations Platform is a full-stack system for managing daily transport operations: freight records, payroll routines, vacation planning, driver recruitment, onboarding, permissions, and operational monitoring.
 
-This repository represents practical software engineering in a production-like environment, with a focus on reliability, performance, and operational UX.
+The project started from a practical problem: transport teams often depend on spreadsheets, messages, printed documents, and repeated manual checks. This repository turns those workflows into one authenticated web platform with audit trails, permission rules, document handling, and deployment notes.
 
-## Live Demo
+Live application: <https://app.kaiquetransportes.com.br>
 
-- App URL: https://app.kaiquetransportes.com.br
-- Deployment runbook: [documentos/deploy-vps.md](documentos/deploy-vps.md)
+## What This Project Shows
 
-## Why This Project Matters
+- End-to-end product ownership across backend, frontend, database, deployment, and support workflows.
+- A real business domain with many connected modules rather than isolated demo screens.
+- Reliability work around duplicate submissions, permissions, rate limits, queues, and exports.
+- Documentation written for reviewers who want to understand both the product and the engineering choices.
 
-Most portfolio projects stop at CRUD. This system goes further:
+## Product Scope
 
-- Multi-module domain platform with operational dashboards
-- Reliability hardening for critical writes with idempotency
-- Adaptive API rate limiting by route sensitivity/profile
-- Observability APIs for latency and runtime diagnostics
-- Queue operations endpoints for failed-job recovery
-- Role-permission management with granular visibility controls
-- Contract/E2E test gates in CI
+The platform is organized around the workflows a transport operation needs during the week:
 
-## Core Modules
+- Freight management: launch records, list loads, track canceled loads, review timelines, and generate operational reports.
+- Payroll: launch payroll cycles, manage adjustments, and report by unit or collaborator.
+- Vacations: plan absences, inspect timelines, and review unit-level vacation reports.
+- Recruitment: register resumes, schedule driver interviews, track statuses, and prepare next-step documents.
+- Onboarding: assign onboarding tasks, upload attachments, and track completion.
+- Registry: manage collaborators, roles, permissions, payment types, units, functions, fleet plates, and aviaries.
+- Operations support: audit activity, inspect telemetry, monitor queues, and recover failed jobs.
 
-- Freight management: launch, list, timeline, spot entries, canceled loads, operational reports
-- Payroll management: launch batch, adjustments, reports by unit/collaborator
-- Vacation management: dashboard, timeline, reports, launch/list, collaborator history
-- Recruitment: driver interviews, next-step documents, hiring status workflow
-- Onboarding: assignment, completion, item tracking, attachments
-- Registry: collaborators, roles/permissions, payment types, fleet plates, aviaries
-- Operations and governance: activity log, telemetry, observability, queue monitor
+## Technical Stack
 
-## Architecture Overview
+- Backend: Laravel 12, PHP 8.2+, Fortify, Sanctum
+- Frontend: React 19, TypeScript, Inertia.js, Vite
+- Database and files: MySQL-compatible database, Laravel storage, PDF and spreadsheet exports
+- Exports: DomPDF and PhpSpreadsheet
+- Operations: queue workers, scheduler, deployment scripts, Nginx/Supervisor runbooks
+- Quality: PHPUnit feature tests, TypeScript checks, ESLint, Prettier, Pint, GitHub Actions
 
-- Backend: Laravel 12, PHP 8.2+, Sanctum auth, Fortify
-- Frontend: React 19 + TypeScript + Inertia + Vite
-- Data and exports: MySQL + PhpSpreadsheet + DomPDF
-- Security and audit: throttling, idempotency middleware, activity logging
-- Runtime operations: queue workers, scheduler, deploy scripts for VPS + Nginx + Supervisor
+## Architecture
 
-High-level flow:
+At a high level, the application uses Laravel for routing, authentication, validation, policies, API controllers, queues, and persistence. React/Inertia pages provide the authenticated transport workspace.
 
-1. React/Inertia pages call authenticated API endpoints.
-2. Laravel controllers enforce policy/permission and validation.
-3. Critical writes use idempotency and adaptive throttling.
-4. Long-running exports/jobs are processed asynchronously via queue.
-5. Activity and telemetry endpoints expose operational visibility.
+Typical request flow:
 
-## Engineering Highlights
+1. A user opens a module inside the transport shell.
+2. The React page calls an authenticated `/api/*` endpoint.
+3. Laravel validates the payload and checks the user's permissions.
+4. The controller applies the domain rule, writes to the database, and records relevant activity.
+5. Heavy work, such as exports or background delivery, is handled by queues when appropriate.
 
-- Idempotency for critical POST operations to prevent duplicate side effects.
-- Adaptive route throttling for sensitive/heavy endpoints.
-- API telemetry and system observability endpoints.
-- Queue monitor endpoints to inspect, retry, forget, and flush failed jobs.
-- Async exports with status and download endpoints.
-- Permission-aware navigation and API access controls.
-- Admin shell language switch (Portuguese/English) with persistent preference.
-- First-visit Demo shortcut on transport login for faster product walkthroughs.
-- Phase 6 UX layer: global search (`Ctrl+K`), pinned quick-access shortcuts, and record comments with mentions.
-- Regression, contract, and E2E test coverage integrated in CI.
+For more detail, see [documentos/architecture-overview.md](documentos/architecture-overview.md).
 
-## Phase 6 Completion (Search, Collaboration, Navigation)
+## Engineering Decisions Worth Reviewing
 
-Implemented and production-ready:
-
-- Global search API and UI command palette (`Ctrl+K`) with permission-aware results.
-- User quick-access persistence (pin/unpin shortcuts) stored in database.
-- Record comments with mentions (`@name` / `@email`) and delete controls.
-- Onboarding guided wizard mode with step-by-step flow and review stage.
-- Comments panel already integrated in interviews, onboarding, and operations hub.
-
-New API routes:
-
-- `GET /api/search/global`
-- `GET|POST|PUT|DELETE /api/quick-accesses`
-- `GET|POST|DELETE /api/record-comments`
-
-New migrations:
-
-- `create_user_quick_accesses_table`
-- `create_record_comments_table`
+- Permission-aware navigation and API access keep users focused on the modules they can use.
+- Idempotency and duplicate checks protect critical write flows from accidental repeated submissions.
+- Route-sensitive throttling gives heavier or more sensitive endpoints stricter limits.
+- Queue monitoring and failed-job recovery make production support part of the app, not an afterthought.
+- Dense operational UI prioritizes scanning, comparison, and repeated use over marketing-style layouts.
+- Deployment documentation reflects a VPS/Nginx/Supervisor setup instead of assuming a managed platform.
 
 ## Local Setup
 
-### Prerequisites
+Requirements:
 
-- PHP 8.2+
+- PHP 8.2 or newer
 - Composer
-- Node.js 20+
+- Node.js 20 or newer
 - npm
-- MySQL (or compatible database configured in `.env`)
+- MySQL or another configured database supported by Laravel
 
-### Install
+Install dependencies and prepare the app:
 
 ```bash
 composer install
@@ -101,90 +77,79 @@ php artisan key:generate
 php artisan migrate
 ```
 
-### Run in development
+Run the local development stack:
 
 ```bash
 composer dev
 ```
 
-This starts app server, queue listener, logs, and Vite together.
-
-### Build and quality checks
+Build production assets:
 
 ```bash
 npm run build
-php artisan test
-php artisan migrate
-php artisan optimize:clear
-php artisan optimize
 ```
 
-## API Surface (selected)
+## Quality Checks
 
-- Authentication and profile: `/api/login`, `/api/logout`, `/api/me`
+Useful checks before opening a pull request:
+
+```bash
+npm run types
+npm run lint:check
+npm run format:check
+composer test
+npm run build
+```
+
+The GitHub Actions workflows also run build, type checking, formatting, linting, audits, contract tests, E2E-tagged tests, and the full PHPUnit suite.
+
+## API Surface
+
+Selected route groups:
+
+- Auth/profile: `/api/login`, `/api/logout`, `/api/me`
 - Freight: `/api/freight/*`
 - Payroll: `/api/payroll/*`
 - Vacations: `/api/payroll/vacations/*`
-- Interviews / next steps / onboarding: `/api/driver-interviews/*`, `/api/next-steps/*`, `/api/onboardings/*`
-- System ops: `/api/system/telemetry/latency`, `/api/system/observability`, `/api/system/queue/*`
+- Interviews and resumes: `/api/driver-interviews/*`, `/api/interview-curriculums/*`
+- Next steps and onboarding: `/api/next-steps/*`, `/api/onboardings/*`
+- Operations: `/api/system/telemetry/*`, `/api/system/observability`, `/api/system/queue/*`
 - Async exports: `/api/exports/async/*`
 
-For full route details, check [routes/api.php](routes/api.php) and [routes/web.php](routes/web.php).
+For the full route map, review [routes/api.php](routes/api.php) and [routes/web.php](routes/web.php).
 
-## Testing and CI
+## Documentation
 
-- Backend tests: PHPUnit feature tests under `tests/Feature`
-- Contract tests: API payload stability checks
-- E2E critical flow tests
-- CI pipeline: staged gates before full suite execution
+English:
 
-Run locally:
+- [Architecture overview](documentos/architecture-overview.md)
+- [Security and performance notes](documentos/security-performance-notes.md)
+- [Project case study](documentos/project-case-study-en.md)
+- [Demo script](documentos/admissions-demo-script-en.md)
+- [Publication checklist](documentos/admissions-publish-checklist-en.md)
 
-```bash
-php artisan test
-```
+Portuguese:
 
-## Documentation for Presentation
+- [Resumo do projeto](documentos/resumo-do-projeto-pt.md)
+- [Deploy em VPS](documentos/deploy-vps.md)
+- [Deploy Forge/produção](DEPLOY_FORGE_PRODUCAO.md)
+- [Matriz de permissões](documentos/transport-permissions-matrix.md)
 
-- 2-minute demo script: [documentos/admissions-demo-script-en.md](documentos/admissions-demo-script-en.md)
-- GitHub/deploy publication checklist: [documentos/admissions-publish-checklist-en.md](documentos/admissions-publish-checklist-en.md)
-- Architecture overview: [documentos/architecture-overview.md](documentos/architecture-overview.md)
-- Security and performance notes: [documentos/security-performance-notes.md](documentos/security-performance-notes.md)
-- VPS deployment guide: [documentos/deploy-vps.md](documentos/deploy-vps.md)
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+## Current Limitations
 
-## UX / UI Direction
+- Some workflows still depend on operational data conventions from the current business environment.
+- Demo data must be prepared carefully before public walkthroughs so no sensitive information is exposed.
+- The mobile driver app is documented separately and is not yet the main production surface.
 
-- Operational workspace focused on scanning, urgency detection, and low-friction navigation
-- Shared transport shell with permission-aware menus, keyboard shortcuts, and compact dashboards
-- Enterprise visual treatment with consistent card hierarchy, executive summaries, and alert framing
+## Suggested Review Path
 
-## Security and Performance Posture
+If you are reviewing the project quickly:
 
-- Environment-aware Content Security Policy with stronger production defaults
-- Hardened browser headers and attachment delivery protections
-- API retries, timeout handling, and lightweight GET caching on stable reference endpoints
-- Queue-backed exports and bulk operations for heavy workflows
-- Route-sensitive throttling and idempotency for critical write paths
-
-## Review and Revert Flow
-
-The current upgrade pass is designed to be easy to evaluate and undo:
-
-```bash
-git checkout codex-professional-upgrade
-git diff main...codex-professional-upgrade
-git checkout main
-```
-
-If you do not want to keep the changes later, you can stay on `main` or simply delete the branch.
-
-## Suggested Demo Narrative
-
-1. Show a real business problem and explain why this platform exists.
-2. Walk through one end-to-end flow (freight launch to dashboard impact).
-3. Show reliability/observability features that prove engineering maturity.
-4. Close with measurable impact and clear roadmap.
+1. Read this README and the [project case study](documentos/project-case-study-en.md).
+2. Open the live app or a short demo recording.
+3. Inspect the architecture and security notes.
+4. Check the tests and GitHub Actions configuration.
+5. Review one complete feature area, such as recruitment or freight.
 
 ## License
 

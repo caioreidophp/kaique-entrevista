@@ -1,11 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "kaique/transport-operations-platform",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Full-stack transport operations platform built with Laravel, React, TypeScript, and Inertia.",
     "keywords": [
         "laravel",
-        "framework"
+        "react",
+        "typescript",
+        "inertia",
+        "transport",
+        "operations"
     ],
     "license": "MIT",
     "require": {

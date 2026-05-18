@@ -1,67 +1,55 @@
-# Kaique Motorista (MVP)
+# Kaique Driver App
 
-Objetivo deste app: abrir no celular, usar login que já existe no sistema web e entrar.
+Mobile companion app for drivers. This app is an MVP focused on authenticated access from a phone using the same backend as the web platform.
 
-## O que já está funcionando
+## Current Scope
 
-- Login com usuário/senha do sistema atual (`/api/login`)
-- Sessão salva no celular (não precisa logar toda hora)
-- Consulta do usuário logado (`/api/me`)
+- Login with the existing web system credentials through `/api/login`.
+- Persisted mobile session so the user does not need to sign in every time.
+- Current user lookup through `/api/me`.
+- API base URL configured through environment variables.
 
----
+## Development With Expo Go
 
-## JEITO MAIS FÁCIL (funciona hoje): Expo Go (SDK 54)
+### 1. Prepare the phone
 
-### Passo 1 - No celular do motorista
+Install **Expo Go** from the Android Play Store.
 
-1. Abrir Play Store.
-2. Instalar **Expo Go**.
+### 2. Prepare the project
 
-### Passo 2 - No notebook/PC com este projeto
-
-Na raiz do projeto (`C:\xampp\htdocs\kaique-entrevista`), rode:
+From the repository root:
 
 ```powershell
-cd scripts
-.\start-fixed-domain-hosting.ps1
-```
-
-Agora rode:
-
-```powershell
-cd ..\mobile\driver-app
+cd mobile\driver-app
 Copy-Item .env.example .env
 ```
 
-Edite o `.env` e deixe assim:
+Set the public API URL:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=https://app.kaiquetransportes.com.br/api
 ```
 
-Depois rode:
+Install dependencies and start Expo:
 
 ```powershell
 npm install
 npx expo start --lan --port 8092
 ```
 
-### Passo 3 - Abrir app no celular
+### 3. Open on the phone
 
-1. Com celular e PC no mesmo Wi-Fi, abra o **Expo Go**.
-2. Escaneie o QR Code que apareceu no terminal.
-3. Se o QR falhar, use entrada manual no Expo Go com: `exp://SEU-IP-LOCAL:8092`
-4. Faça login com uma conta já cadastrada no site.
+1. Keep the phone and computer on the same Wi-Fi network.
+2. Open Expo Go.
+3. Scan the QR code shown in the terminal.
+4. If the QR code fails, open manually with `exp://YOUR_LOCAL_IP:8092`.
+5. Sign in with an account already registered in the web system.
 
-Se entrou, missão cumprida ✅
+## Android APK Build
 
----
+The app can be built through Expo EAS without setting up Android Studio locally.
 
-## Para instalar em TODOS os motoristas (APK)
-
-Você pode gerar APK em nuvem com Expo EAS (sem configurar Android Studio local).
-
-No terminal, dentro de `mobile/driver-app`:
+From `mobile/driver-app`:
 
 ```powershell
 npm install
@@ -69,20 +57,11 @@ npx eas login
 npx eas build -p android --profile preview
 ```
 
-Quando terminar, a Expo te dá um link para baixar o APK e instalar nos celulares.
+Expo will provide a download link for the APK after the build finishes.
 
-### Importante sobre APK x Expo Go
+## Notes
 
-- APK **não abre dentro do Expo Go**.
-- APK é instalado direto no Android (arquivo `.apk`).
-- Expo Go é só para teste de desenvolvimento.
-
-Arquivo de configuração já pronto: `eas.json`.
-
----
-
-## Importante
-
-- `127.0.0.1` não funciona no celular para API do PC.
-- Sem VPS, o notebook precisa ficar ligado para manter o backend no ar.
-- Domínio fixo deste projeto: `https://app.kaiquetransportes.com.br`.
+- `127.0.0.1` does not work from a phone when the API is running on a computer.
+- Use the public API domain when testing against the deployed backend.
+- APK builds are installed directly on Android. They do not open inside Expo Go.
+- The current production domain is `https://app.kaiquetransportes.com.br`.

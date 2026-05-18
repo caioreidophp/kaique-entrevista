@@ -1,64 +1,65 @@
-# 2-Minute Demo Script (US Admissions Focus)
+# Demo Script for Reviewers
 
-Use this script as a concise and credible walkthrough for portfolio reviews, university applications, and recruiter screens.
+Use this as a short, natural walkthrough for university applications, portfolio reviews, or technical conversations.
 
 ## Goal
 
-Demonstrate that this is not a toy app, but an operations platform with real engineering depth.
+Show that the project solves a real operational problem and that the engineering work goes beyond building isolated screens.
 
-## Demo Setup (before recording/live)
+## Before Recording
 
-- Open the app in an authenticated session.
-- Keep two tabs ready:
-  - Main UI dashboard flow
-  - API/system endpoints for observability
-- Prepare one clean dataset scenario (freight + payroll + vacation records already loaded).
+- Use a demo account with no private data.
+- Keep the app open at the transport home page.
+- Prepare one clean workflow to show, such as resume intake to interview status or freight launch to report.
+- Keep the repository README open in another tab in case the reviewer wants technical context.
 
-## Timeline Script (120 seconds)
+## Two-Minute Walkthrough
 
-### 0:00 - 0:20 | Problem + Scope
+### 0:00 - 0:20 | Problem
 
-"This platform was built to centralize transport operations in one system: freight execution, payroll, vacations planning, and recruitment onboarding. The key challenge is combining operational speed with reliability and governance."
+"This project was built to centralize transport operations that are often split across spreadsheets, messages, and paper documents. The goal is to make daily work faster while keeping permissions, audit history, and data quality under control."
 
-### 0:20 - 0:50 | Product Walkthrough
+### 0:20 - 0:55 | Product Flow
 
-- Show Freight dashboard and one operational metric.
-- Open freight list or launch screen quickly.
-- Show Vacations dashboard and filtered reports by unit.
+Show one complete workflow. Good options:
 
-"Operators can move from daily execution to planning in a few clicks, with dashboards and lists connected to the same backend rules."
+- open the recruitment/resume area, filter candidates, and show how interview status is tracked;
+- open freight records, show filtering/reporting, and connect it to operational dashboards;
+- open vacation planning and show how unit-level planning is reviewed.
 
-### 0:50 - 1:25 | Engineering Depth
+Keep this part visual and concrete. Avoid explaining every menu item.
 
-- Mention idempotency on critical write endpoints.
-- Mention adaptive throttling for sensitive routes.
-- Show system observability and queue monitor endpoints.
+### 0:55 - 1:30 | Engineering Depth
 
-"Critical operations are protected against duplicates, API abuse is controlled with adaptive limits, and operations has built-in visibility for latency and failed jobs."
+Mention the parts that are not obvious from the UI:
 
-### 1:25 - 1:45 | Quality and Delivery
+- Laravel backend with React/TypeScript frontend;
+- permission-aware navigation and API checks;
+- duplicate prevention and validation on critical forms;
+- queues for heavier jobs and exports;
+- activity logs and observability endpoints;
+- automated checks in GitHub Actions.
 
-- Mention tests + CI gates (contract and E2E).
-- Mention deployment automation (VPS runbook + pipeline).
+### 1:30 - 1:50 | Documentation and Deployment
 
-"The project includes regression/contract/E2E coverage and deployment playbooks so changes can be shipped safely."
+"The repository includes setup instructions, architecture notes, security/performance notes, and deployment runbooks for a VPS-style environment using Nginx, PHP-FPM, queues, and scheduled tasks."
 
-### 1:45 - 2:00 | Impact + Next Steps
+### 1:50 - 2:00 | Close
 
-"This architecture is designed for real usage: fast operational workflows, safer critical actions, and better observability for continuous improvement. Next steps are broader analytics and mobile workflow expansion."
+"What I wanted to show with this project is end-to-end ownership: understanding a business problem, designing workflows, building the full stack, documenting decisions, and keeping the system maintainable."
 
-## Optional 30-Second Technical Appendix
+## Optional Technical Appendix
 
-If asked for deeper technical details:
+If the reviewer asks for details:
 
-- Backend: Laravel 12 + Sanctum + queue workers.
-- Frontend: React 19 + TypeScript + Inertia + Vite.
-- Reliability: idempotency middleware + route-aware throttling.
-- Operations: telemetry/observability endpoints + failed job controls.
+- Backend: Laravel 12, Fortify, Sanctum, Eloquent, queues.
+- Frontend: React 19, TypeScript, Inertia.js, Vite.
+- Quality: PHPUnit, TypeScript, ESLint, Prettier, Pint, GitHub Actions.
+- Operations: VPS deployment, Nginx, PHP-FPM, Supervisor, scheduler.
 
 ## Recording Tips
 
-- Keep the browser zoom at 100%.
-- Use large cursor and highlight clicks.
-- Avoid typing passwords during recording.
-- If production is unavailable, use local and show a short backup clip.
+- Keep browser zoom at 100%.
+- Use a clean demo dataset.
+- Do not show real phone numbers, documents, or personal data.
+- Keep the video under three minutes unless a longer technical walkthrough is requested.

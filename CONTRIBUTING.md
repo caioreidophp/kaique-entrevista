@@ -1,13 +1,14 @@
 # Contributing Guide
 
-This repository is used both as a production-like transport platform and as a portfolio artifact. Contributions should preserve reliability, readability, and explainability.
+This project is maintained as a real transport operations system and as a public engineering portfolio. Changes should be easy to review, easy to explain, and safe for operational workflows.
 
-## Working Principles
+## Principles
 
-- Prefer narrow, reviewable changes over wide refactors.
-- Preserve auditability on critical operational flows.
-- Keep UX dense but readable; this is an operations tool, not a marketing site.
-- Document business-facing changes in pull requests and markdown docs when behavior changes.
+- Keep changes focused on one problem at a time.
+- Preserve auditability for business-critical actions.
+- Prefer explicit validation and permission checks over hidden UI-only rules.
+- Keep the interface practical for repeated operations work.
+- Update documentation when behavior, setup, deployment, or reviewer-facing context changes.
 
 ## Local Workflow
 
@@ -20,48 +21,50 @@ php artisan migrate
 composer dev
 ```
 
-## Quality Gates
+## Quality Checks
 
-Before opening a pull request:
+Run the relevant checks before pushing:
 
 ```bash
-npm run build
+npm run types
 npm run lint:check
+npm run format:check
 php artisan test
+npm run build
 ```
 
-## Branching
+For backend style checks:
 
-- Use short, descriptive branch names.
-- Keep one concern per branch whenever possible.
-- If the change is exploratory, use a dedicated branch so it can be dropped cleanly.
+```bash
+composer test:lint
+```
 
-## Commit Style
+## Branches and Commits
 
-Use commit messages that explain intent, not only the file touched.
-
-Examples:
-
-- `feat: redesign transport home for command-center overview`
-- `security: tighten browser security headers by environment`
-- `docs: add architecture and presentation notes`
+- Use short branch names that describe the work.
+- Keep unrelated fixes in separate commits.
+- Write commit messages around intent, for example:
+  - `docs: improve reviewer-facing project overview`
+  - `fix: prevent duplicate curriculum phone numbers`
+  - `feat: add interview final score column`
 
 ## Pull Requests
 
-Every PR should answer:
+Every pull request should answer:
 
-- What problem changed for the user or operator?
-- What technical risk was introduced or reduced?
+- What user or operator problem changed?
+- Which modules or APIs were touched?
+- What risk could regress?
 - How was it verified?
-- What screenshots or recordings demonstrate the UX change?
+- Are screenshots or recordings needed?
 
-## Reverting Changes
+## Documentation Standards
 
-This project intentionally supports reversible review flows.
+- Keep the README clear enough for someone seeing the project for the first time.
+- Use English for reviewer-facing technical documentation.
+- Use Portuguese where it helps local operators or deployment/support readers.
+- Avoid vague claims. Prefer concrete workflows, files, commands, and trade-offs.
 
-```bash
-git checkout main
-git branch -D your-review-branch
-```
+## Reverting
 
-If a branch has already been merged, revert using a normal Git revert commit instead of rewriting history.
+If a branch is still under review, prefer deleting the branch or opening a small corrective commit. If a change has already been merged, use a normal revert commit so history remains understandable.
