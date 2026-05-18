@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\DriverInterview;
 use App\Models\InterviewCurriculum;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,7 +60,7 @@ class InterviewCurriculumApiTest extends TestCase
         Storage::disk('public')->assertExists((string) $curriculum->work_card_attachment_path);
     }
 
-    public function test_curriculum_index_filters_pending_and_past_tabs(): void
+    public function test_curriculum_index_filters_tabs_including_all(): void
     {
         $user = User::factory()->create(['role' => 'usuario']);
         Sanctum::actingAs($user);
@@ -85,6 +86,82 @@ class InterviewCurriculumApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.full_name', 'Recusado');
+
+        $this->getJson('/api/interview-curriculums?tab=todos')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_create_curriculum_rejects_name_already_used_in_interview(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['role' => 'usuario']);
+        Sanctum::actingAs($user);
+
+        DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'full_name' => 'Eduardo Jose da Cruz',
+            'phone' => '15997484008',
+        ]);
+
+        $this->postJson('/api/interview-curriculums', [
+            'full_name' => 'Eduardo Jose da Cruz',
+            'phone' => '(15) 90000-0000',
+            'role_name' => 'Motorista',
+            'unit_name' => 'Itapetininga',
+            'curriculum_file' => UploadedFile::fake()->create('eduardo.pdf', 120, 'application/pdf'),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Nome já cadastrado em currículos ou entrevistas.');
+    }
+
+    public function test_create_curriculum_rejects_phone_already_used_in_curriculum(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['role' => 'usuario']);
+        Sanctum::actingAs($user);
+
+        InterviewCurriculum::factory()->create([
+            'author_id' => $user->id,
+            'full_name' => 'Candidato Existente',
+            'phone' => '(15) 99748-4008',
+        ]);
+
+        $this->postJson('/api/interview-curriculums', [
+            'full_name' => 'Outro Candidato',
+            'phone' => '15997484008',
+            'role_name' => 'Motorista',
+            'unit_name' => 'Itapetininga',
+            'curriculum_file' => UploadedFile::fake()->create('outro.pdf', 120, 'application/pdf'),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Telefone já cadastrado em currículos ou entrevistas.');
+    }
+
+    public function test_create_curriculum_rejects_phone_already_used_in_interview(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['role' => 'usuario']);
+        Sanctum::actingAs($user);
+
+        DriverInterview::factory()->create([
+            'author_id' => $user->id,
+            'full_name' => 'Entrevistado Existente',
+            'phone' => '(15) 99748-4008',
+        ]);
+
+        $this->postJson('/api/interview-curriculums', [
+            'full_name' => 'Novo Candidato',
+            'phone' => '15997484008',
+            'role_name' => 'Motorista',
+            'unit_name' => 'Itapetininga',
+            'curriculum_file' => UploadedFile::fake()->create('novo.pdf', 120, 'application/pdf'),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Telefone já cadastrado em currículos ou entrevistas.');
     }
 
     public function test_author_can_refuse_pending_curriculum(): void

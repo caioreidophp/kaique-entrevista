@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInterviewCurriculumRequest;
 use App\Http\Requests\UpdateInterviewCurriculumRequest;
 use App\Http\Resources\InterviewCurriculumResource;
+use App\Models\DriverInterview;
 use App\Models\InterviewCurriculum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,7 @@ class InterviewCurriculumController extends Controller
 
         $perPage = min(max((int) $request->integer('per_page', 15), 1), 1000);
         $validated = $request->validate([
-            'tab' => ['nullable', 'string', 'in:pendentes,passados,vinculaveis,convocados,descartados'],
+            'tab' => ['nullable', 'string', 'in:todos,pendentes,passados,vinculaveis,convocados,descartados'],
             'include_id' => ['nullable', 'integer', 'min:0'],
             'search' => ['nullable', 'string', 'max:255'],
             'role_name' => ['nullable', 'string', 'max:120'],
@@ -109,7 +110,9 @@ class InterviewCurriculumController extends Controller
             $query->whereDate('interview_date', '<=', (string) $validated['interview_date_to']);
         }
 
-        if ($tab === 'pendentes') {
+        if ($tab === 'todos') {
+            // Sem filtro de status.
+        } elseif ($tab === 'pendentes') {
             $query->where(function (Builder $builder) use ($includeId): void {
                 $builder->where('status', InterviewCurriculumStatus::Pendente->value);
 
@@ -254,6 +257,10 @@ class InterviewCurriculumController extends Controller
         );
 
         $validated = $request->validated();
+        $this->ensureUniqueCandidate(
+            trim((string) $validated['full_name']),
+            trim((string) $validated['phone']),
+        );
 
         $curriculum = DB::transaction(function () use ($request, $validated): InterviewCurriculum {
             /** @var \Illuminate\Http\UploadedFile $file */
@@ -344,6 +351,14 @@ class InterviewCurriculumController extends Controller
         $this->ensureVisibleToUser($request, $interviewCurriculum);
 
         $validated = $request->validated();
+        $linkedInterviewId = $interviewCurriculum->linkedInterview()->value('id');
+
+        $this->ensureUniqueCandidate(
+            trim((string) $validated['full_name']),
+            trim((string) $validated['phone']),
+            $interviewCurriculum->id,
+            $linkedInterviewId ? (int) $linkedInterviewId : null,
+        );
 
         $interviewCurriculum->update([
             'full_name' => trim((string) $validated['full_name']),
@@ -420,6 +435,54 @@ class InterviewCurriculumController extends Controller
             $curriculum->author_id === $request->user()->id,
             403,
             'Você não possui permissão para acessar este currículo.'
+        );
+    }
+
+    private function ensureUniqueCandidate(
+        string $fullName,
+        string $phone,
+        ?int $ignoreCurriculumId = null,
+        ?int $ignoreInterviewId = null,
+    ): void {
+        $normalizedName = Str::of($fullName)->lower()->squish()->value();
+        $phoneDigits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        $curriculumByName = InterviewCurriculum::query()
+            ->when($ignoreCurriculumId, fn (Builder $query) => $query->whereKeyNot($ignoreCurriculumId))
+            ->whereRaw('LOWER(TRIM(full_name)) = ?', [$normalizedName])
+            ->exists();
+
+        $interviewByName = DriverInterview::query()
+            ->when($ignoreInterviewId, fn (Builder $query) => $query->whereKeyNot($ignoreInterviewId))
+            ->whereRaw('LOWER(TRIM(full_name)) = ?', [$normalizedName])
+            ->exists();
+
+        abort_if(
+            $curriculumByName || $interviewByName,
+            422,
+            'Nome já cadastrado em currículos ou entrevistas.'
+        );
+
+        if ($phoneDigits === '') {
+            return;
+        }
+
+        $phoneExpression = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), '-', ''), ' ', ''), '.', '')";
+
+        $curriculumByPhone = InterviewCurriculum::query()
+            ->when($ignoreCurriculumId, fn (Builder $query) => $query->whereKeyNot($ignoreCurriculumId))
+            ->whereRaw("{$phoneExpression} = ?", [$phoneDigits])
+            ->exists();
+
+        $interviewByPhone = DriverInterview::query()
+            ->when($ignoreInterviewId, fn (Builder $query) => $query->whereKeyNot($ignoreInterviewId))
+            ->whereRaw("{$phoneExpression} = ?", [$phoneDigits])
+            ->exists();
+
+        abort_if(
+            $curriculumByPhone || $interviewByPhone,
+            422,
+            'Telefone já cadastrado em currículos ou entrevistas.'
         );
     }
 }

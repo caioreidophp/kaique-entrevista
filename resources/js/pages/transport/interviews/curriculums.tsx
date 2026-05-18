@@ -46,7 +46,7 @@ import type {
     InterviewCurriculumStatus,
 } from '@/types/driver-interview';
 
-type TabKey = 'pendentes' | 'convocados' | 'descartados';
+type TabKey = 'todos' | 'pendentes' | 'convocados' | 'descartados';
 
 interface UnidadeOption {
     id: number;
@@ -134,7 +134,7 @@ function formatInterviewTime(value: string | null | undefined): string {
 }
 
 export default function TransportInterviewCurriculumsPage() {
-    const [activeTab, setActiveTab] = useState<TabKey>('pendentes');
+    const [activeTab, setActiveTab] = useState<TabKey>('todos');
     const [items, setItems] = useState<InterviewCurriculumListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -351,7 +351,7 @@ export default function TransportInterviewCurriculumsPage() {
 
             setCreateOpen(false);
             resetCreateForm();
-            setActiveTab('pendentes');
+            setActiveTab('todos');
             await load(1);
         } catch (error) {
             if (error instanceof ApiError) {
@@ -625,6 +625,13 @@ export default function TransportInterviewCurriculumsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 print:hidden">
+                    <Button
+                        type="button"
+                        variant={activeTab === 'todos' ? 'default' : 'outline'}
+                        onClick={() => setActiveTab('todos')}
+                    >
+                        Todos
+                    </Button>
                     <Button
                         type="button"
                         variant={
