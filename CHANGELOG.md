@@ -7,6 +7,7 @@
 - Restored the compact `Acesso geral` behavior in the transport sidebar without reverting the newer sidebar structure.
 - General-access links and logout now stay collapsed by default on desktop/focus sidebars and expand on hover or keyboard focus.
 - The section remains open when the current page belongs to general access, preserving orientation while saving vertical space in module navigation.
+- Refined the reveal animation with slower easing, subtle motion, and a cleaner hover treatment for a more polished navigation feel.
 
 ## [2026-05-19] - Freight dashboard Kaique metrics
 
