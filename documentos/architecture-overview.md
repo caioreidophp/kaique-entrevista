@@ -76,6 +76,7 @@ Several patterns are used to reduce operational mistakes:
 - Route-aware throttling for sensitive or heavy endpoints.
 - Permission-aware filtering so users do not see records outside their scope.
 - Queue monitor endpoints for failed-job inspection and recovery.
+- Dashboard calculations prefer domain-specific grouped fields over broad spreadsheet totals when both exist, for example using `Kaique Geral` freight values instead of combined Kaique plus third-party totals.
 
 ## Data and Attachments
 

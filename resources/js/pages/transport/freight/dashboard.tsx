@@ -396,10 +396,67 @@ function UnitMetricListCard({
     );
 }
 
+function toNumber(value: string | number | null | undefined): number {
+    const parsed = Number(value ?? 0);
+
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function hasGroupedFreightMetrics(entry: FreightEntry): boolean {
+    return (
+        toNumber(entry.kaique_geral_frete) > 0 ||
+        toNumber(entry.kaique_geral_km) > 0 ||
+        toNumber(entry.kaique_geral_viagens) > 0 ||
+        toNumber(entry.kaique_geral_aves) > 0 ||
+        toNumber(entry.terceiros_frete) > 0 ||
+        toNumber(entry.terceiros_km) > 0 ||
+        toNumber(entry.terceiros_viagens) > 0 ||
+        toNumber(entry.terceiros_aves) > 0 ||
+        toNumber(entry.programado_frete) > 0 ||
+        toNumber(entry.abatedouro_frete) > 0
+    );
+}
+
+function kaiqueFreightValue(entry: FreightEntry): number {
+    if (hasGroupedFreightMetrics(entry)) {
+        return toNumber(entry.kaique_geral_frete);
+    }
+
+    const liquid = toNumber(entry.frete_liquido);
+
+    return liquid > 0
+        ? liquid
+        : Math.max(0, toNumber(entry.frete_total) - toNumber(entry.frete_terceiros));
+}
+
+function kaiqueKmValue(entry: FreightEntry): number {
+    if (hasGroupedFreightMetrics(entry)) {
+        return toNumber(entry.kaique_geral_km);
+    }
+
+    return Math.max(0, toNumber(entry.km_rodado) - toNumber(entry.km_terceiros));
+}
+
+function kaiqueBirdsValue(entry: FreightEntry): number {
+    if (hasGroupedFreightMetrics(entry)) {
+        return toNumber(entry.kaique_geral_aves);
+    }
+
+    return toNumber(entry.aves_liq);
+}
+
+function kaiqueTripsValue(entry: FreightEntry): number {
+    if (hasGroupedFreightMetrics(entry)) {
+        return toNumber(entry.kaique_geral_viagens);
+    }
+
+    return toNumber(entry.cargas_liq);
+}
+
 const unitMetricDefinitions: UnitMetricDefinition[] = [
     {
         key: 'frete-kaique',
-        title: 'Frete Total',
+        title: 'Frete Kaique Geral',
         value: (row) => Number(row.total_frete_liquido ?? 0),
         format: (value) => formatCurrencyBR(value),
     },
@@ -614,10 +671,10 @@ export default function TransportFreightDashboardPage() {
                 viagens: 0,
             };
 
-            current.frete += Number(entry.frete_total ?? 0);
-            current.km += Number(entry.km_rodado ?? 0);
-            current.aves += Number(entry.aves ?? 0);
-            current.viagens += Number(entry.cargas_liq ?? 0);
+            current.frete += kaiqueFreightValue(entry);
+            current.km += kaiqueKmValue(entry);
+            current.aves += kaiqueBirdsValue(entry);
+            current.viagens += kaiqueTripsValue(entry);
 
             map.set(entry.data, current);
         });
@@ -661,7 +718,7 @@ export default function TransportFreightDashboardPage() {
         return [
             {
                 key: 'frete-liquido',
-                label: 'Frete Total',
+                label: 'Frete Kaique Geral',
                 value: formatCurrencyBR(data.kpis.total_frete),
                 detail: `${formatIntegerBR(data.kpis.total_lancamentos)} lançamento(s)`,
                 series: trendSeries.frete,
@@ -680,7 +737,7 @@ export default function TransportFreightDashboardPage() {
             },
             {
                 key: 'km',
-                label: 'KM Rodado',
+                label: 'KM Kaique Geral',
                 value: formatIntegerBR(data.kpis.total_km),
                 detail: `${formatCurrencyBR(data.kpis.media_reais_por_km)} por km`,
                 series: trendSeries.km,
@@ -689,9 +746,9 @@ export default function TransportFreightDashboardPage() {
             },
             {
                 key: 'aves',
-                label: 'Aves Transportadas',
+                label: 'Aves Kaique Geral',
                 value: formatIntegerBR(data.kpis.total_aves),
-                detail: `${formatIntegerBR(data.kpis.total_viagens_terceiros)} viagens 3º`,
+                detail: `${formatIntegerBR(viagensTotal)} viagens Kaique`,
                 series: trendSeries.aves,
                 rowValue: (row: UnitMetricRow) => Number(row.total_aves ?? 0),
                 formatRow: formatIntegerBR,

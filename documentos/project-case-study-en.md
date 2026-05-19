@@ -58,6 +58,12 @@ The recruitment workflow now treats printed/PDF interview records as part of the
 
 The admission checklist and race/ethnicity declaration templates were also cleaned up for a more professional handoff: the checklist now uses a clearer fillable layout, and the race/ethnicity document renders as one copy instead of duplicated pages.
 
+## Recent Freight Analytics Improvements
+
+The freight dashboard was corrected to separate Kaique-owned operation metrics from third-party freight. KPIs, per-unit comparisons, and daily trend cards now use the `Kaique Geral` grouped values as the source of truth, with legacy fallback logic for older records.
+
+This change matters because operational dashboards should not reward or penalize the company for freight that belongs to third parties. A regression test now covers that rule by creating a mixed Kaique/third-party freight record and verifying that the dashboard only reports the Kaique portion.
+
 ## Product Decisions
 
 The interface is intentionally practical. It favors dense tables, filters, status chips, and direct actions because the target user repeats the same workflows often and needs to scan data quickly.

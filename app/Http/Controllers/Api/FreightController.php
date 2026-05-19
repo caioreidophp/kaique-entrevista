@@ -70,31 +70,61 @@ class FreightController extends Controller
 
         $totals = (clone $query)
             ->selectRaw('COUNT(*) as total_lancamentos')
-            ->selectRaw('COALESCE(SUM(frete_total), 0) as total_frete')
-            ->selectRaw('COALESCE(SUM(frete_liquido), 0) as total_frete_liquido')
-            ->selectRaw('COALESCE(SUM(km_rodado), 0) as total_km')
+            ->selectRaw('COALESCE(SUM(frete_total), 0) as legacy_total_frete')
+            ->selectRaw('COALESCE(SUM(frete_liquido), 0) as legacy_total_frete_liquido')
+            ->selectRaw('COALESCE(SUM(km_rodado), 0) as legacy_total_km')
+            ->selectRaw('COALESCE(SUM(cargas_liq), 0) as legacy_total_viagens_kaique')
+            ->selectRaw('COALESCE(SUM(aves_liq), 0) as legacy_total_aves_kaique')
+            ->selectRaw('COALESCE(SUM(kaique_geral_frete), 0) as total_frete_kaique')
+            ->selectRaw('COALESCE(SUM(kaique_geral_km), 0) as total_km_kaique')
+            ->selectRaw('COALESCE(SUM(kaique_geral_viagens), 0) as total_viagens_kaique')
+            ->selectRaw('COALESCE(SUM(kaique_geral_aves), 0) as total_aves_kaique')
             ->selectRaw('COALESCE(SUM(km_terceiros), 0) as total_km_terceiros')
             ->selectRaw('COALESCE(SUM(frete_terceiros), 0) as total_frete_terceiros')
             ->selectRaw('COALESCE(SUM(viagens_terceiros), 0) as total_viagens_terceiros')
-            ->selectRaw('COALESCE(SUM(aves), 0) as total_aves')
-            ->selectRaw('COALESCE(SUM(cargas), 0) as total_cargas')
+            ->selectRaw('COALESCE(SUM(terceiros_frete), 0) as grouped_total_frete_terceiros')
+            ->selectRaw('COALESCE(SUM(terceiros_km), 0) as grouped_total_km_terceiros')
+            ->selectRaw('COALESCE(SUM(terceiros_viagens), 0) as grouped_total_viagens_terceiros')
+            ->selectRaw('COALESCE(SUM(terceiros_aves), 0) as grouped_total_aves_terceiros')
+            ->selectRaw('COALESCE(SUM(programado_frete), 0) as grouped_programado_frete')
+            ->selectRaw('COALESCE(SUM(abatedouro_frete), 0) as grouped_abatedouro_frete')
             ->selectRaw('COALESCE(SUM(veiculos), 0) as total_veiculos')
             ->selectRaw('COUNT(DISTINCT data) as dias_trabalhados')
-            ->selectRaw('SUM(CASE WHEN km_rodado > 25000 THEN 1 ELSE 0 END) as km_muito_alto_count')
-            ->selectRaw('SUM(CASE WHEN km_rodado < 1000 THEN 1 ELSE 0 END) as km_muito_baixo_count')
-            ->selectRaw('SUM(CASE WHEN cargas > 0 AND (frete_total / NULLIF(cargas, 0)) < 120 THEN 1 ELSE 0 END) as frete_muito_baixo_count')
-            ->selectRaw('SUM(CASE WHEN cargas <= 0 AND frete_total > 0 THEN 1 ELSE 0 END) as carga_vazia_count')
+            ->selectRaw('SUM(CASE WHEN COALESCE(NULLIF(kaique_geral_km, 0), km_rodado - km_terceiros, km_rodado, 0) > 25000 THEN 1 ELSE 0 END) as km_muito_alto_count')
+            ->selectRaw('SUM(CASE WHEN COALESCE(NULLIF(kaique_geral_km, 0), km_rodado - km_terceiros, km_rodado, 0) < 1000 THEN 1 ELSE 0 END) as km_muito_baixo_count')
+            ->selectRaw('SUM(CASE WHEN COALESCE(NULLIF(kaique_geral_viagens, 0), cargas_liq, cargas, 0) > 0 AND (COALESCE(NULLIF(kaique_geral_frete, 0), frete_liquido, frete_total, 0) / NULLIF(COALESCE(NULLIF(kaique_geral_viagens, 0), cargas_liq, cargas, 0), 0)) < 120 THEN 1 ELSE 0 END) as frete_muito_baixo_count')
+            ->selectRaw('SUM(CASE WHEN COALESCE(NULLIF(kaique_geral_viagens, 0), cargas_liq, cargas, 0) <= 0 AND COALESCE(NULLIF(kaique_geral_frete, 0), frete_liquido, frete_total, 0) > 0 THEN 1 ELSE 0 END) as carga_vazia_count')
             ->first();
 
         $totalLancamentos = (int) ($totals?->total_lancamentos ?? 0);
-        $totalFrete = (float) ($totals?->total_frete ?? 0);
-        $totalFreteLiquido = (float) ($totals?->total_frete_liquido ?? 0);
-        $totalKm = (float) ($totals?->total_km ?? 0);
-        $totalKmTerceiros = (float) ($totals?->total_km_terceiros ?? 0);
-        $totalFreteTerceiros = (float) ($totals?->total_frete_terceiros ?? 0);
-        $totalViagensTerceiros = (int) ($totals?->total_viagens_terceiros ?? 0);
-        $totalAves = (int) ($totals?->total_aves ?? 0);
-        $totalCargas = (int) ($totals?->total_cargas ?? 0);
+        $hasGroupedFreightMetrics = $this->hasGroupedFreightMetrics($totals);
+        $legacyTotalFrete = (float) ($totals?->legacy_total_frete ?? 0);
+        $legacyTotalFreteLiquido = (float) ($totals?->legacy_total_frete_liquido ?? 0);
+        $legacyTotalKm = (float) ($totals?->legacy_total_km ?? 0);
+        $legacyTotalViagensKaique = (int) ($totals?->legacy_total_viagens_kaique ?? 0);
+        $legacyTotalAvesKaique = (int) ($totals?->legacy_total_aves_kaique ?? 0);
+        $totalKmTerceiros = $hasGroupedFreightMetrics
+            ? (float) ($totals?->grouped_total_km_terceiros ?? 0)
+            : (float) ($totals?->total_km_terceiros ?? 0);
+        $totalFreteTerceiros = $hasGroupedFreightMetrics
+            ? (float) ($totals?->grouped_total_frete_terceiros ?? 0)
+            : (float) ($totals?->total_frete_terceiros ?? 0);
+        $totalViagensTerceiros = $hasGroupedFreightMetrics
+            ? (int) ($totals?->grouped_total_viagens_terceiros ?? 0)
+            : (int) ($totals?->total_viagens_terceiros ?? 0);
+        $totalFrete = $hasGroupedFreightMetrics
+            ? (float) ($totals?->total_frete_kaique ?? 0)
+            : ($legacyTotalFreteLiquido > 0 ? $legacyTotalFreteLiquido : max(0, $legacyTotalFrete - $totalFreteTerceiros));
+        $totalFreteLiquido = $totalFrete;
+        $totalKm = $hasGroupedFreightMetrics
+            ? (float) ($totals?->total_km_kaique ?? 0)
+            : max(0, $legacyTotalKm - $totalKmTerceiros);
+        $totalAves = $hasGroupedFreightMetrics
+            ? (int) ($totals?->total_aves_kaique ?? 0)
+            : $legacyTotalAvesKaique;
+        $totalCargas = $hasGroupedFreightMetrics
+            ? (int) ($totals?->total_viagens_kaique ?? 0)
+            : $legacyTotalViagensKaique;
         $totalVeiculos = (int) ($totals?->total_veiculos ?? 0);
         $diasTrabalhados = (int) ($totals?->dias_trabalhados ?? 0);
 
@@ -146,7 +176,7 @@ class FreightController extends Controller
         }
 
         $porUnidadeRows = (clone $query)
-            ->selectRaw('unidade_id, COUNT(*) as total_lancamentos, SUM(frete_total) as total_frete, SUM(frete_liquido) as total_frete_liquido, SUM(km_rodado) as total_km, SUM(veiculos) as total_veiculos, SUM(aves) as total_aves, SUM(cargas_liq) as total_viagens_kaique, SUM(frete_terceiros) as total_frete_terceiros, SUM(frete_programado) as total_frete_programado, COUNT(DISTINCT data) as dias_trabalhados')
+            ->selectRaw('unidade_id, COUNT(*) as total_lancamentos, SUM(frete_total) as legacy_total_frete, SUM(frete_liquido) as legacy_total_frete_liquido, SUM(km_rodado) as legacy_total_km, SUM(cargas_liq) as legacy_total_viagens_kaique, SUM(aves_liq) as legacy_total_aves_kaique, SUM(kaique_geral_frete) as total_frete_kaique, SUM(kaique_geral_km) as total_km_kaique, SUM(kaique_geral_aves) as total_aves_kaique, SUM(kaique_geral_viagens) as total_viagens_kaique, SUM(veiculos) as total_veiculos, SUM(frete_terceiros) as legacy_total_frete_terceiros, SUM(km_terceiros) as legacy_total_km_terceiros, SUM(viagens_terceiros) as legacy_total_viagens_terceiros, SUM(terceiros_frete) as grouped_total_frete_terceiros, SUM(terceiros_km) as grouped_total_km_terceiros, SUM(terceiros_viagens) as grouped_total_viagens_terceiros, SUM(terceiros_aves) as grouped_total_aves_terceiros, SUM(programado_frete) as total_frete_programado, SUM(abatedouro_frete) as grouped_abatedouro_frete, COUNT(DISTINCT data) as dias_trabalhados')
             ->with('unidade:id,nome')
             ->groupBy('unidade_id')
             ->get();
@@ -161,14 +191,30 @@ class FreightController extends Controller
 
         $porUnidade = $porUnidadeRows
             ->map(function (FreightEntry $entry) use ($fleetSizeByUnit): array {
-                $totalFrete = (float) ($entry->total_frete ?? 0);
-                $totalFreteLiquido = (float) ($entry->total_frete_liquido ?? 0);
-                $totalKm = (float) ($entry->total_km ?? 0);
+                $hasGroupedFreightMetrics = $this->hasGroupedFreightMetrics($entry);
+                $legacyTotalFrete = (float) ($entry->legacy_total_frete ?? 0);
+                $legacyTotalFreteLiquido = (float) ($entry->legacy_total_frete_liquido ?? 0);
+                $legacyTotalKm = (float) ($entry->legacy_total_km ?? 0);
+                $legacyTotalFreteTerceiros = (float) ($entry->legacy_total_frete_terceiros ?? 0);
+                $legacyTotalKmTerceiros = (float) ($entry->legacy_total_km_terceiros ?? 0);
+                $totalFrete = $hasGroupedFreightMetrics
+                    ? (float) ($entry->total_frete_kaique ?? 0)
+                    : ($legacyTotalFreteLiquido > 0 ? $legacyTotalFreteLiquido : max(0, $legacyTotalFrete - $legacyTotalFreteTerceiros));
+                $totalFreteLiquido = $totalFrete;
+                $totalKm = $hasGroupedFreightMetrics
+                    ? (float) ($entry->total_km_kaique ?? 0)
+                    : max(0, $legacyTotalKm - $legacyTotalKmTerceiros);
                 $totalVeiculos = (int) ($entry->total_veiculos ?? 0);
-                $totalViagensKaique = (int) ($entry->total_viagens_kaique ?? 0);
-                $totalFreteTerceiros = (float) ($entry->total_frete_terceiros ?? 0);
+                $totalViagensKaique = $hasGroupedFreightMetrics
+                    ? (int) ($entry->total_viagens_kaique ?? 0)
+                    : (int) ($entry->legacy_total_viagens_kaique ?? 0);
+                $totalFreteTerceiros = $hasGroupedFreightMetrics
+                    ? (float) ($entry->grouped_total_frete_terceiros ?? 0)
+                    : $legacyTotalFreteTerceiros;
                 $totalFreteProgramado = (float) ($entry->total_frete_programado ?? 0);
-                $totalAves = (int) ($entry->total_aves ?? 0);
+                $totalAves = $hasGroupedFreightMetrics
+                    ? (int) ($entry->total_aves_kaique ?? 0)
+                    : (int) ($entry->legacy_total_aves_kaique ?? 0);
                 $dias = (int) ($entry->dias_trabalhados ?? 0);
                 $frotaUnidade = (int) ($fleetSizeByUnit[(int) $entry->unidade_id] ?? 0);
                 $avesPorCarga = $totalViagensKaique > 0 ? $totalAves / $totalViagensKaique : 0.0;
@@ -205,7 +251,7 @@ class FreightController extends Controller
                     'frete_por_km' => $totalKm > 0 ? $totalFrete / $totalKm : 0.0,
                     'frete_liquido_por_km' => $freteKaiquePorKm,
                     'frete_kaique_por_km' => $freteKaiquePorKm,
-                    'frete_kaique_por_caminhao' => $freteMedioPorCaminhaoFrota ?? 0.0,
+                    'frete_kaique_por_caminhao' => $freteMedioPorCaminhaoTrabalhado,
                     'frete_kaique_por_dia' => $freteKaiquePorDia,
                     'aves_por_carga' => $avesPorCarga,
                     'frete_kaique_por_carga' => $freteKaiquePorCarga,
@@ -2015,6 +2061,35 @@ class FreightController extends Controller
         }
 
         return ($part / $total) * 100;
+    }
+
+    private function hasGroupedFreightMetrics(object|null $row): bool
+    {
+        if ($row === null) {
+            return false;
+        }
+
+        $keys = [
+            'total_frete_kaique',
+            'total_km_kaique',
+            'total_viagens_kaique',
+            'total_aves_kaique',
+            'grouped_total_frete_terceiros',
+            'grouped_total_km_terceiros',
+            'grouped_total_viagens_terceiros',
+            'grouped_total_aves_terceiros',
+            'grouped_programado_frete',
+            'grouped_abatedouro_frete',
+            'total_frete_programado',
+        ];
+
+        foreach ($keys as $key) {
+            if ((float) ($row->{$key} ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

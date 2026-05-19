@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-05-19] - Freight dashboard Kaique metrics
+
+### Freight Operations
+
+- Freight dashboard KPIs now use the `Kaique Geral` grouped metrics as the primary source of truth instead of mixing company freight with third-party freight.
+- Per-unit comparisons, daily trend cards, and top KPI labels were updated to make the dashboard explicitly read as Kaique-owned operation data.
+- `Frete Kaique / Caminhao` now falls back to the worked-truck average, so the metric no longer displays `R$ 0,00` when fleet-size registry data is not available.
+- Added regression coverage to prevent third-party freight totals from inflating Kaique dashboard values again.
+
 ## [2026-05-19] - Documentos de entrevista e próxima etapa
 
 ### Entrevistas

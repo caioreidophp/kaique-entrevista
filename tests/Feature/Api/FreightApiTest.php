@@ -142,16 +142,59 @@ class FreightApiTest extends TestCase
         $this->getJson('/api/freight/dashboard?competencia_mes=3&competencia_ano=2026')
             ->assertOk()
             ->assertJsonPath('kpis.total_lancamentos', 2)
-            ->assertJsonPath('kpis.total_frete', 3000)
+            ->assertJsonPath('kpis.total_frete', 2500)
             ->assertJsonPath('kpis.total_km', 300)
-            ->assertJsonPath('kpis.frete_por_km', 10)
-            ->assertJsonPath('kpis.aves_por_carga', 56)
-            ->assertJsonPath('kpis.frete_medio', 120);
+            ->assertJsonPath('kpis.frete_por_km', 8.333333333333334)
+            ->assertJsonPath('kpis.aves_por_carga', 54.166666666666664)
+            ->assertJsonPath('kpis.frete_medio', 104.16666666666667);
 
         $this->getJson('/api/freight/timeline?start_date=2026-03-01&end_date=2026-03-31')
             ->assertOk()
             ->assertJsonCount(2, 'series')
             ->assertJsonPath('series.0.points.0.data', '2026-03-01');
+    }
+
+    public function test_dashboard_uses_kaique_geral_metrics_instead_of_third_party_totals(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        FreightEntry::query()->create([
+            'data' => '2026-03-07',
+            'unidade_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'frete_total' => 15000,
+            'cargas' => 15,
+            'aves' => 15000,
+            'veiculos' => 3,
+            'km_rodado' => 1500,
+            'frete_terceiros' => 6000,
+            'viagens_terceiros' => 6,
+            'aves_terceiros' => 6000,
+            'km_terceiros' => 600,
+            'frete_liquido' => 9000,
+            'cargas_liq' => 9,
+            'aves_liq' => 9000,
+            'kaique_geral_frete' => 9000,
+            'kaique_geral_viagens' => 9,
+            'kaique_geral_aves' => 9000,
+            'kaique_geral_km' => 900,
+            'terceiros_frete' => 6000,
+            'terceiros_viagens' => 6,
+            'terceiros_aves' => 6000,
+            'terceiros_km' => 600,
+            'programado_frete' => 15000,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/freight/dashboard?competencia_mes=3&competencia_ano=2026')
+            ->assertOk()
+            ->assertJsonPath('kpis.total_frete', 9000)
+            ->assertJsonPath('kpis.total_km', 900)
+            ->assertJsonPath('kpis.total_aves', 9000)
+            ->assertJsonPath('por_unidade.0.total_viagens_kaique', 9)
+            ->assertJsonPath('por_unidade.0.frete_kaique_por_caminhao', 3000);
     }
 
     public function test_dashboard_alerts_include_low_and_high_km_thresholds(): void
