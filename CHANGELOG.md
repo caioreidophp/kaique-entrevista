@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-05-19] - Documentos de entrevista e próxima etapa
+
+### Entrevistas
+
+- Botão de PDF da visualização de entrevista passou a baixar o arquivo de forma autenticada e previsível.
+- Impressão e PDF da entrevista agora incluem comentários internos para preservar o contexto de avaliação.
+- A impressão/PDF da entrevista ganhou opção de incluir anexos em um apêndice.
+- Datas da visualização de entrevista foram padronizadas em `dd/mm/aaaa`.
+
+### Próxima etapa
+
+- Documento de Raça e Etnia deixou de renderizar duas cópias iguais no PDF.
+- Checklist de admissão recebeu layout mais moderno e legível para preenchimento manual.
+
 ## [2026-04-28] - Redesign estratégico dos dashboards
 
 ### Plataforma

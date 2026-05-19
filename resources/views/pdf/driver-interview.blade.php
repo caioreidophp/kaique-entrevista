@@ -119,6 +119,42 @@
             font-size: 10px;
             font-weight: 600;
         }
+
+        .comment {
+            padding: 8px 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .comment-meta {
+            margin: 0 0 3px 0;
+            font-size: 9px;
+            color: #64748b;
+        }
+
+        .comment-body {
+            margin: 0;
+            white-space: pre-line;
+        }
+
+        .attachment-list {
+            padding: 8px 10px;
+        }
+
+        .attachment-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .attachment-image {
+            display: block;
+            max-width: 260px;
+            max-height: 180px;
+            margin-top: 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -126,6 +162,7 @@
     $hrLabel = match ((string) ($interview->hr_status?->value ?? $interview->hr_status)) {
         'aprovado' => 'Aprovado',
         'reprovado' => 'Reprovado',
+        'em_analise' => 'Em análise',
         'aguardando_vaga' => 'Aguardando vaga',
         'guep' => 'GUEP',
         default => 'Teste prático',
@@ -259,5 +296,43 @@
         <p><strong>Observações gerais:</strong> {{ $interview->general_observations }}</p>
     </div>
 </div>
+
+<div class="section">
+    <h2 class="section-title">Comentários</h2>
+    @forelse ($comments as $comment)
+        <div class="comment">
+            <p class="comment-meta">
+                {{ $comment->author?->name ?? 'Usuário removido' }}
+                @if ($comment->created_at)
+                    | {{ $comment->created_at->format('d/m/Y H:i') }}
+                @endif
+            </p>
+            <p class="comment-body">{{ $comment->body }}</p>
+        </div>
+    @empty
+        <div class="comment">
+            <p class="comment-body">Nenhum comentário registrado.</p>
+        </div>
+    @endforelse
+</div>
+
+@if ($includeAttachments)
+    <div class="section">
+        <h2 class="section-title">Anexos incluídos</h2>
+        <div class="attachment-list">
+            @forelse ($attachments as $attachment)
+                <div class="attachment-item">
+                    <span class="label">{{ $attachment['label'] }}</span>
+                    <span class="value">{{ $attachment['name'] }}</span>
+                    @if (! empty($attachment['image_data_uri']))
+                        <img class="attachment-image" src="{{ $attachment['image_data_uri'] }}" alt="{{ $attachment['label'] }}">
+                    @endif
+                </div>
+            @empty
+                <p>Nenhum anexo disponível.</p>
+            @endforelse
+        </div>
+    </div>
+@endif
 </body>
 </html>

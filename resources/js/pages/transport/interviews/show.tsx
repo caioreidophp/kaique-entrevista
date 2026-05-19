@@ -2,6 +2,10 @@ import { Link } from '@inertiajs/react';
 import { Download, LoaderCircle, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type {
+    RecordCommentEntry,
+    RecordCommentListResponse,
+} from '@/types/record-comments';
+import type {
     DriverInterview,
     GuepStatus,
     HrStatus,
@@ -13,8 +17,8 @@ import { RecordCommentsPanel } from '@/components/transport/record-comments-pane
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiGet } from '@/lib/api-client';
-import { getAuthToken } from '@/lib/transport-auth';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ApiError, apiDownload, apiGet } from '@/lib/api-client';
 
 interface ShowPageProps {
     interviewId: number;
@@ -43,6 +47,59 @@ function curriculumStatusLabel(status: InterviewCurriculumStatus): string {
     if (status === 'aprovado_entrevista') return 'Aprovado - Entrevista';
     if (status === 'reprovado_entrevista') return 'Reprovado - Entrevista';
     return 'Pendente';
+}
+
+function formatDate(value: string | null | undefined): string {
+    if (!value) {
+        return '-';
+    }
+
+    const [datePart] = value.split('T');
+    const parts = datePart.split('-');
+
+    if (parts.length === 3) {
+        const [year, month, day] = parts;
+
+        if (year.length === 4 && month.length === 2 && day.length === 2) {
+            return `${day}/${month}/${year}`;
+        }
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+}
+
+function formatDateTime(value: string | null | undefined): string {
+    if (!value) {
+        return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return formatDate(value);
+    }
+
+    return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(date);
+}
+
+function formatPeriod(
+    start: string | null | undefined,
+    end: string | null | undefined,
+): string {
+    if (!start && !end) {
+        return '-';
+    }
+
+    return `${formatDate(start)} até ${formatDate(end)}`;
 }
 
 function Item({
@@ -100,48 +157,53 @@ export default function TransportInterviewsShowPage({
     interviewId,
 }: ShowPageProps) {
     const [item, setItem] = useState<DriverInterview | null>(null);
+    const [comments, setComments] = useState<RecordCommentEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [pdfLoading, setPdfLoading] = useState(false);
+    const [includeAttachments, setIncludeAttachments] = useState(false);
 
     useEffect(() => {
         apiGet<{ data: DriverInterview }>(`/driver-interviews/${interviewId}`)
             .then((response) => setItem(response.data))
             .catch(() => setError('Não foi possível carregar a entrevista.'))
             .finally(() => setLoading(false));
+
+        apiGet<RecordCommentListResponse>(
+            `/record-comments?module_key=interviews&record_id=${interviewId}&limit=80`,
+        )
+            .then((response) => setComments(response.data))
+            .catch(() => setComments([]));
     }, [interviewId]);
 
-    async function handleOpenPdf(): Promise<void> {
-        const token = getAuthToken();
-
-        if (!token) {
-            setError('Sessão expirada. Faça login novamente.');
-            return;
+    async function handlePrint(): Promise<void> {
+        try {
+            const response = await apiGet<RecordCommentListResponse>(
+                `/record-comments?module_key=interviews&record_id=${interviewId}&limit=80`,
+            );
+            setComments(response.data);
+        } catch {
+            // Printing still works if comments cannot be refreshed.
         }
 
+        window.setTimeout(() => window.print(), 50);
+    }
+
+    async function handleOpenPdf(): Promise<void> {
         setPdfLoading(true);
+        setError(null);
 
         try {
-            const response = await fetch(
-                `/api/driver-interviews/${interviewId}/pdf`,
-                {
-                    headers: {
-                        Accept: 'application/pdf',
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
+            await apiDownload(
+                `/driver-interviews/${interviewId}/pdf?download=1&include_attachments=${includeAttachments ? '1' : '0'}`,
+                `entrevista-${interviewId}.pdf`,
             );
-
-            if (!response.ok) {
-                throw new Error('Não autorizado para gerar PDF.');
-            }
-
-            const blob = await response.blob();
-            const fileUrl = URL.createObjectURL(blob);
-            window.open(fileUrl, '_blank', 'noopener,noreferrer');
-            window.setTimeout(() => URL.revokeObjectURL(fileUrl), 30000);
-        } catch {
-            setError('Não foi possível gerar o PDF desta entrevista.');
+        } catch (error) {
+            setError(
+                error instanceof ApiError
+                    ? error.message
+                    : 'Não foi possível gerar o PDF desta entrevista.',
+            );
         } finally {
             setPdfLoading(false);
         }
@@ -164,7 +226,7 @@ export default function TransportInterviewsShowPage({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => window.print()}
+                            onClick={() => void handlePrint()}
                         >
                             <Printer className="size-4" />
                             Imprimir
@@ -186,6 +248,15 @@ export default function TransportInterviewsShowPage({
                                 </>
                             )}
                         </Button>
+                        <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                            <Checkbox
+                                checked={includeAttachments}
+                                onCheckedChange={(checked) =>
+                                    setIncludeAttachments(checked === true)
+                                }
+                            />
+                            Incluir anexos
+                        </label>
                         <Button asChild>
                             <Link
                                 href={`/transport/interviews/${interviewId}/edit`}
@@ -226,7 +297,7 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Data de nascimento"
-                                    value={item.birth_date}
+                                    value={formatDate(item.birth_date)}
                                 />
                                 <Item
                                     label="Entrevistador"
@@ -266,7 +337,9 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Validade CNH"
-                                    value={item.cnh_expiration_date}
+                                    value={formatDate(
+                                        item.cnh_expiration_date,
+                                    )}
                                 />
                                 <Item label="EAR" value={item.ear} />
                                 <AttachmentLink
@@ -330,7 +403,10 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Período última empresa"
-                                    value={`${item.last_period_start} até ${item.last_period_end}`}
+                                    value={formatPeriod(
+                                        item.last_period_start,
+                                        item.last_period_end,
+                                    )}
                                 />
                                 <Item
                                     label="Motivo última saída"
@@ -362,7 +438,10 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Período penúltima"
-                                    value={`${item.previous_period_start} até ${item.previous_period_end}`}
+                                    value={formatPeriod(
+                                        item.previous_period_start,
+                                        item.previous_period_end,
+                                    )}
                                 />
                                 <Item
                                     label="Motivo penúltima saída"
@@ -404,7 +483,9 @@ export default function TransportInterviewsShowPage({
                                 />
                                 <Item
                                     label="Início disponível"
-                                    value={item.start_availability_date}
+                                    value={formatDate(
+                                        item.start_availability_date,
+                                    )}
                                 />
                                 <Item
                                     label="Conhece alguém na empresa"
@@ -500,6 +581,82 @@ export default function TransportInterviewsShowPage({
                                     <strong>Observações gerais:</strong>{' '}
                                     {item.general_observations}
                                 </p>
+                            </CardContent>
+                        </Card>
+
+                        {includeAttachments ? (
+                            <Card className="print:break-inside-avoid print:shadow-none">
+                                <CardHeader className="print:px-4 print:py-3">
+                                    <CardTitle className="print:text-base">
+                                        Anexos da entrevista
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-4 md:grid-cols-2 print:grid-cols-2 print:gap-2 print:px-4 print:pt-0 print:pb-4">
+                                    <AttachmentLink
+                                        label="Foto do candidato"
+                                        url={item.candidate_photo_url}
+                                        fileName={
+                                            item.candidate_photo_original_name
+                                        }
+                                    />
+                                    <AttachmentLink
+                                        label="Anexo CNH"
+                                        url={item.cnh_attachment_url}
+                                        fileName={
+                                            item.cnh_attachment_original_name
+                                        }
+                                    />
+                                    <AttachmentLink
+                                        label="Carteira de Trabalho"
+                                        url={item.work_card_attachment_url}
+                                        fileName={
+                                            item.work_card_attachment_original_name
+                                        }
+                                    />
+                                    <AttachmentLink
+                                        label="Currículo"
+                                        url={item.curriculum?.document_url ?? null}
+                                        fileName={
+                                            item.curriculum
+                                                ?.document_original_name ?? null
+                                        }
+                                    />
+                                </CardContent>
+                            </Card>
+                        ) : null}
+
+                        <Card className="hidden print:block print:break-inside-avoid print:shadow-none">
+                            <CardHeader className="print:px-4 print:py-3">
+                                <CardTitle className="print:text-base">
+                                    Comentários
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm print:space-y-2 print:px-4 print:pt-0 print:pb-4 print:text-[12px]">
+                                {comments.length === 0 ? (
+                                    <p className="text-muted-foreground">
+                                        Nenhum comentário registrado.
+                                    </p>
+                                ) : (
+                                    comments.map((comment) => (
+                                        <article
+                                            key={comment.id}
+                                            className="rounded-md border bg-muted/20 px-3 py-2 print:border-slate-200"
+                                        >
+                                            <p className="font-medium">
+                                                {comment.author?.name ??
+                                                    'Usuário removido'}{' '}
+                                                <span className="font-normal text-muted-foreground">
+                                                    {formatDateTime(
+                                                        comment.created_at,
+                                                    )}
+                                                </span>
+                                            </p>
+                                            <p className="mt-1 whitespace-pre-wrap">
+                                                {comment.body}
+                                            </p>
+                                        </article>
+                                    ))
+                                )}
                             </CardContent>
                         </Card>
 

@@ -9,67 +9,69 @@
 <div class="document-wrap">
     @include('pdf.documents.partials.header')
 
-    <div class="title">Informações para registro de colaborador</div>
+    <div class="document-card">
+        <div class="eyebrow">Checklist de admissão</div>
+        <div class="title">Informações para registro de colaborador</div>
 
-    <div class="row">
-        <strong>Nome:</strong>
-        <span class="line wide">{{ $interview->full_name }}</span>
+        <div class="field-grid">
+            <div class="field wide">
+                <span class="label">Nome completo</span>
+                <strong>{{ $interview->full_name }}</strong>
+            </div>
+            <div class="field">
+                <span class="label">CPF</span>
+                <strong>{{ $interview->cpf }}</strong>
+            </div>
+        </div>
+
+        <div class="section-title">Documentos necessários</div>
+        <div class="checklist-grid">
+            <div>(&nbsp;&nbsp;) RG</div>
+            <div>(&nbsp;&nbsp;) CPF</div>
+            <div>(&nbsp;&nbsp;) CNH</div>
+            <div>(&nbsp;&nbsp;) Comprovante de endereço atualizado</div>
+        </div>
+
+        <div class="section-title">Caso tenha filhos menores</div>
+        <div class="checklist-grid">
+            <div>(&nbsp;&nbsp;) Certidão de nascimento com CPF</div>
+            <div>(&nbsp;&nbsp;) RG com CPF</div>
+        </div>
+
+        <div class="section-title">Dados a preencher</div>
+
+        <div class="form-grid">
+            <div class="fill-line">Escolaridade / Grau de Instrução</div>
+            <div class="fill-line">Estado Civil: {{ $interview->marital_status }}</div>
+            <div class="fill-line">Email: {{ $interview->email }}</div>
+            <div class="fill-line">Banco</div>
+            <div class="fill-line">Tipo de conta</div>
+            <div class="fill-line">Agência</div>
+            <div class="fill-line">Conta</div>
+            <div class="fill-line">Chave PIX</div>
+        </div>
+
+        <div class="section-title">Opções do colaborador</div>
+        <div class="checklist-grid">
+            <div>Primeiro Emprego com CTPS Assinada: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
+            <div>Opção por Vale Transporte: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
+            <div>Opção por adiantamento / Vale dia 20: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
+        </div>
+
+        <div class="section-title">Preenchimento da empresa</div>
+        <div class="form-grid">
+            <div class="fill-line">Data de Registro: ____ / ____ / _________</div>
+            <div class="fill-line">Função / Cargo</div>
+            <div class="fill-line">Salário Inicial: R$</div>
+            <div class="fill-line">Contrato de Experiência: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
+            <div class="fill-line">Se sim, quantos dias: ______ + ______</div>
+        </div>
+
+        <div class="signature-area modern-signature">
+            <div class="signature-line"></div>
+            <div>Conferência RH</div>
+        </div>
     </div>
-
-    <div class="section-title">Documentos Necessários (Cópia ou Digitalizado):</div>
-    <ul>
-        <li>RG</li>
-        <li>CPF</li>
-        <li>CNH</li>
-        <li>Comprovante de Endereço Atualizado</li>
-    </ul>
-
-    <div class="row">Caso tenha filhos menores, providenciar também:</div>
-    <ul>
-        <li>Certidão de Nascimento com CPF ou</li>
-        <li>RG com CPF</li>
-    </ul>
-
-    <div class="section-title">Favor preencher os dados abaixo e devolver ao RH da empresa:</div>
-
-    <div class="row">
-        Escolaridade / Grau de Instrução:
-        <span class="line wide"></span>
-    </div>
-
-    <div class="row">
-        Estado Civil:
-        <span class="line wide">{{ $interview->marital_status }}</span>
-    </div>
-
-    <div class="row">
-        Email:
-        <span class="line wide">{{ $interview->email }}</span>
-    </div>
-
-    <div class="row">
-        Dados Bancários:
-        Banco: <span class="line small"></span>
-        Tipo de conta <span class="line small"></span>
-    </div>
-
-    <div class="row">
-        Ag <span class="line tiny"></span>
-        Conta: <span class="line small"></span>
-        Chave PIX: <span class="line small"></span>
-    </div>
-
-    <div class="checkbox-row">Primeiro Emprego com CTPS Assinada: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
-    <div class="checkbox-row">Opção por Vale Transporte: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
-    <div class="checkbox-row">Opção por adiantamento / Vale dia 20: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
-
-    <div class="section-title">Informações abaixo devem ser preenchidas pela empresa:</div>
-
-    <div class="row">Data de Registro: ____ / ____ / _________</div>
-    <div class="row">Função / Cargo: <span class="line small"></span></div>
-    <div class="row">Salário Inicial: R$ <span class="line small"></span></div>
-    <div class="row">Contrato de Experiência: (&nbsp;&nbsp;) Sim&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;&nbsp;) Não</div>
-    <div class="row">Se sim, quantos dias: <span class="line tiny"></span> + <span class="line tiny"></span></div>
 
     @include('pdf.documents.partials.footer-logo')
 </div>

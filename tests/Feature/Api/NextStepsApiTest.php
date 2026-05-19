@@ -107,10 +107,14 @@ class NextStepsApiTest extends TestCase
 
         Sanctum::actingAs($master);
 
-        $this->get("/api/next-steps/{$interview->id}/documents/raca-etnia/preview")
+        $response = $this->get("/api/next-steps/{$interview->id}/documents/raca-etnia/preview");
+
+        $response
             ->assertOk()
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertSee('Autodeclaração Étnico-Racial');
+
+        $this->assertSame(1, substr_count((string) $response->getContent(), 'class="document-card"'));
     }
 
     public function test_document_generation_fails_for_non_approved_candidate(): void

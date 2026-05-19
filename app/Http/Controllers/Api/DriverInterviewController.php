@@ -13,14 +13,15 @@ use App\Http\Resources\DriverInterviewListResource;
 use App\Http\Resources\DriverInterviewResource;
 use App\Models\DriverInterview;
 use App\Models\InterviewCurriculum;
+use App\Models\RecordComment;
 use App\Models\User;
 use App\Support\InterviewCurriculumStatusService;
 use App\Support\PdfBranding;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -313,21 +314,31 @@ class DriverInterviewController extends Controller
         return response()->noContent();
     }
 
-    public function pdf(DriverInterview $driverInterview): Response
+    public function pdf(Request $request, DriverInterview $driverInterview): Response
     {
         $this->authorize('print', $driverInterview);
 
-        $pdf = Pdf::loadView('pdf.driver-interview', [
-            'interview' => $driverInterview->load('author:id,name,email'),
-            'logoDataUri' => PdfBranding::logoDataUri(),
+        $driverInterview->load([
+            'author:id,name,email',
+            'curriculum:id,full_name,status,document_path,document_original_name,cnh_attachment_path,cnh_attachment_original_name,work_card_attachment_path,work_card_attachment_original_name',
         ]);
+
+        $pdf = Pdf::loadView('pdf.driver-interview', [
+            'interview' => $driverInterview,
+            'logoDataUri' => PdfBranding::logoDataUri(),
+            'comments' => $this->interviewComments($driverInterview),
+            'includeAttachments' => $request->boolean('include_attachments'),
+            'attachments' => $this->interviewAttachmentRows($driverInterview),
+        ]);
+
+        $download = $request->boolean('download');
 
         return response(
             $pdf->output(),
             200,
             [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="entrevista-'.$driverInterview->id.'.pdf"',
+                'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="entrevista-'.$driverInterview->id.'.pdf"',
             ],
         );
     }
@@ -398,7 +409,7 @@ class DriverInterviewController extends Controller
                     InterviewCurriculumStatus::ReprovadoEntrevista,
                 ], true),
                 422,
-                'Curr�culos descartados n�o podem ser vinculados � entrevista.'
+                'Currículos descartados não podem ser vinculados à entrevista.'
             );
 
             $linkedElsewhere = DriverInterview::query()
@@ -430,5 +441,68 @@ class DriverInterviewController extends Controller
             403,
             'Você não possui permissão para utilizar este currículo.'
         );
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, RecordComment>
+     */
+    private function interviewComments(DriverInterview $driverInterview)
+    {
+        return RecordComment::query()
+            ->where('module_key', 'interviews')
+            ->where('record_id', $driverInterview->id)
+            ->with('author:id,name,email')
+            ->oldest('id')
+            ->limit(120)
+            ->get();
+    }
+
+    /**
+     * @return array<int, array{label: string, name: string, path: ?string, image_data_uri: ?string}>
+     */
+    private function interviewAttachmentRows(DriverInterview $driverInterview): array
+    {
+        $rows = [
+            $this->attachmentRow('Foto do candidato', $driverInterview->candidate_photo_original_name, $driverInterview->candidate_photo_path),
+            $this->attachmentRow('Anexo CNH', $driverInterview->cnh_attachment_original_name, $driverInterview->cnh_attachment_path),
+            $this->attachmentRow('Carteira de Trabalho', $driverInterview->work_card_attachment_original_name, $driverInterview->work_card_attachment_path),
+            $this->attachmentRow('Currículo', $driverInterview->curriculum?->document_original_name, $driverInterview->curriculum?->document_path),
+            $this->attachmentRow('CNH do currículo', $driverInterview->curriculum?->cnh_attachment_original_name, $driverInterview->curriculum?->cnh_attachment_path),
+            $this->attachmentRow('Carteira de Trabalho do currículo', $driverInterview->curriculum?->work_card_attachment_original_name, $driverInterview->curriculum?->work_card_attachment_path),
+        ];
+
+        return array_values(array_filter($rows, fn (array $row): bool => $row['path'] !== null || $row['name'] !== '-'));
+    }
+
+    /**
+     * @return array{label: string, name: string, path: ?string, image_data_uri: ?string}
+     */
+    private function attachmentRow(string $label, ?string $name, ?string $path): array
+    {
+        $normalizedPath = trim((string) $path);
+
+        return [
+            'label' => $label,
+            'name' => trim((string) $name) ?: ($normalizedPath !== '' ? basename($normalizedPath) : '-'),
+            'path' => $normalizedPath !== '' ? $normalizedPath : null,
+            'image_data_uri' => $normalizedPath !== '' ? $this->attachmentImageDataUri($normalizedPath) : null,
+        ];
+    }
+
+    private function attachmentImageDataUri(string $path): ?string
+    {
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        $mime = Storage::disk('public')->mimeType($path) ?: '';
+
+        if (! str_starts_with($mime, 'image/')) {
+            return null;
+        }
+
+        $contents = Storage::disk('public')->get($path);
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
     }
 }

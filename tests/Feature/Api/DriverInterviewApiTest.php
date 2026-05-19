@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\DriverInterview;
 use App\Models\InterviewCurriculum;
+use App\Models\RecordComment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -361,6 +362,33 @@ class DriverInterviewApiTest extends TestCase
         $this->get("/api/driver-interviews/{$interview->id}/pdf")
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_interview_pdf_can_be_downloaded_with_comments_and_attachment_option(): void
+    {
+        $master = User::factory()->masterAdmin()->create();
+        $otherAuthor = User::factory()->create();
+
+        $interview = DriverInterview::factory()->create([
+            'author_id' => $otherAuthor->id,
+            'user_id' => $otherAuthor->id,
+            'candidate_photo_path' => 'driver-interviews/1/candidate-photo/foto.jpg',
+            'candidate_photo_original_name' => 'foto.jpg',
+        ]);
+
+        RecordComment::query()->create([
+            'module_key' => 'interviews',
+            'record_id' => $interview->id,
+            'body' => 'Comentário interno para impressão.',
+            'created_by' => $master->id,
+        ]);
+
+        Sanctum::actingAs($master);
+
+        $this->get("/api/driver-interviews/{$interview->id}/pdf?download=1&include_attachments=1")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('Content-Disposition', 'attachment; filename="entrevista-'.$interview->id.'.pdf"');
     }
 
     public function test_author_can_upload_interview_attachments(): void

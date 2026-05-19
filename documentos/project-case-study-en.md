@@ -52,6 +52,12 @@ This project represents end-to-end engineering work:
 - GitHub Actions for build, type checking, linting, audits, and tests.
 - VPS deployment documentation with Nginx, PHP-FPM, Supervisor, queues, and scheduler.
 
+## Recent Document Workflow Improvements
+
+The recruitment workflow now treats printed/PDF interview records as part of the product, not as a secondary export. Interview PDFs can be downloaded reliably, include internal comments for audit context, and optionally include an attachment appendix. The candidate interview screen also formats dates in the Brazilian `dd/mm/yyyy` pattern so printed records match operator expectations.
+
+The admission checklist and race/ethnicity declaration templates were also cleaned up for a more professional handoff: the checklist now uses a clearer fillable layout, and the race/ethnicity document renders as one copy instead of duplicated pages.
+
 ## Product Decisions
 
 The interface is intentionally practical. It favors dense tables, filters, status chips, and direct actions because the target user repeats the same workflows often and needs to scan data quickly.

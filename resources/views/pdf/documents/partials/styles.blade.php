@@ -4,7 +4,7 @@
     }
 
     body {
-        font-family: DejaVu Serif, serif;
+        font-family: DejaVu Sans, sans-serif;
         color: #0f172a;
         font-size: 12px;
         line-height: 1.35;
@@ -29,17 +29,17 @@
     }
 
     .title {
-        font-size: 24px;
-        margin: 2px 0 10px;
+        font-size: 22px;
+        margin: 2px 0 14px;
         font-weight: 700;
-        text-transform: uppercase;
+        color: #0f172a;
     }
 
     .section-title {
-        margin: 14px 0 8px;
-        font-size: 14px;
+        margin: 16px 0 8px;
+        font-size: 13px;
         font-weight: 700;
-        text-decoration: underline;
+        color: #0f172a;
     }
 
     .line {
@@ -83,7 +83,7 @@
     }
 
     .signature-area {
-        margin-top: 26px;
+        margin-top: 28px;
     }
 
     .signature-line {
@@ -107,5 +107,107 @@
         max-height: 56px;
         height: auto;
         opacity: 0.95;
+    }
+
+    .document-card {
+        border: 1px solid #dbe3ef;
+        border-radius: 14px;
+        padding: 18px;
+        background: #ffffff;
+    }
+
+    .eyebrow {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+
+    .field-grid {
+        display: table;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 8px;
+        margin: 0 -8px 12px;
+    }
+
+    .field {
+        display: table-cell;
+        width: 34%;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px 10px;
+        vertical-align: top;
+    }
+
+    .field.wide {
+        width: 66%;
+    }
+
+    .label {
+        display: block;
+        color: #64748b;
+        font-size: 9px;
+        font-weight: 700;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+    }
+
+    .checklist-grid,
+    .option-grid,
+    .form-grid {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+    }
+
+    .checklist-grid div,
+    .option-grid span {
+        display: inline-block;
+        margin: 0 22px 8px 0;
+    }
+
+    .form-grid {
+        padding-bottom: 2px;
+    }
+
+    .fill-line {
+        border-bottom: 1px solid #94a3b8;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        min-height: 16px;
+    }
+
+    .notice {
+        border-left: 4px solid #0f172a;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 11px;
+        margin: 12px 0;
+        padding: 10px 12px;
+    }
+
+    .signature-date span {
+        border-bottom: 1px solid #94a3b8;
+        display: inline-block;
+        min-width: 42px;
+        text-align: center;
+    }
+
+    .signature-date span:first-child {
+        min-width: 180px;
+        text-align: left;
+    }
+
+    .modern-signature {
+        text-align: center;
+    }
+
+    .modern-signature .signature-line {
+        margin-left: auto;
+        margin-right: auto;
     }
 </style>

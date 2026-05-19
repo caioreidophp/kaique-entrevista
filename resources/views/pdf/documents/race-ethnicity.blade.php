@@ -9,41 +9,63 @@
 <div class="document-wrap">
     @include('pdf.documents.partials.header')
 
-    @for ($i = 0; $i < 2; $i++)
-        <div class="double-copy">
-            <div class="title">Autodeclaração Étnico-Racial</div>
+    <div class="document-card">
+        <div class="eyebrow">Documento de admissão</div>
+        <div class="title">Autodeclaração Étnico-Racial</div>
 
-            <div class="row">
-                Eu, <span class="line wide">{{ $interview->full_name }}</span>,
-                inscrito no CPF sob nº <span class="line small">{{ $interview->cpf }}</span>,
-                AUTODECLARO, sob as penas da lei, minha raça/etnia sendo:
+        <div class="field-grid">
+            <div class="field">
+                <span class="label">Nome completo</span>
+                <strong>{{ $interview->full_name }}</strong>
             </div>
-
-            <div class="checkbox-row">(&nbsp;&nbsp;) Branca &nbsp;&nbsp; (&nbsp;&nbsp;) Preta &nbsp;&nbsp; (&nbsp;&nbsp;) Parda &nbsp;&nbsp; (&nbsp;&nbsp;) Amarela &nbsp;&nbsp; (&nbsp;&nbsp;) Indígena</div>
-
-            <div class="row muted">
-                Esta autodeclaração atende a exigência do art. 39, § 8º, da Lei 12.288/2010, alterado pela Lei nº 14.553/2023 e da Portaria MTE nº 3.784/2023, que obriga a prestação da informação nas inclusões, alterações ou retificações cadastrais dos trabalhadores ocorridas a partir de 1º de janeiro de 2024, respeitando o critério de autodeclaração do trabalhador, em conformidade com a classificação utilizada pelo Instituto Brasileiro de Geografia e Estatística - IBGE.
+            <div class="field">
+                <span class="label">CPF</span>
+                <strong>{{ $interview->cpf }}</strong>
             </div>
-
-            <div class="row">
-                Por ser a expressão da verdade, firmo e assino a presente para que a mesma produza seus efeitos legais e de direito.
-            </div>
-
-            <div class="row">
-                <span class="line small">{{ $interview->city }}</span>,
-                <span class="line tiny">{{ now()->format('d') }}</span> /
-                <span class="line tiny">{{ now()->format('m') }}</span> /
-                <span class="line tiny">{{ now()->format('Y') }}</span>
-            </div>
-
-            <div class="signature-area">
-                <div class="signature-line"></div>
-                <div>Assinatura</div>
-            </div>
-
-            @include('pdf.documents.partials.footer-logo')
         </div>
-    @endfor
+
+        <div class="row">
+            Eu, <strong>{{ $interview->full_name }}</strong>, inscrito no CPF sob nº
+            <strong>{{ $interview->cpf }}</strong>, AUTODECLARO, sob as penas da lei,
+            minha raça/etnia sendo:
+        </div>
+
+        <div class="option-grid">
+            <span>(&nbsp;&nbsp;) Branca</span>
+            <span>(&nbsp;&nbsp;) Preta</span>
+            <span>(&nbsp;&nbsp;) Parda</span>
+            <span>(&nbsp;&nbsp;) Amarela</span>
+            <span>(&nbsp;&nbsp;) Indígena</span>
+        </div>
+
+        <div class="notice">
+            Esta autodeclaração atende a exigência do art. 39, § 8º, da Lei 12.288/2010,
+            alterado pela Lei nº 14.553/2023 e da Portaria MTE nº 3.784/2023, que obriga
+            a prestação da informação nas inclusões, alterações ou retificações cadastrais
+            dos trabalhadores ocorridas a partir de 1º de janeiro de 2024, respeitando o
+            critério de autodeclaração do trabalhador, em conformidade com a classificação
+            utilizada pelo Instituto Brasileiro de Geografia e Estatística - IBGE.
+        </div>
+
+        <div class="row">
+            Por ser a expressão da verdade, firmo e assino a presente para que a mesma
+            produza seus efeitos legais e de direito.
+        </div>
+
+        <div class="row signature-date">
+            <span>{{ $interview->city ?: '________________' }}</span>,
+            <span>{{ now()->format('d') }}</span> /
+            <span>{{ now()->format('m') }}</span> /
+            <span>{{ now()->format('Y') }}</span>
+        </div>
+
+        <div class="signature-area">
+            <div class="signature-line"></div>
+            <div>Assinatura do colaborador</div>
+        </div>
+    </div>
+
+    @include('pdf.documents.partials.footer-logo')
 </div>
 </body>
 </html>
