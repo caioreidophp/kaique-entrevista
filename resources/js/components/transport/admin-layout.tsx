@@ -1905,6 +1905,10 @@ export function AdminLayout({
         [fixedLinks, hasPermission, sidebarPermissionByLinkKey],
     );
 
+    const hasActiveFixedLink = visibleFixedLinks.some(
+        (link) => link.key === active,
+    );
+
     const filteredVisibleLinks = useMemo(() => {
         const query = menuSearch.trim().toLocaleLowerCase();
 
@@ -2344,55 +2348,64 @@ export function AdminLayout({
                                 ) : null}
                             </div>
 
-                            <div className="mt-4 border-t pt-4">
+                            <div className="group mt-4 border-t pt-3">
                                 {!sidebarCollapsed ? (
-                                    <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        {copy.generalAccess}
-                                    </p>
+                                    <div className="mb-1 flex items-center justify-between rounded-md px-1 py-1 text-[11px] tracking-wide text-muted-foreground uppercase transition-colors group-hover:text-foreground">
+                                        <span>{copy.generalAccess}</span>
+                                        <ChevronRight className="size-3.5 transition-transform duration-150 group-hover:rotate-90 group-focus-within:rotate-90" />
+                                    </div>
                                 ) : null}
-                                {visibleFixedLinks.map((link) => {
-                                    const Icon = link.icon;
-                                    const isActive = link.key === active;
+                                <div
+                                    className={`overflow-hidden transition-all duration-200 ease-out group-hover:max-h-80 group-hover:opacity-100 group-focus-within:max-h-80 group-focus-within:opacity-100 ${
+                                        hasActiveFixedLink || sidebarCollapsed
+                                            ? 'max-h-80 opacity-100'
+                                            : 'max-h-0 opacity-0'
+                                    }`}
+                                >
+                                    {visibleFixedLinks.map((link) => {
+                                        const Icon = link.icon;
+                                        const isActive = link.key === active;
 
-                                    return (
-                                        <Link
-                                            key={link.key}
-                                            href={link.href}
-                                            prefetch
-                                            onClick={() =>
-                                                setMobileMenuOpen(false)
-                                            }
-                                            title={link.label}
-                                            className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                                                isActive
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'hover:bg-muted'
-                                            } ${
-                                                sidebarCollapsed
-                                                    ? 'justify-center px-2'
-                                                    : ''
-                                            }`}
-                                        >
-                                            <Icon className="size-4" />
-                                            {!sidebarCollapsed ? (
-                                                <span>{link.label}</span>
-                                            ) : null}
-                                        </Link>
-                                    );
-                                })}
+                                        return (
+                                            <Link
+                                                key={link.key}
+                                                href={link.href}
+                                                prefetch
+                                                onClick={() =>
+                                                    setMobileMenuOpen(false)
+                                                }
+                                                title={link.label}
+                                                className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                    isActive
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'hover:bg-muted'
+                                                } ${
+                                                    sidebarCollapsed
+                                                        ? 'justify-center px-2'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <Icon className="size-4" />
+                                                {!sidebarCollapsed ? (
+                                                    <span>{link.label}</span>
+                                                ) : null}
+                                            </Link>
+                                        );
+                                    })}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className={`mt-2 ${sidebarCollapsed ? 'w-auto self-center px-2' : 'w-full'}`}
+                                        onClick={handleLogout}
+                                        title={copy.logout}
+                                    >
+                                        <LogOut className="size-4" />
+                                        {!sidebarCollapsed ? copy.logout : null}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className={`mt-3 ${sidebarCollapsed ? 'w-auto self-center px-2' : 'w-full'}`}
-                            onClick={handleLogout}
-                            title={copy.logout}
-                        >
-                            <LogOut className="size-4" />
-                            {!sidebarCollapsed ? copy.logout : null}
-                        </Button>
                     </aside>
 
                     {focusMode ? (
@@ -2613,44 +2626,54 @@ export function AdminLayout({
                                     ) : null}
                                 </div>
 
-                                <div className="mt-4 border-t pt-4">
-                                    <p className="mb-2 px-1 text-[11px] tracking-wide text-muted-foreground uppercase">
-                                        {copy.generalAccess}
-                                    </p>
-                                    {visibleFixedLinks.map((link) => {
-                                        const Icon = link.icon;
-                                        const isActive = link.key === active;
+                                <div className="group mt-4 border-t pt-3">
+                                    <div className="mb-1 flex items-center justify-between rounded-md px-1 py-1 text-[11px] tracking-wide text-muted-foreground uppercase transition-colors group-hover:text-foreground">
+                                        <span>{copy.generalAccess}</span>
+                                        <ChevronRight className="size-3.5 transition-transform duration-150 group-hover:rotate-90 group-focus-within:rotate-90" />
+                                    </div>
+                                    <div
+                                        className={`overflow-hidden transition-all duration-200 ease-out group-hover:max-h-80 group-hover:opacity-100 group-focus-within:max-h-80 group-focus-within:opacity-100 ${
+                                            hasActiveFixedLink
+                                                ? 'max-h-80 opacity-100'
+                                                : 'max-h-0 opacity-0'
+                                        }`}
+                                    >
+                                        {visibleFixedLinks.map((link) => {
+                                            const Icon = link.icon;
+                                            const isActive =
+                                                link.key === active;
 
-                                        return (
-                                            <Link
-                                                key={link.key}
-                                                href={link.href}
-                                                prefetch
-                                                title={link.label}
-                                                className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                                                    isActive
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'hover:bg-muted'
-                                                }`}
-                                            >
-                                                <Icon className="size-4" />
-                                                <span>{link.label}</span>
-                                            </Link>
-                                        );
-                                    })}
+                                            return (
+                                                <Link
+                                                    key={link.key}
+                                                    href={link.href}
+                                                    prefetch
+                                                    title={link.label}
+                                                    className={`mb-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                                                        isActive
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <Icon className="size-4" />
+                                                    <span>{link.label}</span>
+                                                </Link>
+                                            );
+                                        })}
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="mt-2 w-full"
+                                            onClick={handleLogout}
+                                            title={copy.logout}
+                                        >
+                                            <LogOut className="size-4" />
+                                            {copy.logout}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
-
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="mt-3 w-full"
-                                onClick={handleLogout}
-                                title={copy.logout}
-                            >
-                                <LogOut className="size-4" />
-                                {copy.logout}
-                            </Button>
                         </aside>
                     ) : null}
 
