@@ -8,6 +8,7 @@
 - General-access links and logout now stay collapsed by default on desktop/focus sidebars and expand on hover or keyboard focus.
 - The section remains open when the current page belongs to general access, preserving orientation while saving vertical space in module navigation.
 - Refined the reveal animation with slower easing, subtle motion, and a cleaner hover treatment for a more polished navigation feel.
+- Reworked the reveal as a floating panel so the sidebar no longer jumps or compresses the module navigation when `Acesso geral` opens.
 
 ## [2026-05-19] - Freight dashboard Kaique metrics
 
