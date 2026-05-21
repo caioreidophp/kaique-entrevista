@@ -89,6 +89,16 @@ Build production assets:
 npm run build
 ```
 
+## Safe Demo Dataset
+
+For portfolio videos or university reviewers, create an isolated demo account with synthetic records:
+
+```bash
+php artisan transport:seed-demo --reset
+```
+
+Set `TRANSPORT_DEMO_EMAIL`, `TRANSPORT_DEMO_PASSWORD`, and matching `VITE_TRANSPORT_DEMO_*` values in the environment. Keep `TRANSPORT_DEMO_READONLY=true` when the demo account is public so reviewers can explore without changing data.
+
 ## Quality Checks
 
 Useful checks before opening a pull request:

@@ -8,7 +8,9 @@ Show that the project solves a real operational problem and that the engineering
 
 ## Before Recording
 
-- Use a demo account with no private data.
+- Use the isolated demo account, not a real employee account.
+- Generate the synthetic dataset with `php artisan transport:seed-demo --reset`.
+- Keep `TRANSPORT_DEMO_READONLY=true` when the demo account is exposed publicly.
 - Keep the app open at the transport home page.
 - Prepare one clean workflow to show, such as resume intake to interview status or freight launch to report.
 - Keep the repository README open in another tab in case the reviewer wants technical context.
@@ -60,6 +62,6 @@ If the reviewer asks for details:
 ## Recording Tips
 
 - Keep browser zoom at 100%.
-- Use a clean demo dataset.
+- Use the clean demo dataset created by `transport:seed-demo`.
 - Do not show real phone numbers, documents, or personal data.
 - Keep the video under three minutes unless a longer technical walkthrough is requested.

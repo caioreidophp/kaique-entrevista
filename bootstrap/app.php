@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Middleware\ApiRequestTelemetry;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\ApiRequestTelemetry;
 use App\Http\Middleware\LogSensitiveApiActions;
 use App\Http\Middleware\MonitorSuspiciousApiActivity;
 use App\Http\Middleware\ResponseCompression;
@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         App\Console\Commands\MigrateSqliteToMysqlCommand::class,
         App\Console\Commands\AuditMysqlUniqueCollisionsCommand::class,
         App\Console\Commands\FixAviariosDuplicatesCommand::class,
+        App\Console\Commands\SeedDemoPortfolioCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);

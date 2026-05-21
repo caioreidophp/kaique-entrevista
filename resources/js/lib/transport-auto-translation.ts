@@ -1,7 +1,6 @@
 import type { TransportLanguage } from '@/lib/transport-language';
 
-const TRANSLATION_CACHE_KEY = 'transport.translation.cache.en-US.v1';
-const MAX_CACHE_ENTRIES = 5000;
+const TRANSLATION_CACHE_KEY = 'transport.translation.cache.en-US.v2.curated';
 const TRANSLATABLE_ATTRIBUTES = ['placeholder', 'title', 'aria-label'] as const;
 
 type TranslatableAttribute = (typeof TRANSLATABLE_ATTRIBUTES)[number];
@@ -19,34 +18,160 @@ const EXCLUDED_TAGS = new Set([
     'KBD',
 ]);
 
-const STATIC_TRANSLATIONS: Record<string, string> = {
-    'Gestão de Fretes': 'Freight Management',
-    Configurações: 'Settings',
-    'Lista de Fretes': 'Freight List',
-    'Lançar Fretes': 'Launch Freight',
-    'Lançar Férias': 'Launch Vacation',
-    'Lista de Férias': 'Vacation List',
-    'Dashboard de Fretes': 'Freight Dashboard',
-    'Dashboard Pagamentos': 'Payroll Dashboard',
-    Entrevistas: 'Interviews',
-    'Próximos Passos': 'Next Steps',
-    Colaboradores: 'Collaborators',
-    Usuários: 'Users',
-    Funções: 'Functions',
-    'Tipo de Pagamentos': 'Payment Types',
-    'Placas e Aviários': 'Plates and Aviaries',
-    Pendências: 'Pending Items',
+const CURATED_TRANSLATIONS: Record<string, string> = {
+    'acao': 'Action',
+    'acoes': 'Actions',
+    'acesso geral': 'General access',
+    'aguardando - entrevista': 'Waiting - Interview',
+    'aguardando entrevista': 'Waiting for interview',
+    'alterar senha': 'Change password',
+    'anexos': 'Attachments',
+    'anterior': 'Previous',
+    'aparencia': 'Appearance',
+    'aprovado': 'Approved',
+    'arquivos': 'Files',
+    'ativo': 'Active',
+    'avaliacao final': 'Final evaluation',
+    'aves kaique geral': 'Kaique birds total',
+    'aves transportadas': 'Birds transported',
+    'baixar pdf': 'Download PDF',
+    'buscar no menu': 'Search menu',
+    'cadastro': 'Registry',
+    'cargas canceladas': 'Canceled loads',
+    'central analitica': 'Analytics center',
+    'central de fretes': 'Freight center',
+    'claro': 'Light',
+    'colaboradores': 'Collaborators',
+    'comentarios': 'Comments',
+    'configuracoes': 'Settings',
+    'convocados': 'Called',
+    'curriculo': 'Resume',
+    'curriculos': 'Resumes',
+    'dashboard': 'Dashboard',
+    'dashboard executivo': 'Executive dashboard',
+    'dashboard folha': 'Payroll dashboard',
+    'data': 'Date',
+    'data entrevista': 'Interview date',
+    'data de nascimento': 'Date of birth',
+    'descartados': 'Discarded',
+    'descricao': 'Description',
+    'descontos/ajustes': 'Discounts/adjustments',
+    'disponibilidade': 'Availability',
+    'documentos': 'Documents',
+    'editar': 'Edit',
+    'email': 'Email',
+    'em analise': 'Under review',
+    'entrevista': 'Interview',
+    'entrevistador': 'Interviewer',
+    'entrevistas': 'Interviews',
+    'excluir': 'Delete',
+    'experiencia profissional': 'Professional experience',
+    'ferias': 'Vacation',
+    'filtros': 'Filters',
+    'folha': 'Payroll',
+    'frete': 'Freight',
+    'frete kaique / caminhao': 'Kaique freight / truck',
+    'frete kaique / km rodado': 'Kaique freight / km driven',
+    'frete kaique por dia': 'Kaique freight per day',
+    'frete total': 'Total freight',
+    'fretes': 'Freight',
+    'funcao': 'Role',
+    'funcoes': 'Roles',
+    'gerar pdf': 'Generate PDF',
+    'gestao de fretes': 'Freight management',
+    'imprimir': 'Print',
+    'idioma': 'Language',
+    'infrações': 'Violations',
+    'infracoes': 'Violations',
+    'kaique transportes': 'Kaique Transportes',
+    'km kaique geral': 'Kaique km total',
+    'km rodado': 'Km driven',
+    'lancar ferias': 'Add vacation',
+    'lancar fretes': 'Add freight',
+    'lancar fretes spot': 'Add spot freight',
+    'lancar multas': 'Add fines',
+    'lancar pagamentos': 'Add payments',
+    'lancar notificacao': 'Add notice',
+    'limpar filtros': 'Clear filters',
+    'lista de candidatos': 'Candidate list',
+    'lista de ferias': 'Vacation list',
+    'lista de fretes': 'Freight list',
+    'lista de multas': 'Fine list',
+    'lista de pagamentos': 'Payment list',
+    'log': 'Log',
+    'log de atividades': 'Activity log',
+    'modo escuro': 'Dark mode',
+    'motivo descarte': 'Discard reason',
+    'multas': 'Fines',
+    'nao': 'No',
+    'nao fazer': 'Do not proceed',
+    'navegacao do modulo': 'Module navigation',
+    'nome': 'Name',
+    'nota': 'Score',
+    'nova entrevista': 'New interview',
+    'novo curriculo': 'New resume',
+    'observacoes': 'Notes',
+    'onboarding': 'Onboarding',
+    'pagamentos': 'Payments',
+    'painel cadastro': 'Registry panel',
+    'painel entrevistas': 'Interview panel',
+    'painel ferias': 'Vacation panel',
+    'painel folha': 'Payroll panel',
+    'painel fretes': 'Freight panel',
+    'painel gestao de multas': 'Fine management panel',
+    'painel programacao': 'Scheduling panel',
+    'pendencias': 'Pending items',
+    'pendente': 'Pending',
+    'pendentes': 'Pending',
+    'perfil': 'Profile',
+    'pesquisar': 'Search',
+    'placas e aviarios': 'Plates and aviaries',
+    'proxima': 'Next',
+    'proxima etapa': 'Next step',
+    'proximos passos': 'Next steps',
+    'programacao': 'Scheduling',
+    'programacao de viagens': 'Trip scheduling',
+    'qual unidade?': 'Which unit?',
+    'reprovado': 'Rejected',
+    'sair': 'Sign out',
+    'salario': 'Salary',
+    'salvar': 'Save',
+    'salvar senha': 'Save password',
+    'salvando...': 'Saving...',
+    'senha atual': 'Current password',
+    'sim': 'Yes',
+    'status': 'Status',
+    'status guep': 'GUEP status',
+    'status rh': 'HR status',
+    'telefone': 'Phone',
+    'tipo de pagamentos': 'Payment types',
+    'tipos de pagamento': 'Payment types',
+    'todas as funcoes': 'All roles',
+    'todas as unidades': 'All units',
+    'todos': 'All',
+    'unidade': 'Unit',
+    'unidades': 'Units',
+    'usuarios': 'Users',
+    'ver': 'View',
+    'visualizar': 'View',
+    'visualizar entrevista': 'View interview',
+    'voltar': 'Back',
 };
 
 let translationCache: Map<string, string> | null = null;
-let cachePersistTimeout: number | null = null;
-const inFlightTranslations = new Map<string, Promise<string>>();
 
 type AttributeOriginals = Map<HTMLElement, Map<TranslatableAttribute, string>>;
 type AttributeQueue = Map<HTMLElement, Set<TranslatableAttribute>>;
 
 function normalizeText(value: string): string {
     return value.replace(/\s+/g, ' ').trim();
+}
+
+function translationKey(value: string): string {
+    return normalizeText(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
 }
 
 function shouldTranslateText(value: string): boolean {
@@ -68,17 +193,7 @@ function shouldTranslateText(value: string): boolean {
         return false;
     }
 
-    if (trimmed.includes('`')) {
-        return false;
-    }
-
-    const lettersOnly = trimmed.replace(/[^A-Za-zÀ-ÿ]/g, '');
-
-    if (lettersOnly.length === 0) {
-        return false;
-    }
-
-    return true;
+    return /[A-Za-zÀ-ÿ]/.test(trimmed) && !trimmed.includes('`');
 }
 
 function withOriginalPadding(original: string, translated: string): string {
@@ -93,28 +208,22 @@ function getTranslationCache(): Map<string, string> {
         return translationCache;
     }
 
-    const cache = new Map<string, string>(Object.entries(STATIC_TRANSLATIONS));
+    const cache = new Map<string, string>(Object.entries(CURATED_TRANSLATIONS));
 
     if (typeof window !== 'undefined') {
         try {
             const raw = window.localStorage.getItem(TRANSLATION_CACHE_KEY);
+            const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
 
-            if (raw) {
-                const parsed = JSON.parse(raw) as Record<string, unknown>;
-
-                if (parsed && typeof parsed === 'object') {
-                    Object.entries(parsed).forEach(([key, value]) => {
-                        if (
-                            typeof key === 'string' &&
-                            typeof value === 'string'
-                        ) {
-                            cache.set(key, value);
-                        }
-                    });
-                }
+            if (parsed && typeof parsed === 'object') {
+                Object.entries(parsed).forEach(([key, value]) => {
+                    if (typeof key === 'string' && typeof value === 'string') {
+                        cache.set(key, value);
+                    }
+                });
             }
         } catch {
-            // Ignore invalid local cache and keep in-memory defaults.
+            // Local cache is optional; keep curated defaults when unavailable.
         }
     }
 
@@ -123,101 +232,65 @@ function getTranslationCache(): Map<string, string> {
     return cache;
 }
 
-function trimCache(cache: Map<string, string>): void {
-    while (cache.size > MAX_CACHE_ENTRIES) {
-        const oldestKey = cache.keys().next().value;
-
-        if (typeof oldestKey !== 'string') {
-            break;
-        }
-
-        cache.delete(oldestKey);
-    }
-}
-
-function scheduleCachePersist(): void {
+function persistCuratedTranslation(key: string, value: string): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    if (cachePersistTimeout !== null) {
-        return;
+    const cache = getTranslationCache();
+    cache.set(key, value);
+
+    try {
+        window.localStorage.setItem(
+            TRANSLATION_CACHE_KEY,
+            JSON.stringify(Object.fromEntries(cache.entries())),
+        );
+    } catch {
+        // Ignore quota/private mode failures.
     }
-
-    cachePersistTimeout = window.setTimeout(() => {
-        cachePersistTimeout = null;
-
-        try {
-            const cache = getTranslationCache();
-            trimCache(cache);
-            window.localStorage.setItem(
-                TRANSLATION_CACHE_KEY,
-                JSON.stringify(Object.fromEntries(cache.entries())),
-            );
-        } catch {
-            // Ignore persist failures (quota/private mode).
-        }
-    }, 900);
 }
 
-function extractTranslatedText(payload: unknown): string {
-    if (!Array.isArray(payload) || !Array.isArray(payload[0])) {
-        return '';
+function translateKnownPatterns(normalized: string): string | null {
+    const pageMatch = normalized.match(/^pagina\s+(\d+)\s+de\s+(\d+)$/i);
+
+    if (pageMatch) {
+        return `Page ${pageMatch[1]} of ${pageMatch[2]}`;
     }
 
-    return (payload[0] as unknown[])
-        .map((part) => (Array.isArray(part) ? String(part[0] ?? '') : ''))
-        .join('');
+    const daysWorked = normalized.match(/^(\d+)\s+dias trabalhados$/i);
+
+    if (daysWorked) {
+        return `${daysWorked[1]} working days`;
+    }
+
+    const launches = normalized.match(/^(\d+)\s+lancamento\(s\)$/i);
+
+    if (launches) {
+        return `${launches[1]} record(s)`;
+    }
+
+    return null;
 }
 
 async function translatePtToEn(text: string): Promise<string> {
     const normalized = normalizeText(text);
+    const key = translationKey(normalized);
     const cache = getTranslationCache();
-
-    const cached = cache.get(normalized);
+    const cached = cache.get(key);
 
     if (cached) {
         return cached;
     }
 
-    const inFlight = inFlightTranslations.get(normalized);
+    const patternTranslation = translateKnownPatterns(key);
 
-    if (inFlight) {
-        return inFlight;
+    if (patternTranslation) {
+        persistCuratedTranslation(key, patternTranslation);
+
+        return patternTranslation;
     }
 
-    const promise = (async () => {
-        try {
-            const endpoint = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=${encodeURIComponent(normalized)}`;
-            const response = await fetch(endpoint, {
-                headers: {
-                    Accept: 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                return normalized;
-            }
-
-            const payload = (await response.json()) as unknown;
-            const translated = normalizeText(extractTranslatedText(payload));
-            const safeValue = translated || normalized;
-
-            cache.set(normalized, safeValue);
-            trimCache(cache);
-            scheduleCachePersist();
-
-            return safeValue;
-        } catch {
-            return normalized;
-        } finally {
-            inFlightTranslations.delete(normalized);
-        }
-    })();
-
-    inFlightTranslations.set(normalized, promise);
-
-    return promise;
+    return normalized;
 }
 
 function isExcludedElement(element: Element): boolean {
@@ -405,6 +478,7 @@ export function mountTransportAutoTranslation(
                     node,
                     original,
                     normalized: normalizeText(original),
+                    key: translationKey(original),
                 };
             })
             .filter(
@@ -414,6 +488,7 @@ export function mountTransportAutoTranslation(
                     node: Text;
                     original: string;
                     normalized: string;
+                    key: string;
                 } => Boolean(job),
             );
 
@@ -424,6 +499,7 @@ export function mountTransportAutoTranslation(
             attribute: TranslatableAttribute;
             original: string;
             normalized: string;
+            key: string;
         }> = [];
 
         pendingAttributes.forEach((attributes, element) => {
@@ -449,6 +525,7 @@ export function mountTransportAutoTranslation(
                     attribute,
                     original,
                     normalized: normalizeText(original),
+                    key: translationKey(original),
                 });
             });
         });
@@ -459,30 +536,18 @@ export function mountTransportAutoTranslation(
             return;
         }
 
-        const uniqueOriginals = Array.from(
-            new Set([
-                ...textJobs.map((job) => job.normalized),
-                ...attributeJobs.map((job) => job.normalized),
-            ]),
+        const uniqueValues = Array.from(
+            new Map(
+                [...textJobs, ...attributeJobs].map((job) => [
+                    job.key,
+                    job.normalized,
+                ]),
+            ).entries(),
         );
-
         const translations = new Map<string, string>();
-        const batchSize = 6;
 
-        for (
-            let index = 0;
-            index < uniqueOriginals.length;
-            index += batchSize
-        ) {
-            const batch = uniqueOriginals.slice(index, index + batchSize);
-
-            const results = await Promise.all(
-                batch.map((value) => translatePtToEn(value)),
-            );
-
-            batch.forEach((value, itemIndex) => {
-                translations.set(value, results[itemIndex] ?? value);
-            });
+        for (const [key, value] of uniqueValues) {
+            translations.set(key, await translatePtToEn(value));
 
             if (disposed) {
                 return;
@@ -493,8 +558,7 @@ export function mountTransportAutoTranslation(
 
         try {
             textJobs.forEach((job) => {
-                const translated =
-                    translations.get(job.normalized) ?? job.normalized;
+                const translated = translations.get(job.key) ?? job.normalized;
 
                 if (!job.node.isConnected || translated === job.normalized) {
                     return;
@@ -507,8 +571,7 @@ export function mountTransportAutoTranslation(
             });
 
             attributeJobs.forEach((job) => {
-                const translated =
-                    translations.get(job.normalized) ?? job.normalized;
+                const translated = translations.get(job.key) ?? job.normalized;
 
                 if (!job.element.isConnected || translated === job.normalized) {
                     return;
