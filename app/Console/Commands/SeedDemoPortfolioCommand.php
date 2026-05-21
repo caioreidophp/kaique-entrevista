@@ -12,7 +12,14 @@ use App\Models\FeriasLancamento;
 use App\Models\FreightEntry;
 use App\Models\Funcao;
 use App\Models\InterviewCurriculum;
+use App\Models\Multa;
+use App\Models\MultaInfracao;
+use App\Models\MultaOrgaoAutuador;
+use App\Models\OperationalTask;
 use App\Models\Pagamento;
+use App\Models\PlacaFrota;
+use App\Models\ProgramacaoEscala;
+use App\Models\ProgramacaoViagem;
 use App\Models\TipoPagamento;
 use App\Models\Unidade;
 use App\Models\UnitFleetSize;
@@ -68,6 +75,10 @@ class SeedDemoPortfolioCommand extends Command
             $this->upsertPayroll($user, $collaborators, $paymentType);
             $this->upsertVacations($user, $collaborators, $function);
             $this->upsertFreight($user, $units);
+            $plates = $this->upsertFleetPlates($units);
+            $this->upsertProgramming($user, $units, $collaborators, $plates);
+            $this->upsertFines($user, $units, $collaborators, $plates);
+            $this->upsertOperationalTasks($user, $units);
         });
 
         $this->info('Demo portfolio dataset is ready.');
@@ -146,10 +157,10 @@ class SeedDemoPortfolioCommand extends Command
 
     private function upsertFunction(): Funcao
     {
-        return Funcao::query()->updateOrCreate(
-            ['nome' => 'Demo Driver'],
+        return Funcao::query()->firstOrCreate(
+            ['nome' => 'Motorista'],
             [
-                'descricao' => 'Synthetic role used only for portfolio demonstrations.',
+                'descricao' => 'Motorista operacional',
                 'ativo' => true,
             ],
         );
@@ -157,8 +168,8 @@ class SeedDemoPortfolioCommand extends Command
 
     private function upsertPaymentType(): TipoPagamento
     {
-        return TipoPagamento::query()->updateOrCreate(
-            ['nome' => 'Demo Salary'],
+        return TipoPagamento::query()->firstOrCreate(
+            ['nome' => 'Salário'],
             $this->onlyExistingColumns('tipos_pagamento', [
                 'gera_encargos' => true,
                 'categoria' => 'salario',
@@ -501,6 +512,152 @@ class SeedDemoPortfolioCommand extends Command
         }
     }
 
+    /**
+     * @param  array<string, Unidade>  $units
+     * @return array<string, PlacaFrota>
+     */
+    private function upsertFleetPlates(array $units): array
+    {
+        $records = [
+            'demo-amparo' => 'DMO1A01',
+            'demo-itapetininga' => 'DMO1B02',
+        ];
+
+        $plates = [];
+
+        foreach ($records as $slug => $plate) {
+            $plates[$slug] = PlacaFrota::query()->updateOrCreate(
+                ['placa' => $plate],
+                ['unidade_id' => $units[$slug]->id],
+            );
+        }
+
+        return $plates;
+    }
+
+    /**
+     * @param  array<string, Unidade>  $units
+     * @param  array<int, Colaborador>  $collaborators
+     * @param  array<string, PlacaFrota>  $plates
+     */
+    private function upsertProgramming(User $user, array $units, array $collaborators, array $plates): void
+    {
+        $index = 0;
+
+        foreach ($units as $slug => $unit) {
+            $trip = ProgramacaoViagem::query()->updateOrCreate(
+                [
+                    'data_viagem' => now()->addDays($index + 1)->toDateString(),
+                    'unidade_id' => $unit->id,
+                    'codigo_viagem' => 'DEMO-'.($index + 1),
+                ],
+                $this->onlyExistingColumns('programacao_viagens', [
+                    'origem' => $unit->nome,
+                    'destino' => 'Granja Demo '.($index + 1),
+                    'aviario' => 'Aviário '.($index + 1),
+                    'cidade' => 'Cidade Demo/SP',
+                    'distancia_km' => 145 + ($index * 25),
+                    'equipe' => 'Equipe '.($index + 1),
+                    'aves' => 82000 + ($index * 6000),
+                    'numero_carga' => 'Carga '.($index + 1),
+                    'hora_inicio_prevista' => '06:00',
+                    'hora_carregamento_prevista' => '08:30',
+                    'hora_fim_prevista' => '13:00',
+                    'jornada_horas_prevista' => 7.5,
+                    'observacoes' => 'Viagem sintética para demonstração.',
+                    'import_lote' => 'demo-portfolio',
+                    'ordem_importacao' => $index + 1,
+                    'autor_id' => $user->id,
+                ]),
+            );
+
+            ProgramacaoEscala::query()->updateOrCreate(
+                ['programacao_viagem_id' => $trip->id],
+                [
+                    'colaborador_id' => $collaborators[$index % count($collaborators)]->id,
+                    'placa_frota_id' => $plates[$slug]->id,
+                    'autor_id' => $user->id,
+                    'observacoes' => 'Escala sintética para demonstração.',
+                ],
+            );
+
+            $index++;
+        }
+    }
+
+    /**
+     * @param  array<string, Unidade>  $units
+     * @param  array<int, Colaborador>  $collaborators
+     * @param  array<string, PlacaFrota>  $plates
+     */
+    private function upsertFines(User $user, array $units, array $collaborators, array $plates): void
+    {
+        $infraction = MultaInfracao::query()->firstOrCreate(
+            ['nome' => 'Excesso de velocidade'],
+            ['ativo' => true],
+        );
+        $agency = MultaOrgaoAutuador::query()->firstOrCreate(
+            ['nome' => 'Órgão Demo'],
+            ['ativo' => true],
+        );
+
+        $index = 0;
+
+        foreach ($units as $slug => $unit) {
+            Multa::query()->updateOrCreate(
+                [
+                    'numero_auto_infracao' => 'DEMO-AUTO-'.($index + 1),
+                    'autor_id' => $user->id,
+                ],
+                $this->onlyExistingColumns('multas', [
+                    'data' => now()->subDays($index + 2)->toDateString(),
+                    'hora' => '10:30',
+                    'tipo_registro' => 'multa',
+                    'unidade_id' => $unit->id,
+                    'placa_frota_id' => $plates[$slug]->id,
+                    'multa_infracao_id' => $infraction->id,
+                    'multa_orgao_autuador_id' => $agency->id,
+                    'colaborador_id' => $collaborators[$index % count($collaborators)]->id,
+                    'descricao' => 'Registro sintético para demonstração do painel de multas.',
+                    'indicado_condutor' => true,
+                    'culpa' => 'motorista',
+                    'valor' => 195.23 + ($index * 80),
+                    'tipo_valor' => 'normal',
+                    'vencimento' => now()->addDays(20 + $index)->toDateString(),
+                    'status' => $index === 0 ? 'solicitado_boleto' : 'aguardando_motorista',
+                    'descontar' => false,
+                ]),
+            );
+
+            $index++;
+        }
+    }
+
+    /**
+     * @param  array<string, Unidade>  $units
+     */
+    private function upsertOperationalTasks(User $user, array $units): void
+    {
+        foreach (array_values($units) as $index => $unit) {
+            OperationalTask::query()->updateOrCreate(
+                [
+                    'created_by' => $user->id,
+                    'title' => 'Revisar pendência operacional '.($index + 1),
+                ],
+                [
+                    'module_key' => $index === 0 ? 'freight' : 'registry',
+                    'unidade_id' => $unit->id,
+                    'description' => 'Tarefa sintética para manter o painel de pendências útil na conta demo.',
+                    'priority' => $index === 0 ? 'high' : 'normal',
+                    'status' => 'open',
+                    'due_at' => now()->addDays($index + 1),
+                    'assigned_to' => $user->id,
+                    'metadata' => ['demo' => true],
+                ],
+            );
+        }
+    }
+
     private function deleteDemoData(User $user): void
     {
         $unitIds = Unidade::query()
@@ -510,8 +667,13 @@ class SeedDemoPortfolioCommand extends Command
             ->all();
 
         if ($unitIds !== []) {
+            OperationalTask::query()->where('created_by', $user->id)->whereIn('unidade_id', $unitIds)->delete();
+            ProgramacaoEscala::query()->where('autor_id', $user->id)->delete();
+            ProgramacaoViagem::query()->where('autor_id', $user->id)->whereIn('unidade_id', $unitIds)->delete();
+            Multa::query()->where('autor_id', $user->id)->whereIn('unidade_id', $unitIds)->delete();
             FreightEntry::query()->whereIn('unidade_id', $unitIds)->where('autor_id', $user->id)->delete();
             UnitFleetSize::query()->whereIn('unidade_id', $unitIds)->delete();
+            PlacaFrota::query()->whereIn('unidade_id', $unitIds)->where('placa', 'like', 'DMO%')->delete();
             Pagamento::query()->where('autor_id', $user->id)->whereIn('unidade_id', $unitIds)->delete();
             FeriasLancamento::query()->where('autor_id', $user->id)->whereIn('unidade_id', $unitIds)->delete();
             Colaborador::withTrashed()->whereIn('unidade_id', $unitIds)->where('user_id', $user->id)->forceDelete();

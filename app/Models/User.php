@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Support\RolePermissionCatalog;
-use App\Models\UserAccessScope;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -71,10 +70,23 @@ class User extends Authenticatable
         return $this->role === 'usuario';
     }
 
+    public function isDemoAccount(): bool
+    {
+        $demoEmail = mb_strtolower(trim((string) config('services.demo.email', '')));
+
+        return $demoEmail !== ''
+            && mb_strtolower(trim((string) $this->email)) === $demoEmail
+            && $this->toBool(config('services.demo.enabled', true), true);
+    }
+
     public function hasPermission(string $permissionKey): bool
     {
         if ($this->isMasterAdmin()) {
             return true;
+        }
+
+        if ($this->isDemoAccount()) {
+            return RolePermissionCatalog::isAllowedForUser($this, $permissionKey);
         }
 
         return RolePermissionCatalog::isAllowed((string) $this->role, $permissionKey);
@@ -189,5 +201,28 @@ class User extends Authenticatable
     public function quickAccesses(): HasMany
     {
         return $this->hasMany(UserQuickAccess::class);
+    }
+
+    private function toBool(mixed $value, bool $default = false): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            $normalized = mb_strtolower(trim($value));
+
+            if ($normalized === '') {
+                return $default;
+            }
+
+            return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return $default;
     }
 }
