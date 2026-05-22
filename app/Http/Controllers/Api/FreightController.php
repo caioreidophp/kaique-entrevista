@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\GenerateFreightExportJob;
 use App\Http\Requests\ImportFreightSpreadsheetRequest;
 use App\Http\Requests\StoreFreightEntryRequest;
 use App\Http\Requests\StoreFreightSpotEntryRequest;
 use App\Http\Requests\UpdateFreightEntryRequest;
+use App\Jobs\GenerateFreightExportJob;
 use App\Models\AsyncExport;
 use App\Models\FreightCanceledLoad;
 use App\Models\FreightEntry;
 use App\Models\FreightSpotEntry;
-use App\Models\UnitFleetSize;
 use App\Models\Unidade;
+use App\Models\UnitFleetSize;
 use App\Support\AsyncOperationTracker;
 use App\Support\OutboundWebhookService;
 use App\Support\TransportCache;
@@ -66,6 +66,20 @@ class FreightController extends Controller
 
         if (isset($validated['unidade_id'])) {
             $query->where('unidade_id', (int) $validated['unidade_id']);
+        }
+
+        $spotQuery = $this->spotQueryForUser($request);
+
+        if ($usingCustomRange) {
+            $spotQuery->whereBetween('data', [$startDate, $endDate]);
+        } else {
+            $spotQuery
+                ->whereYear('data', $year)
+                ->whereMonth('data', $month);
+        }
+
+        if (isset($validated['unidade_id'])) {
+            $spotQuery->where('unidade_origem_id', (int) $validated['unidade_id']);
         }
 
         $totals = (clone $query)
@@ -181,16 +195,39 @@ class FreightController extends Controller
             ->groupBy('unidade_id')
             ->get();
 
+        $spotByUnit = (clone $spotQuery)
+            ->selectRaw('unidade_origem_id, COUNT(*) as total_lancamentos_spot, COUNT(DISTINCT data) as dias_spot, COALESCE(SUM(frete_spot), 0) as total_frete_spot, COALESCE(SUM(km_rodado), 0) as total_km_spot, COALESCE(SUM(cargas), 0) as total_viagens_spot, COALESCE(SUM(aves), 0) as total_aves_spot')
+            ->groupBy('unidade_origem_id')
+            ->get()
+            ->keyBy('unidade_origem_id');
+
+        $unitIds = $porUnidadeRows
+            ->pluck('unidade_id')
+            ->merge($spotByUnit->keys())
+            ->map(fn ($value): int => (int) $value)
+            ->filter(fn (int $value): bool => $value > 0)
+            ->unique()
+            ->values();
+
+        $unitNames = Unidade::query()
+            ->whereIn('id', $unitIds->all())
+            ->pluck('nome', 'id');
+
         $fleetSizeByUnit = $this->unitFleetSizeMap(
             $month,
             $year,
-            $porUnidadeRows->pluck('unidade_id')->map(fn ($value): int => (int) $value)->all(),
+            $unitIds->all(),
         );
         $totalFleetSize = array_sum($fleetSizeByUnit);
         $freteMedioPorCaminhaoFrota = $totalFleetSize > 0 ? $totalFrete / $totalFleetSize : null;
 
-        $porUnidade = $porUnidadeRows
-            ->map(function (FreightEntry $entry) use ($fleetSizeByUnit): array {
+        $porUnidadeBaseRows = $porUnidadeRows->keyBy('unidade_id');
+
+        $porUnidade = $unitIds
+            ->map(function (int $unitId) use ($fleetSizeByUnit, $porUnidadeBaseRows, $spotByUnit, $unitNames): array {
+                /** @var FreightEntry|null $entry */
+                $entry = $porUnidadeBaseRows->get($unitId);
+                $spot = $spotByUnit->get($unitId);
                 $hasGroupedFreightMetrics = $this->hasGroupedFreightMetrics($entry);
                 $legacyTotalFrete = (float) ($entry->legacy_total_frete ?? 0);
                 $legacyTotalFreteLiquido = (float) ($entry->legacy_total_frete_liquido ?? 0);
@@ -216,9 +253,16 @@ class FreightController extends Controller
                     ? (int) ($entry->total_aves_kaique ?? 0)
                     : (int) ($entry->legacy_total_aves_kaique ?? 0);
                 $dias = (int) ($entry->dias_trabalhados ?? 0);
-                $frotaUnidade = (int) ($fleetSizeByUnit[(int) $entry->unidade_id] ?? 0);
+                $spotFrete = (float) ($spot->total_frete_spot ?? 0);
+                $spotKm = (float) ($spot->total_km_spot ?? 0);
+                $spotAves = (int) ($spot->total_aves_spot ?? 0);
+                $spotViagens = (int) ($spot->total_viagens_spot ?? 0);
+                $spotLancamentos = (int) ($spot->total_lancamentos_spot ?? 0);
+                $spotDias = (int) ($spot->dias_spot ?? 0);
+                $frotaUnidade = (int) ($fleetSizeByUnit[$unitId] ?? 0);
                 $avesPorCarga = $totalViagensKaique > 0 ? $totalAves / $totalViagensKaique : 0.0;
-                $boxDivisor = $this->boxDivisorForUnitName($entry->unidade?->nome);
+                $unitName = (string) ($unitNames->get($unitId) ?? '');
+                $boxDivisor = $this->boxDivisorForUnitName($unitName);
 
                 $freteKaiquePorDia = $dias > 0 ? $totalFreteLiquido / $dias : 0.0;
                 $freteKaiquePorKm = $totalKm > 0 ? $totalFreteLiquido / $totalKm : 0.0;
@@ -229,14 +273,24 @@ class FreightController extends Controller
                 $avesMediaPorCaixa = $boxDivisor > 0 ? $avesPorCarga / $boxDivisor : 0.0;
 
                 return [
-                    'unidade_id' => $entry->unidade_id,
-                    'unidade_nome' => $entry->unidade?->nome,
+                    'unidade_id' => $unitId,
+                    'unidade_nome' => $unitName !== '' ? $unitName : null,
                     'total_lancamentos' => (int) ($entry->total_lancamentos ?? 0),
                     'total_frete' => $totalFrete,
                     'total_frete_liquido' => $totalFreteLiquido,
                     'total_km' => $totalKm,
                     'total_aves' => $totalAves,
                     'total_viagens_kaique' => $totalViagensKaique,
+                    'total_lancamentos_spot' => $spotLancamentos,
+                    'dias_spot' => $spotDias,
+                    'total_frete_spot' => $spotFrete,
+                    'total_km_spot' => $spotKm,
+                    'total_aves_spot' => $spotAves,
+                    'total_viagens_spot' => $spotViagens,
+                    'total_frete_com_spot' => $totalFrete + $spotFrete,
+                    'total_km_com_spot' => $totalKm + $spotKm,
+                    'total_aves_com_spot' => $totalAves + $spotAves,
+                    'total_viagens_com_spot' => $totalViagensKaique + $spotViagens,
                     'total_frete_terceiros' => $totalFreteTerceiros,
                     'total_frete_programado' => $totalFreteProgramado,
                     'total_frota_unidade' => $frotaUnidade > 0 ? $frotaUnidade : null,
@@ -1351,7 +1405,7 @@ class FreightController extends Controller
         $headerMap = [];
 
         for ($column = 1; $column <= $highestColumnIndex; $column++) {
-            $header = (string) $sheet->getCellByColumnAndRow($column, 1)->getFormattedValue();
+            $header = (string) $this->getCellByColumnAndRowCompat($sheet, $column, 1)->getFormattedValue();
             $normalized = $this->normalizeSpreadsheetHeader($header);
 
             if ($normalized !== '') {
@@ -1382,7 +1436,7 @@ class FreightController extends Controller
             $rowValues = [];
 
             for ($column = 1; $column <= $highestColumnIndex; $column++) {
-                $rowValues[] = trim((string) $sheet->getCellByColumnAndRow($column, $line)->getFormattedValue());
+                $rowValues[] = trim((string) $this->getCellByColumnAndRowCompat($sheet, $column, $line)->getFormattedValue());
             }
 
             if ($this->isSpreadsheetRowEmpty($rowValues)) {
@@ -1391,7 +1445,7 @@ class FreightController extends Controller
 
             $totalRead++;
 
-            $unitRaw = trim((string) $sheet->getCellByColumnAndRow($headerMap['unidade'], $line)->getFormattedValue());
+            $unitRaw = trim((string) $this->getCellByColumnAndRowCompat($sheet, $headerMap['unidade'], $line)->getFormattedValue());
             $unitKey = Str::of($unitRaw)->lower()->ascii()->replaceMatches('/[^a-z0-9]+/', '')->value();
             $unidade = $unitsByName->get($unitKey);
 
@@ -1406,7 +1460,7 @@ class FreightController extends Controller
                 continue;
             }
 
-            $dateCell = $sheet->getCellByColumnAndRow($headerMap['data'], $line);
+            $dateCell = $this->getCellByColumnAndRowCompat($sheet, $headerMap['data'], $line);
             $date = $this->parseSpreadsheetDate($dateCell->getValue(), (string) $dateCell->getFormattedValue());
 
             if (! $date) {
@@ -1420,7 +1474,7 @@ class FreightController extends Controller
             }
 
             $raw = fn (string $header): mixed => isset($headerMap[$header])
-                ? $sheet->getCellByColumnAndRow($headerMap[$header], $line)->getValue()
+                ? $this->getCellByColumnAndRowCompat($sheet, $headerMap[$header], $line)->getValue()
                 : null;
 
             $payload = $this->normalizePayload([
@@ -1640,7 +1694,7 @@ class FreightController extends Controller
         $headerMap = [];
 
         for ($column = 1; $column <= $highestColumnIndex; $column++) {
-            $header = (string) $sheet->getCellByColumnAndRow($column, 1)->getFormattedValue();
+            $header = (string) $this->getCellByColumnAndRowCompat($sheet, $column, 1)->getFormattedValue();
             $normalized = $this->normalizeSpreadsheetHeader($header);
 
             if ($normalized !== '') {
@@ -1668,7 +1722,7 @@ class FreightController extends Controller
             $rowValues = [];
 
             for ($column = 1; $column <= $highestColumnIndex; $column++) {
-                $rowValues[] = trim((string) $sheet->getCellByColumnAndRow($column, $line)->getFormattedValue());
+                $rowValues[] = trim((string) $this->getCellByColumnAndRowCompat($sheet, $column, $line)->getFormattedValue());
             }
 
             if (! $this->isSpreadsheetRowEmpty($rowValues)) {
@@ -1681,7 +1735,7 @@ class FreightController extends Controller
             return response()->json(['message' => 'A planilha não possui linhas válidas para pré-preenchimento.'], 422);
         }
 
-        $unitRaw = trim((string) $sheet->getCellByColumnAndRow($headerMap['unidade'], $targetLine)->getFormattedValue());
+        $unitRaw = trim((string) $this->getCellByColumnAndRowCompat($sheet, $headerMap['unidade'], $targetLine)->getFormattedValue());
         $unitKey = Str::of($unitRaw)->lower()->ascii()->replaceMatches('/[^a-z0-9]+/', '')->value();
         $unidade = $unitsByName->get($unitKey);
 
@@ -1691,7 +1745,7 @@ class FreightController extends Controller
             ], 422);
         }
 
-        $dateCell = $sheet->getCellByColumnAndRow($headerMap['data'], $targetLine);
+        $dateCell = $this->getCellByColumnAndRowCompat($sheet, $headerMap['data'], $targetLine);
         $date = $this->parseSpreadsheetDate($dateCell->getValue(), (string) $dateCell->getFormattedValue());
 
         if (! $date) {
@@ -1701,7 +1755,7 @@ class FreightController extends Controller
         }
 
         $raw = fn (string $header): mixed => isset($headerMap[$header])
-            ? $sheet->getCellByColumnAndRow($headerMap[$header], $targetLine)->getValue()
+            ? $this->getCellByColumnAndRowCompat($sheet, $headerMap[$header], $targetLine)->getValue()
             : null;
 
         $payload = $this->normalizePayload([
@@ -1737,6 +1791,15 @@ class FreightController extends Controller
                 'No formato padrão, foi usada apenas a primeira linha válida para preencher o formulário.',
             ],
         ]);
+    }
+
+    private function getCellByColumnAndRowCompat($sheet, int $column, int $row)
+    {
+        if (method_exists($sheet, 'getCellByColumnAndRow')) {
+            return $sheet->getCellByColumnAndRow($column, $row);
+        }
+
+        return $sheet->getCell([$column, $row]);
     }
 
     public function store(StoreFreightEntryRequest $request): JsonResponse
@@ -2063,7 +2126,7 @@ class FreightController extends Controller
         return ($part / $total) * 100;
     }
 
-    private function hasGroupedFreightMetrics(object|null $row): bool
+    private function hasGroupedFreightMetrics(?object $row): bool
     {
         if ($row === null) {
             return false;

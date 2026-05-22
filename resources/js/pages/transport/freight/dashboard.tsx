@@ -68,6 +68,8 @@ type UnitTone = {
     soft: string;
 };
 
+type FreightTotalsMode = 'without_spot' | 'with_spot';
+
 const unitTonePalette: UnitTone[] = [
     {
         bar: 'bg-sky-600',
@@ -426,7 +428,10 @@ function kaiqueFreightValue(entry: FreightEntry): number {
 
     return liquid > 0
         ? liquid
-        : Math.max(0, toNumber(entry.frete_total) - toNumber(entry.frete_terceiros));
+        : Math.max(
+              0,
+              toNumber(entry.frete_total) - toNumber(entry.frete_terceiros),
+          );
 }
 
 function kaiqueKmValue(entry: FreightEntry): number {
@@ -434,7 +439,10 @@ function kaiqueKmValue(entry: FreightEntry): number {
         return toNumber(entry.kaique_geral_km);
     }
 
-    return Math.max(0, toNumber(entry.km_rodado) - toNumber(entry.km_terceiros));
+    return Math.max(
+        0,
+        toNumber(entry.km_rodado) - toNumber(entry.km_terceiros),
+    );
 }
 
 function kaiqueBirdsValue(entry: FreightEntry): number {
@@ -535,6 +543,8 @@ export default function TransportFreightDashboardPage() {
     const [year, setYear] = useState(String(currentYear));
     const [units, setUnits] = useState<FreightUnit[]>([]);
     const [selectedUnitId, setSelectedUnitId] = useState('all');
+    const [totalsMode, setTotalsMode] =
+        useState<FreightTotalsMode>('without_spot');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [data, setData] = useState<FreightDashboardResponse | null>(null);
@@ -646,6 +656,58 @@ export default function TransportFreightDashboardPage() {
         [data],
     );
 
+    const unitRowsForTotals = useMemo(
+        () =>
+            unitRows.map((row) => {
+                if (totalsMode === 'without_spot') {
+                    return row;
+                }
+
+                return {
+                    ...row,
+                    total_lancamentos:
+                        Number(row.total_lancamentos ?? 0) +
+                        Number(row.total_lancamentos_spot ?? 0),
+                    total_frete: Number(row.total_frete_com_spot ?? 0),
+                    total_frete_liquido: Number(row.total_frete_com_spot ?? 0),
+                    total_km: Number(row.total_km_com_spot ?? 0),
+                    total_aves: Number(row.total_aves_com_spot ?? 0),
+                    total_viagens_kaique: Number(
+                        row.total_viagens_com_spot ?? 0,
+                    ),
+                    dias_trabalhados: Math.max(
+                        Number(row.dias_trabalhados ?? 0),
+                        Number(row.dias_spot ?? 0),
+                    ),
+                };
+            }),
+        [totalsMode, unitRows],
+    );
+
+    const spotTotals = useMemo(
+        () =>
+            unitRows.reduce(
+                (totals, row) => ({
+                    frete: totals.frete + Number(row.total_frete_spot ?? 0),
+                    km: totals.km + Number(row.total_km_spot ?? 0),
+                    aves: totals.aves + Number(row.total_aves_spot ?? 0),
+                    viagens:
+                        totals.viagens + Number(row.total_viagens_spot ?? 0),
+                    lancamentos:
+                        totals.lancamentos +
+                        Number(row.total_lancamentos_spot ?? 0),
+                }),
+                {
+                    frete: 0,
+                    km: 0,
+                    aves: 0,
+                    viagens: 0,
+                    lancamentos: 0,
+                },
+            ),
+        [unitRows],
+    );
+
     const selectedUnitLabel = useMemo(() => {
         if (selectedUnitId === 'all') {
             return 'Todas as unidades';
@@ -710,17 +772,45 @@ export default function TransportFreightDashboardPage() {
             return [];
         }
 
-        const viagensTotal = unitRows.reduce(
+        const viagensTotal = unitRowsForTotals.reduce(
             (total, row) => total + Number(row.total_viagens_kaique ?? 0),
             0,
         );
+        const freteTotal = unitRowsForTotals.reduce(
+            (total, row) => total + Number(row.total_frete ?? 0),
+            0,
+        );
+        const kmTotal = unitRowsForTotals.reduce(
+            (total, row) => total + Number(row.total_km ?? 0),
+            0,
+        );
+        const avesTotal = unitRowsForTotals.reduce(
+            (total, row) => total + Number(row.total_aves ?? 0),
+            0,
+        );
+        const lancamentosTotal = unitRowsForTotals.reduce(
+            (total, row) => total + Number(row.total_lancamentos ?? 0),
+            0,
+        );
+        const diasTotal =
+            totalsMode === 'with_spot'
+                ? unitRowsForTotals.reduce(
+                      (total, row) => total + Number(row.dias_trabalhados ?? 0),
+                      0,
+                  )
+                : data.kpis.dias_trabalhados;
+        const reaisPorKm = kmTotal > 0 ? freteTotal / kmTotal : 0;
 
         return [
             {
                 key: 'frete-liquido',
                 label: 'Frete Kaique Geral',
-                value: formatCurrencyBR(data.kpis.total_frete),
-                detail: `${formatIntegerBR(data.kpis.total_lancamentos)} lançamento(s)`,
+                value: formatCurrencyBR(freteTotal),
+                detail: `${formatIntegerBR(lancamentosTotal)} lançamento(s)${
+                    totalsMode === 'with_spot' && spotTotals.frete > 0
+                        ? `, ${formatCurrencyBR(spotTotals.frete)} spot`
+                        : ''
+                }`,
                 series: trendSeries.frete,
                 rowValue: (row: UnitMetricRow) => Number(row.total_frete ?? 0),
                 formatRow: formatCurrencyBR,
@@ -729,7 +819,7 @@ export default function TransportFreightDashboardPage() {
                 key: 'viagens',
                 label: 'Viagens',
                 value: formatIntegerBR(viagensTotal),
-                detail: `${formatIntegerBR(data.kpis.dias_trabalhados)} dias trabalhados`,
+                detail: `${formatIntegerBR(diasTotal)} dias trabalhados`,
                 series: trendSeries.viagens,
                 rowValue: (row: UnitMetricRow) =>
                     Number(row.total_viagens_kaique ?? 0),
@@ -738,8 +828,8 @@ export default function TransportFreightDashboardPage() {
             {
                 key: 'km',
                 label: 'KM Kaique Geral',
-                value: formatIntegerBR(data.kpis.total_km),
-                detail: `${formatCurrencyBR(data.kpis.media_reais_por_km)} por km`,
+                value: formatIntegerBR(kmTotal),
+                detail: `${formatCurrencyBR(reaisPorKm)} por km`,
                 series: trendSeries.km,
                 rowValue: (row: UnitMetricRow) => Number(row.total_km ?? 0),
                 formatRow: formatIntegerBR,
@@ -747,14 +837,14 @@ export default function TransportFreightDashboardPage() {
             {
                 key: 'aves',
                 label: 'Aves Kaique Geral',
-                value: formatIntegerBR(data.kpis.total_aves),
+                value: formatIntegerBR(avesTotal),
                 detail: `${formatIntegerBR(viagensTotal)} viagens Kaique`,
                 series: trendSeries.aves,
                 rowValue: (row: UnitMetricRow) => Number(row.total_aves ?? 0),
                 formatRow: formatIntegerBR,
             },
         ];
-    }, [data, trendSeries, unitRows]);
+    }, [data, spotTotals.frete, totalsMode, trendSeries, unitRowsForTotals]);
 
     const volumeMetrics = unitMetricDefinitions.slice(0, 4);
     const performanceMetrics = unitMetricDefinitions.slice(4, 8);
@@ -782,6 +872,40 @@ export default function TransportFreightDashboardPage() {
                         <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
                             Unidade: {selectedUnitLabel}
                         </span>
+                        <div className="inline-flex rounded-md border border-border/80 bg-background p-0.5 shadow-sm">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    totalsMode === 'without_spot'
+                                        ? 'default'
+                                        : 'ghost'
+                                }
+                                className="h-7 px-2.5 text-xs"
+                                onClick={() => setTotalsMode('without_spot')}
+                            >
+                                Sem spot
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={
+                                    totalsMode === 'with_spot'
+                                        ? 'default'
+                                        : 'ghost'
+                                }
+                                className="h-7 px-2.5 text-xs"
+                                onClick={() => setTotalsMode('with_spot')}
+                            >
+                                Com spot
+                            </Button>
+                        </div>
+                        {spotTotals.frete > 0 ? (
+                            <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-700">
+                                Spot no período:{' '}
+                                {formatCurrencyBR(spotTotals.frete)}
+                            </span>
+                        ) : null}
                     </div>
                 </div>
 
@@ -914,9 +1038,10 @@ export default function TransportFreightDashboardPage() {
                         <div className="grid gap-3 lg:grid-cols-4">
                             {dashboardKpiCards.map((kpi) => {
                                 const diffMeta = (() => {
-                                    if (unitRows.length < 2) return null;
+                                    if (unitRowsForTotals.length < 2)
+                                        return null;
 
-                                    const sorted = [...unitRows].sort(
+                                    const sorted = [...unitRowsForTotals].sort(
                                         (a, b) =>
                                             kpi.rowValue(b) - kpi.rowValue(a),
                                     );
@@ -965,38 +1090,40 @@ export default function TransportFreightDashboardPage() {
                                             </div>
 
                                             <div className="space-y-1 text-[11px]">
-                                                {unitRows.map((row, index) => {
-                                                    const label =
-                                                        row.unidade_nome ??
-                                                        'Sem unidade';
-                                                    const tone =
-                                                        resolveUnitTone(
-                                                            label,
-                                                            index,
-                                                        );
-                                                    return (
-                                                        <div
-                                                            key={`${kpi.key}-${label}`}
-                                                            className="flex items-center justify-between"
-                                                        >
-                                                            <div className="flex min-w-0 items-center gap-2">
-                                                                <span
-                                                                    className={`size-2 rounded-full ${tone.dot}`}
-                                                                />
-                                                                <span className="truncate text-muted-foreground">
-                                                                    {label}
+                                                {unitRowsForTotals.map(
+                                                    (row, index) => {
+                                                        const label =
+                                                            row.unidade_nome ??
+                                                            'Sem unidade';
+                                                        const tone =
+                                                            resolveUnitTone(
+                                                                label,
+                                                                index,
+                                                            );
+                                                        return (
+                                                            <div
+                                                                key={`${kpi.key}-${label}`}
+                                                                className="flex items-center justify-between"
+                                                            >
+                                                                <div className="flex min-w-0 items-center gap-2">
+                                                                    <span
+                                                                        className={`size-2 rounded-full ${tone.dot}`}
+                                                                    />
+                                                                    <span className="truncate text-muted-foreground">
+                                                                        {label}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="font-semibold text-foreground">
+                                                                    {kpi.formatRow(
+                                                                        kpi.rowValue(
+                                                                            row,
+                                                                        ),
+                                                                    )}
                                                                 </span>
                                                             </div>
-                                                            <span className="font-semibold text-foreground">
-                                                                {kpi.formatRow(
-                                                                    kpi.rowValue(
-                                                                        row,
-                                                                    ),
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    },
+                                                )}
                                             </div>
 
                                             {diffMeta ? (
@@ -1040,7 +1167,7 @@ export default function TransportFreightDashboardPage() {
                                     <UnitMetricChartCard
                                         key={metric.key}
                                         title={metric.title}
-                                        rows={unitRows.map((row) => ({
+                                        rows={unitRowsForTotals.map((row) => ({
                                             label:
                                                 row.unidade_nome ??
                                                 'Sem unidade',

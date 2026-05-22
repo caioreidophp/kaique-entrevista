@@ -190,6 +190,16 @@ export interface FreightDashboardResponse {
         total_km: number;
         total_aves: number;
         total_viagens_kaique: number;
+        total_lancamentos_spot: number;
+        dias_spot: number;
+        total_frete_spot: number;
+        total_km_spot: number;
+        total_aves_spot: number;
+        total_viagens_spot: number;
+        total_frete_com_spot: number;
+        total_km_com_spot: number;
+        total_aves_com_spot: number;
+        total_viagens_com_spot: number;
         total_frete_terceiros: number;
         total_frete_programado: number;
         total_frota_unidade: number | null;

@@ -84,6 +84,59 @@ interface UpdateLogDay {
 
 const updateLogTimeline: UpdateLogDay[] = [
     {
+        dateLabel: 'Terça-Feira, 05/05/2026',
+        sections: [
+            {
+                panel: 'Entrevistas',
+                items: [
+                    {
+                        title: 'Curriculos com lista dedicada e acoes visiveis',
+                        details: [
+                            'A lista de candidatos convocados saiu da tela de curriculos e ganhou pagina propria no painel de entrevistas.',
+                            'Nova pagina mantém filtros por unidade/funcao, agrupamento por data e layout pronto para impressao.',
+                            'Curriculos ganhou botao direto para lista de candidatos e acoes com textos visiveis para editar/excluir.',
+                            'Tabela foi compactada, anexos exibem atalho "C" e a coluna de acoes ficou fixa para nao sumir em zoom/telas menores.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Plataforma',
+                items: [
+                    {
+                        title: 'Sidebar com Acesso geral recolhido',
+                        details: [
+                            'Acesso geral fica compacto e abre ao passar o mouse ou clicar, liberando espaco na navegação.',
+                            'Quando fechado, o restante do menu sobe e reduz necessidade de rolagem na lateral.',
+                            'Abertura ganhou animacao suave para deixar o uso mais profissional.',
+                            'Velocidade foi refinada e o rotulo ficou mais visivel sem chamar atencao demais.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Gestão de Fretes',
+                items: [
+                    {
+                        title: 'Dashboard de Fretes: totais por unidade com opcao de incluir Spot',
+                        details: [
+                            'Central Analitica ganhou alternancia entre "Sem spot" e "Com spot" para somar os lancamentos Spot nos totais por unidade.',
+                            'KPIs principais e graficos de comparativo geral passam a refletir a opcao escolhida sem misturar automaticamente Spot na leitura padrao.',
+                            'API do dashboard agora retorna totais Spot separados por unidade, preservando rastreabilidade entre frete regular e Spot.',
+                        ],
+                    },
+                    {
+                        title: 'Importacao XLSX JBS corrigida no Lancar Fretes',
+                        details: [
+                            'Leitura por coluna/linha voltou a funcionar com compatibilidade para versoes atuais do PhpSpreadsheet.',
+                            'Importacao/pre-visualizacao segue lendo planilha JBS sem quebrar o fluxo principal.',
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
         dateLabel: 'Segunda-Feira, 04/05/2026',
         sections: [
             {
@@ -95,6 +148,19 @@ const updateLogTimeline: UpdateLogDay[] = [
                             'Cadastro de unidades foi simplificado para usar apenas nome e status (ativa/inativa), removendo o campo de cidade do fluxo.',
                             'API e frontend foram alinhados para nao ler/enviar cidade nas unidades, eliminando erros de coluna inexistente no banco.',
                             'Migracao de unidades agora garante coluna `ativo` e reativa todas as unidades existentes para restaurar filtros e dashboards.',
+                        ],
+                    },
+                ],
+            },
+            {
+                panel: 'Entrevistas',
+                items: [
+                    {
+                        title: 'Curriculos com fluxo de tratamento e lista de candidatos',
+                        details: [
+                            'Modal de edicao ganhou status de tratamento com validacoes para convocar entrevista ou descartar candidatos.',
+                            'Campos condicionais exibem data/horario ao convocar e motivo ao descartar, mantendo pendentes sem obrigatoriedades.',
+                            'Lista de candidatos virou uma pagina dedicada no painel de entrevistas, com filtros por unidade/funcao e layout pronto para impressao.',
                         ],
                     },
                 ],
