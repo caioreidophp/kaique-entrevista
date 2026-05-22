@@ -90,6 +90,14 @@ const updateLogTimeline: UpdateLogDay[] = [
                 panel: 'Entrevistas',
                 items: [
                     {
+                        title: 'Checklist PDF restaurado com layout compacto',
+                        details: [
+                            'Checklist voltou para a estrutura operacional antiga, com listas simples, linhas de preenchimento e os mesmos campos usados pelo RH.',
+                            'Visual foi modernizado sem mudar a logica do documento: borda discreta, titulo mais limpo, secoes compactas e melhor aproveitamento da pagina.',
+                            'Ajuste reduz diferenca entre o modelo historico e o PDF atual, mantendo o documento mais profissional para impressao.',
+                        ],
+                    },
+                    {
                         title: 'Curriculos com lista dedicada e acoes visiveis',
                         details: [
                             'A lista de candidatos convocados saiu da tela de curriculos e ganhou pagina propria no painel de entrevistas.',

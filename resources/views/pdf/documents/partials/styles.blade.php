@@ -210,4 +210,59 @@
         margin-left: auto;
         margin-right: auto;
     }
+
+    .checklist-document {
+        border: 1px solid #d8dee8;
+        border-radius: 10px;
+        padding: 14px 16px 12px;
+        background: #fff;
+    }
+
+    .checklist-document .title {
+        border-bottom: 2px solid #111827;
+        color: #111827;
+        font-size: 18px;
+        letter-spacing: 0;
+        margin: 0 0 12px;
+        padding-bottom: 7px;
+        text-transform: uppercase;
+    }
+
+    .checklist-document .section-title {
+        background: #f3f6fa;
+        border-left: 4px solid #111827;
+        border-radius: 4px;
+        color: #111827;
+        font-size: 12px;
+        margin: 12px 0 7px;
+        padding: 5px 8px;
+        text-decoration: none;
+    }
+
+    .checklist-document .row,
+    .checklist-document .checkbox-row {
+        margin-bottom: 6px;
+    }
+
+    .checklist-document .line {
+        border-bottom-color: #64748b;
+        min-height: 13px;
+    }
+
+    .checklist-document .identity-row {
+        background: #fbfdff;
+        border: 1px solid #e2e8f0;
+        border-radius: 7px;
+        padding: 7px 9px;
+    }
+
+    .checklist-document .compact-list {
+        columns: 2;
+        margin: 5px 0 8px 18px;
+    }
+
+    .checklist-document .compact-list li {
+        margin-bottom: 3px;
+        padding-right: 10px;
+    }
 </style>
