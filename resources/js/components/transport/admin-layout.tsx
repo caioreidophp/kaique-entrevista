@@ -393,6 +393,7 @@ export function AdminLayout({
     const [expandedSidebarGroups, setExpandedSidebarGroups] = useState<
         Partial<Record<SidebarLinkKey, boolean>>
     >({});
+    const [generalAccessOpen, setGeneralAccessOpen] = useState(false);
     const pageRootRef = useRef<HTMLDivElement | null>(null);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
     const debouncedNavigationInput = useDebouncedValue(
@@ -1909,6 +1910,12 @@ export function AdminLayout({
         (link) => link.key === active,
     );
 
+    useEffect(() => {
+        if (hasActiveFixedLink) {
+            setGeneralAccessOpen(true);
+        }
+    }, [hasActiveFixedLink]);
+
     const filteredVisibleLinks = useMemo(() => {
         const query = menuSearch.trim().toLocaleLowerCase();
 
@@ -2348,21 +2355,40 @@ export function AdminLayout({
                                 ) : null}
                             </div>
 
-                            <div className="group relative mt-4 border-t pt-3">
+                            <div className="mt-4 border-t pt-3">
                                 {!sidebarCollapsed ? (
-                                    <div className="mb-1 flex items-center justify-between rounded-md px-2 py-1.5 text-[11px] tracking-wide text-muted-foreground uppercase transition-[background-color,color] duration-300 ease-out group-focus-within:bg-muted/40 group-focus-within:text-foreground group-hover:bg-muted/40 group-hover:text-foreground">
+                                    <button
+                                        type="button"
+                                        aria-expanded={
+                                            generalAccessOpen ||
+                                            hasActiveFixedLink
+                                        }
+                                        onClick={() =>
+                                            setGeneralAccessOpen((open) => !open)
+                                        }
+                                        className="mb-1 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] tracking-wide text-muted-foreground uppercase transition-colors duration-200 hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+                                    >
                                         <span>{copy.generalAccess}</span>
-                                        <ChevronRight className="size-3.5 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-focus-within:-rotate-90 group-hover:-rotate-90" />
-                                    </div>
+                                        <ChevronRight
+                                            className={`size-3.5 transition-transform duration-200 ${
+                                                generalAccessOpen ||
+                                                hasActiveFixedLink
+                                                    ? 'rotate-90'
+                                                    : ''
+                                            }`}
+                                        />
+                                    </button>
                                 ) : null}
                                 <div
-                                    className={`absolute right-0 bottom-full left-0 z-20 mb-2 rounded-lg border bg-card/95 p-1 shadow-lg shadow-black/10 backdrop-blur-sm transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none ${
+                                    className={`overflow-hidden rounded-md transition-[max-height,opacity,transform] duration-300 ease-out ${
                                         hasActiveFixedLink || sidebarCollapsed
-                                            ? 'pointer-events-auto translate-y-0 opacity-100'
-                                            : 'pointer-events-none translate-y-2 opacity-0'
+                                            ? 'max-h-96 translate-y-0 opacity-100'
+                                            : generalAccessOpen
+                                              ? 'max-h-96 translate-y-0 opacity-100'
+                                              : 'max-h-0 -translate-y-1 opacity-0'
                                     }`}
                                 >
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 pt-1">
                                         {visibleFixedLinks.map((link) => {
                                             const Icon = link.icon;
                                             const isActive =
@@ -2633,19 +2659,38 @@ export function AdminLayout({
                                     ) : null}
                                 </div>
 
-                                <div className="group relative mt-4 border-t pt-3">
-                                    <div className="mb-1 flex items-center justify-between rounded-md px-2 py-1.5 text-[11px] tracking-wide text-muted-foreground uppercase transition-[background-color,color] duration-300 ease-out group-focus-within:bg-muted/40 group-focus-within:text-foreground group-hover:bg-muted/40 group-hover:text-foreground">
-                                        <span>{copy.generalAccess}</span>
-                                        <ChevronRight className="size-3.5 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-focus-within:-rotate-90 group-hover:-rotate-90" />
-                                    </div>
-                                    <div
-                                        className={`absolute right-0 bottom-full left-0 z-20 mb-2 rounded-lg border bg-card/95 p-1 shadow-lg shadow-black/10 backdrop-blur-sm transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none ${
+                                <div className="mt-4 border-t pt-3">
+                                    <button
+                                        type="button"
+                                        aria-expanded={
+                                            generalAccessOpen ||
                                             hasActiveFixedLink
-                                                ? 'pointer-events-auto translate-y-0 opacity-100'
-                                                : 'pointer-events-none translate-y-2 opacity-0'
+                                        }
+                                        onClick={() =>
+                                            setGeneralAccessOpen((open) => !open)
+                                        }
+                                        className="mb-1 flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] tracking-wide text-muted-foreground uppercase transition-colors duration-200 hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+                                    >
+                                        <span>{copy.generalAccess}</span>
+                                        <ChevronRight
+                                            className={`size-3.5 transition-transform duration-200 ${
+                                                generalAccessOpen ||
+                                                hasActiveFixedLink
+                                                    ? 'rotate-90'
+                                                    : ''
+                                            }`}
+                                        />
+                                    </button>
+                                    <div
+                                        className={`overflow-hidden rounded-md transition-[max-height,opacity,transform] duration-300 ease-out ${
+                                            hasActiveFixedLink
+                                                ? 'max-h-96 translate-y-0 opacity-100'
+                                                : generalAccessOpen
+                                                  ? 'max-h-96 translate-y-0 opacity-100'
+                                                  : 'max-h-0 -translate-y-1 opacity-0'
                                         }`}
                                     >
-                                        <div className="space-y-1">
+                                        <div className="space-y-1 pt-1">
                                             {visibleFixedLinks.map((link) => {
                                                 const Icon = link.icon;
                                                 const isActive =
