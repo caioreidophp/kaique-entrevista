@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InterviewCurriculumStatus;
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 
 class InterviewCurriculum extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HidesDemoDataForRealUsers, SoftDeletes;
 
     protected $table = 'interview_curriculums';
 

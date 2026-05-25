@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use App\Support\TransportCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Colaborador extends Model
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    use HasFactory, HidesDemoDataForRealUsers, LogsActivity, SoftDeletes;
 
     protected $table = 'colaboradores';
 

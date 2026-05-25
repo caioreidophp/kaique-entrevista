@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UnitFleetSize extends Model
 {
-    use HasFactory;
+    use HasFactory, HidesDemoDataForRealUsers;
 
     /**
      * @var array<int, string>

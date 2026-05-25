@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Unidade extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HidesDemoDataForRealUsers, SoftDeletes;
 
     /**
      * @var array<int, string>

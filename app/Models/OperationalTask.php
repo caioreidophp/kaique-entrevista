@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class OperationalTask extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, HidesDemoDataForRealUsers, LogsActivity;
 
     protected $fillable = [
         'module_key',

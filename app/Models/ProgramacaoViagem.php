@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HidesDemoDataForRealUsers;
 use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProgramacaoViagem extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, HidesDemoDataForRealUsers, LogsActivity;
 
     protected $table = 'programacao_viagens';
 
