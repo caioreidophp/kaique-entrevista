@@ -392,22 +392,34 @@ export default function VacationsDashboardPage() {
             return null;
         }
 
-        const minStart = rows.reduce(
+        const now = new Date();
+        const todayAtNoon = new Date(
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T12:00:00`,
+        );
+        const fullMinStart = rows.reduce(
             (acc, item) => (item.inicio < acc ? item.inicio : acc),
             rows[0].inicio,
         );
-        const maxEnd = rows.reduce(
+        const fullMaxEnd = rows.reduce(
             (acc, item) => (item.fim > acc ? item.fim : acc),
             rows[0].fim,
         );
-
-        const rangeStart = addDays(minStart, -2);
-        const rangeEnd = addDays(maxEnd, 2);
+        const shouldFocusCurrentWindow = rows.length > 24;
+        const rangeStart = shouldFocusCurrentWindow
+            ? addDays(todayAtNoon, -14)
+            : addDays(fullMinStart, -2);
+        const rangeEnd = shouldFocusCurrentWindow
+            ? addDays(todayAtNoon, 75)
+            : addDays(fullMaxEnd, 2);
+        const visibleRows = rows.filter(
+            (item) => item.fim >= rangeStart && item.inicio <= rangeEnd,
+        );
         const totalDays = Math.max(diffDays(rangeStart, rangeEnd) + 1, 1);
         const dayPercent = 100 / totalDays;
+        const tickStep = totalDays > 70 ? 7 : 4;
 
         const axisTickIndexes: number[] = [];
-        for (let index = 0; index < totalDays; index += 4) {
+        for (let index = 0; index < totalDays; index += tickStep) {
             axisTickIndexes.push(index);
         }
 
@@ -425,14 +437,10 @@ export default function VacationsDashboardPage() {
             };
         });
 
-        const now = new Date();
-        const todayAtNoon = new Date(
-            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T12:00:00`,
-        );
         const todayOffset = diffDays(rangeStart, todayAtNoon);
         const hasTodayMarker = todayOffset >= 0 && todayOffset <= totalDays - 1;
 
-        const items = rows.map((item) => {
+        const items = visibleRows.map((item) => {
             const startOffset = diffDays(rangeStart, item.inicio);
             const endOffset = diffDays(rangeStart, item.fim);
             const durationDays = Math.max(endOffset - startOffset + 1, 1);
@@ -447,6 +455,7 @@ export default function VacationsDashboardPage() {
         return {
             axisTicks,
             items,
+            isFocusedWindow: shouldFocusCurrentWindow,
             todayLeftPercent: todayOffset * dayPercent,
             hasTodayMarker,
         };
@@ -799,13 +808,19 @@ export default function VacationsDashboardPage() {
                                             <span className="size-2 rounded-full bg-amber-600" />
                                             Passadas
                                         </span>
+                                        {timelineGraph?.isFocusedWindow ? (
+                                            <span className="rounded-full bg-muted px-2 py-0.5">
+                                                Janela atual para leitura
+                                                detalhada
+                                            </span>
+                                        ) : null}
                                     </div>
                                 </CardHeader>
                                 <CardContent>
                                     {timelineGraph ? (
                                         <div className="space-y-3">
-                                            <div className="rounded-md border bg-muted/10">
-                                                <div className="grid grid-cols-[220px_1fr] border-b">
+                                            <div className="max-h-[560px] overflow-auto rounded-md border bg-muted/10">
+                                                <div className="grid min-w-[860px] grid-cols-[260px_1fr] border-b">
                                                     <div className="h-9 border-r" />
 
                                                     <div className="relative h-9">
@@ -848,9 +863,9 @@ export default function VacationsDashboardPage() {
                                                         (item) => (
                                                             <div
                                                                 key={item.id}
-                                                                className="grid grid-cols-[220px_1fr] items-center"
+                                                                className="grid min-w-[860px] grid-cols-[260px_1fr] items-center"
                                                             >
-                                                                <div className="h-11 border-r px-3 py-2">
+                                                                <div className="h-12 border-r px-3 py-2">
                                                                     <p className="truncate text-sm leading-tight font-medium">
                                                                         {item.nome ??
                                                                             '-'}
@@ -860,11 +875,11 @@ export default function VacationsDashboardPage() {
                                                                             '-'}{' '}
                                                                         •{' '}
                                                                         {item.unidade ??
-                                                                            '-'}
+                                                                        '-'}
                                                                     </p>
                                                                 </div>
 
-                                                                <div className="relative h-11">
+                                                                <div className="relative h-12">
                                                                     {timelineGraph.axisTicks.map(
                                                                         (
                                                                             tick,
@@ -882,7 +897,7 @@ export default function VacationsDashboardPage() {
                                                                     )}
 
                                                                     <div
-                                                                        className={`absolute top-1.5 bottom-1.5 flex cursor-pointer items-center rounded-md border px-2 text-xs font-medium text-white ${item.tipo === 'passada' ? 'border-amber-500 bg-amber-600/90' : item.status_timeline === 'vigente' ? 'border-emerald-500 bg-emerald-600/90' : 'border-blue-500 bg-blue-600/90'}`}
+                                                                        className={`absolute top-2 bottom-2 flex cursor-pointer items-center rounded-md border px-2 text-xs font-medium text-white shadow-sm ${item.tipo === 'passada' ? 'border-amber-500 bg-amber-600/90' : item.status_timeline === 'vigente' ? 'border-emerald-500 bg-emerald-600/90' : 'border-blue-500 bg-blue-600/90'}`}
                                                                         style={{
                                                                             left: `${item.leftPercent}%`,
                                                                             width: `${item.widthPercent}%`,

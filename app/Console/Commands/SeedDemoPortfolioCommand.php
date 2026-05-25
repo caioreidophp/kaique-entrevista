@@ -184,53 +184,35 @@ class SeedDemoPortfolioCommand extends Command
      */
     private function upsertCollaborators(User $user, array $units, Funcao $function): array
     {
-        $rows = [
-            [
-                'nome' => 'Demo Lucas Almeida',
-                'apelido' => 'Lucas',
-                'unit' => 'demo-amparo',
-                'cpf' => '90000000001',
-                'telefone' => '11990000001',
-                'email' => 'lucas.demo@example.com',
-                'data_admissao' => now()->subMonths(14)->toDateString(),
-            ],
-            [
-                'nome' => 'Demo Marina Torres',
-                'apelido' => 'Marina',
-                'unit' => 'demo-itapetininga',
-                'cpf' => '90000000002',
-                'telefone' => '11990000002',
-                'email' => 'marina.demo@example.com',
-                'data_admissao' => now()->subMonths(9)->toDateString(),
-            ],
-            [
-                'nome' => 'Demo Rafael Costa',
-                'apelido' => 'Rafael',
-                'unit' => 'demo-amparo',
-                'cpf' => '90000000003',
-                'telefone' => '11990000003',
-                'email' => 'rafael.demo@example.com',
-                'data_admissao' => now()->subMonths(5)->toDateString(),
-            ],
-            [
-                'nome' => 'Demo Thiago Nunes',
-                'apelido' => 'Thiago',
-                'unit' => 'demo-itapetininga',
-                'cpf' => '90000000004',
-                'telefone' => '11990000004',
-                'email' => 'thiago.demo@example.com',
-                'data_admissao' => now()->subMonths(18)->toDateString(),
-            ],
-            [
-                'nome' => 'Demo Patricia Lima',
-                'apelido' => 'Patricia',
-                'unit' => 'demo-amparo',
-                'cpf' => '90000000005',
-                'telefone' => '11990000005',
-                'email' => 'patricia.demo@example.com',
-                'data_admissao' => now()->subMonths(3)->toDateString(),
-            ],
+        $firstNames = [
+            'Lucas', 'Marina', 'Rafael', 'Thiago', 'Patricia', 'Bruno',
+            'Camila', 'Diego', 'Fernanda', 'Gustavo', 'Juliana', 'Leandro',
+            'Renata', 'Marcelo', 'Aline', 'Rodrigo', 'Bianca', 'Felipe',
+            'Larissa', 'Vinicius', 'Carolina', 'Eduardo', 'Priscila', 'Matheus',
         ];
+        $lastNames = [
+            'Almeida', 'Torres', 'Costa', 'Nunes', 'Lima', 'Ferreira',
+            'Santos', 'Oliveira', 'Moura', 'Cardoso', 'Pereira', 'Barbosa',
+            'Ribeiro', 'Teixeira', 'Martins', 'Correia', 'Azevedo', 'Rocha',
+        ];
+        $unitSlugs = array_keys($units);
+        $rows = [];
+
+        for ($index = 0; $index < 72; $index++) {
+            $firstName = $firstNames[$index % count($firstNames)];
+            $lastName = $lastNames[($index * 5) % count($lastNames)];
+            $number = $index + 1;
+
+            $rows[] = [
+                'nome' => sprintf('Demo %s %s %02d', $firstName, $lastName, $number),
+                'apelido' => $firstName,
+                'unit' => $unitSlugs[$index % count($unitSlugs)],
+                'cpf' => '900'.str_pad((string) $number, 8, '0', STR_PAD_LEFT),
+                'telefone' => '1199'.str_pad((string) $number, 7, '0', STR_PAD_LEFT),
+                'email' => sprintf('demo.colaborador.%02d@example.com', $number),
+                'data_admissao' => now()->subMonths(6 + ($index % 36))->toDateString(),
+            ];
+        }
 
         $collaborators = [];
 
@@ -404,23 +386,27 @@ class SeedDemoPortfolioCommand extends Command
     private function upsertPayroll(User $user, array $collaborators, TipoPagamento $paymentType): void
     {
         foreach ($collaborators as $index => $collaborator) {
-            Pagamento::query()->updateOrCreate(
-                [
-                    'colaborador_id' => $collaborator->id,
-                    'competencia_mes' => now()->month,
-                    'competencia_ano' => now()->year,
-                ],
-                $this->onlyExistingColumns('pagamentos', [
-                    'unidade_id' => $collaborator->unidade_id,
-                    'autor_id' => $user->id,
-                    'tipo_pagamento_id' => $paymentType->id,
-                    'valor' => 4200 + ($index * 275),
-                    'descricao' => 'Demo payroll launch',
-                    'data_pagamento' => now()->toDateString(),
-                    'observacao' => 'Synthetic payroll record for demo account.',
-                    'lancado_em' => now(),
-                ]),
-            );
+            for ($monthOffset = 0; $monthOffset < 6; $monthOffset++) {
+                $competence = now()->subMonths($monthOffset)->startOfMonth();
+
+                Pagamento::query()->updateOrCreate(
+                    [
+                        'colaborador_id' => $collaborator->id,
+                        'competencia_mes' => (int) $competence->month,
+                        'competencia_ano' => (int) $competence->year,
+                    ],
+                    $this->onlyExistingColumns('pagamentos', [
+                        'unidade_id' => $collaborator->unidade_id,
+                        'autor_id' => $user->id,
+                        'tipo_pagamento_id' => $paymentType->id,
+                        'valor' => 3600 + (($index % 18) * 120) + ($monthOffset * 35),
+                        'descricao' => 'Demo payroll launch',
+                        'data_pagamento' => $competence->copy()->addDays(4 + ($index % 8))->toDateString(),
+                        'observacao' => 'Synthetic payroll record for demo account.',
+                        'lancado_em' => $competence->copy()->addDays(4),
+                    ]),
+                );
+            }
         }
     }
 
@@ -429,25 +415,45 @@ class SeedDemoPortfolioCommand extends Command
      */
     private function upsertVacations(User $user, array $collaborators, Funcao $function): void
     {
-        foreach ($collaborators as $index => $collaborator) {
-            FeriasLancamento::query()->updateOrCreate(
-                [
-                    'colaborador_id' => $collaborator->id,
-                    'data_inicio' => now()->addMonths($index + 1)->startOfMonth()->toDateString(),
-                ],
-                [
-                    'unidade_id' => $collaborator->unidade_id,
-                    'funcao_id' => $function->id,
-                    'autor_id' => $user->id,
-                    'tipo' => 'programada',
-                    'com_abono' => false,
-                    'dias_ferias' => 15,
-                    'data_fim' => now()->addMonths($index + 1)->startOfMonth()->addDays(14)->toDateString(),
-                    'periodo_aquisitivo_inicio' => now()->subYear()->toDateString(),
-                    'periodo_aquisitivo_fim' => now()->subDay()->toDateString(),
-                    'observacoes' => 'Synthetic vacation planning record.',
-                ],
-            );
+        $year = now()->year;
+        $currentMonth = now()->month;
+        $currentDay = now()->day;
+        $collaboratorCount = count($collaborators);
+
+        for ($month = 1; $month <= 12; $month++) {
+            for ($slot = 0; $slot < 6; $slot++) {
+                $index = (($month - 1) * 6) + $slot;
+                $collaborator = $collaborators[$index % $collaboratorCount];
+
+                if ($month === $currentMonth) {
+                    $start = Carbon::create($year, $month, max(1, $currentDay - 5 + $slot))->startOfDay();
+                } else {
+                    $start = Carbon::create($year, $month, 2 + ($slot * 4))->startOfDay();
+                }
+
+                $days = $slot % 3 === 0 ? 30 : 20;
+                $end = $start->copy()->addDays($days - 1);
+                $type = $end->isPast() ? 'passada' : 'programada';
+
+                FeriasLancamento::query()->updateOrCreate(
+                    [
+                        'colaborador_id' => $collaborator->id,
+                        'data_inicio' => $start->toDateString(),
+                    ],
+                    [
+                        'unidade_id' => $collaborator->unidade_id,
+                        'funcao_id' => $function->id,
+                        'autor_id' => $user->id,
+                        'tipo' => $type,
+                        'com_abono' => $days === 20,
+                        'dias_ferias' => $days,
+                        'data_fim' => $end->toDateString(),
+                        'periodo_aquisitivo_inicio' => $start->copy()->subYear()->toDateString(),
+                        'periodo_aquisitivo_fim' => $start->copy()->subDay()->toDateString(),
+                        'observacoes' => 'Synthetic vacation planning record.',
+                    ],
+                );
+            }
         }
     }
 
