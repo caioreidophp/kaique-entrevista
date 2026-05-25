@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         App\Console\Commands\MigrateSqliteToMysqlCommand::class,
         App\Console\Commands\AuditMysqlUniqueCollisionsCommand::class,
         App\Console\Commands\FixAviariosDuplicatesCommand::class,
+        App\Console\Commands\SeedDemoPortfolioCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SetRequestContext::class);
