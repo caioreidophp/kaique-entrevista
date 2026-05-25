@@ -63,7 +63,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'permissions' => RolePermissionCatalog::forRole((string) $user->role),
+                'permissions' => RolePermissionCatalog::forUser($user),
                 'access_scopes' => $user->resolvedAccessScopes(),
             ],
         ])->cookie(
@@ -98,7 +98,7 @@ class AuthController extends Controller
                 'name' => $user?->name,
                 'email' => $user?->email,
                 'role' => $user?->role,
-                'permissions' => RolePermissionCatalog::forRole((string) $user?->role),
+                'permissions' => RolePermissionCatalog::forUser($user),
                 'access_scopes' => $user?->resolvedAccessScopes() ?? [],
             ],
         ]);

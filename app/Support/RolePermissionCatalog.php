@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\RolePermission;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 class RolePermissionCatalog
@@ -354,6 +355,30 @@ class RolePermissionCatalog
     }
 
     /**
+     * @return array<string, bool>
+     */
+    public static function forUser(?User $user): array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        $permissions = self::forRole((string) $user->role);
+
+        if (! $user->isDemoAccount()) {
+            return $permissions;
+        }
+
+        $demoPermissions = self::defaultsForRole('master_admin');
+
+        foreach (self::demoDeniedPermissionKeys() as $key) {
+            $demoPermissions[$key] = false;
+        }
+
+        return $demoPermissions;
+    }
+
+    /**
      * @param  array<string, bool|int|string>  $permissions
      */
     public static function saveForRole(string $role, array $permissions): array
@@ -384,6 +409,15 @@ class RolePermissionCatalog
         $permissions = self::forRole($role);
 
         return (bool) ($permissions[$permissionKey] ?? false);
+    }
+
+    public static function isAllowedForUser(?User $user, string $permissionKey): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) (self::forUser($user)[$permissionKey] ?? false);
     }
 
     /**
@@ -418,6 +452,25 @@ class RolePermissionCatalog
         return collect($all)
             ->mapWithKeys(fn (string $key): array => [$key => in_array($key, $allowed, true)])
             ->all();
+    }
+
+    /**
+     * Demo reviewers should see a complete product surface without sensitive
+     * administration screens or cross-author private records.
+     *
+     * @return array<int, string>
+     */
+    private static function demoDeniedPermissionKeys(): array
+    {
+        return [
+            'sidebar.registry.users.view',
+            'sidebar.activity-log.view',
+            'settings.backup.download',
+            'activity-log.view',
+            'visibility.interviews.other-authors',
+            'visibility.payroll.other-authors',
+            'visibility.freight.other-authors',
+        ];
     }
 
     private static function cacheKeyForRole(string $role): string
