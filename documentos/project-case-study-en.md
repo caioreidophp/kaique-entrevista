@@ -46,11 +46,21 @@ This project represents end-to-end engineering work:
 - Laravel 12 backend with Fortify/Sanctum authentication.
 - React 19 + TypeScript frontend through Inertia.js.
 - Permission-aware navigation and backend access checks.
+- Demo/real data isolation so public walkthrough data does not leak into real operational accounts.
 - Duplicate prevention and idempotency on critical write flows.
 - Queue-backed exports and failed-job recovery surfaces.
 - PDF and spreadsheet generation for business documents.
+- SQLite-to-MySQL rehearsal tooling for safer staging migration.
 - GitHub Actions for build, type checking, linting, audits, and tests.
 - VPS deployment documentation with Nginx, PHP-FPM, Supervisor, queues, and scheduler.
+
+## Reliability and Data Safety
+
+The project is used around real operational data, so reliability work became part of the product itself. Recent work focused on separating public demo data from real company records, protecting sensitive identity fields, and preparing a controlled SQLite-to-MySQL migration path before any 24/7 staging rollout.
+
+That reliability work matters because the system is not a toy demo. A broken dashboard, leaked demo record, failed PDF, or wrong permission can affect trust in the tool. The roadmap therefore prioritizes regression checklists, staging validation, and read-only safety checks before larger product changes.
+
+The current approach is deliberately incremental: document the risk, rehearse the database move in isolation, keep rollback paths simple, and only automate checks after the staging environment is stable.
 
 ## Recent Document Workflow Improvements
 
@@ -83,12 +93,13 @@ This project strengthened several skills that are hard to show in small assignme
 
 ## Current Status
 
-The platform is active as a production-style project with a public application URL and ongoing development. The documentation has been organized so a reviewer can understand the problem, architecture, setup, quality checks, and deployment model from the repository itself.
+The platform is active as a production-style project with a public application URL and ongoing development. The documentation has been organized so a reviewer can understand the problem, architecture, setup, quality checks, deployment model, and reliability roadmap from the repository itself.
 
 ## Next Steps
 
-- Add a short demo video to the README.
-- Add screenshots for the main modules.
-- Expand automated authorization tests.
+- Complete the Forge/VPS staging environment with MySQL or MariaDB.
+- Turn the manual regression checklist into automated coverage for the safest flows.
+- Implement the planned read-only `transport:validate-demo` command after staging is stable.
+- Add a short demo video and screenshots for the main modules.
 - Continue improving the mobile driver workflow.
 - Add more operational metrics around exports, queues, and page performance.

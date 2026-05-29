@@ -6,11 +6,14 @@ The project started from a practical problem: transport teams often depend on sp
 
 Live application: <https://app.kaiquetransportes.com.br>
 
+Demo access is intended for public walkthroughs with synthetic data only. Real company data and demo data are kept separated through permission and visibility checks.
+
 ## What This Project Shows
 
 - End-to-end product ownership across backend, frontend, database, deployment, and support workflows.
 - A real business domain with many connected modules rather than isolated demo screens.
 - Reliability work around duplicate submissions, permissions, rate limits, queues, and exports.
+- Practical data-safety work around demo isolation, encrypted fields, private attachments, and backup-aware deployment.
 - Documentation written for reviewers who want to understand both the product and the engineering choices.
 
 ## Product Scope
@@ -51,11 +54,13 @@ For more detail, see [documentos/architecture-overview.md](documentos/architectu
 ## Engineering Decisions Worth Reviewing
 
 - Permission-aware navigation and API access keep users focused on the modules they can use.
+- Demo data is treated as a safety boundary: demo users should not see real data, and real users should not see demo records.
 - Idempotency and duplicate checks protect critical write flows from accidental repeated submissions.
 - Route-sensitive throttling gives heavier or more sensitive endpoints stricter limits.
 - Queue monitoring and failed-job recovery make production support part of the app, not an afterthought.
 - Dense operational UI prioritizes scanning, comparison, and repeated use over marketing-style layouts.
 - Deployment documentation reflects a VPS/Nginx/Supervisor setup instead of assuming a managed platform.
+- SQLite-to-MySQL migration rehearsals are documented and validated before any production database move.
 
 ## Local Setup
 
@@ -103,6 +108,8 @@ npm run build
 
 The GitHub Actions workflows also run build, type checking, formatting, linting, audits, contract tests, E2E-tagged tests, and the full PHPUnit suite.
 
+For operational smoke testing, use the [manual regression checklist](documentos/regression-checklist.md). It covers login, demo isolation, permissions, dashboards, PDFs, imports, exports, storage, and the main module workflows.
+
 ## API Surface
 
 Selected route groups:
@@ -127,6 +134,8 @@ English:
 - [Project case study](documentos/project-case-study-en.md)
 - [Demo script](documentos/admissions-demo-script-en.md)
 - [Publication checklist](documentos/admissions-publish-checklist-en.md)
+- [Manual regression checklist](documentos/regression-checklist.md)
+- [Demo validation command plan](documentos/validate-demo-command-plan.md)
 
 Portuguese:
 
@@ -138,7 +147,8 @@ Portuguese:
 ## Current Limitations
 
 - Some workflows still depend on operational data conventions from the current business environment.
-- Demo data must be prepared carefully before public walkthroughs so no sensitive information is exposed.
+- Demo data must be validated before public walkthroughs so no sensitive information is exposed.
+- A full 24/7 staging environment is the next major reliability milestone before any production database migration.
 - The mobile driver app is documented separately and is not yet the main production surface.
 
 ## Suggested Review Path

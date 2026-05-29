@@ -9,6 +9,8 @@ Show that the project solves a real operational problem and that the engineering
 ## Before Recording
 
 - Use a demo account with no private data.
+- Run the manual regression checklist sections for login, demo isolation, home, and the workflow you plan to show.
+- Do not use a real company account for public recordings.
 - Keep the app open at the transport home page.
 - Prepare one clean workflow to show, such as resume intake to interview status or freight launch to report.
 - Keep the repository README open in another tab in case the reviewer wants technical context.
@@ -44,6 +46,10 @@ Mention the parts that are not obvious from the UI:
 
 "The repository includes setup instructions, architecture notes, security/performance notes, and deployment runbooks for a VPS-style environment using Nginx, PHP-FPM, queues, and scheduled tasks."
 
+If time allows, add:
+
+"Because this app touches real operational workflows, I also documented manual regression checks, demo-data isolation, and a staged SQLite-to-MySQL migration plan before moving toward 24/7 hosting."
+
 ### 1:50 - 2:00 | Close
 
 "What I wanted to show with this project is end-to-end ownership: understanding a business problem, designing workflows, building the full stack, documenting decisions, and keeping the system maintainable."
@@ -63,3 +69,5 @@ If the reviewer asks for details:
 - Use a clean demo dataset.
 - Do not show real phone numbers, documents, or personal data.
 - Keep the video under three minutes unless a longer technical walkthrough is requested.
+- If any real data appears in the demo flow, stop recording and fix the isolation issue before continuing.
+- If the live app is unavailable, use a prepared recording or screenshots instead of logging into a real account.
