@@ -8,7 +8,6 @@ on:
 
 jobs:
   deploy:
-    if: ${{ secrets.SSH_HOST != '' && secrets.SSH_USER != '' && secrets.SSH_PRIVATE_KEY != '' }}
     runs-on: ubuntu-latest
 
     steps:
