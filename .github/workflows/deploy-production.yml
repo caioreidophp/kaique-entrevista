@@ -21,7 +21,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          script_stop: true
           script: |
             export APP_DIR="${{ secrets.APP_DIR || '/var/www/kaique-entrevista' }}"
             export BRANCH="main"
