@@ -197,6 +197,42 @@ class FreightApiTest extends TestCase
             ->assertJsonPath('por_unidade.0.frete_kaique_por_caminhao', 3000);
     }
 
+    public function test_dashboard_reports_latest_entry_date_for_partial_month_comparison(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $unidade = Unidade::query()->create(['nome' => 'Amparo', 'slug' => 'amparo']);
+
+        FreightEntry::query()->create([
+            'data' => '2026-07-08',
+            'unidade_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'frete_total' => 1500,
+            'cargas' => 10,
+            'aves' => 800,
+            'veiculos' => 2,
+            'km_rodado' => 900,
+            'frete_liquido' => 1500,
+            'cargas_liq' => 10,
+            'aves_liq' => 800,
+        ]);
+
+        \App\Models\FreightSpotEntry::query()->create([
+            'data' => '2026-07-10',
+            'unidade_origem_id' => $unidade->id,
+            'autor_id' => $admin->id,
+            'frete_spot' => 700,
+            'cargas' => 2,
+            'aves' => 300,
+            'km_rodado' => 120,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/freight/dashboard?competencia_mes=7&competencia_ano=2026')
+            ->assertOk()
+            ->assertJsonPath('latest_entry_date', '2026-07-10');
+    }
+
     public function test_dashboard_alerts_include_low_and_high_km_thresholds(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -1,105 +1,113 @@
 # Project Case Study
 
-## Summary
+## Short Version
 
-Kaique Transport Operations Platform is a web application built for the daily work of a transport operation. It brings together freight records, payroll, vacation planning, recruitment, onboarding, permissions, and support tooling in one authenticated system.
+Kaique Transport Operations Platform is an internal web system I built to help a transport operation move daily work out of scattered spreadsheets, messages, folders, and repeated manual checks.
 
-The goal was not only to build screens, but to reduce operational friction: fewer spreadsheet handoffs, fewer duplicate records, clearer status tracking, and a better audit trail for decisions.
+The project is not a classroom mockup. It grew from real operational needs: freight records, payroll routines, vacation planning, recruitment, onboarding documents, permissions, PDFs, exports, and support screens. Because the current data is real, the public-facing work around this project has to be careful: demo data must stay synthetic, sensitive records must stay private, and infrastructure changes need backup and rollback plans.
 
-## Problem
+## The Problem I Was Trying To Solve
 
-Before a system like this, transport workflows are easy to scatter across many places:
+The company had many workflows that changed every day. A single piece of information could be in a spreadsheet, a message thread, a scanned document, or someone's memory. That creates practical problems:
 
-- load and payroll information in spreadsheets;
-- interview and onboarding information in messages or paper notes;
-- documents saved without a consistent workflow;
-- status updates depending on individual memory;
-- limited visibility into who changed what.
+- people need to ask around before trusting a status;
+- repeated forms can create duplicate records;
+- private documents are hard to organize consistently;
+- payment and freight information needs checking before decisions are made;
+- it is hard to know who changed what after the fact.
 
-That kind of setup can work for a small volume, but it becomes hard to audit and hard to scale.
+I wanted to build something useful for the actual operation, not just a polished demo screen.
 
-## Solution
+## What I Built
 
-The platform provides a shared workspace for transport operations. Each module focuses on a specific workflow, while shared infrastructure handles authentication, permissions, attachments, activity logging, exports, and operational monitoring.
+The system is a Laravel + React/Inertia application organized into operational modules:
 
-Examples:
+- Freight management for launches, lists, canceled loads, SPOT freight, displacement records, and analytics.
+- Payroll for launches, lists, collaborator reports, unit reports, adjustments, and pending daily pay/extras.
+- Vacations for planning, dashboards, reports, and timeline views.
+- Recruitment for resumes, interviews, statuses, attachments, notes, and PDFs.
+- Onboarding and next steps for moving candidates into collaborator records.
+- Registry screens for collaborators, users, roles, units, functions, payment types, plates, aviaries, and infractions.
+- Support tools for logs, telemetry, queues, settings, permissions, and operational recovery.
 
-- Freight teams can launch and review operational records.
-- Payroll users can manage cycles and adjustments.
-- HR users can track resumes, interviews, and onboarding.
-- Administrators can manage users, permissions, registries, and support tools.
+The current live company environment still runs through a local machine exposed by Cloudflare Tunnel. A safer Forge/VPS staging environment with MySQL or MariaDB is being prepared separately, because the current database is SQLite and contains real operational data.
 
 ## My Role
 
-This project represents end-to-end engineering work:
+I worked across the full stack:
 
-- designing the data model and migrations;
-- building Laravel API controllers, validation, and business rules;
-- creating React/TypeScript module screens;
-- wiring authentication and permissions;
-- documenting deployment and support workflows;
-- adding tests and CI checks;
-- maintaining the project through real feature requests and bug fixes.
+- database tables, migrations, and model relationships;
+- Laravel API controllers, validation, permissions, and business rules;
+- React/TypeScript pages for dense internal workflows;
+- PDF and spreadsheet exports;
+- file upload handling for public and private attachments;
+- demo-data safety checks;
+- deployment notes, backup notes, and regression checklists.
 
-## Technical Highlights
+The hardest part has been keeping the system useful while it is already being used. A small bug can affect a real workflow, so I learned to slow down before risky changes, make backups, test targeted flows, and keep rollback paths visible.
 
-- Laravel 12 backend with Fortify/Sanctum authentication.
-- React 19 + TypeScript frontend through Inertia.js.
-- Permission-aware navigation and backend access checks.
-- Demo/real data isolation so public walkthrough data does not leak into real operational accounts.
-- Duplicate prevention and idempotency on critical write flows.
-- Queue-backed exports and failed-job recovery surfaces.
-- PDF and spreadsheet generation for business documents.
-- SQLite-to-MySQL rehearsal tooling for safer staging migration.
-- GitHub Actions for build, type checking, linting, audits, and tests.
-- VPS deployment documentation with Nginx, PHP-FPM, Supervisor, queues, and scheduler.
+## Technical Decisions That Matter
 
-## Reliability and Data Safety
+### Demo and Real Data Must Stay Separate
 
-The project is used around real operational data, so reliability work became part of the product itself. Recent work focused on separating public demo data from real company records, protecting sensitive identity fields, and preparing a controlled SQLite-to-MySQL migration path before any 24/7 staging rollout.
+The project has a demo account for public walkthroughs, but demo data is not allowed to leak into real accounts, and real company records should never appear in the demo. That rule sounds simple until the app has many modules, filters, dashboards, and reports. It became one of the most important safety boundaries in the project.
 
-That reliability work matters because the system is not a toy demo. A broken dashboard, leaked demo record, failed PDF, or wrong permission can affect trust in the tool. The roadmap therefore prioritizes regression checklists, staging validation, and read-only safety checks before larger product changes.
+### Permissions Are Backend Rules, Not Just Sidebar Visibility
 
-The current approach is deliberately incremental: document the risk, rehearse the database move in isolation, keep rollback paths simple, and only automate checks after the staging environment is stable.
+The sidebar changes based on the user's profile, but the API still has to enforce access rules. This matters because hidden buttons do not protect data by themselves.
 
-## Recent Document Workflow Improvements
+### The UI Is Dense On Purpose
 
-The recruitment workflow now treats printed/PDF interview records as part of the product, not as a secondary export. Interview PDFs can be downloaded reliably, include internal comments for audit context, and optionally include an attachment appendix. The candidate interview screen also formats dates in the Brazilian `dd/mm/yyyy` pattern so printed records match operator expectations.
+This is an internal operations tool. The users are not visiting a marketing site; they are checking records, comparing units, launching payments, updating statuses, and downloading documents. I chose tables, filters, compact cards, status chips, and direct actions because repeated use matters more than visual decoration.
 
-The admission checklist and race/ethnicity declaration templates were also cleaned up for a more professional handoff: the checklist now uses a clearer fillable layout, and the race/ethnicity document renders as one copy instead of duplicated pages.
+### Infrastructure Changes Need Rehearsal
 
-## Recent Freight Analytics Improvements
+The current system uses SQLite locally. Moving to MySQL/MariaDB is the right direction for a 24/7 hosted environment, but doing that directly on real data would be careless. I added migration/audit/compare tooling and documented a staged path before switching the active environment.
 
-The freight dashboard was corrected to separate Kaique-owned operation metrics from third-party freight. KPIs, per-unit comparisons, and daily trend cards now use the `Kaique Geral` grouped values as the source of truth, with legacy fallback logic for older records.
+### PDFs and Attachments Are Part of the Product
 
-This change matters because operational dashboards should not reward or penalize the company for freight that belongs to third parties. A regression test now covers that rule by creating a mixed Kaique/third-party freight record and verifying that the dashboard only reports the Kaique portion.
+Recruitment and payroll workflows often end in documents. If a PDF has wrong dates, missing comments, broken attachments, or duplicated pages, the feature is not complete. I learned that "export" is not a side feature when people rely on it operationally.
 
-## Product Decisions
+## Examples Of Problems I Had To Fix
 
-The interface is intentionally practical. It favors dense tables, filters, status chips, and direct actions because the target user repeats the same workflows often and needs to scan data quickly.
+- A dashboard was counting third-party freight together with Kaique freight, which made operational totals misleading.
+- A demo setup accidentally risked mixing synthetic data with real views, so demo isolation became a higher priority.
+- Some encrypted fields needed more database storage before a future MySQL migration to avoid truncation risk.
+- A new table was deployed in code before the local SQLite migration had run, causing a missing-table error until the migration was applied.
+- Percentage displays in freight analytics were rounding too aggressively for operational review, so they were changed to two decimal places where needed.
 
-The architecture also keeps many workflows close to their module boundaries. That makes it easier to trace a business rule from the screen to the API endpoint, validation, model, and database table.
+These are not glamorous problems, but they are the kind of problems real systems create.
 
 ## What I Learned
 
-This project strengthened several skills that are hard to show in small assignments:
+This project taught me more than isolated assignments because the work connects product, code, data, and operations.
 
-- modeling a domain with connected workflows;
-- handling permissions beyond a simple admin/user split;
-- protecting write operations from duplicate or inconsistent records;
-- documenting deployment and maintenance, not only local development;
-- balancing UI polish with operational speed;
-- writing code that another reviewer can understand without needing a live explanation.
+I learned that:
+
+- building the first version is easier than maintaining trust in the system;
+- demo data is a security problem, not only a presentation problem;
+- permissions need to be checked in more than one place;
+- backups and rollback notes are part of responsible development;
+- small UI details matter when people use a screen every day;
+- documentation should explain decisions, not just list commands.
 
 ## Current Status
 
-The platform is active as a production-style project with a public application URL and ongoing development. The documentation has been organized so a reviewer can understand the problem, architecture, setup, quality checks, deployment model, and reliability roadmap from the repository itself.
+The system is actively developed and used as an internal operations platform. It is not presented as a finished SaaS product. The current public URL points to the existing local/Cloudflare Tunnel setup, while a proper staging environment is being planned for Forge/VPS with MySQL or MariaDB.
+
+For admissions or portfolio review, the safest way to evaluate the project is through:
+
+- this repository;
+- a synthetic-data demo account;
+- screenshots or a short recording;
+- the architecture and security notes;
+- the manual regression checklist.
 
 ## Next Steps
 
-- Complete the Forge/VPS staging environment with MySQL or MariaDB.
-- Turn the manual regression checklist into automated coverage for the safest flows.
-- Implement the planned read-only `transport:validate-demo` command after staging is stable.
-- Add a short demo video and screenshots for the main modules.
-- Continue improving the mobile driver workflow.
-- Add more operational metrics around exports, queues, and page performance.
+- Make the demo dataset more reliable and easier to validate before recordings.
+- Finish the 24/7 staging environment with MySQL/MariaDB.
+- Add a short walkthrough video using synthetic data only.
+- Add screenshots for the main workflows in the README or a dedicated portfolio page.
+- Turn the manual demo validation plan into an Artisan command.
+- Add more automated tests around demo isolation and high-risk financial flows.

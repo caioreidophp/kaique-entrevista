@@ -1,66 +1,74 @@
 # Kaique Transport Operations Platform
 
-Kaique Transport Operations Platform is a full-stack system for managing daily transport operations: freight records, payroll routines, vacation planning, driver recruitment, onboarding, permissions, and operational monitoring.
+This is a Laravel + React system I built for Kaique Transportes to organize daily transport work that was getting spread across spreadsheets, messages, files, and repeated manual checks.
 
-The project started from a practical problem: transport teams often depend on spreadsheets, messages, printed documents, and repeated manual checks. This repository turns those workflows into one authenticated web platform with audit trails, permission rules, document handling, and deployment notes.
+The app currently runs for the company through a local environment exposed with a Cloudflare Tunnel at:
 
-Live application: <https://app.kaiquetransportes.com.br>
+<https://app.kaiquetransportes.com.br>
 
-Demo access is intended for public walkthroughs with synthetic data only. Real company data and demo data are kept separated through permission and visibility checks.
+The next infrastructure step is a separate staging server on Forge/VPS with MySQL or MariaDB. That work is being prepared carefully because the current data is real, the local database is SQLite, and some fields are encrypted.
 
-## What This Project Shows
+Demo access is meant for public walkthroughs only. It uses synthetic data and has isolation rules so demo records do not appear for real accounts, and real company records do not appear in the demo account.
 
-- End-to-end product ownership across backend, frontend, database, deployment, and support workflows.
-- A real business domain with many connected modules rather than isolated demo screens.
-- Reliability work around duplicate submissions, permissions, rate limits, queues, and exports.
-- Practical data-safety work around demo isolation, encrypted fields, private attachments, and backup-aware deployment.
-- Documentation written for reviewers who want to understand both the product and the engineering choices.
+## Why I Built It
 
-## Product Scope
+I started this project because the operation needed a more reliable way to manage information that changes every day: freight records, payroll routines, vacations, recruitment, documents, and internal approvals.
 
-The platform is organized around the workflows a transport operation needs during the week:
+The important part for me was not just making forms. I worked on the parts that make a system usable in real life:
 
-- Freight management: launch records, list loads, track canceled loads, review timelines, and generate operational reports.
-- Payroll: launch payroll cycles, manage adjustments, and report by unit or collaborator.
-- Vacations: plan absences, inspect timelines, and review unit-level vacation reports.
-- Recruitment: register resumes, schedule driver interviews, track statuses, and prepare next-step documents.
-- Onboarding: assign onboarding tasks, upload attachments, and track completion.
-- Registry: manage collaborators, roles, permissions, payment types, units, functions, fleet plates, and aviaries.
-- Operations support: audit activity, inspect telemetry, monitor queues, and recover failed jobs.
+- permissions by module and user profile;
+- searchable tables and dashboards for repeated daily work;
+- file uploads, PDFs, and spreadsheet exports;
+- duplicate checks and validation for important records;
+- activity logs and support screens;
+- a demo environment that can be shown without exposing private data;
+- documentation for deployment, regression checks, and future staging.
+
+## Main Modules
+
+- Freight: launch freight records, review lists, track canceled loads, compare units, and export operational information.
+- Payroll: manage payment cycles, adjustments, collaborators, units, and reports.
+- Vacations: plan and review employee vacations with dashboard and timeline views.
+- Recruitment: manage resumes, driver interviews, statuses, attachments, and printed/PDF interview records.
+- Onboarding: follow next steps after interviews and keep related documents organized.
+- Registry: manage collaborators, users, roles, units, functions, payment types, fleet plates, and aviaries.
+- Operations support: inspect logs, telemetry, queues, failed jobs, and system activity.
 
 ## Technical Stack
 
 - Backend: Laravel 12, PHP 8.2+, Fortify, Sanctum
 - Frontend: React 19, TypeScript, Inertia.js, Vite
-- Database and files: MySQL-compatible database, Laravel storage, PDF and spreadsheet exports
-- Exports: DomPDF and PhpSpreadsheet
-- Operations: queue workers, scheduler, deployment scripts, Nginx/Supervisor runbooks
-- Quality: PHPUnit feature tests, TypeScript checks, ESLint, Prettier, Pint, GitHub Actions
+- Current local database: SQLite
+- Staging target: MySQL/MariaDB on Forge/VPS
+- Files: Laravel storage for public and private attachments
+- Documents: DomPDF and PhpSpreadsheet
+- Operations: queues, scheduler, deployment scripts, Nginx/Supervisor documentation
+- Quality: PHPUnit, TypeScript checks, ESLint, Prettier, Pint, GitHub Actions
 
 ## Architecture
 
-At a high level, the application uses Laravel for routing, authentication, validation, policies, API controllers, queues, and persistence. React/Inertia pages provide the authenticated transport workspace.
+Laravel handles authentication, routing, validation, policies, API controllers, queues, database access, file storage, and exports. React/Inertia provides the authenticated screens used by the transport, HR, payroll, and admin workflows.
 
 Typical request flow:
 
 1. A user opens a module inside the transport shell.
 2. The React page calls an authenticated `/api/*` endpoint.
-3. Laravel validates the payload and checks the user's permissions.
-4. The controller applies the domain rule, writes to the database, and records relevant activity.
-5. Heavy work, such as exports or background delivery, is handled by queues when appropriate.
+3. Laravel validates the payload and checks permissions.
+4. The controller applies the business rule and reads or writes data.
+5. Activity is logged where it matters.
+6. Heavier work, such as exports, can be handled through queues.
 
 For more detail, see [documentos/architecture-overview.md](documentos/architecture-overview.md).
 
-## Engineering Decisions Worth Reviewing
+## Decisions I Care About
 
-- Permission-aware navigation and API access keep users focused on the modules they can use.
-- Demo data is treated as a safety boundary: demo users should not see real data, and real users should not see demo records.
-- Idempotency and duplicate checks protect critical write flows from accidental repeated submissions.
-- Route-sensitive throttling gives heavier or more sensitive endpoints stricter limits.
-- Queue monitoring and failed-job recovery make production support part of the app, not an afterthought.
-- Dense operational UI prioritizes scanning, comparison, and repeated use over marketing-style layouts.
-- Deployment documentation reflects a VPS/Nginx/Supervisor setup instead of assuming a managed platform.
-- SQLite-to-MySQL migration rehearsals are documented and validated before any production database move.
+- Real and demo data are treated as separate worlds. If that boundary breaks, it is a serious bug.
+- Sensitive identity fields such as CPF/RG/CNH require care because some are encrypted.
+- SQLite is still the current local database, so the MySQL move is being rehearsed before any staging or production switch.
+- The UI is dense on purpose. This is an internal operations tool, so scanning and repeated use matter more than a landing-page style interface.
+- Permissions are checked in the backend, not only hidden in the sidebar.
+- PDFs, imports, exports, and attachments are part of the workflow, not extra decoration.
+- Rollback and manual regression checks are documented before risky infrastructure changes.
 
 ## Local Setup
 
@@ -70,7 +78,7 @@ Requirements:
 - Composer
 - Node.js 20 or newer
 - npm
-- MySQL or another configured database supported by Laravel
+- SQLite for local development, or another Laravel-supported database if configured
 
 Install dependencies and prepare the app:
 
@@ -96,7 +104,7 @@ npm run build
 
 ## Quality Checks
 
-Useful checks before opening a pull request:
+Useful checks before opening a pull request or deploying:
 
 ```bash
 npm run types
@@ -106,9 +114,22 @@ composer test
 npm run build
 ```
 
-The GitHub Actions workflows also run build, type checking, formatting, linting, audits, contract tests, E2E-tagged tests, and the full PHPUnit suite.
+The project also has GitHub Actions for build, type checking, formatting, linting, audits, contract tests, E2E-tagged tests, and PHPUnit.
 
-For operational smoke testing, use the [manual regression checklist](documentos/regression-checklist.md). It covers login, demo isolation, permissions, dashboards, PDFs, imports, exports, storage, and the main module workflows.
+For manual smoke testing, use the [manual regression checklist](documentos/regression-checklist.md). It covers login, demo isolation, permissions, dashboards, PDFs, imports, exports, storage, and the main module workflows.
+
+## MySQL/Staging Status
+
+The current company environment is still SQLite through the local/Cloudflare Tunnel setup.
+
+I have been preparing the project for a safer MySQL/MariaDB staging move. The migration rehearsal already covered the important risk areas: encrypted fields, unique collisions, table counts, and SQLite-to-MySQL comparison. The intended staging target is Forge/VPS with a separate database, separate domain, copied storage, and no change to the current local system until staging is approved.
+
+Related documents:
+
+- [Deploy em VPS](documentos/deploy-vps.md)
+- [Deploy Forge/produção](DEPLOY_FORGE_PRODUCAO.md)
+- [Manual regression checklist](documentos/regression-checklist.md)
+- [Demo validation command plan](documentos/validate-demo-command-plan.md)
 
 ## API Surface
 
@@ -132,8 +153,11 @@ English:
 - [Architecture overview](documentos/architecture-overview.md)
 - [Security and performance notes](documentos/security-performance-notes.md)
 - [Project case study](documentos/project-case-study-en.md)
+- [Admissions project summary](documentos/admissions-project-summary-en.md)
 - [Demo script](documentos/admissions-demo-script-en.md)
+- [Screenshot checklist](documentos/admissions-screenshot-checklist-en.md)
 - [Publication checklist](documentos/admissions-publish-checklist-en.md)
+- [Admissions polish roadmap](documentos/admissions-polish-roadmap-en.md)
 - [Manual regression checklist](documentos/regression-checklist.md)
 - [Demo validation command plan](documentos/validate-demo-command-plan.md)
 
@@ -146,9 +170,11 @@ Portuguese:
 
 ## Current Limitations
 
-- Some workflows still depend on operational data conventions from the current business environment.
-- Demo data must be validated before public walkthroughs so no sensitive information is exposed.
-- A full 24/7 staging environment is the next major reliability milestone before any production database migration.
+- The active environment still depends on the local machine and Cloudflare Tunnel.
+- A separate 24/7 staging environment is not live yet.
+- The current operational database is SQLite; MySQL/MariaDB is the staging target, not the current live database.
+- Some workflows still reflect Kaique Transportes' internal data conventions.
+- Demo data must be checked before public walkthroughs so no private information is shown.
 - The mobile driver app is documented separately and is not yet the main production surface.
 
 ## Suggested Review Path
@@ -156,10 +182,11 @@ Portuguese:
 If you are reviewing the project quickly:
 
 1. Read this README and the [project case study](documentos/project-case-study-en.md).
-2. Open the live app or a short demo recording.
-3. Inspect the architecture and security notes.
-4. Check the tests and GitHub Actions configuration.
-5. Review one complete feature area, such as recruitment or freight.
+2. Read the [one-page admissions summary](documentos/admissions-project-summary-en.md).
+3. Watch a short synthetic-data demo recording or use the demo account if available.
+4. Review the architecture and security notes.
+5. Check the regression checklist to see what can break in real use.
+6. Inspect one complete feature area, such as recruitment, freight, or payroll.
 
 ## License
 

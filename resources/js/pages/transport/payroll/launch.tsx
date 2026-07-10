@@ -243,37 +243,6 @@ export default function TransportPayrollLaunchPage() {
         [selectedTipos],
     );
 
-    const salaryLikeTypeIds = useMemo(
-        () =>
-            tiposPagamento
-                .filter((tipo) => {
-                    const normalizedName = normalizePaymentName(tipo.nome);
-
-                    return (
-                        normalizedName.includes('adiantamento') ||
-                        normalizedName.includes('decimo terceiro') ||
-                        normalizedName.includes('salario mensal')
-                    );
-                })
-                .map((tipo) => tipo.id),
-        [tiposPagamento],
-    );
-
-    const salaryLikeTypeSet = useMemo(
-        () => new Set(salaryLikeTypeIds),
-        [salaryLikeTypeIds],
-    );
-
-    const hasSalaryLikeTypeSelected = useMemo(
-        () => selectedTipoIds.some((id) => salaryLikeTypeSet.has(id)),
-        [salaryLikeTypeSet, selectedTipoIds],
-    );
-
-    const hasOtherTypeSelected = useMemo(
-        () => selectedTipoIds.some((id) => !salaryLikeTypeSet.has(id)),
-        [salaryLikeTypeSet, selectedTipoIds],
-    );
-
     const hasValeRefeicaoSelected = selectedValeRefeicaoTypeIds.length > 0;
     const hasValeTransporteSelected = selectedValeTransporteTypeIds.length > 0;
     const hasBenefitDailyAutoFill =
@@ -564,29 +533,7 @@ export default function TransportPayrollLaunchPage() {
         setResumeDialogOpen(false);
     }
 
-    function isTipoBlocked(tipoId: number): boolean {
-        if (selectedTipoIds.includes(tipoId)) {
-            return false;
-        }
-
-        const isSalaryLikeType = salaryLikeTypeSet.has(tipoId);
-
-        if (hasSalaryLikeTypeSelected && !isSalaryLikeType) {
-            return true;
-        }
-
-        if (hasOtherTypeSelected && isSalaryLikeType) {
-            return true;
-        }
-
-        return false;
-    }
-
     function toggleTipo(tipoId: number, checked: boolean): void {
-        if (checked && isTipoBlocked(tipoId)) {
-            return;
-        }
-
         setSelectedTipoIds((previous) => {
             if (checked) {
                 if (previous.includes(tipoId)) return previous;
@@ -1239,11 +1186,7 @@ export default function TransportPayrollLaunchPage() {
                                 {tiposPagamento.map((tipo) => (
                                     <label
                                         key={tipo.id}
-                                        className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
-                                            isTipoBlocked(tipo.id)
-                                                ? 'cursor-not-allowed bg-muted/60 opacity-60'
-                                                : ''
-                                        }`}
+                                        className="flex items-center gap-2 rounded-md border px-3 py-2"
                                     >
                                         <Checkbox
                                             checked={selectedTipoIds.includes(
@@ -1255,7 +1198,6 @@ export default function TransportPayrollLaunchPage() {
                                                     Boolean(checked),
                                                 )
                                             }
-                                            disabled={isTipoBlocked(tipo.id)}
                                         />
                                         <span className="text-sm">
                                             {tipo.nome}

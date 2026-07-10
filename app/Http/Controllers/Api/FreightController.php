@@ -17,10 +17,12 @@ use App\Models\UnitFleetSize;
 use App\Support\AsyncOperationTracker;
 use App\Support\OutboundWebhookService;
 use App\Support\TransportCache;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -81,6 +83,13 @@ class FreightController extends Controller
         if (isset($validated['unidade_id'])) {
             $spotQuery->where('unidade_origem_id', (int) $validated['unidade_id']);
         }
+
+        $latestFreightEntryDate = (clone $query)->max('data');
+        $latestSpotEntryDate = (clone $spotQuery)->max('data');
+        $latestEntryDate = collect([$latestFreightEntryDate, $latestSpotEntryDate])
+            ->filter()
+            ->map(fn ($date): string => Carbon::parse($date)->toDateString())
+            ->max();
 
         $totals = (clone $query)
             ->selectRaw('COUNT(*) as total_lancamentos')
@@ -328,6 +337,7 @@ class FreightController extends Controller
             'using_custom_range' => $usingCustomRange,
             'start_date' => $startDate,
             'end_date' => $endDate,
+            'latest_entry_date' => $latestEntryDate,
             'unidade_id' => isset($validated['unidade_id']) ? (int) $validated['unidade_id'] : null,
             'kpis' => [
                 'total_lancamentos' => $totalLancamentos,
@@ -437,6 +447,108 @@ class FreightController extends Controller
         Cache::put($cacheKey, $payload, now()->addSeconds(60));
 
         return response()->json($payload);
+    }
+
+    public function dashboardExecutivePdf(Request $request): Response
+    {
+        abort_unless($request->user()?->hasPermission('freight.dashboard.view'), 403);
+
+        $validated = $request->validate([
+            'competencia_mes' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'competencia_ano' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            'start_date' => ['nullable', 'date_format:Y-m-d'],
+            'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            'unidade_id' => ['nullable', 'integer', 'min:1'],
+            'include_spot' => ['nullable', 'boolean'],
+            'download' => ['nullable', 'boolean'],
+        ]);
+
+        [$month, $year] = $this->monthAndYear($request);
+        $includeSpot = $request->boolean('include_spot');
+
+        $dashboardQuery = [
+            'competencia_mes' => $month,
+            'competencia_ano' => $year,
+        ];
+
+        if (isset($validated['start_date'], $validated['end_date'])) {
+            $dashboardQuery['start_date'] = (string) $validated['start_date'];
+            $dashboardQuery['end_date'] = (string) $validated['end_date'];
+        }
+
+        if (isset($validated['unidade_id'])) {
+            $dashboardQuery['unidade_id'] = (int) $validated['unidade_id'];
+        }
+
+        $dashboardRequest = $request->duplicate($dashboardQuery);
+        $dashboardRequest->setUserResolver(fn () => $request->user());
+
+        $dashboard = $this->dashboard($dashboardRequest)->getData(true);
+        $unitRows = collect($dashboard['por_unidade'] ?? [])
+            ->map(function (array $row) use ($includeSpot): array {
+                if (! $includeSpot) {
+                    return $row;
+                }
+
+                $row['total_lancamentos'] = (int) ($row['total_lancamentos'] ?? 0) + (int) ($row['total_lancamentos_spot'] ?? 0);
+                $row['total_frete'] = (float) ($row['total_frete_com_spot'] ?? 0);
+                $row['total_frete_liquido'] = (float) ($row['total_frete_com_spot'] ?? 0);
+                $row['total_km'] = (float) ($row['total_km_com_spot'] ?? 0);
+                $row['total_aves'] = (int) ($row['total_aves_com_spot'] ?? 0);
+                $row['total_viagens_kaique'] = (int) ($row['total_viagens_com_spot'] ?? 0);
+                $row['dias_trabalhados'] = max((int) ($row['dias_trabalhados'] ?? 0), (int) ($row['dias_spot'] ?? 0));
+
+                return $row;
+            })
+            ->sortByDesc(fn (array $row): float => (float) ($row['total_frete'] ?? 0))
+            ->values();
+
+        $totals = [
+            'frete' => $unitRows->sum(fn (array $row): float => (float) ($row['total_frete'] ?? 0)),
+            'km' => $unitRows->sum(fn (array $row): float => (float) ($row['total_km'] ?? 0)),
+            'aves' => $unitRows->sum(fn (array $row): float => (float) ($row['total_aves'] ?? 0)),
+            'viagens' => $unitRows->sum(fn (array $row): float => (float) ($row['total_viagens_kaique'] ?? 0)),
+            'lancamentos' => $unitRows->sum(fn (array $row): float => (float) ($row['total_lancamentos'] ?? 0)),
+            'spot' => collect($dashboard['por_unidade'] ?? [])->sum(fn (array $row): float => (float) ($row['total_frete_spot'] ?? 0)),
+            'terceiros' => $unitRows->sum(fn (array $row): float => (float) ($row['total_frete_terceiros'] ?? 0)),
+        ];
+        $totals['frete_por_km'] = $totals['km'] > 0 ? $totals['frete'] / $totals['km'] : 0.0;
+        $totals['spot_percent'] = ($totals['frete'] + $totals['spot']) > 0
+            ? ($totals['spot'] / ($totals['frete'] + $totals['spot'])) * 100
+            : 0.0;
+        $totals['terceiros_percent'] = ($totals['frete'] + $totals['terceiros']) > 0
+            ? ($totals['terceiros'] / ($totals['frete'] + $totals['terceiros'])) * 100
+            : 0.0;
+
+        $startDate = $validated['start_date'] ?? null;
+        $endDate = $validated['end_date'] ?? null;
+        $periodLabel = $startDate && $endDate
+            ? Carbon::parse($startDate)->format('d/m/Y').' a '.Carbon::parse($endDate)->format('d/m/Y')
+            : Carbon::create($year, $month, 1)->translatedFormat('F/Y');
+        $unitLabel = isset($validated['unidade_id'])
+            ? (Unidade::query()->whereKey((int) $validated['unidade_id'])->value('nome') ?? 'Unidade selecionada')
+            : 'Todas as unidades';
+
+        $pdf = Pdf::loadView('pdf.freight-dashboard-executive', [
+            'dashboard' => $dashboard,
+            'rows' => $unitRows,
+            'totals' => $totals,
+            'periodLabel' => $periodLabel,
+            'unitLabel' => $unitLabel,
+            'includeSpot' => $includeSpot,
+            'generatedAt' => now()->format('d/m/Y H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'resumo-executivo-fretes-'.$year.'-'.str_pad((string) $month, 2, '0', STR_PAD_LEFT).'.pdf';
+
+        return response(
+            $pdf->output(),
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => ($request->boolean('download') ? 'attachment' : 'inline').'; filename="'.$filename.'"',
+            ],
+        );
     }
 
     public function monthlyUnitReport(Request $request): JsonResponse

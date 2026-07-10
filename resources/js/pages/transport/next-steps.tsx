@@ -438,8 +438,8 @@ export default function TransportNextStepsPage() {
         if (!formData.funcao_id) {
             clientErrors.funcao_id = 'Selecione a função.';
         }
-        if (rg && !/^\d{9}[\dA-Z]$/.test(rg)) {
-            clientErrors.rg = 'RG deve ter 9 números + 1 caractere final.';
+        if (rg && !/^[0-9A-Z]{1,30}$/.test(rg)) {
+            clientErrors.rg = 'RG deve conter até 30 caracteres alfanuméricos.';
         }
         if (cnh && !/^\d{11}$/.test(cnh)) {
             clientErrors.cnh = 'CNH deve conter 11 números.';

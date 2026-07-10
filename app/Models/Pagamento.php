@@ -7,6 +7,7 @@ use App\Support\TransportCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -73,6 +74,11 @@ class Pagamento extends Model
     public function autor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'autor_id');
+    }
+
+    public function pendingExtras(): HasMany
+    {
+        return $this->hasMany(PayrollPendingExtra::class);
     }
 
     public function getActivitylogOptions(): LogOptions

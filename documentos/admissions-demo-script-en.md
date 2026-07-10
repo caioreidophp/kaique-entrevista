@@ -1,73 +1,99 @@
-# Demo Script for Reviewers
+# Admissions Demo Script
 
-Use this as a short, natural walkthrough for university applications, portfolio reviews, or technical conversations.
+This script is for a short college/portfolio walkthrough. The goal is to show a real project clearly, not to explain every menu item.
 
-## Goal
+Use only the demo account and synthetic data. If real names, phone numbers, documents, or private company records appear, stop recording and fix the demo isolation first.
 
-Show that the project solves a real operational problem and that the engineering work goes beyond building isolated screens.
+## Recommended Length
+
+2 to 4 minutes.
 
 ## Before Recording
 
-- Use a demo account with no private data.
-- Run the manual regression checklist sections for login, demo isolation, home, and the workflow you plan to show.
-- Do not use a real company account for public recordings.
-- Keep the app open at the transport home page.
-- Prepare one clean workflow to show, such as resume intake to interview status or freight launch to report.
-- Keep the repository README open in another tab in case the reviewer wants technical context.
-
-## Two-Minute Walkthrough
-
-### 0:00 - 0:20 | Problem
-
-"This project was built to centralize transport operations that are often split across spreadsheets, messages, and paper documents. The goal is to make daily work faster while keeping permissions, audit history, and data quality under control."
-
-### 0:20 - 0:55 | Product Flow
-
-Show one complete workflow. Good options:
-
-- open the recruitment/resume area, filter candidates, and show how interview status is tracked;
-- open freight records, show filtering/reporting, and connect it to operational dashboards;
-- open vacation planning and show how unit-level planning is reviewed.
-
-Keep this part visual and concrete. Avoid explaining every menu item.
-
-### 0:55 - 1:30 | Engineering Depth
-
-Mention the parts that are not obvious from the UI:
-
-- Laravel backend with React/TypeScript frontend;
-- permission-aware navigation and API checks;
-- duplicate prevention and validation on critical forms;
-- queues for heavier jobs and exports;
-- activity logs and observability endpoints;
-- automated checks in GitHub Actions.
-
-### 1:30 - 1:50 | Documentation and Deployment
-
-"The repository includes setup instructions, architecture notes, security/performance notes, and deployment runbooks for a VPS-style environment using Nginx, PHP-FPM, queues, and scheduled tasks."
-
-If time allows, add:
-
-"Because this app touches real operational workflows, I also documented manual regression checks, demo-data isolation, and a staged SQLite-to-MySQL migration plan before moving toward 24/7 hosting."
-
-### 1:50 - 2:00 | Close
-
-"What I wanted to show with this project is end-to-end ownership: understanding a business problem, designing workflows, building the full stack, documenting decisions, and keeping the system maintainable."
-
-## Optional Technical Appendix
-
-If the reviewer asks for details:
-
-- Backend: Laravel 12, Fortify, Sanctum, Eloquent, queues.
-- Frontend: React 19, TypeScript, Inertia.js, Vite.
-- Quality: PHPUnit, TypeScript, ESLint, Prettier, Pint, GitHub Actions.
-- Operations: VPS deployment, Nginx, PHP-FPM, Supervisor, scheduler.
-
-## Recording Tips
-
+- Confirm the demo account logs in.
+- Confirm the demo account does not show real company records.
+- Open the app at the home page.
 - Keep browser zoom at 100%.
-- Use a clean demo dataset.
-- Do not show real phone numbers, documents, or personal data.
-- Keep the video under three minutes unless a longer technical walkthrough is requested.
-- If any real data appears in the demo flow, stop recording and fix the isolation issue before continuing.
-- If the live app is unavailable, use a prepared recording or screenshots instead of logging into a real account.
+- Hide browser bookmarks or unrelated tabs.
+- Prepare the repository README in another tab.
+- Pick two product workflows and one technical detail to show.
+
+## Suggested Flow
+
+### 0:00 - 0:25 | Context
+
+"I built this project for a real transport operation that needed a better way to organize daily work. Before this, information could be spread across spreadsheets, messages, documents, and repeated manual checks. The system brings those workflows into one authenticated Laravel and React application."
+
+Show: home page or module overview.
+
+### 0:25 - 1:10 | Workflow 1: Freight
+
+Show the freight area because it is visual and operational.
+
+Suggested path:
+
+1. Open Freight Dashboard or Central Analytics.
+2. Show filters by period/unit.
+3. Point out freight totals, unit comparisons, SPOT freight, and third-party separation.
+4. Mention one concrete improvement:
+
+"One issue I had to fix was making sure Kaique freight and third-party freight were not mixed in the dashboard, because that made the numbers misleading."
+
+### 1:10 - 1:55 | Workflow 2: Payroll or Recruitment
+
+Pick one depending on the audience.
+
+Payroll option:
+
+1. Open Payroll.
+2. Show payment list or pending daily pay/extras.
+3. Explain that payments can be tracked, filtered, exported, and linked to operational notes.
+
+Recruitment option:
+
+1. Open recruitment/interviews.
+2. Show candidate status, attachments, notes, and PDF/print workflow.
+3. Explain that the PDF/export part matters because the office actually uses documents.
+
+### 1:55 - 2:35 | Engineering Depth
+
+Switch briefly to the repository or explain while staying in the app.
+
+Mention:
+
+- Laravel backend with API validation and policies/permissions.
+- React + TypeScript frontend with Inertia.
+- File uploads, PDFs, spreadsheet exports.
+- Activity logs and operational support screens.
+- Manual regression checklist because the app touches real workflows.
+- SQLite-to-MySQL migration rehearsal before moving to a 24/7 server.
+
+Keep it simple:
+
+"The hardest part was not just building forms. It was keeping the system safe enough for real use: permissions, duplicate checks, demo-data isolation, backups, and rollback plans."
+
+### 2:35 - 3:00 | Close
+
+"What I am proud of is that this started from an actual operational problem and became a maintained full-stack system. It taught me how software changes when real people depend on it: small bugs matter, data safety matters, and documentation matters."
+
+## Optional Longer Version
+
+If the video can be 4 minutes, add:
+
+- one quick look at the README/case study;
+- one screenshot of GitHub Actions or quality checks;
+- one example of a regression checklist item;
+- one sentence about the next step: staging on Forge/VPS with MySQL/MariaDB.
+
+## Things Not To Say
+
+Avoid overclaiming:
+
+- Do not say it is a finished SaaS product.
+- Do not claim public users, revenue, or metrics that are not verified.
+- Do not say the live system is already fully migrated to MySQL.
+- Do not show real private records to prove that it is used.
+
+Better phrasing:
+
+"This is an internal operations system that is still evolving. The next infrastructure step is a separate staging server with MySQL/MariaDB."

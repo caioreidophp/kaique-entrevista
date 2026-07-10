@@ -3,16 +3,24 @@ import {
     ArrowDownRight,
     ArrowUpRight,
     CalendarDays,
+    Download,
     LoaderCircle,
+    Search,
     Table2,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
     FreightDashboardResponse,
     FreightEntry,
     FreightUnit,
 } from '@/types/freight';
 import { AdminLayout } from '@/components/transport/admin-layout';
+import {
+    DashboardCompactCard,
+    DashboardInsightCard,
+    DashboardSection,
+    DashboardSegmentedControl,
+} from '@/components/transport/dashboard-primitives';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,13 +32,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { apiGet } from '@/lib/api-client';
+import { apiDownload, apiGet } from '@/lib/api-client';
 import {
     formatCurrencyBR,
     formatDateBR,
     formatDecimalBR,
     formatIntegerBR,
-    formatPercentBR,
 } from '@/lib/transport-format';
 
 interface FreightEntryPaginatedResponse {
@@ -69,6 +76,21 @@ type UnitTone = {
 };
 
 type FreightTotalsMode = 'without_spot' | 'with_spot';
+type DashboardViewMode = 'summary' | 'detail';
+
+interface UnitTotals {
+    frete: number;
+    km: number;
+    aves: number;
+    viagens: number;
+    lancamentos: number;
+    dias: number;
+}
+
+interface KpiDelta {
+    label: string;
+    tone: 'up' | 'down' | 'neutral';
+}
 
 const unitTonePalette: UnitTone[] = [
     {
@@ -341,7 +363,7 @@ function UnitRatioCard({
                                     {item.label}
                                 </span>
                                 <span className="font-semibold text-foreground">
-                                    {formatPercentBR(item.value)}
+                                    {formatDecimalBR(item.value, 2)}%
                                 </span>
                             </div>
                             <div className="h-2 rounded-full bg-muted/40">
@@ -402,6 +424,138 @@ function toNumber(value: string | number | null | undefined): number {
     const parsed = Number(value ?? 0);
 
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toDateInput(value: Date): string {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
+function previousMonth(month: string, year: string): { month: string; year: string } {
+    const date = new Date(Number(year), Number(month) - 2, 1);
+
+    return {
+        month: String(date.getMonth() + 1),
+        year: String(date.getFullYear()),
+    };
+}
+
+function previousMonthComparisonRange(
+    month: string,
+    year: string,
+    latestEntryDate: string | null | undefined,
+): { month: string; year: string; startDate?: string; endDate?: string } {
+    const previous = previousMonth(month, year);
+
+    if (!latestEntryDate) {
+        return previous;
+    }
+
+    const [latestYear, latestMonth, latestDay] = latestEntryDate
+        .split('-')
+        .map(Number);
+
+    if (
+        latestYear !== Number(year) ||
+        latestMonth !== Number(month) ||
+        !Number.isInteger(latestDay) ||
+        latestDay < 1
+    ) {
+        return previous;
+    }
+
+    const previousMonthIndex = Number(previous.month) - 1;
+    const previousYear = Number(previous.year);
+    const previousMonthLastDay = new Date(
+        previousYear,
+        previousMonthIndex + 1,
+        0,
+    ).getDate();
+    const comparisonDay = Math.min(latestDay, previousMonthLastDay);
+
+    return {
+        ...previous,
+        startDate: toDateInput(new Date(previousYear, previousMonthIndex, 1)),
+        endDate: toDateInput(
+            new Date(previousYear, previousMonthIndex, comparisonDay),
+        ),
+    };
+}
+
+function sumUnitTotals(rows: UnitMetricRow[]): UnitTotals {
+    return rows.reduce(
+        (totals, row) => ({
+            frete: totals.frete + Number(row.total_frete ?? 0),
+            km: totals.km + Number(row.total_km ?? 0),
+            aves: totals.aves + Number(row.total_aves ?? 0),
+            viagens: totals.viagens + Number(row.total_viagens_kaique ?? 0),
+            lancamentos:
+                totals.lancamentos + Number(row.total_lancamentos ?? 0),
+            dias: Math.max(totals.dias, Number(row.dias_trabalhados ?? 0)),
+        }),
+        {
+            frete: 0,
+            km: 0,
+            aves: 0,
+            viagens: 0,
+            lancamentos: 0,
+            dias: 0,
+        },
+    );
+}
+
+function buildRowsForTotals(
+    rows: UnitMetricRow[],
+    totalsMode: FreightTotalsMode,
+): UnitMetricRow[] {
+    if (totalsMode === 'without_spot') {
+        return rows;
+    }
+
+    return rows.map((row) => ({
+        ...row,
+        total_lancamentos:
+            Number(row.total_lancamentos ?? 0) +
+            Number(row.total_lancamentos_spot ?? 0),
+        total_frete: Number(row.total_frete_com_spot ?? 0),
+        total_frete_liquido: Number(row.total_frete_com_spot ?? 0),
+        total_km: Number(row.total_km_com_spot ?? 0),
+        total_aves: Number(row.total_aves_com_spot ?? 0),
+        total_viagens_kaique: Number(row.total_viagens_com_spot ?? 0),
+        dias_trabalhados: Math.max(
+            Number(row.dias_trabalhados ?? 0),
+            Number(row.dias_spot ?? 0),
+        ),
+    }));
+}
+
+function buildKpiDelta(
+    current: number,
+    previous: number,
+    comparisonAvailable: boolean,
+): KpiDelta | null {
+    if (!comparisonAvailable || previous <= 0) {
+        return null;
+    }
+
+    const change = ((current - previous) / previous) * 100;
+
+    return {
+        label: `${change >= 0 ? '+' : ''}${formatDecimalBR(change, 1)}% vs mesmo período anterior`,
+        tone: change > 0 ? 'up' : change < 0 ? 'down' : 'neutral',
+    };
+}
+
+function entryHasAttention(entry: FreightEntry): boolean {
+    const km = kaiqueKmValue(entry);
+    const trips = kaiqueTripsValue(entry);
+    const freight = kaiqueFreightValue(entry);
+
+    return (
+        km > 25000 ||
+        (km > 0 && km < 1000) ||
+        (trips > 0 && freight / trips < 120) ||
+        (trips <= 0 && freight > 0)
+    );
 }
 
 function hasGroupedFreightMetrics(entry: FreightEntry): boolean {
@@ -509,7 +663,7 @@ const unitMetricDefinitions: UnitMetricDefinition[] = [
         title: '% Frete Terceiros / Frete Programado',
         value: (row) =>
             Number(row.percentual_frete_terceiros_sobre_programado ?? 0),
-        format: (value) => formatPercentBR(value),
+        format: (value) => `${formatDecimalBR(value, 2)}%`,
     },
     {
         key: 'aves-por-carga',
@@ -545,14 +699,21 @@ export default function TransportFreightDashboardPage() {
     const [selectedUnitId, setSelectedUnitId] = useState('all');
     const [totalsMode, setTotalsMode] =
         useState<FreightTotalsMode>('without_spot');
+    const [viewMode, setViewMode] = useState<DashboardViewMode>('detail');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [data, setData] = useState<FreightDashboardResponse | null>(null);
+    const [previousData, setPreviousData] =
+        useState<FreightDashboardResponse | null>(null);
     const [dailyEntries, setDailyEntries] = useState<FreightEntry[]>([]);
+    const [dailySearch, setDailySearch] = useState('');
+    const [onlyAttentionRows, setOnlyAttentionRows] = useState(false);
     const [entriesPage, setEntriesPage] = useState(1);
     const [entriesLastPage, setEntriesLastPage] = useState(1);
     const [entriesTotal, setEntriesTotal] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [previousLoading, setPreviousLoading] = useState(false);
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const monthOptions = useMemo(
@@ -582,7 +743,7 @@ export default function TransportFreightDashboardPage() {
         [currentYear],
     );
 
-    async function loadDashboard(page = 1): Promise<void> {
+    const loadDashboard = useCallback(async (page = 1): Promise<void> => {
         if (page === 1) {
             setLoading(true);
         }
@@ -594,7 +755,7 @@ export default function TransportFreightDashboardPage() {
             competencia_mes: month,
             competencia_ano: year,
             page: String(page),
-            per_page: '120',
+            per_page: '50',
         });
 
         if (hasCustomRange) {
@@ -630,11 +791,68 @@ export default function TransportFreightDashboardPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [endDate, month, selectedUnitId, startDate, year]);
 
     useEffect(() => {
         void loadDashboard(1);
-    }, [month, year, selectedUnitId, startDate, endDate]);
+    }, [loadDashboard]);
+
+    useEffect(() => {
+        if (startDate || endDate) {
+            setPreviousData(null);
+            return;
+        }
+
+        if (
+            !data ||
+            data.competencia_mes !== Number(month) ||
+            data.competencia_ano !== Number(year)
+        ) {
+            setPreviousData(null);
+            return;
+        }
+
+        const loadPreviousDashboard = async (): Promise<void> => {
+            setPreviousLoading(true);
+            const previous = previousMonthComparisonRange(
+                month,
+                year,
+                data.latest_entry_date,
+            );
+            const params = new URLSearchParams({
+                competencia_mes: previous.month,
+                competencia_ano: previous.year,
+            });
+
+            if (previous.startDate && previous.endDate) {
+                params.set('start_date', previous.startDate);
+                params.set('end_date', previous.endDate);
+            }
+
+            if (selectedUnitId !== 'all') {
+                params.set('unidade_id', selectedUnitId);
+            }
+
+            try {
+                const response = await apiGet<FreightDashboardResponse>(
+                    `/freight/dashboard?${params.toString()}`,
+                );
+                setPreviousData(response);
+            } catch {
+                setPreviousData(null);
+            } finally {
+                setPreviousLoading(false);
+            }
+        };
+
+        const timeoutId = window.setTimeout(() => {
+            void loadPreviousDashboard();
+        }, 350);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [data, endDate, month, selectedUnitId, startDate, year]);
 
     const dailyEntriesSorted = useMemo(
         () =>
@@ -643,6 +861,71 @@ export default function TransportFreightDashboardPage() {
                     a.data.localeCompare(b.data) || a.unidade_id - b.unidade_id,
             ),
         [dailyEntries],
+    );
+
+    const filteredDailyEntries = useMemo(() => {
+        const search = dailySearch.trim().toLocaleLowerCase('pt-BR');
+
+        return dailyEntriesSorted.filter((entry) => {
+            if (onlyAttentionRows && !entryHasAttention(entry)) {
+                return false;
+            }
+
+            if (!search) {
+                return true;
+            }
+
+            const haystack = [
+                entry.data,
+                formatDateBR(entry.data),
+                entry.dia_semana ?? '',
+                entry.unidade?.nome ?? '',
+                entry.placas ?? '',
+                entry.obs ?? '',
+            ]
+                .join(' ')
+                .toLocaleLowerCase('pt-BR');
+
+            return haystack.includes(search);
+        });
+    }, [dailyEntriesSorted, dailySearch, onlyAttentionRows]);
+
+    const filteredDailyTotals = useMemo(
+        () =>
+            filteredDailyEntries.reduce(
+                (totals, entry) => ({
+                    frete: totals.frete + toNumber(entry.frete_total),
+                    cargas: totals.cargas + toNumber(entry.cargas),
+                    aves: totals.aves + toNumber(entry.aves),
+                    veiculos: totals.veiculos + toNumber(entry.veiculos),
+                    km: totals.km + toNumber(entry.km_rodado),
+                    terceiros: totals.terceiros + toNumber(entry.frete_terceiros),
+                    viagensTerceiros:
+                        totals.viagensTerceiros +
+                        toNumber(entry.viagens_terceiros),
+                    avesTerceiros:
+                        totals.avesTerceiros + toNumber(entry.aves_terceiros),
+                    liquido: totals.liquido + toNumber(entry.frete_liquido),
+                    cargasLiquidas:
+                        totals.cargasLiquidas + toNumber(entry.cargas_liq),
+                    avesLiquidas:
+                        totals.avesLiquidas + toNumber(entry.aves_liq),
+                }),
+                {
+                    frete: 0,
+                    cargas: 0,
+                    aves: 0,
+                    veiculos: 0,
+                    km: 0,
+                    terceiros: 0,
+                    viagensTerceiros: 0,
+                    avesTerceiros: 0,
+                    liquido: 0,
+                    cargasLiquidas: 0,
+                    avesLiquidas: 0,
+                },
+            ),
+        [filteredDailyEntries],
     );
 
     const unitRows = useMemo(
@@ -657,31 +940,32 @@ export default function TransportFreightDashboardPage() {
     );
 
     const unitRowsForTotals = useMemo(
-        () =>
-            unitRows.map((row) => {
-                if (totalsMode === 'without_spot') {
-                    return row;
-                }
-
-                return {
-                    ...row,
-                    total_lancamentos:
-                        Number(row.total_lancamentos ?? 0) +
-                        Number(row.total_lancamentos_spot ?? 0),
-                    total_frete: Number(row.total_frete_com_spot ?? 0),
-                    total_frete_liquido: Number(row.total_frete_com_spot ?? 0),
-                    total_km: Number(row.total_km_com_spot ?? 0),
-                    total_aves: Number(row.total_aves_com_spot ?? 0),
-                    total_viagens_kaique: Number(
-                        row.total_viagens_com_spot ?? 0,
-                    ),
-                    dias_trabalhados: Math.max(
-                        Number(row.dias_trabalhados ?? 0),
-                        Number(row.dias_spot ?? 0),
-                    ),
-                };
-            }),
+        () => buildRowsForTotals(unitRows, totalsMode),
         [totalsMode, unitRows],
+    );
+
+    const previousUnitRowsForTotals = useMemo(
+        () =>
+            buildRowsForTotals(
+                previousData?.por_unidade ?? [],
+                totalsMode,
+            ).sort((a, b) =>
+                (a.unidade_nome ?? 'Sem unidade').localeCompare(
+                    b.unidade_nome ?? 'Sem unidade',
+                    'pt-BR',
+                ),
+            ),
+        [previousData, totalsMode],
+    );
+
+    const currentTotals = useMemo(
+        () => sumUnitTotals(unitRowsForTotals),
+        [unitRowsForTotals],
+    );
+
+    const previousTotals = useMemo(
+        () => sumUnitTotals(previousUnitRowsForTotals),
+        [previousUnitRowsForTotals],
     );
 
     const spotTotals = useMemo(
@@ -772,45 +1056,25 @@ export default function TransportFreightDashboardPage() {
             return [];
         }
 
-        const viagensTotal = unitRowsForTotals.reduce(
-            (total, row) => total + Number(row.total_viagens_kaique ?? 0),
-            0,
-        );
-        const freteTotal = unitRowsForTotals.reduce(
-            (total, row) => total + Number(row.total_frete ?? 0),
-            0,
-        );
-        const kmTotal = unitRowsForTotals.reduce(
-            (total, row) => total + Number(row.total_km ?? 0),
-            0,
-        );
-        const avesTotal = unitRowsForTotals.reduce(
-            (total, row) => total + Number(row.total_aves ?? 0),
-            0,
-        );
-        const lancamentosTotal = unitRowsForTotals.reduce(
-            (total, row) => total + Number(row.total_lancamentos ?? 0),
-            0,
-        );
-        const diasTotal =
-            totalsMode === 'with_spot'
-                ? unitRowsForTotals.reduce(
-                      (total, row) => total + Number(row.dias_trabalhados ?? 0),
-                      0,
-                  )
-                : data.kpis.dias_trabalhados;
-        const reaisPorKm = kmTotal > 0 ? freteTotal / kmTotal : 0;
+        const comparisonAvailable = !startDate && !endDate && !!previousData;
+        const reaisPorKm =
+            currentTotals.km > 0 ? currentTotals.frete / currentTotals.km : 0;
 
         return [
             {
                 key: 'frete-liquido',
                 label: 'Frete Kaique Geral',
-                value: formatCurrencyBR(freteTotal),
-                detail: `${formatIntegerBR(lancamentosTotal)} lançamento(s)${
+                value: formatCurrencyBR(currentTotals.frete),
+                detail: `${formatIntegerBR(currentTotals.lancamentos)} lançamento(s)${
                     totalsMode === 'with_spot' && spotTotals.frete > 0
                         ? `, ${formatCurrencyBR(spotTotals.frete)} spot`
                         : ''
                 }`,
+                delta: buildKpiDelta(
+                    currentTotals.frete,
+                    previousTotals.frete,
+                    comparisonAvailable,
+                ),
                 series: trendSeries.frete,
                 rowValue: (row: UnitMetricRow) => Number(row.total_frete ?? 0),
                 formatRow: formatCurrencyBR,
@@ -818,8 +1082,13 @@ export default function TransportFreightDashboardPage() {
             {
                 key: 'viagens',
                 label: 'Viagens',
-                value: formatIntegerBR(viagensTotal),
-                detail: `${formatIntegerBR(diasTotal)} dias trabalhados`,
+                value: formatIntegerBR(currentTotals.viagens),
+                detail: `${formatIntegerBR(currentTotals.dias)} dias trabalhados`,
+                delta: buildKpiDelta(
+                    currentTotals.viagens,
+                    previousTotals.viagens,
+                    comparisonAvailable,
+                ),
                 series: trendSeries.viagens,
                 rowValue: (row: UnitMetricRow) =>
                     Number(row.total_viagens_kaique ?? 0),
@@ -828,8 +1097,13 @@ export default function TransportFreightDashboardPage() {
             {
                 key: 'km',
                 label: 'KM Kaique Geral',
-                value: formatIntegerBR(kmTotal),
+                value: formatIntegerBR(currentTotals.km),
                 detail: `${formatCurrencyBR(reaisPorKm)} por km`,
+                delta: buildKpiDelta(
+                    currentTotals.km,
+                    previousTotals.km,
+                    comparisonAvailable,
+                ),
                 series: trendSeries.km,
                 rowValue: (row: UnitMetricRow) => Number(row.total_km ?? 0),
                 formatRow: formatIntegerBR,
@@ -837,18 +1111,155 @@ export default function TransportFreightDashboardPage() {
             {
                 key: 'aves',
                 label: 'Aves Kaique Geral',
-                value: formatIntegerBR(avesTotal),
-                detail: `${formatIntegerBR(viagensTotal)} viagens Kaique`,
+                value: formatIntegerBR(currentTotals.aves),
+                detail: `${formatIntegerBR(currentTotals.viagens)} viagens Kaique`,
+                delta: buildKpiDelta(
+                    currentTotals.aves,
+                    previousTotals.aves,
+                    comparisonAvailable,
+                ),
                 series: trendSeries.aves,
                 rowValue: (row: UnitMetricRow) => Number(row.total_aves ?? 0),
                 formatRow: formatIntegerBR,
             },
         ];
-    }, [data, spotTotals.frete, totalsMode, trendSeries, unitRowsForTotals]);
+    }, [
+        currentTotals,
+        data,
+        endDate,
+        previousData,
+        previousTotals,
+        spotTotals.frete,
+        startDate,
+        totalsMode,
+        trendSeries,
+    ]);
 
     const volumeMetrics = unitMetricDefinitions.slice(0, 4);
     const performanceMetrics = unitMetricDefinitions.slice(4, 8);
     const efficiencyMetrics = unitMetricDefinitions.slice(8, 12);
+
+    const executiveInsights = useMemo(() => {
+        const rankedByFreight = [...unitRowsForTotals].sort(
+            (a, b) => Number(b.total_frete ?? 0) - Number(a.total_frete ?? 0),
+        );
+        const leader = rankedByFreight[0];
+        const bestKm = [...unitRowsForTotals]
+            .filter((row) => Number(row.frete_por_km ?? 0) > 0)
+            .sort(
+                (a, b) =>
+                    Number(a.frete_por_km ?? 0) - Number(b.frete_por_km ?? 0),
+            )[0];
+        const thirdPartyTotal = Number(data?.kpis.total_frete_terceiros ?? 0);
+        const thirdPartyPercent =
+            currentTotals.frete + thirdPartyTotal > 0
+                ? (thirdPartyTotal /
+                      (currentTotals.frete + thirdPartyTotal)) *
+                  100
+                : 0;
+        const spotPercent =
+            currentTotals.frete + spotTotals.frete > 0
+                ? (spotTotals.frete /
+                      (currentTotals.frete + spotTotals.frete)) *
+                  100
+                : 0;
+
+        return [
+            {
+                label: 'Maior volume',
+                value: leader?.unidade_nome ?? 'Sem unidade',
+                detail: leader
+                    ? `${formatCurrencyBR(leader.total_frete)} no período, ${formatIntegerBR(leader.total_viagens_kaique)} viagens.`
+                    : 'Sem lançamentos no período.',
+                tone: 'default' as const,
+            },
+            {
+                label: 'Melhor custo por KM',
+                value: bestKm?.unidade_nome ?? 'Sem referência',
+                detail: bestKm
+                    ? `${formatCurrencyBR(bestKm.frete_por_km)} por km informado.`
+                    : 'Não há KM suficiente para comparar.',
+                tone: 'positive' as const,
+            },
+            {
+                label: 'Dependência externa',
+                value: `${formatDecimalBR(thirdPartyPercent, 1)}% terceiros`,
+                detail:
+                    thirdPartyPercent > 20
+                        ? 'Participação de terceiros pede conferência operacional.'
+                        : 'Participação de terceiros dentro de uma faixa controlada.',
+                tone:
+                    thirdPartyPercent > 20 ? ('attention' as const) : ('default' as const),
+            },
+            {
+                label: 'Spot no período',
+                value: `${formatDecimalBR(spotPercent, 1)}%`,
+                detail:
+                    spotTotals.frete > 0
+                        ? `${formatCurrencyBR(spotTotals.frete)} em frete spot.`
+                        : 'Sem frete spot no recorte atual.',
+                tone: spotPercent > 15 ? ('attention' as const) : ('default' as const),
+            },
+        ];
+    }, [currentTotals.frete, data, spotTotals.frete, unitRowsForTotals]);
+
+    const pdfPath = useMemo(() => {
+        const params = new URLSearchParams({
+            competencia_mes: month,
+            competencia_ano: year,
+            include_spot: totalsMode === 'with_spot' ? '1' : '0',
+            download: '1',
+        });
+
+        if (startDate && endDate) {
+            params.set('start_date', startDate);
+            params.set('end_date', endDate);
+        }
+
+        if (selectedUnitId !== 'all') {
+            params.set('unidade_id', selectedUnitId);
+        }
+
+        return `/freight/dashboard-executive-pdf?${params.toString()}`;
+    }, [endDate, month, selectedUnitId, startDate, totalsMode, year]);
+
+    async function downloadExecutivePdf(): Promise<void> {
+        setDownloadingPdf(true);
+
+        try {
+            await apiDownload(pdfPath, 'resumo-executivo-fretes.pdf');
+        } catch {
+            setError('Não foi possível baixar o PDF executivo.');
+        } finally {
+            setDownloadingPdf(false);
+        }
+    }
+
+    function applyPeriodPreset(preset: 'current-month' | 'previous-month' | 'last-7' | 'last-30'): void {
+        const today = new Date();
+
+        if (preset === 'current-month') {
+            setMonth(String(today.getMonth() + 1));
+            setYear(String(today.getFullYear()));
+            setStartDate('');
+            setEndDate('');
+            return;
+        }
+
+        if (preset === 'previous-month') {
+            const previous = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            setMonth(String(previous.getMonth() + 1));
+            setYear(String(previous.getFullYear()));
+            setStartDate('');
+            setEndDate('');
+            return;
+        }
+
+        const start = new Date(today);
+        start.setDate(today.getDate() - (preset === 'last-7' ? 6 : 29));
+        setStartDate(toDateInput(start));
+        setEndDate(toDateInput(today));
+    }
 
     return (
         <AdminLayout
@@ -862,8 +1273,7 @@ export default function TransportFreightDashboardPage() {
                         Dashboard de Fretes
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                        Visão consolidada do período com indicadores por
-                        unidade.
+                        Indicadores do período por unidade.
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                         <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
@@ -872,40 +1282,35 @@ export default function TransportFreightDashboardPage() {
                         <span className="rounded-full border border-border/80 bg-muted/30 px-2.5 py-1 text-foreground/90">
                             Unidade: {selectedUnitLabel}
                         </span>
-                        <div className="inline-flex rounded-md border border-border/80 bg-background p-0.5 shadow-sm">
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                    totalsMode === 'without_spot'
-                                        ? 'default'
-                                        : 'ghost'
-                                }
-                                className="h-7 px-2.5 text-xs"
-                                onClick={() => setTotalsMode('without_spot')}
-                            >
-                                Sem spot
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                    totalsMode === 'with_spot'
-                                        ? 'default'
-                                        : 'ghost'
-                                }
-                                className="h-7 px-2.5 text-xs"
-                                onClick={() => setTotalsMode('with_spot')}
-                            >
-                                Com spot
-                            </Button>
-                        </div>
+                        <DashboardSegmentedControl
+                            value={totalsMode}
+                            options={[
+                                { value: 'without_spot', label: 'Sem spot' },
+                                { value: 'with_spot', label: 'Com spot' },
+                            ]}
+                            onChange={setTotalsMode}
+                        />
                         {spotTotals.frete > 0 ? (
                             <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-700">
                                 Spot no período:{' '}
                                 {formatCurrencyBR(spotTotals.frete)}
                             </span>
                         ) : null}
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1.5 px-2.5 text-xs"
+                            onClick={() => void downloadExecutivePdf()}
+                            disabled={downloadingPdf}
+                        >
+                            {downloadingPdf ? (
+                                <LoaderCircle className="size-3.5 animate-spin" />
+                            ) : (
+                                <Download className="size-3.5" />
+                            )}
+                            {downloadingPdf ? 'Gerando PDF' : 'PDF executivo'}
+                        </Button>
                     </div>
                 </div>
 
@@ -1025,6 +1430,54 @@ export default function TransportFreightDashboardPage() {
                                 Limpar período
                             </Button>
                         </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        applyPeriodPreset('current-month')
+                                    }
+                                >
+                                    Mês atual
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        applyPeriodPreset('previous-month')
+                                    }
+                                >
+                                    Mês anterior
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => applyPeriodPreset('last-7')}
+                                >
+                                    Últimos 7 dias
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => applyPeriodPreset('last-30')}
+                                >
+                                    Últimos 30 dias
+                                </Button>
+                            </div>
+                            <DashboardSegmentedControl
+                                value={viewMode}
+                                options={[
+                                    { value: 'summary', label: 'Resumo' },
+                                    { value: 'detail', label: 'Detalhe' },
+                                ]}
+                                onChange={setViewMode}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -1083,6 +1536,28 @@ export default function TransportFreightDashboardPage() {
                                                     <p className="text-xs text-muted-foreground">
                                                         {kpi.detail}
                                                     </p>
+                                                    {kpi.delta ? (
+                                                        <p
+                                                            className={`mt-1 text-[11px] font-medium ${
+                                                                kpi.delta
+                                                                    .tone ===
+                                                                'up'
+                                                                    ? 'text-emerald-700'
+                                                                    : kpi.delta
+                                                                            .tone ===
+                                                                        'down'
+                                                                      ? 'text-rose-700'
+                                                                      : 'text-muted-foreground'
+                                                            }`}
+                                                        >
+                                                            {kpi.delta.label}
+                                                        </p>
+                                                    ) : previousLoading ? (
+                                                        <p className="mt-1 text-[11px] text-muted-foreground">
+                                                            Comparando mês
+                                                            anterior...
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                                 <Sparkline
                                                     values={kpi.series}
@@ -1152,7 +1627,135 @@ export default function TransportFreightDashboardPage() {
                             })}
                         </div>
 
-                        <div className="space-y-3">
+                        {viewMode === 'summary' ? (
+                            <>
+                                <DashboardSection
+                                    title="Leitura executiva"
+                                    description={
+                                        !startDate && !endDate
+                                            ? 'Comparação com o mês anterior ativa'
+                                            : 'Período personalizado sem comparação automática'
+                                    }
+                                >
+                                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                        {executiveInsights.map((insight) => (
+                                            <DashboardInsightCard
+                                                key={insight.label}
+                                                label={insight.label}
+                                                value={insight.value}
+                                                detail={insight.detail}
+                                                tone={insight.tone}
+                                            />
+                                        ))}
+                                    </div>
+                                </DashboardSection>
+
+                                <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+                                    <DashboardCompactCard title="Ranking operacional">
+                                        <div className="space-y-2">
+                                            {unitRowsForTotals
+                                                .slice()
+                                                .sort(
+                                                    (a, b) =>
+                                                        Number(
+                                                            b.total_frete ?? 0,
+                                                        ) -
+                                                        Number(
+                                                            a.total_frete ?? 0,
+                                                        ),
+                                                )
+                                                .slice(0, 5)
+                                                .map((row, index) => (
+                                                    <div
+                                                        key={row.unidade_id}
+                                                        className="grid grid-cols-[32px_1fr_auto] items-center gap-3 rounded-md border px-3 py-2 text-sm"
+                                                    >
+                                                        <span className="text-xs font-semibold text-muted-foreground">
+                                                            #{index + 1}
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <p className="truncate font-medium">
+                                                                {row.unidade_nome ??
+                                                                    'Sem unidade'}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {formatIntegerBR(
+                                                                    row.total_viagens_kaique,
+                                                                )}{' '}
+                                                                viagens ·{' '}
+                                                                {formatIntegerBR(
+                                                                    row.total_km,
+                                                                )}{' '}
+                                                                km
+                                                            </p>
+                                                        </div>
+                                                        <span className="font-semibold tabular-nums">
+                                                            {formatCurrencyBR(
+                                                                row.total_frete,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </DashboardCompactCard>
+
+                                    <DashboardCompactCard title="Conferências">
+                                        {data.alerts && data.alerts.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {data.alerts
+                                                    .slice(0, 4)
+                                                    .map((alert) => (
+                                                        <div
+                                                            key={alert.key}
+                                                            className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm"
+                                                        >
+                                                            <p className="font-medium text-amber-800">
+                                                                {alert.level ===
+                                                                'warning'
+                                                                    ? 'Atenção'
+                                                                    : 'Informação'}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {alert.message}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                Sem alertas automáticos no
+                                                período.
+                                            </p>
+                                        )}
+                                    </DashboardCompactCard>
+                                </div>
+
+                                <DashboardSection
+                                    title="Resumo por unidade"
+                                    description={`${formatIntegerBR(unitRows.length)} unidade(s) comparadas`}
+                                >
+                                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                        {volumeMetrics.map((metric) => (
+                                            <UnitComparisonBarCard
+                                                key={metric.key}
+                                                title={metric.title}
+                                                rows={unitRowsForTotals.map(
+                                                    (row) => ({
+                                                        label:
+                                                            row.unidade_nome ??
+                                                            'Sem unidade',
+                                                        value: metric.value(row),
+                                                    }),
+                                                )}
+                                                formatValue={metric.format}
+                                            />
+                                        ))}
+                                    </div>
+                                </DashboardSection>
+                            </>
+                        ) : (
+                            <>
+                                <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h3 className="text-sm font-semibold">
                                     Comparativo geral
@@ -1369,15 +1972,46 @@ export default function TransportFreightDashboardPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {dailyEntriesSorted.length === 0 ? (
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="relative min-w-[240px] flex-1">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={dailySearch}
+                                            onChange={(event) =>
+                                                setDailySearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="pl-9"
+                                            placeholder="Buscar por data, unidade, placa ou observação"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant={
+                                            onlyAttentionRows
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        onClick={() =>
+                                            setOnlyAttentionRows(
+                                                (current) => !current,
+                                            )
+                                        }
+                                    >
+                                        Somente conferências
+                                    </Button>
+                                </div>
+
+                                {filteredDailyEntries.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
-                                        Sem lançamentos diários para a
-                                        competência selecionada.
+                                        Sem lançamentos diários para os filtros
+                                        selecionados.
                                     </p>
                                 ) : (
                                     <div className="overflow-x-auto rounded-md border">
                                         <table className="w-full min-w-[1200px] text-xs tabular-nums">
-                                            <thead className="bg-muted/40 text-muted-foreground">
+                                            <thead className="sticky top-0 z-10 bg-muted text-muted-foreground">
                                                 <tr>
                                                     <th className="px-2.5 py-1.5 text-left font-medium">
                                                         Data
@@ -1424,11 +2058,17 @@ export default function TransportFreightDashboardPage() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {dailyEntriesSorted.map(
+                                                {filteredDailyEntries.map(
                                                     (entry) => (
                                                         <tr
                                                             key={entry.id}
-                                                            className="border-t transition-colors hover:bg-muted/20"
+                                                            className={`border-t transition-colors hover:bg-muted/20 ${
+                                                                entryHasAttention(
+                                                                    entry,
+                                                                )
+                                                                    ? 'bg-amber-50/40'
+                                                                    : 'odd:bg-muted/10'
+                                                            }`}
                                                         >
                                                             <td className="px-2.5 py-1.5">
                                                                 {formatDateBR(
@@ -1503,6 +2143,75 @@ export default function TransportFreightDashboardPage() {
                                                     ),
                                                 )}
                                             </tbody>
+                                            <tfoot className="border-t bg-muted/50 font-semibold">
+                                                <tr>
+                                                    <td className="px-2.5 py-1.5">
+                                                        Subtotal
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5" />
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyEntries.length,
+                                                        )}{' '}
+                                                        linha(s)
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatCurrencyBR(
+                                                            filteredDailyTotals.frete,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.cargas,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.aves,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.veiculos,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.km,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatCurrencyBR(
+                                                            filteredDailyTotals.terceiros,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.viagensTerceiros,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.avesTerceiros,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatCurrencyBR(
+                                                            filteredDailyTotals.liquido,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.cargasLiquidas,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-2.5 py-1.5 text-right">
+                                                        {formatIntegerBR(
+                                                            filteredDailyTotals.avesLiquidas,
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
                                         </table>
                                     </div>
                                 )}
@@ -1525,6 +2234,8 @@ export default function TransportFreightDashboardPage() {
                                 ) : null}
                             </CardContent>
                         </Card>
+                            </>
+                        )}
                     </>
                 ) : null}
             </div>

@@ -12,8 +12,8 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', function () {
-    return Inertia::render('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    return redirect()->route('transport.dashboard');
+})->name('dashboard');
 
 Route::prefix('transport')->group(function (): void {
     Route::get('login', function () {
@@ -60,6 +60,10 @@ Route::prefix('transport')->group(function (): void {
             return Inertia::render('transport/payroll/list');
         })->name('transport.payroll.list');
 
+        Route::get('pending-extras', function () {
+            return Inertia::render('transport/payroll/pending-extras');
+        })->name('transport.payroll.pending-extras');
+
         Route::get('adjustments', function () {
             return Inertia::render('transport/payroll/adjustments');
         })->name('transport.payroll.adjustments');
@@ -97,6 +101,10 @@ Route::prefix('transport')->group(function (): void {
         Route::get('spot', function () {
             return Inertia::render('transport/freight/spot');
         })->name('transport.freight.spot');
+
+        Route::get('displacements', function () {
+            return Inertia::render('transport/freight/displacements');
+        })->name('transport.freight.displacements');
 
         Route::get('operational-report', function () {
             return Inertia::render('transport/freight/operational-report');

@@ -65,6 +65,16 @@ function toIsoDate(value: Date): string {
     return value.toISOString().slice(0, 10);
 }
 
+function formatPercentTwoDecimalsTruncated(value: number): string {
+    const numericValue = Number.isFinite(value) ? value : 0;
+    const truncatedValue = Math.trunc(numericValue * 100) / 100;
+
+    return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(truncatedValue);
+}
+
 function buildDateAxis(start: string, end: string): string[] {
     const startDate = new Date(`${start}T00:00:00`);
     const endDate = new Date(`${end}T00:00:00`);
@@ -604,7 +614,7 @@ export default function TransportFreightTimelinePage() {
                                 Participação terceiros
                             </p>
                             <p className="text-base font-semibold">
-                                {formatIntegerBR(
+                                {formatPercentTwoDecimalsTruncated(
                                     metrics.participacao_terceiros_percent,
                                 )}
                                 %
@@ -647,7 +657,10 @@ export default function TransportFreightTimelinePage() {
                                 % Spot
                             </p>
                             <p className="text-base font-semibold">
-                                {formatIntegerBR(metrics.percentual_spot)}%
+                                {formatPercentTwoDecimalsTruncated(
+                                    metrics.percentual_spot,
+                                )}
+                                %
                             </p>
                         </div>
                     </div>
@@ -1399,7 +1412,7 @@ export default function TransportFreightTimelinePage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-2 pr-3">
-                                                                {formatIntegerBR(
+                                                                {formatPercentTwoDecimalsTruncated(
                                                                     item.participacao_terceiros_percent,
                                                                 )}
                                                                 %
@@ -1451,7 +1464,7 @@ export default function TransportFreightTimelinePage() {
                                             </Button>
                                             <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
                                                 Spot no total Kaique:{' '}
-                                                {formatIntegerBR(
+                                                {formatPercentTwoDecimalsTruncated(
                                                     operationalReport.kaique
                                                         .percentual_spot_total,
                                                 )}
@@ -1544,7 +1557,7 @@ export default function TransportFreightTimelinePage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-2 pr-3">
-                                                                {formatIntegerBR(
+                                                                {formatPercentTwoDecimalsTruncated(
                                                                     item.percentual_spot,
                                                                 )}
                                                                 %

@@ -71,6 +71,31 @@ export interface FreightSpotEntry {
     unidade_origem?: FreightUnit;
 }
 
+export type FreightDisplacementStatus =
+    | 'pendente'
+    | 'calculado'
+    | 'aguardando_pagamento'
+    | 'pago';
+
+export interface FreightDisplacement {
+    id: number;
+    data: string;
+    descricao: string;
+    unidade_veiculos_id: number;
+    quantidade_caminhoes: number;
+    placas: string | null;
+    origem: string;
+    destino: string;
+    km_aproximado: string;
+    valor_aproximado: string;
+    unidade_pagadora_id: number;
+    status: FreightDisplacementStatus;
+    freight_spot_entry_id: number | null;
+    unidade_veiculos?: FreightUnit;
+    unidade_pagadora?: FreightUnit;
+    spot_entry?: { id: number } | null;
+}
+
 export interface FreightOperationalReportResponse {
     competencia_mes: number;
     competencia_ano: number;
@@ -154,6 +179,11 @@ export interface FreightExecutionMetrics {
 export interface FreightDashboardResponse {
     competencia_mes: number;
     competencia_ano: number;
+    using_custom_range?: boolean;
+    start_date?: string | null;
+    end_date?: string | null;
+    latest_entry_date?: string | null;
+    unidade_id?: number | null;
     kpis: {
         total_lancamentos: number;
         total_frete: number;

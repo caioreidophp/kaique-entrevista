@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\FinancialApprovalController;
 use App\Http\Controllers\Api\FineController;
 use App\Http\Controllers\Api\FreightCanceledLoadController;
 use App\Http\Controllers\Api\FreightController;
+use App\Http\Controllers\Api\FreightDisplacementController;
 use App\Http\Controllers\Api\FreightFleetSizeController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\HomeController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\PayrollDescontoController;
 use App\Http\Controllers\Api\PayrollEmprestimoController;
 use App\Http\Controllers\Api\PayrollPensaoController;
+use App\Http\Controllers\Api\PayrollPendingExtraController;
 use App\Http\Controllers\Api\PayrollVacationController;
 use App\Http\Controllers\Api\ProgrammingController;
 use App\Http\Controllers\Api\QuickAccessController;
@@ -227,6 +229,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
         ->middleware('throttle:transport-heavy');
     Route::apiResource('payroll/pagamentos', PayrollController::class)
         ->middleware('throttle:transport-heavy');
+    Route::apiResource('payroll/pending-extras', PayrollPendingExtraController::class)
+        ->parameters(['pending-extras' => 'payrollPendingExtra'])
+        ->middleware('throttle:transport-heavy')
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('payroll/descontos', PayrollDescontoController::class)
         ->parameters(['descontos' => 'desconto'])
         ->middleware('throttle:transport-heavy')
@@ -252,6 +258,8 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::delete('payroll/vacations/{feriasLancamento}', [PayrollVacationController::class, 'destroy'])
         ->middleware('throttle:transport-heavy');
     Route::get('freight/dashboard', [FreightController::class, 'dashboard']);
+    Route::get('freight/dashboard-executive-pdf', [FreightController::class, 'dashboardExecutivePdf'])
+        ->middleware('throttle:transport-heavy');
     Route::get('freight/dashboard-page', [FreightController::class, 'dashboardPage'])
         ->middleware('throttle:transport-heavy');
     Route::get('freight/monthly-unit-report', [FreightController::class, 'monthlyUnitReport'])
@@ -266,6 +274,13 @@ Route::middleware(['auth:sanctum', ReadOnlyDemoAccountMiddleware::class])->group
     Route::put('freight/spot-entries/{entry}', [FreightController::class, 'updateSpot'])
         ->middleware('throttle:transport-uploads');
     Route::delete('freight/spot-entries/{entry}', [FreightController::class, 'destroySpot'])
+        ->middleware('throttle:transport-uploads');
+    Route::get('freight/displacements', [FreightDisplacementController::class, 'index']);
+    Route::post('freight/displacements', [FreightDisplacementController::class, 'store'])
+        ->middleware([IdempotencyKeyMiddleware::class, 'throttle:transport-uploads']);
+    Route::put('freight/displacements/{displacement}', [FreightDisplacementController::class, 'update'])
+        ->middleware('throttle:transport-uploads');
+    Route::delete('freight/displacements/{displacement}', [FreightDisplacementController::class, 'destroy'])
         ->middleware('throttle:transport-uploads');
     Route::get('freight/canceled-loads', [FreightCanceledLoadController::class, 'index']);
     Route::delete('freight/canceled-loads/{canceledLoad}', [FreightCanceledLoadController::class, 'destroy'])

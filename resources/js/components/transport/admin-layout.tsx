@@ -43,6 +43,7 @@ import type {
     UserQuickAccessListResponse,
 } from '@/types/record-comments';
 import { Logo } from '@/components/logo';
+import { adminLayoutCopy } from '@/components/transport/admin-layout-copy';
 import { Notification } from '@/components/transport/notification';
 import { Button } from '@/components/ui/button';
 import {
@@ -105,6 +106,7 @@ interface AdminLayoutProps {
         | 'payroll-dashboard'
         | 'payroll-launch'
         | 'payroll-list'
+        | 'payroll-pending-extras'
         | 'payroll-adjustments'
         | 'payroll-report-unit'
         | 'payroll-report-collaborator'
@@ -115,6 +117,7 @@ interface AdminLayoutProps {
         | 'freight-launch'
         | 'freight-list'
         | 'freight-spot'
+        | 'freight-displacements'
         | 'freight-canceled-loads'
         | 'freight-operational-report'
         | 'freight-monthly'
@@ -174,180 +177,6 @@ interface GlobalSearchItem {
     meta: Record<string, unknown>;
 }
 
-const adminLayoutCopy = {
-    'pt-BR': {
-        languageLabel: 'Idioma',
-        languagePortuguese: 'Português',
-        languageEnglish: 'Inglês',
-        moduleNavigation: 'Navegação do módulo',
-        generalAccess: 'Acesso geral',
-        profile: 'Perfil',
-        roleUser: 'Usuário',
-        roleAdmin: 'Admin',
-        openMenu: 'Abrir menu',
-        closeMenu: 'Fechar menu',
-        expandMenu: 'Expandir menu',
-        collapseMenu: 'Minimizar menu',
-        logout: 'Sair',
-        pendingChanges: ' • alterações pendentes',
-        quickNavigationTitle: 'Navegação rápida',
-        quickNavigationDescription: 'Digite um número para navegar:',
-        quickNavigationPlaceholder: 'Digite 1-7',
-        shortcutsLegend:
-            'Atalhos globais: Ctrl+S (salvar), Alt+Shift+1..3 (salvar perfil), Alt+1..3 (aplicar perfil), ESC (fechar).',
-        panelHome: 'Painel Principal',
-        panelRegistry: 'Painel de Cadastro',
-        panelPayroll: 'Painel de Pagamentos',
-        panelVacations: 'Painel Controle de Férias',
-        panelFreight: 'Central de Fretes',
-        panelProgramming: 'Painel de Programação',
-        panelFines: 'Painel de Gestão de Multas',
-        panelInterviews: 'Painel de Entrevistas',
-        quickInterviews: 'Entrevistas',
-        quickPayroll: 'Pagamentos',
-        quickVacations: 'Férias',
-        quickRegistry: 'Cadastro',
-        quickFreight: 'Gestão de Fretes',
-        quickProgramming: 'Programação',
-        quickFines: 'Gestão de Multas',
-        linkDashboard: 'Dashboard',
-        linkInterviews: 'Entrevistas',
-        linkCurriculums: 'Currículos',
-        linkCandidateList: 'Lista de candidatos',
-        linkNewInterview: 'Nova entrevista',
-        linkNextSteps: 'Próximos Passos',
-        linkOnboarding: 'Onboarding',
-        linkProgrammingDashboard: 'Programação de Viagens',
-        linkCollaborators: 'Colaboradores',
-        linkUnits: 'Unidades',
-        linkUsers: 'Usuários',
-        linkFunctions: 'Funções',
-        linkPaymentTypes: 'Tipo de Pagamentos',
-        linkPlatesAviaries: 'Placas e Aviários',
-        linkInfractions: 'Infrações',
-        linkLaunchPayments: 'Lançar Pagamentos',
-        linkPaymentList: 'Lista de Pagamentos',
-        linkDiscounts: 'Descontos',
-        linkUnitReport: 'Relatório por Unidade',
-        linkCollaboratorReport: 'Relatório por Colaborador',
-        linkVacationList: 'Lista de Férias',
-        linkLaunchVacation: 'Lançar Férias',
-        linkLaunchFreight: 'Lançar Fretes',
-        linkFreightList: 'Lista de Fretes',
-        linkSpotFreight: 'Lançar Fretes Spot',
-        linkCanceledLoads: 'Cargas Canceladas',
-        linkFleetMonthly: 'Frota mensal',
-        linkAnalyticsHub: 'Central Analítica',
-        linkFinesDashboard: 'Dashboard de Multas',
-        linkFinesLaunch: 'Lançar Multas',
-        linkFinesLaunchNotification: 'Lançar Notificação',
-        linkFinesList: 'Lista de Multas',
-        linkExecutive: 'Dashboard Executivo',
-        linkPending: 'Pendências',
-        linkSettings: 'Configurações',
-        linkLog: 'Log',
-        menuSearchPlaceholder: 'Buscar no menu',
-        menuSearchNoResults: 'Nenhum item encontrado para este termo.',
-        quickSearchPlaceholder:
-            'Buscar por colaborador, placa, viagem, multa...',
-        quickSearchTitle: 'Busca global',
-        quickSearchEmpty: 'Digite pelo menos 2 caracteres para buscar.',
-        quickSearchNoResults: 'Nenhum resultado encontrado para este termo.',
-        quickSearchRecentTitle: 'Atalhos favoritados',
-        quickSearchRecentEmpty: 'Nenhum atalho favoritado ainda.',
-        quickSearchPin: 'Favoritar atalho',
-        quickSearchUnpin: 'Remover favorito',
-        quickSearchPinned: 'Atalho salvo com sucesso.',
-        quickSearchUnpinned: 'Atalho removido com sucesso.',
-        quickSearchOpen: 'Abrir',
-    },
-    'en-US': {
-        languageLabel: 'Language',
-        languagePortuguese: 'Portuguese',
-        languageEnglish: 'English',
-        moduleNavigation: 'Module navigation',
-        generalAccess: 'General access',
-        profile: 'Profile',
-        roleUser: 'User',
-        roleAdmin: 'Admin',
-        openMenu: 'Open menu',
-        closeMenu: 'Close menu',
-        expandMenu: 'Expand menu',
-        collapseMenu: 'Collapse menu',
-        logout: 'Log out',
-        pendingChanges: ' • pending changes',
-        quickNavigationTitle: 'Quick navigation',
-        quickNavigationDescription: 'Type a number to navigate:',
-        quickNavigationPlaceholder: 'Type 1-7',
-        shortcutsLegend:
-            'Global shortcuts: Ctrl+S (save), Alt+Shift+1..3 (save profile), Alt+1..3 (apply profile), ESC (close).',
-        panelHome: 'Main panel',
-        panelRegistry: 'Registry panel',
-        panelPayroll: 'Payroll panel',
-        panelVacations: 'Vacation control panel',
-        panelFreight: 'Freight hub',
-        panelProgramming: 'Programming panel',
-        panelFines: 'Fines management panel',
-        panelInterviews: 'Interviews panel',
-        quickInterviews: 'Interviews',
-        quickPayroll: 'Payroll',
-        quickVacations: 'Vacations',
-        quickRegistry: 'Registry',
-        quickFreight: 'Freight management',
-        quickProgramming: 'Programming',
-        quickFines: 'Fines management',
-        linkDashboard: 'Dashboard',
-        linkInterviews: 'Interviews',
-        linkCurriculums: 'Resumes',
-        linkCandidateList: 'Candidate list',
-        linkNewInterview: 'New interview',
-        linkNextSteps: 'Next steps',
-        linkOnboarding: 'Onboarding',
-        linkProgrammingDashboard: 'Trip scheduling',
-        linkCollaborators: 'Collaborators',
-        linkUnits: 'Units',
-        linkUsers: 'Users',
-        linkFunctions: 'Functions',
-        linkPaymentTypes: 'Payment types',
-        linkPlatesAviaries: 'Plates and aviaries',
-        linkInfractions: 'Infractions',
-        linkLaunchPayments: 'Launch payroll',
-        linkPaymentList: 'Payroll list',
-        linkDiscounts: 'Deductions',
-        linkUnitReport: 'Unit report',
-        linkCollaboratorReport: 'Collaborator report',
-        linkVacationList: 'Vacation list',
-        linkLaunchVacation: 'Launch vacation',
-        linkLaunchFreight: 'Launch freight',
-        linkFreightList: 'Freight list',
-        linkSpotFreight: 'Launch spot freight',
-        linkCanceledLoads: 'Canceled loads',
-        linkFleetMonthly: 'Monthly fleet',
-        linkAnalyticsHub: 'Analytics hub',
-        linkFinesDashboard: 'Fines dashboard',
-        linkFinesLaunch: 'Launch fines',
-        linkFinesLaunchNotification: 'Launch notification',
-        linkFinesList: 'Fines list',
-        linkExecutive: 'Executive dashboard',
-        linkPending: 'Pending items',
-        linkSettings: 'Settings',
-        linkLog: 'Log',
-        menuSearchPlaceholder: 'Search menu',
-        menuSearchNoResults: 'No navigation items found for this term.',
-        quickSearchPlaceholder: 'Search collaborator, plate, trip, fine...',
-        quickSearchTitle: 'Global search',
-        quickSearchEmpty: 'Type at least 2 characters to search.',
-        quickSearchNoResults: 'No results found for this term.',
-        quickSearchRecentTitle: 'Pinned shortcuts',
-        quickSearchRecentEmpty: 'No pinned shortcuts yet.',
-        quickSearchPin: 'Pin shortcut',
-        quickSearchUnpin: 'Unpin shortcut',
-        quickSearchPinned: 'Shortcut pinned successfully.',
-        quickSearchUnpinned: 'Shortcut removed successfully.',
-        quickSearchOpen: 'Open',
-    },
-} as const;
-
 export function AdminLayout({
     title,
     active,
@@ -395,6 +224,7 @@ export function AdminLayout({
     >({});
     const [generalAccessOpen, setGeneralAccessOpen] = useState(false);
     const pageRootRef = useRef<HTMLDivElement | null>(null);
+    const hasUnsavedChangesRef = useRef(false);
     const focusSidebarCloseTimeoutRef = useRef<number | null>(null);
     const debouncedNavigationInput = useDebouncedValue(
         navigationInput.trim(),
@@ -492,7 +322,39 @@ export function AdminLayout({
             return;
         }
 
-        return mountTransportAutoTranslation(root, language);
+        let cleanup: (() => void) | undefined;
+        let idleId: number | null = null;
+        let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+
+        const mountTranslation = (): void => {
+            cleanup = mountTransportAutoTranslation(root, language);
+        };
+
+        if (
+            language === 'en-US' &&
+            typeof window !== 'undefined' &&
+            'requestIdleCallback' in window
+        ) {
+            idleId = window.requestIdleCallback(mountTranslation, {
+                timeout: 1200,
+            });
+        } else if (language === 'en-US' && typeof window !== 'undefined') {
+            timeoutId = globalThis.setTimeout(mountTranslation, 160);
+        } else {
+            mountTranslation();
+        }
+
+        return () => {
+            if (idleId !== null && 'cancelIdleCallback' in window) {
+                window.cancelIdleCallback(idleId);
+            }
+
+            if (timeoutId !== null) {
+                globalThis.clearTimeout(timeoutId);
+            }
+
+            cleanup?.();
+        };
     }, [language]);
 
     useEffect(() => {
@@ -564,7 +426,40 @@ export function AdminLayout({
             return;
         }
 
-        void loadQuickAccesses();
+        let idleId: number | null = null;
+        let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+        let cancelled = false;
+
+        const loadWhenReady = (): void => {
+            if (!cancelled) {
+                void loadQuickAccesses();
+            }
+        };
+
+        if (
+            typeof window !== 'undefined' &&
+            'requestIdleCallback' in window
+        ) {
+            idleId = window.requestIdleCallback(loadWhenReady, {
+                timeout: 1600,
+            });
+        } else if (typeof window !== 'undefined') {
+            timeoutId = globalThis.setTimeout(loadWhenReady, 240);
+        } else {
+            loadWhenReady();
+        }
+
+        return () => {
+            cancelled = true;
+
+            if (idleId !== null && 'cancelIdleCallback' in window) {
+                window.cancelIdleCallback(idleId);
+            }
+
+            if (timeoutId !== null) {
+                globalThis.clearTimeout(timeoutId);
+            }
+        };
     }, [loadQuickAccesses, user?.id]);
 
     useEffect(() => {
@@ -710,6 +605,9 @@ export function AdminLayout({
 
         if (!scope) return;
 
+        hasUnsavedChangesRef.current = false;
+        setHasUnsavedChanges(false);
+
         const initialValues = new WeakMap<HTMLElement, string>();
         const dirtySet = new Set<HTMLElement>();
         const dirtyClassNames = [
@@ -752,7 +650,12 @@ export function AdminLayout({
                 dirtySet.delete(element);
             }
 
-            setHasUnsavedChanges(dirtySet.size > 0);
+            const nextHasUnsavedChanges = dirtySet.size > 0;
+
+            if (hasUnsavedChangesRef.current !== nextHasUnsavedChanges) {
+                hasUnsavedChangesRef.current = nextHasUnsavedChanges;
+                setHasUnsavedChanges(nextHasUnsavedChanges);
+            }
         }
 
         function ensureInitial(element: HTMLElement): void {
@@ -1358,6 +1261,7 @@ export function AdminLayout({
             'payroll-dashboard': 'sidebar.payroll.dashboard.view',
             'payroll-launch': 'sidebar.payroll.launch.view',
             'payroll-list': 'sidebar.payroll.list.view',
+            'payroll-pending-extras': 'sidebar.payroll.list.view',
             'payroll-adjustments': 'sidebar.payroll.adjustments.view',
             'payroll-report-unit': 'sidebar.payroll.report-unit.view',
             'payroll-report-collaborator':
@@ -1436,6 +1340,11 @@ export function AdminLayout({
                             key: 'payroll-list',
                             label: copy.linkPaymentList,
                             href: '/transport/payroll/list',
+                        },
+                        {
+                            key: 'payroll-pending-extras',
+                            label: copy.linkPendingExtras,
+                            href: '/transport/payroll/pending-extras',
                         },
                         {
                             key: 'payroll-adjustments',
@@ -1648,6 +1557,12 @@ export function AdminLayout({
                     icon: List,
                 },
                 {
+                    key: 'payroll-pending-extras',
+                    label: copy.linkPendingExtras,
+                    href: '/transport/payroll/pending-extras',
+                    icon: ReceiptText,
+                },
+                {
                     key: 'payroll-adjustments',
                     label: copy.linkDiscounts,
                     href: '/transport/payroll/adjustments',
@@ -1716,6 +1631,12 @@ export function AdminLayout({
                     label: copy.linkSpotFreight,
                     href: '/transport/freight/spot',
                     icon: Truck,
+                },
+                {
+                    key: 'freight-displacements',
+                    label: copy.linkDisplacements,
+                    href: '/transport/freight/displacements',
+                    icon: CircleAlert,
                 },
                 {
                     key: 'freight-canceled-loads',
@@ -2018,7 +1939,7 @@ export function AdminLayout({
                     />
                 ) : null}
                 <div
-                    className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:p-6 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out print:block print:min-h-0 print:max-w-none print:p-0 ${
+                    className={`grid min-h-screen w-full grid-cols-1 gap-4 p-3 sm:p-4 lg:p-6 print:block print:min-h-0 print:max-w-none print:p-0 ${
                         focusMode
                             ? 'lg:grid-cols-[1fr]'
                             : sidebarCollapsed
@@ -2056,7 +1977,7 @@ export function AdminLayout({
                     ) : null}
 
                     <aside
-                        className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
+                        className={`hidden h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] print:hidden ${
                             focusMode ? 'lg:hidden' : 'lg:flex'
                         } ${sidebarCollapsed ? 'p-2' : 'p-4'}`}
                     >
